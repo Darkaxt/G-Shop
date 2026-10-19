@@ -1,9 +1,19 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 101, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 102, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**.
+The retained-process reopening correction is native-verified on `f17888a` (see
+status receipt); do not repeat that investigation. Current owner refinement:
+restore the shared red library backdrop and selected-only carton wobble/halo;
+wire booklet double-tap through hinge opening -> first left-page framing ->
+same-page reader with readiness and lifecycle cancellation. Reuse existing
+renderer, page assets and entry routes. Focused regression checks cover selection,
+Reduced Motion, page mapping/framing and cancellation; native GBA visual checks
+cover the integrated upper shelf and both booklet entry paths. No new stage,
+other console or model acquisition is implied.
+Earlier reopening investigation (resolved by the receipt above):
 Normal retained-process GBA reopening and consistent loading-grid columns are
 current acceptance blockers after the owner's reproduced hang. Diagnose the exact
 await boundary; verify native ordinary reopening, not only force-stop startup.

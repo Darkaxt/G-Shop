@@ -1,0 +1,46 @@
+import 'dart:math' as math;
+import 'dart:typed_data';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:vector_math/vector_math_64.dart' as vm;
+import 'package:retro_eshop/models/packaging_model.dart';
+import 'package:retro_eshop/widgets/socket_media_renderer.dart';
+
+void main() {
+  for (final size in [const Size(1240, 1080), const Size(1920, 1080)]) {
+    for (final aspect in [.7, 1.0, 1.35]) {
+      test('inside-left mesh maps upright to reader bounds $size/$aspect', () {
+        final model =
+            PackagingModel(PackagingKind.booklet, aspect: aspect).build();
+        final surface = model.surfaces
+            .firstWhere((s) => s['atlasCell'] == 2 && s['hinged'] == true);
+        final pivot = (surface['pivot'] as List).cast<num>();
+        final hinge = vm.Matrix4.identity()
+          ..translateByDouble(pivot[0].toDouble(), 0, 0, 1)
+          ..rotateY(-(model.data['maxOpenRadians'] as num).toDouble())
+          ..translateByDouble(-pivot[0].toDouble(), 0, 0, 1);
+        final transform = SocketMediaGpu.cameraProjection(
+            size.width, size.height, SocketMediaGpu.fittedUnits(model, size))
+          ..multiply(SocketMediaGpu.bookletPageTransform(model, size,
+              pageAspect: aspect))
+          ..multiply(hinge);
+        final width = math.min(size.width, size.height * aspect);
+        final height = width / aspect;
+        for (var i = 0; i < surface['vertexCount']; i++) {
+          final o = (surface['vertexOffset'] as int) + i * 32;
+          final p = transform.transform(vm.Vector4(
+              model.mesh.getFloat32(o, Endian.little),
+              model.mesh.getFloat32(o + 4, Endian.little),
+              model.mesh.getFloat32(o + 8, Endian.little),
+              1));
+          final x = (p.x / p.w + 1) * size.width / 2;
+          final y = (1 - p.y / p.w) * size.height / 2;
+          final u = model.mesh.getFloat32(o + 24, Endian.little) * 3 - 2;
+          final v = model.mesh.getFloat32(o + 28, Endian.little) * 2;
+          expect(x, closeTo((size.width - width) / 2 + u * width, .002));
+          expect(y, closeTo((size.height - height) / 2 + v * height, .002));
+        }
+      });
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,6 +44,97 @@ class _GalleryPlayer extends VideoPlayerPlatform {
 }
 
 void main() {
+  testWidgets('Reduced Motion opens the real inside page and preserves paging',
+      (tester) async {
+    final file = File.fromUri(File('assets/icon.png').absolute.uri);
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    await tester.runAsync(() => precacheImage(
+        FileImage(file), tester.element(find.byType(SizedBox).first)));
+    final key = GlobalKey<ResourceGalleryState>();
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: ResourceGallery(
+                key: key,
+                identity: 'reduced',
+                title: 'Read',
+                systemId: 'gba',
+                initialView: ResourceView.manual,
+                initiallyOpening: true,
+                reducedMotion: true,
+                resources: {
+          'manual-page': List.filled(4, file.uri.toString())
+        }))));
+    await tester.pump();
+    await tester.runAsync(() => precacheImage(
+        FileImage(file), tester.element(find.byType(ResourceGallery))));
+    await tester.pump();
+    tester
+        .widget<SocketMediaRenderer>(find.byType(SocketMediaRenderer))
+        .onReady!();
+    await tester.pump();
+    expect(key.currentState!.reading, true);
+    expect(key.currentState!.page, 1);
+    expect(key.currentState!.snapshot['manualProgress'], 0);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(key.currentState!.page, 2);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonB);
+    await tester.pump();
+    expect(key.currentState!.reading, false);
+    expect(find.byType(SocketMediaRenderer), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets(
+      'booklet double-tap waits for rendering before opening into page 2',
+      (tester) async {
+    final file = File.fromUri(File('assets/icon.png').absolute.uri);
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    await tester.runAsync(() => precacheImage(
+        FileImage(file), tester.element(find.byType(SizedBox).first)));
+    final key = GlobalKey<ResourceGalleryState>();
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: ResourceGallery(
+                key: key,
+                identity: 'read-transition',
+                title: 'Read',
+                systemId: 'gba',
+                initialView: ResourceView.manual,
+                resources: {
+          'manual-page': List.filled(4, file.uri.toString())
+        }))));
+    await tester.pump();
+    final surface = find.byKey(const ValueKey('resource-inspection-surface'));
+    await tester.tap(surface);
+    await tester.pump(const Duration(milliseconds: 70));
+    await tester.tap(surface);
+    await tester.pump();
+    expect(key.currentState!.opening, 0,
+        reason: 'Do not jump straight to the open pose before GPU readiness');
+    final renderer =
+        tester.widget<SocketMediaRenderer>(find.byType(SocketMediaRenderer));
+    await tester.runAsync(
+        () => precacheImage(FileImage(file), tester.element(surface)));
+    await tester.pump();
+    renderer.onReady!();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(key.currentState!.opening, inExclusiveRange(0, 1));
+    expect(key.currentState!.reading, false);
+    await tester.pump(const Duration(milliseconds: 1600));
+    expect(key.currentState!.snapshot['pageFocus'], 1);
+    expect(key.currentState!.reading, false,
+        reason: 'Host has no Impeller; only the native final frame admits PDF');
+    expect(key.currentState!.snapshot['fullCanvas'], true);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonB);
+    await tester.pump();
+    expect(key.currentState!.snapshot['manualTransition'], false);
+    expect(key.currentState!.reading, false);
+    await tester.pump(const Duration(seconds: 3));
+    expect(key.currentState!.reading, false,
+        reason: 'A cancelled animation must never open a late PDF reader');
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('box inspector stays closed while manual remains openable',
       (tester) async {
     final key = GlobalKey<ResourceGalleryState>();
@@ -73,12 +165,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 70));
     await tester.tap(surface);
     await tester.pump();
-    expect(key.currentState!.opening, 1);
-    await tester.longPress(surface);
-    await tester.pump();
-    expect(key.currentState!.reading, true);
-    expect(key.currentState!.page, 1);
+    expect(key.currentState!.opening, 0);
+    expect(key.currentState!.snapshot['manualTransition'], true);
     await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 300));
   });
   testWidgets(
       'unified media navigation releases playback and music suppression',

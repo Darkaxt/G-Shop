@@ -1,6 +1,23 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 101, 2026-10-19.
+Authoritative specification, revision 102, 2026-10-19.
+
+Owner GBA selection/booklet refinement, 2026-10-19: within ACTIVE S25 restore
+the shared red console-selection backdrop on the ROM library, including pending
+states. Mark the selected GBA carton with a soft red/warm halo behind its body
+and a gentle continuous wobble; unselected cartons remain still. Preserve the
+four-column grid, front-bound badges, captions, controller/touch selection and
+real mesh depth. Reduced Motion keeps the halo and a steady selected pose.
+
+Double-tap the booklet opens its first inside spread (PDF pages 2 and 3 when
+available), then smoothly frames the left page and blends to the full-screen
+reader showing that same page, not the cover. Wait for actual model/page
+readiness, not an arbitrary loading delay. Reuse the supplied booklet's hinge
+and the collected PDF page images, with no fabricated pages. Preserve paging,
+pinch zoom, controller access, cancellation on selection/lifecycle/navigation,
+and return to model inspection. Reduced Motion enters the same reader page
+without the camera motion. Verify both the preview and Resources entry paths,
+actual red/focus appearance and booklet handoff on Thor before owner review.
 
 Owner GBA reopening regression, 2026-10-19: normal app reopen with its Android
 process retained must load the cached collection, including after activity/engine

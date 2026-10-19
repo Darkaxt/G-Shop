@@ -427,8 +427,10 @@ class _PreviewScreenState extends State<PreviewScreen>
                                             snapshot['galleryManual'] == true
                                                 ? ResourceView.manual
                                                 : null,
-                                        initiallyReading:
+                                        initiallyOpening:
                                             snapshot['galleryManual'] == true,
+                                        reducedMotion:
+                                            snapshot['reducedMotion'] == true,
                                         key: _galleryKey,
                                         identity:
                                             snapshot['identity'] as String,
@@ -439,9 +441,10 @@ class _PreviewScreenState extends State<PreviewScreen>
                                             (snapshot['contentTags'] as List? ??
                                                     const [])
                                                 .cast<String>(),
-                                        region: GameMetadata.parse(game.filename)
-                                            .region
-                                            .name,
+                                        region:
+                                            GameMetadata.parse(game.filename)
+                                                .region
+                                                .name,
                                         dualMode:
                                             snapshot['gbcDualMode'] as String?,
                                         importedModels:
@@ -474,8 +477,7 @@ class _PreviewScreenState extends State<PreviewScreen>
                                         },
                                         onClose: () => _action('preview'),
                                         onPlayingChanged: (playing) =>
-                                            unawaited(
-                                                bridge.invokeMethod<void>('playing', {
+                                            unawaited(bridge.invokeMethod<void>('playing', {
                                               'actionEpoch':
                                                   snapshot['actionEpoch'],
                                               'video': snapshot['video'],

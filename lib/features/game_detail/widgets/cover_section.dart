@@ -204,7 +204,8 @@ class CoverSectionState extends State<CoverSection> {
                             () => [widget.physicalLabelUrl!]);
                       return ResourceGallery(
                           initialView: initialView,
-                          initiallyReading: reading,
+                          initiallyOpening: reading,
+                          reducedMotion: _reducedMotion || widget.reducedMotion,
                           identity: identity,
                           title: widget.game.displayName,
                           systemId: widget.system.id,

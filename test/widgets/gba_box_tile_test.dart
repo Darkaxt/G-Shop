@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vector_math/vector_math_64.dart' as vm;
 import 'package:retro_eshop/models/packaging_model.dart';
+import 'package:retro_eshop/models/socket_media_model.dart';
 import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
 import 'package:retro_eshop/providers/library_providers.dart';
 import 'package:retro_eshop/providers/metadata_cloud_providers.dart';
@@ -14,6 +15,37 @@ import '../helpers/pump_helpers.dart';
 import 'cover_rating_test.dart' show score;
 
 void main() {
+  testWidgets('only the selected shelf carton wobbles and carries a halo',
+      (tester) async {
+    Widget tile(bool selected, {bool reduced = false}) => MaterialApp(
+        home: MediaQuery(
+            data: MediaQueryData(disableAnimations: reduced),
+            child: GbaBoxTile(
+                identity: 'focus',
+                title: 'Focus',
+                resources: const {},
+                frontFallback: const ColoredBox(color: Colors.red),
+                selected: selected)));
+    SocketMediaPose pose() => tester
+        .widget<SocketMediaRenderer>(find.byType(SocketMediaRenderer))
+        .pose;
+    await tester.pumpWidget(tile(true));
+    final before = pose().ry;
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(pose().ry, isNot(closeTo(before, .0001)));
+    expect(find.byKey(const ValueKey('gba-selection-halo')), findsOneWidget);
+    await tester.pumpWidget(tile(false));
+    final still = pose().ry;
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(pose().ry, still);
+    expect(find.byKey(const ValueKey('gba-selection-halo')), findsNothing);
+    await tester.pumpWidget(tile(true, reduced: true));
+    final reduced = pose().ry;
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(pose().ry, reduced);
+    expect(find.byKey(const ValueKey('gba-selection-halo')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('mounted GBA box paints its arriving exact score into the atlas',
       (tester) async {
     final rating = Completer<EffectiveOverallRating?>();

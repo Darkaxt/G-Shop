@@ -82,6 +82,7 @@ class _GameGridState extends ConsumerState<GameGrid> {
   Map<String, EffectiveOverallRating?> _ratings = const {};
   Map<String, String?> _metadataCovers = const {};
   bool _showRatings = true;
+  bool _reducedMotion = false;
 
   @override
   void initState() {
@@ -130,6 +131,8 @@ class _GameGridState extends ConsumerState<GameGrid> {
 
   @override
   Widget build(BuildContext context) {
+    _reducedMotion =
+        ref.watch(mediaPresentationProvider.select((s) => s.reducedMotion));
     final rs = context.rs;
 
     if (widget.filteredGroups.isEmpty) {
@@ -335,6 +338,7 @@ class _GameGridState extends ConsumerState<GameGrid> {
           isInstalled: isInstalled,
           isRemoteAvailable: variants.any((g) => g.hasDownloadSource),
           isSelected: isSelected,
+          reducedMotion: _reducedMotion,
           isFavorite: isFavorite,
           accentColor: widget.system.accentColor,
           providerLabel: providerLabel,

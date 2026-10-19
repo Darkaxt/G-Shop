@@ -274,7 +274,7 @@ class UnboxingPreviewState extends State<UnboxingPreview>
     }
   }
 
-  void _read() {
+  Future<void> _read() async {
     if (!_timeline.isCompleted || bookletPanelPath(widget.resources, 0) == null)
       return;
     final part = _focusedPart ??
@@ -282,8 +282,20 @@ class UnboxingPreviewState extends State<UnboxingPreview>
             ? null
             : _renderer.currentState?.partAt(_doubleTapPosition!));
     if (part == 'booklet') {
+      final generation = _generation;
       _focus('booklet');
-      widget.onReadManual?.call();
+      try {
+        await _inspection.forward().orCancel;
+        if (mounted &&
+            generation == _generation &&
+            _visible &&
+            _focusedPart == 'booklet' &&
+            !_returning) {
+          widget.onReadManual?.call();
+        }
+      } on TickerCanceled {
+        // Selection, disposal or backgrounding owns cancellation.
+      }
     }
   }
 

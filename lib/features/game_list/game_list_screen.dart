@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/animated_background.dart';
 import '../preview/dual_screen_preview_host.dart';
 import '../../providers/preview_providers.dart';
 import '../../providers/collection_preferences_provider.dart';
@@ -689,7 +691,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
           }
         },
         child: Scaffold(
-          backgroundColor: Colors.black,
+          backgroundColor: AppTheme.backgroundColor,
           body: GestureDetector(
             onScaleStart: (details) {
               _lastPinchScale = 1.0;
@@ -715,6 +717,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
             },
             child: Stack(
               children: [
+                const Positioned.fill(child: AnimatedBackground()),
                 _buildNormalContent(state, topPadding),
                 if (isSearchActive) _buildSearchContent(state),
                 if (_isFiltering) _buildFilterContent(state),

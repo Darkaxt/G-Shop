@@ -215,6 +215,7 @@ class PackagingModel {
         'node': id,
         'name': name,
         'role': art == null ? 'shell' : 'label',
+        if (art != null) 'atlasCell': art,
         'vertexOffset': offset,
         'vertexCount': 4,
         'indexOffset': offset + 128,
@@ -314,8 +315,12 @@ class PackagingModel {
       // Separate lid/tray and hinge: opening exposes real empty internal space,
       // not a rotated solid block. It makes no original-platform holder claim.
       const wall = .018;
-      slab('lid', -w, w, -h, h, d - wall, d, hinged: true, front: 0);
-      slab('tray', -w, w, -h, h, -d, -d + wall, back: 1);
+      slab('lid', -w, w, -h, h, d - wall, d,
+          hinged: true,
+          front: 0,
+          back: kind == PackagingKind.booklet ? 2 : null);
+      slab('tray', -w, w, -h, h, -d, -d + wall,
+          back: 1, front: kind == PackagingKind.booklet ? 3 : null);
       slab('tray/right', w - wall, w, -h, h, -d, 0);
       slab('tray/top', -w, w, h - wall, h, -d, 0);
       slab('tray/bottom', -w, w, -h, -h + wall, -d, 0);

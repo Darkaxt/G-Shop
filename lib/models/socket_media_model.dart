@@ -341,7 +341,9 @@ class SocketMediaPose {
       labelSpin,
       opening,
       unboxing,
-      inspection;
+      inspection,
+      pageFocus,
+      pageAspect;
   final String? inspectedPart;
   const SocketMediaPose(
       {this.rx = 0,
@@ -356,7 +358,9 @@ class SocketMediaPose {
       this.opening = 0,
       this.unboxing = 0,
       this.inspectedPart,
-      this.inspection = 0});
+      this.inspection = 0,
+      this.pageFocus = 0,
+      this.pageAspect = 0});
 
   static double _phase(double t, double start, double duration) =>
       ((t - start) / duration).clamp(0.0, 1.0);

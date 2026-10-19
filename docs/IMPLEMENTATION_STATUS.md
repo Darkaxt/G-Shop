@@ -7,6 +7,20 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
+Current owner refinement (revision 102), ACTIVE: red library backdrop,
+selected-only carton wobble/halo and animated booklet-to-reader handoff. These
+are internal acceptance blockers until integrated and native-verified on Thor;
+the resolution condition is the requested visual selection and same-page reader
+workflow on both entry routes. No later-stage deferral or second ACTIVE stage.
+The verified reopening receipt below remains applicable to unchanged lifecycle code.
+The integrated implementation now passes focused host selection/Reduced Motion,
+real grid, booklet UV-corner framing at both display sizes, readiness/cancellation,
+reader paging/return and existing unified gallery checks. The new wobble and
+non-jumping opening assertions failed before implementation. Host tests have no
+Impeller GPU, so their simulated readiness callbacks do not verify actual model
+rendering or the final PDF handoff. GitHub signing and native visual verification
+remain required; this is an intermediate implementation checkpoint, not completion.
+
 Current reopening correction: VERIFIED on Thor `bfa98654`, signed source
 `f17888ae29857442068ac87b84ce401562f5fa31`, [GitHub run 39245008357](https://github.com/Darkaxt/R-Shop/actions/runs/39245008357).
 Downloaded and installed APK SHA-256 both equal

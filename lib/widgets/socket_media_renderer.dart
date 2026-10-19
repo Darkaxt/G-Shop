@@ -138,6 +138,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         'canOpen': _renderer?.model.data['canOpen'] == true,
         'openingDurationMs': _renderer?.model.data['openingDurationMs'],
         'opening': widget.pose.opening,
+        'pageFocus': widget.pose.pageFocus,
         'unboxing': widget.pose.unboxing,
         'inspectedPart': widget.pose.inspectedPart,
         'inspection': widget.pose.inspection,
@@ -157,6 +158,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
                 'ry': _paintedPose!.ry,
                 'scale': _paintedPose!.scaleX,
                 'opening': _paintedPose!.opening,
+                'pageFocus': _paintedPose!.pageFocus,
                 'unboxing': _paintedPose!.unboxing
               },
         'identity': widget.identity,
@@ -547,6 +549,65 @@ class SocketMediaGpu {
       ..scaleByDouble(1, -1, 1, 1);
   }
 
+  /// Frame the actual inside-left printed mesh, not an assumed half of the
+  /// screen. Its UV corners retain page orientation for imported booklet shapes.
+  static vm.Matrix4 bookletPageTransform(SocketMediaModel model, Size size,
+      {double pageAspect = 0}) {
+    final surface = model.surfaces
+        .firstWhere((s) => s['role'] == 'label' && s['atlasCell'] == 2);
+    final hinge = surface['openingHinges'] is List
+        ? openingTransform(surface, 1)
+        : vm.Matrix4.identity();
+    if (surface['openingHinges'] is! List && surface['hinged'] == true) {
+      final pivot = (surface['pivot'] as List).cast<num>();
+      hinge
+        ..translateByDouble(pivot[0].toDouble(), 0, 0, 1)
+        ..rotateY(-(model.data['maxOpenRadians'] as num).toDouble())
+        ..translateByDouble(-pivot[0].toDouble(), 0, 0, 1);
+    }
+    vm.Vector3 corner(double u, double v) {
+      var nearest = double.infinity;
+      var point = vm.Vector3.zero();
+      for (var i = 0; i < surface['vertexCount']; i++) {
+        final offset = (surface['vertexOffset'] as int) + i * 32;
+        final du = model.mesh.getFloat32(offset + 24, Endian.little) - u;
+        final dv = model.mesh.getFloat32(offset + 28, Endian.little) - v;
+        final distance = du * du + dv * dv;
+        if (distance < nearest) {
+          nearest = distance;
+          point = hinge.transform3(vm.Vector3(
+              model.mesh.getFloat32(offset, Endian.little),
+              model.mesh.getFloat32(offset + 4, Endian.little),
+              model.mesh.getFloat32(offset + 8, Endian.little)));
+        }
+      }
+      return point;
+    }
+
+    // Atlas cell 2 occupies the top-right third in the two-row atlas.
+    final tl = corner(2 / 3, 0), tr = corner(1, 0), bl = corner(2 / 3, .5);
+    final right = tr - tl, up = tl - bl;
+    final width = right.length, height = up.length;
+    right.normalize();
+    up.normalize();
+    final normal = right.cross(up)..normalize();
+    final basis = vm.Matrix4.columns(
+        vm.Vector4(right.x, right.y, right.z, 0),
+        vm.Vector4(up.x, up.y, up.z, 0),
+        vm.Vector4(normal.x, normal.y, normal.z, 0),
+        vm.Vector4(0, 0, 0, 1))
+      ..invert();
+    final centre = (tr + bl) * .5;
+    final ratio = pageAspect > 0 ? pageAspect : width / height;
+    final displayWidth = math.min(size.width, size.height * ratio);
+    final units = fittedUnits(model, size);
+    final sx = displayWidth / width / units;
+    final sy = displayWidth / ratio / height / units;
+    return vm.Matrix4.diagonal3Values(sx, sy, math.min(sx, sy))
+      ..multiply(basis)
+      ..translateByDouble(-centre.x, -centre.y, -centre.z, 1);
+  }
+
   static vm.Matrix4 cameraProjection(
           double width, double height, double units) =>
       vm.Matrix4.identity()
@@ -874,7 +935,13 @@ class SocketMediaGpu {
         pass.setColorBlendEquation(gpu.ColorBlendEquation());
         final units = fittedUnits(model, size, pose: pose);
         final projection = cameraProjection(size.width, size.height, units);
-        final base = modelTransform(model, pose);
+        final base = pose.pageFocus == 0
+            ? modelTransform(model, pose)
+            : Matrix4Tween(
+                    begin: modelTransform(model, pose),
+                    end: bookletPageTransform(model, size,
+                        pageAspect: pose.pageAspect))
+                .transform(pose.pageFocus);
         final uniforms =
             context.createHostBuffer(blockLengthInBytes: 16 * 1024);
         final direction =

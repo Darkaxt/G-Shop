@@ -24,6 +24,7 @@ class BaseGameCard extends StatelessWidget {
   final bool isInstalled;
   final bool isRemoteAvailable;
   final bool isSelected;
+  final bool reducedMotion;
   final Color accentColor;
   final VoidCallback onTap;
 
@@ -81,6 +82,7 @@ class BaseGameCard extends StatelessWidget {
     required this.isInstalled,
     this.isRemoteAvailable = false,
     required this.isSelected,
+    this.reducedMotion = false,
     this.isFavorite = false,
     required this.accentColor,
     required this.onTap,
@@ -155,6 +157,7 @@ class BaseGameCard extends StatelessWidget {
                   title: displayName,
                   resources: panels,
                   selected: isSelected,
+                  reducedMotion: reducedMotion,
                   frontFallback: cover == null && coverUrls.isEmpty
                       ? HandwrittenMediaSticker(
                           identity: gameIdentity!, title: displayName)

@@ -30,6 +30,7 @@ class ResourceGallery extends StatefulWidget {
   final VoidCallback? onClose;
   final ResourceView? initialView;
   final bool initiallyReading;
+  final bool initiallyOpening, reducedMotion;
   const ResourceGallery(
       {super.key,
       required this.identity,
@@ -45,16 +46,34 @@ class ResourceGallery extends StatefulWidget {
       this.onPlayingChanged,
       this.initialView,
       this.initiallyReading = false,
+      this.initiallyOpening = false,
+      this.reducedMotion = false,
       this.onClose});
   @override
   State<ResourceGallery> createState() => ResourceGalleryState();
 }
 
 class ResourceGalleryState extends State<ResourceGallery>
-    with WidgetsBindingObserver {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final rendererKey = GlobalKey<SocketMediaRendererState>();
   final _readingTransform = TransformationController();
   final _galleryScroll = ScrollController();
+  late final _manualMotion = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 2300));
+  bool _manualRequested = false,
+      _manualPageReady = false,
+      _manualModelReady = false,
+      _initialOpeningHandled = false;
+  int _manualGeneration = 0;
+  double _readYaw = -.2, _readPitch = .06, _readZoom = .75, _readOpening = 0;
+  double _readerPageAspect = 1;
+  Object? _manualError;
+  double get _pageFocus => _manualRequested
+      ? Curves.easeInOutCubic
+          .transform(((_manualMotion.value - .4) / .5).clamp(0.0, 1.0))
+      : 0;
+  double get _pageBlend =>
+      _manualRequested ? ((_manualMotion.value - .9) / .1).clamp(0.0, 1.0) : 0;
   ResourceView view = ResourceView.box;
   double yaw = -.2,
       pitch = .06,
@@ -163,7 +182,12 @@ class ResourceGalleryState extends State<ResourceGallery>
         'zoom': zoom,
         'opening': opening,
         'reading': reading,
-        'fullCanvas': view == ResourceView.gallery || reading,
+        'manualTransition': _manualRequested,
+        'manualProgress': _manualMotion.value,
+        'pageFocus': _pageFocus,
+        'manualError': _manualError?.toString(),
+        'fullCanvas':
+            view == ResourceView.gallery || reading || _manualRequested,
         'page': page,
         'galleryIndex':
             galleryItems.isEmpty ? null : page % galleryItems.length,
@@ -190,6 +214,19 @@ class ResourceGalleryState extends State<ResourceGallery>
         widget.initiallyReading &&
         pages.isNotEmpty;
     if (reading && pages.length > 1) page = 1;
+    _manualMotion.addListener(() {
+      if (mounted && _manualRequested) {
+        setState(() => opening = _readOpening +
+            (1 - _readOpening) *
+                Curves.easeInOutCubic
+                    .transform((_manualMotion.value / .4).clamp(0.0, 1.0)));
+      }
+    });
+    _manualMotion.addStatusListener((status) {
+      if (status == AnimationStatus.completed && _manualRequested) {
+        unawaited(_finishManualReading(_manualGeneration));
+      }
+    });
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -197,6 +234,14 @@ class ResourceGalleryState extends State<ResourceGallery>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _resolveAspect();
+    if (widget.initiallyOpening &&
+        !_initialOpeningHandled &&
+        !_manualRequested &&
+        !reading &&
+        view == ResourceView.manual) {
+      _initialOpeningHandled = true;
+      unawaited(_requestManualReading());
+    }
   }
 
   @override
@@ -328,6 +373,8 @@ class ResourceGalleryState extends State<ResourceGallery>
                   disc: disc,
                   umd: umd));
   void reset() {
+    _cancelManualReading();
+    _manualModelReady = false;
     yaw = -.2;
     pitch = .06;
     zoom = .75;
@@ -479,12 +526,126 @@ class ResourceGalleryState extends State<ResourceGallery>
   }
 
   void _toggleOpening() {
-    if (canOpen) setState(() => opening = opening == 0 ? 1 : 0);
+    if (view == ResourceView.manual) {
+      if (reading || _manualRequested) {
+        _returnToBooklet();
+      } else {
+        unawaited(_requestManualReading());
+      }
+    } else if (canOpen) {
+      setState(() => opening = opening == 0 ? 1 : 0);
+    }
+  }
+
+  void _cancelManualReading() {
+    _manualGeneration++;
+    _manualMotion.stop();
+    _manualRequested = false;
+    _manualPageReady = false;
+    _manualError = null;
+  }
+
+  void _returnToBooklet() => setState(() {
+        if (reading) _manualModelReady = false;
+        _cancelManualReading();
+        reading = false;
+        opening = 1;
+        yaw = -.2;
+        pitch = .06;
+        zoom = .75;
+        _readingTransform.value = Matrix4.identity();
+      });
+
+  Future<void> _requestManualReading() async {
+    if (_manualRequested || pages.isEmpty || view != ResourceView.manual)
+      return;
+    final generation = ++_manualGeneration;
+    setState(() {
+      _manualRequested = true;
+      _manualPageReady = false;
+      _manualError = null;
+      page = pages.length > 1 ? 1 : 0;
+      _readYaw = yaw;
+      _readPitch = pitch;
+      _readZoom = zoom;
+      _readOpening = opening;
+      _manualMotion.value = 0;
+      _readingTransform.value = Matrix4.identity();
+    });
+    try {
+      final stream = _provider(pages[page])
+          .resolve(createLocalImageConfiguration(context));
+      final ready = Completer<double>();
+      final listener = ImageStreamListener((info, sync) {
+        if (!ready.isCompleted)
+          ready.complete(info.image.width / info.image.height);
+      }, onError: (Object error, StackTrace? stack) {
+        if (!ready.isCompleted) ready.completeError(error, stack);
+      });
+      stream.addListener(listener);
+      try {
+        _readerPageAspect = await ready.future;
+      } finally {
+        stream.removeListener(listener);
+      }
+      if (!mounted || generation != _manualGeneration) return;
+      _manualPageReady = true;
+      _startManualReading();
+    } catch (error) {
+      if (mounted && generation == _manualGeneration) {
+        setState(() {
+          _manualRequested = false;
+          _manualError = error;
+        });
+      }
+    }
+  }
+
+  void _startManualReading() {
+    if (!_manualRequested ||
+        !_manualPageReady ||
+        !_manualModelReady ||
+        _manualMotion.isAnimating ||
+        _manualMotion.isCompleted) return;
+    debugPrint('RShopManual phase=opening page=${page + 1}');
+    if (pages.length < 2 ||
+        widget.reducedMotion ||
+        MediaQuery.disableAnimationsOf(context)) {
+      setState(() {
+        _cancelManualReading();
+        reading = true;
+        opening = 1;
+      });
+    } else {
+      unawaited(_manualMotion.forward());
+    }
+  }
+
+  Future<void> _finishManualReading(int generation) async {
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted || generation != _manualGeneration) return;
+    final frame = await rendererKey.currentState?.currentFrameReady;
+    if (!mounted || generation != _manualGeneration) return;
+    if (frame == null || frame['error'] != null) {
+      setState(() {
+        _manualRequested = false;
+        _manualError = 'The booklet could not be rendered';
+      });
+      return;
+    }
+    setState(() {
+      _manualRequested = false;
+      reading = true;
+    });
+    debugPrint('RShopManual phase=reader page=${page + 1} focus=1');
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) unawaited(_stopVideo());
+    if (state != AppLifecycleState.resumed) {
+      unawaited(_stopVideo());
+      if (_manualRequested) _returnToBooklet();
+    }
   }
 
   @override
@@ -493,6 +654,8 @@ class ResourceGalleryState extends State<ResourceGallery>
     WidgetsBinding.instance.removeObserver(this);
     _detachCover();
     _readingTransform.dispose();
+    _manualGeneration++;
+    _manualMotion.dispose();
     _galleryScroll.dispose();
     unawaited(_stopVideo());
     super.dispose();
@@ -515,13 +678,17 @@ class ResourceGalleryState extends State<ResourceGallery>
       }
     } else if (key == LogicalKeyboardKey.gameButtonY &&
         view == ResourceView.manual) {
-      setState(() => reading = !reading);
+      _toggleOpening();
     } else if (key == LogicalKeyboardKey.gameButtonX) {
       unawaited(_stopVideo());
       setState(reset);
     } else if (key == LogicalKeyboardKey.escape ||
         key == LogicalKeyboardKey.gameButtonB) {
-      widget.onClose?.call();
+      if (reading || _manualRequested) {
+        _returnToBooklet();
+      } else {
+        widget.onClose?.call();
+      }
     } else if (key == LogicalKeyboardKey.arrowLeft ||
         key == LogicalKeyboardKey.arrowRight) {
       final step = key == LogicalKeyboardKey.arrowRight ? 1 : -1;
@@ -596,6 +763,10 @@ class ResourceGalleryState extends State<ResourceGallery>
               ]))
       ]);
   void _rendered() {
+    if (view == ResourceView.manual) {
+      _manualModelReady = true;
+      _startManualReading();
+    }
     if (mounted) setState(() {});
     // Bounded transition evidence, not a frame-by-frame UI stream. No URLs,
     // titles, account data or tokens are logged.
@@ -615,13 +786,22 @@ class ResourceGalleryState extends State<ResourceGallery>
 
   @override
   Widget build(BuildContext context) {
+    final spread = _manualRequested
+        ? Curves.easeInOutCubic
+            .transform((_manualMotion.value / .4).clamp(0.0, 1.0))
+        : 0.0;
     final pose = SocketMediaPose(
-        rx: pitch,
-        ry: yaw,
-        scaleX: zoom,
-        scaleY: zoom,
-        scaleZ: zoom,
-        opening: opening);
+        rx: _manualRequested ? _readPitch * (1 - spread) : pitch,
+        ry: _manualRequested ? _readYaw * (1 - spread) : yaw,
+        scaleX:
+            _manualRequested ? _readZoom + (.43 - _readZoom) * spread : zoom,
+        scaleY:
+            _manualRequested ? _readZoom + (.43 - _readZoom) * spread : zoom,
+        scaleZ:
+            _manualRequested ? _readZoom + (.43 - _readZoom) * spread : zoom,
+        opening: opening,
+        pageFocus: _pageFocus,
+        pageAspect: _readerPageAspect);
     final player = _video;
     final content = view == ResourceView.gallery
         ? galleryItem?.trailer == true
@@ -708,7 +888,8 @@ class ResourceGalleryState extends State<ResourceGallery>
                         label: _atlas(),
                         labelIdentity:
                             '${view.name}:${widget.resources}:${_paperColor.toARGB32()}');
-    final fullCanvas = view == ResourceView.gallery || reading;
+    final fullCanvas =
+        view == ResourceView.gallery || reading || _manualRequested;
     final navigation = Row(children: [
       Expanded(
           child: SingleChildScrollView(
@@ -763,11 +944,7 @@ class ResourceGalleryState extends State<ResourceGallery>
         behavior: HitTestBehavior.opaque,
         onDoubleTap: canOpen ? _toggleOpening : null,
         onLongPress: view == ResourceView.manual && pages.isNotEmpty
-            ? () => setState(() {
-                  reading = !reading;
-                  page = reading && pages.length > 1 ? 1 : 0;
-                  _readingTransform.value = Matrix4.identity();
-                })
+            ? _toggleOpening
             : null,
         onHorizontalDragEnd: reading
             ? (event) {
@@ -778,23 +955,36 @@ class ResourceGalleryState extends State<ResourceGallery>
                 }
               }
             : null,
-        onScaleStart: reading || view == ResourceView.gallery
-            ? null
-            : (_) => _startZoom = zoom,
-        onScaleUpdate: reading || view == ResourceView.gallery
-            ? null
-            : (event) => setState(() {
-                  yaw += event.focalPointDelta.dx * .012;
-                  pitch += event.focalPointDelta.dy * .012;
-                  zoom = (_startZoom * event.scale).clamp(.35, 1.5);
-                }),
-        child: SizedBox.expand(child: content));
+        onScaleStart:
+            reading || _manualRequested || view == ResourceView.gallery
+                ? null
+                : (_) => _startZoom = zoom,
+        onScaleUpdate:
+            reading || _manualRequested || view == ResourceView.gallery
+                ? null
+                : (event) => setState(() {
+                      yaw += event.focalPointDelta.dx * .012;
+                      pitch += event.focalPointDelta.dy * .012;
+                      zoom = (_startZoom * event.scale).clamp(.35, 1.5);
+                    }),
+        child: Stack(fit: StackFit.expand, children: [
+          SizedBox.expand(child: content),
+          if (_manualRequested && _pageBlend > 0)
+            IgnorePointer(
+                child: Opacity(opacity: _pageBlend, child: image(pages[page]))),
+          if (_manualError != null)
+            const Align(
+                alignment: Alignment.bottomCenter,
+                child: Text('The booklet could not open. Try again.')),
+        ]));
     final manualHint = Padding(
         padding: const EdgeInsets.all(8),
         child: Text(
             reading
                 ? '${page % pages.length + 1} / ${pages.length}'
-                : 'Double-tap to open · Hold to read',
+                : _manualRequested
+                    ? 'Opening booklet…'
+                    : 'Double-tap to read',
             style: const TextStyle(color: Colors.white70, fontSize: 12)));
     return Focus(
         autofocus: true,

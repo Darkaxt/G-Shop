@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/core/theme/app_theme.dart';
+import 'package:retro_eshop/core/widgets/animated_background.dart';
 import 'package:retro_eshop/features/game_list/game_list_screen.dart';
 import 'package:retro_eshop/features/game_list/widgets/filter_overlay.dart';
 import 'package:retro_eshop/features/game_list/widgets/game_grid.dart';
@@ -344,6 +345,8 @@ void defineConsoleDiscoveryChecks({
     }
 
     await tester.pumpWidget(app());
+    expect(find.byType(AnimatedBackground), findsOneWidget,
+        reason: 'The ROM grid must share the red console-selection backdrop');
     expect(
         tester
             .widget<GameGridLoading>(find.byType(GameGridLoading))
