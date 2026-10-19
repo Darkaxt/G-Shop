@@ -2,6 +2,13 @@
 
 Authoritative specification, revision 112, 2026-10-19.
 
+Owner clarification: Sapphire's existing blue English front is the desired
+artwork because it matches the remaining blue box faces, cartridge and booklet.
+Do not make the purple LaunchBox front consistent merely to hide the handoff.
+Correct the composite's source selection so the desired blue front survives
+preparation and the 3D animation. English language alone does not make two
+different scans interchangeable. Preserve provenance and the other actual faces.
+
 Owner verification scope correction, 2026-10-19: stop the repetitive full-ROM
 rendering sweep. The consistent ordinary-GBA behavior is sufficient for this
 checkpoint; focus native verification on the supplied special cartridge and its

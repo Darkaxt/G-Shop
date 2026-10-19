@@ -7,6 +7,20 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
+Latest owner clarification: preserve Sapphire's blue English front, matching its
+remaining packaging, cartridge and booklet. The purple front is a LaunchBox image
+in the imported packaging pack (SHA-256
+`6c18a38a96e1a25e8ed6d4cb03be37e6f2ead5307f0379a6fc90e110db5475a9`).
+`compose_english_faces` prioritizes LaunchBox and assigns that scan to the foreign
+donor's `outer-box-front`; runtime `boxPanelPath` prioritizes it over the separately
+selected catalogue cover. Thus two English scans are switched at animation entry.
+The handoff-only candidate `e933fa6` would consistently use the wrong purple scan.
+Its signed run 39320646082 was intentionally cancelled and is terminal/cancelled,
+with ephemeral signing cleanup successful; it was not installed or released.
+The remaining internal blocker is composite front-source selection, resolved only
+when the blue front remains on the actual 3D carton. Do not change mesh tint to
+compensate or count the handoff-only regression as satisfying that requirement.
+
 Owner scope update (revision 112): the repeated ordinary-ROM sweep is stopped,
 not reported as a completed cohort. Continue with the supplied special cartridge
 and Sapphire's English-front colour discontinuity. Current signed `35342ce`
