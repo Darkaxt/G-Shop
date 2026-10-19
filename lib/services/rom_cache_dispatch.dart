@@ -38,16 +38,22 @@ class RomCacheDispatch {
     }
   }
 
-  static Future<void> bind(RomCacheRuntime runtime) async {
+  static Future<void> bind(RomCacheRuntime runtime,
+      {Future<void> Function()? onComplete}) async {
     if (!Platform.isAndroid) return;
     channel.setMethodCallHandler((call) async {
       if (call.method == 'stop') {
         await runtime.cancelAndJoin();
+        await onComplete?.call();
         return null;
       }
       if (call.method != 'run') throw MissingPluginException();
-      await runtime.reconcile();
-      return {'removed': runtime.removedGames, 'issue': runtime.issue};
+      try {
+        await runtime.reconcile();
+        return {'removed': runtime.removedGames, 'issue': runtime.issue};
+      } finally {
+        await onComplete?.call();
+      }
     });
     await channel.invokeMethod<void>('ready');
   }

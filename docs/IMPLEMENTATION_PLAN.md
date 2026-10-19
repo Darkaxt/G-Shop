@@ -1,12 +1,16 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 100, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 101, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**.
 Normal retained-process GBA reopening and consistent loading-grid columns are
 current acceptance blockers after the owner's reproduced hang. Diagnose the exact
 await boundary; verify native ordinary reopening, not only force-stop startup.
+The event-bound interruption reproduces release-mode abandoned native SQLite
+transactions. Enable explicit foreground recovery and separate/close headless
+connections so recovery cannot abort a live save/cache pass. Verify this same
+interruption after the integrated correction; do not add retries or clear data.
 The current requirement remains a retained three-object GBA endpoint (box centre,
 cartridge left, booklet right), tap-to-focus,
 pinch-out return and double-tap booklet reading. The resting arrangement is a

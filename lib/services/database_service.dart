@@ -49,11 +49,21 @@ class DatabaseService {
     if (!await databaseExists(path)) {
       throw StateError('Background save journal requires normal app startup');
     }
-    final db = await openDatabase(path);
-    if (await db.getVersion() != _dbVersion) {
-      throw StateError('Background save schema requires normal app startup');
+    // A headless pass owns its connection. Reusing the UI's native singleton
+    // would let UI recovery roll back an active save transaction, or let one
+    // engine close the other engine's handle.
+    final db = await openDatabase(path,
+        options: OpenDatabaseOptions(
+            singleInstance: false, rollbackActiveTransactionOnOpen: false));
+    try {
+      if (await db.getVersion() != _dbVersion) {
+        throw StateError('Background save schema requires normal app startup');
+      }
+      return db;
+    } catch (_) {
+      await db.close();
+      rethrow;
     }
-    return db;
   }
 
   @visibleForTesting
@@ -68,10 +78,15 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: _dbVersion,
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
-      onOpen: MetadataRefreshJobs.recoverInterrupted,
+      options: OpenDatabaseOptions(
+        version: _dbVersion,
+        // Android retains this UI-owned native singleton after engine teardown.
+        // Recover its abandoned transaction in release builds as well as debug.
+        rollbackActiveTransactionOnOpen: true,
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
+        onOpen: MetadataRefreshJobs.recoverInterrupted,
+      ),
     );
   }
 

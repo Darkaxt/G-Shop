@@ -80,6 +80,10 @@ class SharedMetadataStore {
         p.join(root.path, 'metadata.sqlite'),
         options: OpenDatabaseOptions(
             version: 8,
+            // Only the foreground engine opens this store. A destroyed engine
+            // cannot finish its transaction; sqflite otherwise leaves release
+            // reopen queued behind that abandoned native transaction forever.
+            rollbackActiveTransactionOnOpen: true,
             onConfigure: (db) async {
               final applicationId = (await db.rawQuery('PRAGMA application_id'))
                   .single

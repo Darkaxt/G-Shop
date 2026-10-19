@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
 
 import '../../models/config/source.dart';
 import '../config_storage_service.dart';
@@ -14,6 +15,11 @@ void saveBackupBackground() async {
   WidgetsFlutterBinding.ensureInitialized();
   AutomaticSaveBackups? service;
   Object? startupFailure;
+  Database? database;
+  Future<void>? closing;
+  Future<void> closeDatabase() => closing ??= () async {
+        await database?.close();
+      }();
   try {
     final preferences = await SharedPreferences.getInstance();
     var sources = <Source>[];
@@ -27,8 +33,9 @@ void saveBackupBackground() async {
     }
 
     await refresh();
+    database = await DatabaseService.openBackgroundDatabase();
     service = AutomaticSaveBackups(
-        database: DatabaseService.openBackgroundDatabase(),
+        database: Future.value(database),
         preferences: preferences,
         sources: () => sources,
         schedulePending: SaveBackgroundDispatch.schedulePending,
@@ -36,10 +43,12 @@ void saveBackupBackground() async {
         refreshConfiguration: refresh);
   } catch (error) {
     startupFailure = error;
+    await closeDatabase();
   }
   SaveBackgroundDispatch.channel.setMethodCallHandler((call) async {
     if (call.method == 'stop') {
       await service?.cancelAndJoin();
+      await closeDatabase();
       return null;
     }
     if (call.method != 'run') throw MissingPluginException();
@@ -47,12 +56,16 @@ void saveBackupBackground() async {
     if (startupFailure != null || current == null) {
       throw PlatformException(code: 'background_setup_unavailable');
     }
-    if (call.arguments == 'pending') {
-      await current.backupPending();
-    } else {
-      await current.checkEnabled();
+    try {
+      if (call.arguments == 'pending') {
+        await current.backupPending();
+      } else {
+        await current.checkEnabled();
+      }
+      return await current.passSummary();
+    } finally {
+      await closeDatabase();
     }
-    return current.passSummary();
   });
   await SaveBackgroundDispatch.channel.invokeMethod<void>('ready');
 }

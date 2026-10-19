@@ -7,6 +7,25 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
+Root cause reproduced with GitHub-signed `55623be`, run 39232486830, installed APK
+SHA-256 `7443e135421dd3865ec4fb13cb60002e94405939a304cb135a28d01e1fc48917`.
+Normal entry reads cached rows in 377ms, then scoped recovery/filtering produces
+24 games in about six seconds. An event-bound activity/engine replacement after
+`phase=reading-facts` at 12:02:51 leaves the retained process 12903 stuck at shared
+`phase=database-open` on its new engine. sqflite_common 2.5.11 explicitly defaults
+`rollbackActiveTransactionOnOpen` to debug-only; its Android native map retains
+the dead engine's open transaction and queues the new engine's SQL behind it.
+This is an internal release-mode lifecycle defect, not missing Drive data.
+
+Integrated correction awaiting native verification: enable explicit recovery for
+the foreground-owned private/shared singleton connections; headless save/cache
+passes use independent connections and close them after joined work before native
+engine teardown. The new real SQLite lifetime regression fails before correction
+(same UI/background handle) and passes after correction, including committing a
+headless transaction after the UI connection closes. Focused database/shared-store
+checks pass. Native interrupted reopening is still required; this is not a fix
+completion claim. Evidence remains in `D:/Temp/rshop-s25-entry-20261019`.
+
 Current reopening regression: the owner reports a permanent three-column loading
 view, reproduced read-only on Thor with the same installed `1cc768d` hash. The
 main engine had been recreated in retained process 25570; no discovery-complete

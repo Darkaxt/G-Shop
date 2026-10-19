@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
+import 'package:sqflite/sqflite.dart';
 import 'config_storage_service.dart';
 import 'database_service.dart';
 import 'rom_cache_runtime.dart';
@@ -14,8 +15,14 @@ import 'transfer_journal.dart';
 void romCacheBackground() async {
   WidgetsFlutterBinding.ensureInitialized();
   RomCacheRuntime? runtime;
+  Database? database;
+  Future<void>? closing;
+  Future<void> closeDatabase() => closing ??= () async {
+        await database?.close();
+      }();
   try {
     final db = await DatabaseService.openBackgroundDatabase();
+    database = db;
     runtime = RomCacheRuntime(
         store: RomCacheStore(Future.value(db)),
         drive: DriveRuntime(
@@ -32,8 +39,9 @@ void romCacheBackground() async {
         acquirePass: RomCacheDispatch.acquire,
         releasePass: RomCacheDispatch.release,
         schedule: RomCacheDispatch.schedule);
-    await RomCacheDispatch.bind(runtime);
+    await RomCacheDispatch.bind(runtime, onComplete: closeDatabase);
   } catch (_) {
+    await closeDatabase();
     RomCacheDispatch.channel.setMethodCallHandler((call) async {
       if (call.method == 'stop') {
         await runtime?.cancelAndJoin();
