@@ -4,18 +4,35 @@ Updated 2026-10-19. This records actual inspected assets, not candidate listings
 S25 is **ACTIVE** for the owner's shared collector/gallery/model correction.
 The owner's current target is a right-opening GBA carton with upright artwork,
 extracting both contents into a retained three-object arrangement. The assembly
-is derived from the actual holder, hollow cartridge and supplied booklet; its
-right-opening/upright-print sequence and booklet focus/full-screen read now have
-Thor evidence on signed `37a137d` (run 39165962524). Its resting lean was rejected
-by the owner. The corrected shallow semicircle with horizontal contents and an
-elevated camera is host-checked but still needs native acceptance. Pinch return,
-reader-back restoration and remaining combined media criteria remain to verify.
+is derived from the actual holder, hollow cartridge and supplied booklet. The
+right-opening/upright-print sequence has current Thor evidence on signed
+`1cc768d` (run 39188208354); unchanged booklet focus/full-screen reading retains
+the earlier `37a137d` evidence, not a newly performed reading check. The resting lean was
+rejected by the owner; the current shallow semicircle with horizontal contents and
+an elevated camera is native-inspected for Sapphire. Wider pinch/reader restoration
+and remaining combined media criteria retain their recorded evidence limits.
 The owner also requires sequential extraction: cartridge settles first, booklet
-follows, then the box closes. This timing passes host geometry checks, not yet Thor.
+follows, then the box closes. This timing now has both host and Thor evidence.
 Earlier top-opening or closed-inspector evidence does not verify that correction.
 This ledger does not declare the full S25 stage complete.
 
 ## Evidence and limits
+
+Current GBA cache/grid correction, 2026-10-19: source `1cc768d`, signed APK/installed
+SHA-256 `271a9a0110f038e5c99810a1d9338d78788defa5b292dba3a9b5c43f5f2c3984`.
+The visible grid cartons now expose real side/top depth instead of the rejected
+near-front pose, with badges painted into their front atlas. Home -> GBA keeps the
+native presentation owned; Back/re-entry returns the console model without the
+former disposed-ref error. Sapphire's sequential right-opening extraction and
+three-object endpoint are visually inspected; Mega Man Zero 3 has no collected
+booklet and correctly omits that object. Startup metadata backup completes without
+reloading the finished scene. Warm Sapphire resources resolve in 1.119s, but first
+entry/re-entry are slower; this is not full-cohort or instant-cache acceptance.
+Evidence: `D:/Temp/rshop-s25-cache-grid-20261019/native/1cc-*`, especially the
+grid/Sapphire PNGs, the two video-analysis manifests/contact sheets and native log.
+All returned sheets inspected; no export truncation. Capture timelines are
+estimated raw H264; timing uses app monotonic milestones. No special-shell or
+additional-console coverage is inferred from these two ordinary GBA selections.
 
 Latest GBA carton replacement, 2026-10-18: the owner's holder-enabled ZIP is
 adapted as `gba-rigged-carton-slot-v2`, retaining the seven-piece cardboard insert,

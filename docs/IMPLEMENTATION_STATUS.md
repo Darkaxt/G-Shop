@@ -7,8 +7,46 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
-Revision 99 records the owner's authorized correction. Internal acceptance
-blockers: initial GBA discovery waits for global recovery and can restart on an
+Current GBA correction is verified on Thor `bfa98654`, signed source `1cc768d`,
+GitHub run 39188208354. Downloaded and installed APK SHA-256 both equal
+`271a9a0110f038e5c99810a1d9338d78788defa5b292dba3a9b5c43f5f2c3984`;
+the existing production certificate is unchanged. The owner-rejected near-flat
+grid pose is replaced by visibly solid, closed textured cartons with distinct
+right/top faces, front-bound score/status and captions beneath. Native images:
+`D:/Temp/rshop-s25-cache-grid-20261019/native/1cc-cold-grid-{up,down}.png`.
+The lower Home console model remains visible through discovery, then hands over
+inside R-Shop without exposing Cocoon. The actual scoped recovery took 5.046s,
+discovery metadata-ready 5.339s and query .495s for 24 eligible unique games.
+First selected resources were ready at 7.313s, reveal at 8.131s and completion
+at 14.641s during startup backup. Warm Sapphire resources/reveal/completion were
+1.119s/2.633s/12.652s. Back returns to the console model without the old disposed-ref
+error; warm re-entry keeps PID 25570, metadata-ready .341s, query .515s, and first
+selected resources 6.805s. This is not a claim that every cache hit is instant.
+
+The startup metadata backup reaches 1402/1402 and completes at 04:21:28 with
+2,142,474,049 cached bytes (under 2 GiB), without invalidating the completed preview.
+Sapphire shows sequential right-hand extraction, upright printing, the box at rear
+centre, horizontal blue cartridge front-left and booklet front-right. Trailer
+playback reports the saved .2248569 volume; silent video does not prove audible
+output. Source logs are `native/1cc-cold-live.log`. All nine cold-handoff and eight
+Sapphire contact sheets were inspected, with no evidence export truncation.
+Their raw-H264 remux timelines are estimates, not performance clocks. App logs
+provide the timings above; no zero-network or physical-display-latency claim.
+
+The requested GBA correction is handed back for owner review. S25 remains ACTIVE;
+the wider model/edition/special-shell and console criteria below are not complete.
+No other console, S26/S27 work or public release was started. This is an in-place
+GitHub-signed test candidate, not a new public version. Current focused host
+discovery/readers/handoff/box-pose checks pass; the analyzer retains one existing
+style info and no errors/warnings. The baseline PSX failures below remain separate.
+Reviewed cleanup removed only superseded host APK downloads/capture driver and
+completed test fixtures (232,979,648 helper-reported bytes in this final pass).
+The current signed APK and diagnostic evidence remain. The old APKs can be
+redownloaded from their recorded GitHub runs. Device cache, models, ROMs, saves
+and accounts are untouched; both Thor displays were verified OFF after backup.
+
+Prior revision 99 investigation (resolved for this correction): initial GBA
+discovery waited for global recovery and could restart on an
 unchanged background refresh; cover-only reads validate unrelated images; gallery
 preparation scans all cached manual pages; Home dismisses the native secondary
 window before the grid can take ownership; GBA grid still uses square cards.
@@ -43,14 +81,14 @@ Analyzer reports no errors/warnings, retaining existing style infos. Three PSX
 cover-rating checks fail identically with the unmodified HEAD card restored for
 comparison (two stale duplicate-title expectations and the 24.36% golden mismatch).
 No golden or unrelated PSX behavior was changed to hide those baseline failures.
-GBA cold/warm timings, window continuity and visible rendering are still current
-acceptance blockers until the signed candidate is checked on Thor.
+The signed Thor evidence above supersedes the prior native-pending assessment
+for this bounded correction, not for the full S25 console/model inventory.
 
 The owner rejected the near-front shelf pose from the `e1` screenshot as flat.
 The mesh was active, but the actual camera projection exposed only 1.12% side
 depth. The closed shelf pose now exposes its right side and top; a projection
 regression rejects the old pose and requires visible physical depth. Native
-appearance remains pending; no type-only test is accepted as visual proof.
+appearance is now verified above; the type-only test was not visual proof.
 
 First native correction check: GitHub run 39178763109 passed for `8f222ce`;
 the installed APK SHA-256 matches the independently downloaded artifact,
@@ -87,7 +125,7 @@ Both regressions reproduced before their fixes. The console fixture now isolates
 its absent cloud hydration (real local discovery, covers and scores remain under
 test); its unrelated offline-cloud refresh build-notification assertion also
 reproduced with the cleanup fix removed. Native exit/re-entry and publication
-stability of the corrected candidate remain acceptance work.
+stability of the corrected candidate are verified by the current receipt above.
 
 ### S25 handoff/booklet polish — 2026-10-19, ACTIVE
 
