@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 98, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 99, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**. The owner now requires a retained
@@ -11,8 +11,10 @@ at the front-left/right on one supporting plane, with an elevated overview camer
 Current integrated correction also covers console-scoped cache recovery and
 unchanged-refresh stability; cover-only/bounded booklet readiness; retained
 Home-to-grid secondary ownership; static textured GBA box tiles with face-bound
-score/status, and lower-preview corner badges. Reuse the existing loaders,
-renderer, route owner and metadata store. Regress the actual initial skeleton
+score/status, and lower-preview corner badges. Expose the closed cartons' actual
+side/top depth in the shelf camera; the near-front candidate failed the owner's
+visual review despite using a 3D mesh. Reuse the existing loaders, renderer,
+route owner and metadata store. Regress the actual initial skeleton
 barrier and late outgoing-owner hide, then verify cold/warm entry and complete
 GBA presentation on Thor before the owner-review stop. These are current S25
 acceptance blockers, not separate ACTIVE stages or optional optimizations.

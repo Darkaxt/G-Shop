@@ -7,7 +7,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
-Revision 98 records the owner's authorized correction. Internal acceptance
+Revision 99 records the owner's authorized correction. Internal acceptance
 blockers: initial GBA discovery waits for global recovery and can restart on an
 unchanged background refresh; cover-only reads validate unrelated images; gallery
 preparation scans all cached manual pages; Home dismisses the native secondary
@@ -45,6 +45,12 @@ comparison (two stale duplicate-title expectations and the 24.36% golden mismatc
 No golden or unrelated PSX behavior was changed to hide those baseline failures.
 GBA cold/warm timings, window continuity and visible rendering are still current
 acceptance blockers until the signed candidate is checked on Thor.
+
+The owner rejected the near-front shelf pose from the `e1` screenshot as flat.
+The mesh was active, but the actual camera projection exposed only 1.12% side
+depth. The closed shelf pose now exposes its right side and top; a projection
+regression rejects the old pose and requires visible physical depth. Native
+appearance remains pending; no type-only test is accepted as visual proof.
 
 First native correction check: GitHub run 39178763109 passed for `8f222ce`;
 the installed APK SHA-256 matches the independently downloaded artifact,

@@ -65,8 +65,11 @@ class GbaBoxTile extends StatelessWidget {
         model: PackagingModel(PackagingKind.box,
             systemId: 'gba', aspect: 1, depth: .3671875),
         pose: SocketMediaPose(
-            rx: -.025,
-            ry: -.20,
+            // Near-front yaw cancels against this camera's perspective at the
+            // right edge, hiding nearly all physical depth. Show the closed
+            // carton's right side and top without starting a tile animation.
+            rx: .14,
+            ry: -.70,
             scaleX: selected ? 1.05 : 1,
             scaleY: selected ? 1.05 : 1,
             scaleZ: selected ? 1.05 : 1),

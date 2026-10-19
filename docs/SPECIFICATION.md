@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 98, 2026-10-19.
+Authoritative specification, revision 99, 2026-10-19.
 
 Owner GBA cache/presentation correction, 2026-10-19 (already authorized): keep
 S25 ACTIVE. Cached console browsing must not await recovery of unrelated consoles
@@ -14,6 +14,8 @@ for unrelated navigation, application backgrounding and emulator/companion launc
 
 For the GBA grid replace square cover/overlay tiles with static, closed textured
 3D cartons, retaining the 4x2 layout on Thor and the existing title underneath.
+The shelf pose must visibly expose real carton depth (side and top), not read as
+a flat cover; the owner's screenshot rejected the near-front pose on 2026-10-19.
 Remove the duplicate white title and square card chrome. Place the score at the
 box's upper-right and cloud/local status at its lower-right, in the box's front
 artwork coordinates. Keep badges readable and the selected box clearly focused.

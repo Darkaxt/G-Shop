@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vector_math/vector_math_64.dart' as vm;
 import 'package:retro_eshop/models/packaging_model.dart';
 import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
 import 'package:retro_eshop/providers/library_providers.dart';
@@ -79,6 +80,26 @@ void main() {
     expect(renderer.packaging!.kind, PackagingKind.box);
     expect(renderer.unboxingScene, isNull);
     expect(renderer.pose.opening, 0);
+    // A real mesh almost head-on still reads as a flat cover. Require visible
+    // physical depth at the shelf camera, rather than testing its type alone.
+    final model = renderer.packaging!.build();
+    final projection = SocketMediaGpu.cameraProjection(400, 300, 100)
+      ..multiply(SocketMediaGpu.modelTransform(model, renderer.pose));
+    Offset projected(double x, double y, double z) {
+      final p = projection.transform(vm.Vector4(x, y, z, 1));
+      return Offset(p.x / p.w * 200, p.y / p.w * 150);
+    }
+
+    final halfDepth = renderer.packaging!.depth / 2;
+    final frontRight = projected(1, 0, halfDepth);
+    final frontLeft = projected(-1, 0, halfDepth);
+    final backRight = projected(1, 0, -halfDepth);
+    expect(
+        (frontRight - backRight).distance / (frontRight - frontLeft).distance,
+        greaterThan(.09),
+        reason: 'The closed box side must be clearly visible, not a sliver');
+    expect(renderer.pose.rx.abs(), greaterThanOrEqualTo(.1),
+        reason: 'The shelf camera must also reveal a top edge');
     final atlas = renderer.label;
     await tester.pumpWidget(MaterialApp(
         home: Scaffold(
