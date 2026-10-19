@@ -30,6 +30,12 @@ native opening 15:57:18.874 -> reader 15:57:21.210. All eight contact sheets in
 above comes from app logs. Initial Resources route loading still takes roughly
 2.4 seconds before opening; no zero-gap route-loading claim. Resources-tab entry,
 paging/return and the new sweep/camera are being checked before final owner review.
+Native checking exposed a reader swipe conflict: the outer horizontal recognizer
+could lose slow drags to the nested InteractiveViewer and required fling velocity.
+The actual slow-drag regression fails before correction. Reader-owned interaction
+events now turn pages by horizontal displacement beyond Flutter's touch slop;
+pinch/zoomed panning and vertical gestures do not turn pages. Focused reader/framing
+checks pass. Signed native verification of this correction is still required.
 Incorrect first test-driver double-taps fell below Flutter's 40ms minimum;
 correct protocol input works, with no production workaround. Cache/data were not
 reset and no catalogue refresh was triggered. This is not whole-S25 completion.

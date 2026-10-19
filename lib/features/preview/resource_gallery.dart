@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/theme/app_theme.dart';
@@ -57,6 +58,8 @@ class ResourceGalleryState extends State<ResourceGallery>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   final rendererKey = GlobalKey<SocketMediaRendererState>();
   final _readingTransform = TransformationController();
+  Offset _readerDrag = Offset.zero;
+  bool _readerCanPage = false;
   final _galleryScroll = ScrollController();
   late final _manualMotion = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 2300));
@@ -833,6 +836,24 @@ class ResourceGalleryState extends State<ResourceGallery>
                         transformationController: _readingTransform,
                         minScale: 1,
                         maxScale: 5,
+                        onInteractionStart: (_) {
+                          _readerDrag = Offset.zero;
+                          _readerCanPage =
+                              _readingTransform.value.getMaxScaleOnAxis() <= 1.01;
+                        },
+                        onInteractionUpdate: (event) {
+                          if (event.pointerCount != 1 || event.scale != 1) {
+                            _readerCanPage = false;
+                          }
+                          _readerDrag += event.focalPointDelta;
+                        },
+                        onInteractionEnd: (_) {
+                          if (_readerCanPage &&
+                              _readerDrag.dx.abs() > kTouchSlop &&
+                              _readerDrag.dx.abs() > _readerDrag.dy.abs()) {
+                            _stepPage(_readerDrag.dx < 0 ? 1 : -1);
+                          }
+                        },
                         child: image(pages[page % pages.length]))
                 : view == ResourceView.cartridge
                     ? widget.importedModels && format != null
@@ -945,15 +966,6 @@ class ResourceGalleryState extends State<ResourceGallery>
         onDoubleTap: canOpen ? _toggleOpening : null,
         onLongPress: view == ResourceView.manual && pages.isNotEmpty
             ? _toggleOpening
-            : null,
-        onHorizontalDragEnd: reading
-            ? (event) {
-                if (_readingTransform.value.getMaxScaleOnAxis() <= 1.01 &&
-                    event.primaryVelocity != null &&
-                    event.primaryVelocity!.abs() > 50) {
-                  _stepPage(event.primaryVelocity! < 0 ? 1 : -1);
-                }
-              }
             : null,
         onScaleStart:
             reading || _manualRequested || view == ResourceView.gallery

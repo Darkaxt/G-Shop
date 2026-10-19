@@ -75,9 +75,23 @@ void main() {
     expect(key.currentState!.reading, true);
     expect(key.currentState!.page, 1);
     expect(key.currentState!.snapshot['manualProgress'], 0);
+    await tester.drag(find.byType(InteractiveViewer), const Offset(-350, 0));
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(key.currentState!.page, 2,
+        reason: 'The real reader must receive page swipes through its zoom viewer');
+    await tester.drag(find.byType(InteractiveViewer), const Offset(0, -200));
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(key.currentState!.page, 2);
+    final transform = tester.widget<InteractiveViewer>(find.byType(InteractiveViewer))
+        .transformationController!;
+    transform.value = Matrix4.diagonal3Values(2, 2, 1);
+    await tester.drag(find.byType(InteractiveViewer), const Offset(-200, 0));
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(key.currentState!.page, 2, reason: 'Zoomed page panning must not turn pages');
+    transform.value = Matrix4.identity();
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pump();
-    expect(key.currentState!.page, 2);
+    expect(key.currentState!.page, 3);
     await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonB);
     await tester.pump();
     expect(key.currentState!.reading, false);
