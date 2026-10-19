@@ -16,7 +16,36 @@ import '../helpers/pump_helpers.dart';
 import 'cover_rating_test.dart' show score;
 
 void main() {
-  testWidgets('selected carton sweeps both sides through front at thirty degrees',
+  testWidgets('selection halo reaches transparency before every tile edge',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+        home: Center(
+            child: SizedBox(
+      width: 360,
+      height: 180,
+      child: GbaBoxTile(
+          identity: 'halo',
+          title: 'Halo',
+          resources: {},
+          frontFallback: SizedBox(),
+          selected: true,
+          reducedMotion: true),
+    ))));
+    final halo = find.byKey(const ValueKey('gba-selection-halo'));
+    final size = tester.getSize(halo);
+    final decoration =
+        tester.widget<DecoratedBox>(halo).decoration as BoxDecoration;
+    final gradient = decoration.gradient! as RadialGradient;
+    expect(gradient.center, Alignment.center);
+    expect(gradient.radius * size.shortestSide, lessThan(size.shortestSide / 2),
+        reason:
+            'No nontransparent part of the radial glow may meet a clipped edge');
+    expect(gradient.colors.last.a, 0);
+    expect(gradient.stops!.last, 1);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets(
+      'selected carton sweeps both sides through front at thirty degrees',
       (tester) async {
     Widget tile(bool selected, {bool reduced = false}) => MaterialApp(
         home: MediaQuery(
@@ -32,9 +61,11 @@ void main() {
         .pose;
     await tester.pumpWidget(tile(true));
     void expectUpright() {
-      expect(pose().rx, 0, reason: 'Keep bottom details as readable as the top');
+      expect(pose().rx, 0,
+          reason: 'Keep bottom details as readable as the top');
       expect(pose().rz, 0, reason: 'Turn sideways without leaning or rolling');
     }
+
     expectUpright();
     final limit = math.pi / 6;
     expect(pose().ry, closeTo(-limit, .0001));
@@ -148,7 +179,8 @@ void main() {
         greaterThan(.09),
         reason: 'The closed box side must be clearly visible, not a sliver');
     expect(renderer.pose.rx, 0,
-        reason: 'The shelf carton must stay upright, not lean toward the viewer');
+        reason:
+            'The shelf carton must stay upright, not lean toward the viewer');
     final atlas = renderer.label;
     await tester.pumpWidget(MaterialApp(
         home: Scaffold(

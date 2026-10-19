@@ -31,8 +31,8 @@ class GbaBoxTile extends StatefulWidget {
 
 class _GbaBoxTileState extends State<GbaBoxTile>
     with SingleTickerProviderStateMixin {
-  late final _wobble = AnimationController(
-      vsync: this, duration: const Duration(seconds: 8));
+  late final _wobble =
+      AnimationController(vsync: this, duration: const Duration(seconds: 8));
 
   void _updateMotion() {
     if (widget.selected &&
@@ -111,7 +111,9 @@ class _GbaBoxTileState extends State<GbaBoxTile>
                     child: DecoratedBox(
                         key: ValueKey('gba-selection-halo'),
                         decoration: BoxDecoration(
-                            gradient: RadialGradient(radius: .7, colors: [
+                            // Finish the fade inside the shorter tile dimension;
+                            // a larger radius leaves colour at the clipped edges.
+                            gradient: RadialGradient(radius: .48, colors: [
                           Color(0x99ffad76),
                           Color(0x55ff4848),
                           Color(0x00ff4848)

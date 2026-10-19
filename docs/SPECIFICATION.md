@@ -1,6 +1,10 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 109, 2026-10-19.
+Authoritative specification, revision 110, 2026-10-19.
+
+Owner selection-glow correction, 2026-10-19: keep the selected GBA box's warm
+halo, but fade it fully to transparent inside every tile edge. No visibly clipped
+rectangular glow. Preserve the model, face-bound badges, yaw and grid dimensions.
 
 Owner inspection correction, 2026-10-19: hide every other tableau model during
 focused cartridge, booklet or box inspection, including the zoom/rotate/return
