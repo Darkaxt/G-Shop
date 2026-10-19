@@ -9,6 +9,10 @@ global-tint and unrelated-artwork contracts; wire it into English composite
 replacement, preserve original/reference/transform receipts, generate Sapphire's
 derived resource through the normal metadata lane, then inspect its signed-device
 handoff. Both originals remain untouched. No extra ACTIVE stage or cohort sweep.
+Checkpoint evidence now verifies the global correction through normal UI import,
+actual Drive publication and signed Thor rendering (see status/model ledger).
+The remaining S25 handoff blocker is a brief model-free gap before the actual
+scene appears; do not call colour continuity a seamless-transition pass.
 Owner narrowed verification: stop the repetitive full-cohort sweep and focus on
 the supplied special cartridge/holder and Sapphire's English-front colour seam.
 Ordinary model behavior already inspected is retained evidence, not a claim that

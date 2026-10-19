@@ -1,6 +1,6 @@
 # S25 verified console model and motion ledger
 
-Updated 2026-10-19. This records actual inspected assets, not candidate listings.
+Updated 2026-10-20. This records actual inspected assets, not candidate listings.
 S25 is **ACTIVE** for the owner's shared collector/gallery/model correction.
 The owner's current target is a right-opening GBA carton with upright artwork,
 extracting both contents into a retained three-object arrangement. The assembly
@@ -18,6 +18,23 @@ This ledger does not declare the full S25 stage complete.
 
 ## Evidence and limits
 
+Sapphire colour-cast checkpoint, 2026-10-20: signed source `e881651`, successful
+GitHub run 39324488584, downloaded/installed APK SHA-256
+`f5096e2eb6247904ab1fae003e766623df54ca3b0dc5de018aa7b1079ebeb0da`.
+Normal UI import updated one edition; actual Drive publication and mirror hashes
+verify that flat and carton fronts share corrected PNG `87adfac…add47a5`.
+LaunchBox remains the source; ScreenScraper's existing blue cover is the reference.
+The collector applies one RGB transform, preserving original artwork and alpha;
+no runtime mesh tint is involved. The upper shelf, waiting cover and native carton
+are blue. The right opening and final cartridge/booklet tableau still render.
+Full-size `sapphire-final-down.png` and handoff contact sheets are in
+`D:/Temp/rshop-s25-colour-cast-20261019`. The first analysis hit its export budget;
+a separate visual pass retains RGB/scene detection and periodic motion evidence.
+A brief model-free cover-to-scene gap remains visible; seamless transition is
+NOT verified. Raw-video timing is estimated, and silent capture is not audio proof.
+The colour criterion passes; the handoff gap remains an internal S25 blocker.
+No new console or repetitive ordinary-ROM sweep is inferred from this check.
+
 Targeted special-cartridge checkpoint, 2026-10-19: signed source `35342ce`,
 run 39313705720, installed/downloaded APK SHA-256
 `aa05cf4749bf2bee0de9ff62d1a16a1313a6dcaa9c8ff10b86cfb7085a9ed723`.
@@ -29,8 +46,8 @@ evidence is under `D:/Temp/rshop-s25-gba-final-20261019/twisted-*35342ce*`.
 The source-model board is illustrative, not verified game-specific electronics.
 Boktai and US Yoshi retain host geometry/fit evidence only; no native claim is
 inferred. The owner stopped the repetitive full-ROM sweep; ordinary shelf proof
-does not establish every physical edition. Sapphire's front-image handoff
-correction is awaiting native verification; broader S25 remains ACTIVE.
+does not establish every physical edition. Sapphire's later colour checkpoint is
+recorded above; broader S25 remains ACTIVE.
 
 Owner revision 107 reduces the focused booklet to an 18-degree glimpse after
 the 40-degree gap exposed its two-page construction. VERIFIED on Thor with signed

@@ -17,10 +17,34 @@ metadata serializer retain source/reference hashes and the actual transform.
 Sapphire's one-edition update contains only `box-2D` and `outer-box-front`, both
 bound to the same derived PNG; other faces, booklet and cartridge are unchanged.
 Both originals are preserved in `D:/Temp/rshop-s25-colour-cast-20261019`.
-Focused collector/model/metadata checks pass; native signed import, Drive receipt
-and actual handoff inspection remain required. No new console or full-ROM sweep.
+Focused collector/model/metadata checks pass. Signed source `e881651`, GitHub run
+39324488584, completed successfully and was installed in place on Thor. Downloaded
+and installed APK SHA-256 is
+`f5096e2eb6247904ab1fae003e766623df54ca3b0dc5de018aa7b1079ebeb0da`;
+the existing production certificate was independently verified. No public Release
+was created. Normal Settings > Game metadata > shared folder > Import artwork
+pack completed with `games=1`; normal Drive publication completed at device-log
+23:30:58.573. The actual Drive Desktop mirror's `box.png` and
+`outer-box-front.png` both hash to
+`87adfacac0f6e2067cbf9bf60f2afc1bdda3b8b4b5a1a101c4e60ae03add47a5`.
+Its metadata retains LaunchBox provenance, the ScreenScraper blue reference hash
+and the global RGB matrix. Originals remain unchanged; no new provider requests.
+The upper shelf and lower final carton are blue, not the previous purple scan.
+Native logs reach resources-ready at 1.421s and completed tableau at 12.964s
+from selection; these are application milestones, not physical presentation times.
+Recording evidence is under `D:/Temp/rshop-s25-colour-cast-20261019`.
+Its raw H.264 was remuxed with an estimated 60-fps timeline, not measured timing.
+The inspected handoff also exposes a brief model-free gap (decoded frames
+155–159); colour continuity does not establish seamless handoff acceptance.
+That remaining internal S25 handoff blocker requires retaining the preparation
+cover until the first actual scene is present, with a new signed visual check.
+No next console or full-ROM sweep was started. S25 remains ACTIVE, not COMPLETE.
+The exact device transfer fixture was removed by cleanup transaction
+`cc3e4c481e07c04aa559d4f8705b1e39` (2,150,887 bytes); host reproduction inputs,
+derived pack, signed artifact and inspection evidence remain preserved.
 
-Latest owner clarification: preserve Sapphire's blue English front, matching its
+Earlier owner clarification (source-switch remedy superseded above): preserve
+Sapphire's blue English front, matching its
 remaining packaging, cartridge and booklet. The purple front is a LaunchBox image
 in the imported packaging pack (SHA-256
 `6c18a38a96e1a25e8ed6d4cb03be37e6f2ead5307f0379a6fc90e110db5475a9`).
@@ -30,7 +54,8 @@ selected catalogue cover. Thus two English scans are switched at animation entry
 The handoff-only candidate `e933fa6` would consistently use the wrong purple scan.
 Its signed run 39320646082 was intentionally cancelled and is terminal/cancelled,
 with ephemeral signing cleanup successful; it was not installed or released.
-The remaining internal blocker is composite front-source selection, resolved only
+At that checkpoint the internal blocker was composite front-source selection,
+resolved only
 when the blue front remains on the actual 3D carton. Do not change mesh tint to
 compensate or count the handoff-only regression as satisfying that requirement.
 
