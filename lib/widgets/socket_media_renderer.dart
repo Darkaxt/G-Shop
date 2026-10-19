@@ -273,7 +273,6 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     } catch (error) {
       if (!mounted || generation != _generation) return;
       _failed(error);
-      debugPrint('Physical-media renderer: $error');
     }
   }
 
@@ -342,6 +341,8 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
 
   void _failed(Object error) {
     if (!mounted) return;
+    debugPrint('Physical-media renderer '
+        '${widget.packaging?.id ?? widget.cartridgeStyle ?? widget.format.assetName}: $error');
     setState(() => _error = error);
     if (!_ready.isCompleted) _ready.complete(snapshot);
     _poseReady?.complete(snapshot);

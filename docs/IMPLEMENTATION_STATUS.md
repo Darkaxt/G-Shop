@@ -7,6 +7,18 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
+Current acceptance failure (2026-10-19): native signed `dd3f42b` displays
+"Model unavailable" on newly exposed upper rows while already mounted cartons
+and lower resources render. The ranked driver was stopped at 12/21 remaining
+entries; this is not a completed cohort pass. Existing logging captured a separate
+Twisted holder import failure. The 18 special-model files were verified but placed
+inside file-named directories by an incorrect transfer destination; exact hash-
+checked moves corrected the layout without deleting or replacing user assets.
+Native special-model rendering still needs rechecking. Upper paint/label failures
+were not logged at their shared error boundary; bounded error logging is being
+added to identify the actual cause. This internal acceptance blocker keeps S25
+ACTIVE. No flat-art substitution or next-console work is authorized by this gap.
+
 Current owner closure request (revision 109), ACTIVE: verify the current signed
 GBA workflow across all 24 actual ranked games, including real cartridge labels,
 typed box resources, available manuals and trailer-first gallery. The old ranked

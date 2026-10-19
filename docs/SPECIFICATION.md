@@ -1,6 +1,16 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 110, 2026-10-19.
+Authoritative specification, revision 111, 2026-10-19.
+
+Owner native library failure, 2026-10-19: an upper shelf saying "Model
+unavailable" while the lower preview has the same game's resources is a rendering
+or binding failure, not evidence of a missing asset. Trace the actual failed
+boundary and verify the upper shelf through ordinary scrolling. Do not hide the
+error by substituting flat art or claim the shelf passed from lower-screen proof.
+
+Owner details-score correction, 2026-10-19: display ratings with one decimal
+place, e.g. 83.789672... becomes 83.8. Preserve their current scale, provider
+identity and underlying precision for ranking; this is a presentation change.
 
 Owner selection-glow correction, 2026-10-19: keep the selected GBA box's warm
 halo, but fade it fully to transparent inside every tile edge. No visibly clipped

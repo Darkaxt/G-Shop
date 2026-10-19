@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +13,7 @@ import 'package:retro_eshop/features/preview/resource_gallery.dart';
 import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/utils/game_metadata.dart';
+import 'package:retro_eshop/widgets/socket_media_renderer.dart';
 
 class _Player extends VideoPlayerPlatform {
   final events = StreamController<VideoEvent>();
@@ -43,6 +45,38 @@ class _Player extends VideoPlayerPlatform {
 }
 
 void main() {
+  testWidgets(
+      'details rounds displayed ratings to one decimal without changing scale',
+      (tester) async {
+    tester.view.physicalSize = const Size(1240, 1080);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    const channel = MethodChannel('com.retro.rshop/preview_view');
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (_) async => null);
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+    await tester.pumpWidget(const MaterialApp(home: PreviewScreen()));
+    await messenger.handlePlatformMessage(
+        channel.name,
+        const StandardMethodCodec().encodeMethodCall(MethodCall('snapshot', {
+          'revision': 1,
+          'identity': 'rating-fixture',
+          'actionEpoch': 1,
+          'system': 'gba',
+          'filename': 'Fixture.gba',
+          'title': 'Fixture',
+          'details': true,
+          'rating': 83.78967206580847,
+          'threeD': false,
+          'settings': const PreviewSettings().toJson(),
+        })),
+        (_) {});
+    await tester.pump();
+    expect(find.text('★ 83.8'), findsOneWidget);
+    expect(find.textContaining('83.789'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('single-display Resources also has no title app bar',
       (tester) async {
     final key = GlobalKey<CoverSectionState>();
@@ -84,6 +118,7 @@ void main() {
   });
   testWidgets('Resources fills the display and restores preview chrome on exit',
       (tester) async {
+    final page = File.fromUri(File('assets/icon.png').absolute.uri);
     tester.view.physicalSize = const Size(1240, 1080);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.resetPhysicalSize);
@@ -93,6 +128,8 @@ void main() {
     messenger.setMockMethodCallHandler(channel, (_) async => null);
     addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
     await tester.pumpWidget(const MaterialApp(home: PreviewScreen()));
+    await tester.runAsync(() => precacheImage(
+        FileImage(page), tester.element(find.byType(PreviewScreen))));
     Future<void> show(bool gallery) async {
       await messenger.handlePlatformMessage(
           channel.name,
@@ -107,10 +144,11 @@ void main() {
             'installed': true,
             'gallery': gallery,
             'galleryResources': {
-              'manual-page': ['file:///first.png', 'file:///second.png'],
+              'manual-page': [page.uri.toString(), page.uri.toString()],
               'ss': ['file:///screen.png'],
             },
             'threeD': false,
+            'reducedMotion': true,
             'settings': const PreviewSettings().toJson(),
           })),
           (_) {});
@@ -128,6 +166,15 @@ void main() {
     await tester.pump();
     await tester
         .longPress(find.byKey(const ValueKey('resource-inspection-surface')));
+    await tester.pump();
+    await tester.runAsync(() => precacheImage(
+        FileImage(page), tester.element(find.byType(ResourceGallery))));
+    await tester.pump();
+    // Host tests cannot paint Impeller. Acknowledge that boundary explicitly;
+    // real device rendering is verified separately, not bypassed in production.
+    tester
+        .widget<SocketMediaRenderer>(find.byType(SocketMediaRenderer))
+        .onReady!();
     await tester.pump();
     expect(
         tester

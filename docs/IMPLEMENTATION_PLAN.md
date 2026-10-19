@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 110, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 111, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**.
@@ -13,6 +13,7 @@ housing has now been supplied together with Boktai and US Yoshi and fitted
 inserts. Integrate those real meshes; do not pass a standard-shape fallback as
 authentic. Hide non-focused tableau models and touch targets during inspection.
 Fade the selected halo fully inside the tile; preserve the established grid/pose.
+Round the secondary details score to one decimal without changing stored ranking.
 Finish actionable checks, fix actual
 acceptance defects and reconcile the final GBA ledger before another console.
 The retained-process reopening correction is native-verified on `f17888a` (see

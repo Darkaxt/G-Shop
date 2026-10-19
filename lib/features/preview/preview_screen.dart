@@ -588,7 +588,7 @@ class _PreviewScreenState extends State<PreviewScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
               if (snapshot['rating'] != null)
-                Text('★ ${snapshot['rating']}',
+                Text('★ ${(snapshot['rating'] as num).toStringAsFixed(1)}',
                     style: const TextStyle(fontSize: 22)),
               if (snapshot['credits'] != null)
                 Text(snapshot['credits'] as String),

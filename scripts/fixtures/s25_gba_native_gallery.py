@@ -2,7 +2,9 @@
 
 Start at the ranked 24-game, four-column GBA grid, first game selected. The
 secondary display must be the verified 1240x1080 display. No backend actions,
-scraping, ROM launch, sleeps, deadlines or automatic retries are performed.
+scraping, ROM launch, readiness sleeps, deadlines or automatic retries are performed.
+Double-tap input uses a 100ms inter-tap interval within Flutter's 40..300ms
+gesture contract; this does not synchronize loading or classify readiness.
 """
 import argparse
 import hashlib
@@ -22,6 +24,7 @@ def main():
     parser.add_argument('--pack-report', required=True, type=Path)
     parser.add_argument('--start-ordinal', type=int, default=0)
     parser.add_argument('--initial-selection', required=True)
+    parser.add_argument('--initial-keycode', type=int, choices=[19, 20, 21, 22])
     parser.add_argument('--offline', action='store_true')
     args = parser.parse_args()
     if not 0 <= args.start_ordinal < 24:
@@ -44,10 +47,17 @@ def main():
     require_offline()
 
     def key(code):
-        adb('shell', 'input', 'keyevent', code)
+        require_foreground()
+        adb('shell', 'input', '-d', '0', 'keyevent', code)
 
     def tap(x, y, lower=False):
-        adb('shell', 'input', *(['-d', '4'] if lower else []), 'tap', x, y)
+        require_foreground()
+        adb('shell', 'input', '-d', '4' if lower else '0', 'tap', x, y)
+
+    def require_foreground():
+        activities = adb('shell', 'dumpsys', 'activity', 'activities')
+        if not re.search(r'Resumed: ActivityRecord\{[^\n]* com\.darkaxt\.rshop/', activities):
+            raise RuntimeError('R-Shop is not resumed; no input was dispatched')
 
     def resource(line, view, identity=None):
         if 'RShopResources ' not in line or f'"view":"{view}"' not in line:
@@ -79,6 +89,8 @@ def main():
 
         visited = set()
         previous = None
+        if args.initial_keycode is not None:
+            key(args.initial_keycode)
         with (args.output / 'frames.jsonl').open('x', encoding='utf-8') as report:
             for ordinal in range(args.start_ordinal, 24):
                 require_offline()
@@ -86,27 +98,26 @@ def main():
                     row, column = divmod(ordinal, 4)
                     key(20 if column == 0 else (22 if row % 2 == 0 else 21))
                 identity = None
-                if ordinal != args.start_ordinal:
+                if ordinal == args.start_ordinal:
+                    identity = args.initial_selection
+                while True:
                     target = wait_for(lambda line: re.search(
-                        r'selection=([a-f0-9]{64}).*model=true.*label=true', line))
+                        r'rendered selection=([a-f0-9]{64}).*model=true.*label=true.*resources=true.*video=true.*completed=true', line))
+                    if ordinal == args.start_ordinal and target[1] != identity:
+                        continue
                     identity = target[1]
-                    while identity == previous or identity in visited:
-                        target = wait_for(lambda line: re.search(
-                            r'selection=([a-f0-9]{64}).*model=true.*label=true', line))
-                        identity = target[1]
-                # The secondary presentation retains primary controller focus.
-                # Enter through its real touch actions, waiting for the details
-                # frame rather than racing the primary quick-menu focus handoff.
-                tap(620, 600, lower=True)
-                details = wait_for(lambda line: re.search(
-                    r'rendered selection=([a-f0-9]{64}).*model=null', line))
-                if identity is not None and details[1] != identity:
-                    raise RuntimeError('Details frame belongs to another selection')
-                identity = details[1]
+                    if identity != previous and identity not in visited:
+                        break
+                # One primary HUD Select opens Details, never a second Select
+                # (which would launch). Wait for its fresh frame, then use the
+                # secondary Resources button, away from Play/Download.
+                tap(1760, 985)
+                wait_for(lambda line: f'rendered selection={identity}' in line and
+                         'model=null' in line)
                 tap(620, 970, lower=True)
                 manual_pages = 0
-                for view, point in [('box', None), ('cover', (310, 278)),
-                                    ('cartridge', (559, 278)), ('manual', (830, 278))]:
+                for view, point in [('box', None), ('cartridge', (340, 65)),
+                                    ('manual', (620, 65))]:
                     if view == 'manual' and not manual_pages:
                         continue
                     if point:
@@ -133,14 +144,39 @@ def main():
                             '--down-id', '4630946482288158084', '--output-dir',
                             str(args.output), '--prefix', f'{ordinal+1:02}-{view}'],
                             check=True, stdout=subprocess.DEVNULL)
+                    if view == 'manual':
+                        require_foreground()
+                        adb('shell', 'input -d 4 tap 620 550; sleep 0.1; input -d 4 tap 620 550')
+                        wait_for(lambda line: 'RShopManual phase=reader page=2' in line)
+                        subprocess.run([sys.executable, str(args.capture_helper),
+                            '--serial', args.serial, '--screens', 'down',
+                            '--down-id', '4630946482288158084', '--output-dir',
+                            str(args.output), '--prefix', f'{ordinal+1:02}-reader'],
+                            check=True, stdout=subprocess.DEVNULL)
+                # Reader and Gallery share compact full-canvas navigation.
+                tap(*( (455, 36) if manual_pages else (860, 65) ), lower=True)
+                trailer = wait_for(lambda line: re.search(
+                    r'RShopGallery (\{.*\})', line) if all(s in line for s in
+                    ['"kind":"trailer"', '"videoReady":true', '"playing":true']) else None)
+                playback = json.loads(trailer[1])
+                if playback['error'] is not None or not 0 < playback['volume'] <= 1:
+                    raise RuntimeError('Trailer playback/volume did not pass')
+                if playback['items'] < 2:
+                    raise RuntimeError('Unified gallery lacks its collected images')
+                report.write(json.dumps({'selection': identity, 'gallery': playback}) + '\n')
+                report.flush()
+                # The first image follows the trailer in the same carousel.
+                tap(412, 1000, lower=True)
+                wait_for(lambda line: 'RShopGallery ' in line and '"kind":"image"' in line)
                 visited.add(identity)
                 previous = identity
-                tap(1184, 278, lower=True)
+                tap(1184, 36, lower=True)
                 print(json.dumps({'inspected': len(visited), 'expected': 24-args.start_ordinal}), flush=True)
             print(json.dumps({'completed': True, 'distinct': len(visited),
                               'startOrdinal': args.start_ordinal,
                               'offline': args.offline,
-                              'videoAcceptance': False, 'cinematicVerified': False}), flush=True)
+                              'videoAcceptance': True, 'cinematicCompleted': True,
+                              'visualInspectionRequired': True}), flush=True)
     finally:
         log.terminate()
         log.wait()
