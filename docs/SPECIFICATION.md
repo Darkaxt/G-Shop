@@ -11,7 +11,11 @@ add a timeout, force a remote refresh or clear data to bypass it. These are curr
 S25 acceptance blockers, superseding the earlier bounded-entry pass where affected.
 
 Reopening implementation constraint: explicitly recover abandoned foreground
-SQLite transactions in release mode, not just debug. Headless save/cache passes
+SQLite transactions in release mode, not just debug. Close the destroyed native
+engine's actual connections and reject its queued requests; rollback alone must
+not resume its abandoned queue on the next engine. Serialize native open/close
+acknowledgements so a new open cannot enter a retiring sqflite worker pool.
+Headless save/cache passes
 must own separate connections and close them after joined completion/cancellation,
 before their engines are destroyed. Foreground recovery must never roll back or
 close an active headless pass. Verify an interruption during real projection work,

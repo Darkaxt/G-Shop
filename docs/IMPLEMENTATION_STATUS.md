@@ -7,7 +7,20 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
-Root cause reproduced with GitHub-signed `55623be`, run 39232486830, installed APK
+Rollback-only candidate `b771486` failed the same native interruption at 12:26:41,
+PID 2428, signed run 39235365447, installed APK SHA-256
+`b155aa12ecd70cda08697a560c3c7593f83825d443517d26d91561e86dde1148`.
+The old SQL queue survives rollback and the reopened engine still cannot complete
+store opening. This is not a verified fix. The integrated native correction gives
+each engine its own handles, rejects requests after owner destruction and closes
+those exact handles. New native opens wait for actual close acknowledgement,
+including an open that finishes after detach; this also prevents opening into
+sqflite's retiring process-wide worker pool. Main and both headless entry routes
+install the same adapter; the renderer still has no database plugin. Host ownership
+checks pass for late opens, explicit close, queued SQL rejection, cross-engine
+isolation and handoff ordering. Signed native verification is still required.
+
+Initial reproduction with GitHub-signed `55623be`, run 39232486830, installed APK
 SHA-256 `7443e135421dd3865ec4fb13cb60002e94405939a304cb135a28d01e1fc48917`.
 Normal entry reads cached rows in 377ms, then scoped recovery/filtering produces
 24 games in about six seconds. An event-bound activity/engine replacement after
@@ -15,9 +28,10 @@ Normal entry reads cached rows in 377ms, then scoped recovery/filtering produces
 `phase=database-open` on its new engine. sqflite_common 2.5.11 explicitly defaults
 `rollbackActiveTransactionOnOpen` to debug-only; its Android native map retains
 the dead engine's open transaction and queues the new engine's SQL behind it.
-This is an internal release-mode lifecycle defect, not missing Drive data.
+This contributes to the internal release-mode lifecycle defect, not missing Drive
+data; explicitly enabling rollback proved insufficient as recorded above.
 
-Integrated correction awaiting native verification: enable explicit recovery for
+Prior rollback-only candidate (failed native verification): enable recovery for
 the foreground-owned private/shared singleton connections; headless save/cache
 passes use independent connections and close them after joined work before native
 engine teardown. The new real SQLite lifetime regression fails before correction

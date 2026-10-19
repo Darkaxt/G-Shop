@@ -35,6 +35,7 @@ open class SaveBackupJobService : JobService() {
             loader.startInitialization(applicationContext)
             loader.ensureInitializationComplete(applicationContext, null)
             val runtime = FlutterEngine(applicationContext)
+            EngineOwnedSqflitePlugin.install(runtime)
             engine = runtime
             val messenger = runtime.dartExecutor.binaryMessenger
             val identity = UUID.randomUUID().toString()

@@ -80,9 +80,9 @@ class DatabaseService {
       path,
       options: OpenDatabaseOptions(
         version: _dbVersion,
-        // Android retains this UI-owned native singleton after engine teardown.
-        // Recover its abandoned transaction in release builds as well as debug.
-        rollbackActiveTransactionOnOpen: true,
+        // Native engine ownership closes abandoned transactions before handoff.
+        // Never recover another live engine's connection by rolling it back.
+        rollbackActiveTransactionOnOpen: false,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
         onOpen: MetadataRefreshJobs.recoverInterrupted,

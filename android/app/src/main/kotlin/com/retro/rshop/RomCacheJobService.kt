@@ -29,6 +29,7 @@ open class RomCacheJobService:JobService() {
             val loader=FlutterInjector.instance().flutterLoader()
             loader.startInitialization(applicationContext);loader.ensureInitializationComplete(applicationContext,null)
             val runtime=FlutterEngine(applicationContext);engine=runtime
+            EngineOwnedSqflitePlugin.install(runtime)
             val messenger=runtime.dartExecutor.binaryMessenger
             val io=OwnedStorageService(applicationContext);storage=io
             MethodChannel(messenger,"com.retro.rshop/storage").setMethodCallHandler { call,reply ->

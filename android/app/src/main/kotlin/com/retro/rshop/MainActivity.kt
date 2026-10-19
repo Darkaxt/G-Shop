@@ -77,6 +77,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: io.flutter.embedding.engine.FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        EngineOwnedSqflitePlugin.install(flutterEngine)
         preview = PreviewChannel(this, flutterEngine.dartExecutor.binaryMessenger)
         MigrationChannel.attach(this, flutterEngine.dartExecutor.binaryMessenger)
         socketImport = SocketImportChannel(this, flutterEngine.dartExecutor.binaryMessenger)
@@ -341,6 +342,7 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
+        flutterEngine?.plugins?.get(EngineOwnedSqflitePlugin::class.java)?.closeOwnedDatabases()
         preview?.dispose()
         patchWork?.dispose()
         socketImport?.dispose()

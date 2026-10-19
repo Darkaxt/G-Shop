@@ -8,8 +8,10 @@ Normal retained-process GBA reopening and consistent loading-grid columns are
 current acceptance blockers after the owner's reproduced hang. Diagnose the exact
 await boundary; verify native ordinary reopening, not only force-stop startup.
 The event-bound interruption reproduces release-mode abandoned native SQLite
-transactions. Enable explicit foreground recovery and separate/close headless
-connections so recovery cannot abort a live save/cache pass. Verify this same
+transactions. The rollback-only candidate failed native verification. Close each
+native engine's actual connections, rejecting old requests and sequencing new
+opens after close acknowledgement; preserve separate headless connections so
+recovery cannot abort a live save/cache pass. Verify this same
 interruption after the integrated correction; do not add retries or clear data.
 The current requirement remains a retained three-object GBA endpoint (box centre,
 cartridge left, booklet right), tap-to-focus,
