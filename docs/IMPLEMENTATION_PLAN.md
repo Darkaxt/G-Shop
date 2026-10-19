@@ -1,9 +1,14 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 113, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 114, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**.
+Current closure work: reproduce and fix the preparation-cover lifecycle gap;
+verify the affected Sapphire handoff, then Boktai and US Yoshi's special
+extraction/inspection through the ordinary signed Thor app. Reuse unchanged
+ordinary/Twisted evidence, never rerun the Top 25 for each correction. Complete
+the focused host checks before one coherent signed candidate/device pass.
 Current bounded work: implement collector colour-cast estimation with test-first
 global-tint and unrelated-artwork contracts; wire it into English composite
 replacement, preserve original/reference/transform receipts, generate Sapphire's

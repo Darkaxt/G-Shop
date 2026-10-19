@@ -4,6 +4,40 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/widgets/unboxing_preview.dart';
 
 void main() {
+  testWidgets('decoding panels does not remount the visible preparation image',
+      (tester) async {
+    final key = GlobalKey<UnboxingPreviewState>();
+    final front = File.fromUri(
+        File('assets/brand_logos/publisher_nintendo.png').absolute.uri);
+    await FileImage(front).evict();
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    await tester.runAsync(() => precacheImage(
+        FileImage(front), tester.element(find.byType(SizedBox).first)));
+    await tester.pumpWidget(MaterialApp(
+        home: UnboxingPreview(
+            key: key,
+            identity: 'stable-cover',
+            title: 'Fixture',
+            style: 'gray',
+            resources: {
+              'outer-box-front': [front.uri.toString()]
+            },
+            resourcesReady: false,
+            cartridgeLabel: const SizedBox(),
+            labelIdentity: 'fixture')));
+    final image = find.byKey(const ValueKey('unboxing-preparation-cover'));
+    final before = tester.element(image);
+    await tester.pump();
+    expect(key.currentState!.snapshot['imagesReady'], true,
+        reason: '${key.currentState!.snapshot}');
+    expect(tester.element(image), same(before),
+        reason:
+            'Reparenting the Image discards its decoded frame during handoff.');
+    expect(tester.widget<Image>(image).gaplessPlayback, true,
+        reason: 'Within the same game, retain the cover until its classified '
+            'replacement has decoded. The identity subtree resets on selection.');
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('the cover stays visible while the scene is preparing',
       (tester) async {
     final key = GlobalKey<UnboxingPreviewState>();
@@ -71,7 +105,8 @@ void main() {
         find.byKey(const ValueKey('unboxing-preparation-cover')));
     expect(identical(before.image, waiting), true);
     expect(after.image, FileImage(front),
-        reason: 'The catalog cover can be a different English scan. The waiting '
+        reason:
+            'The catalog cover can be a different English scan. The waiting '
             'front must match the exact classified face used by the GPU atlas.');
     expect(key.currentState!.snapshot['started'], false);
     await tester.pumpWidget(const SizedBox());

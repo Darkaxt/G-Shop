@@ -259,7 +259,7 @@ class CoverSectionState extends State<CoverSection> {
         : null;
     final unboxing = threeD &&
         cartridgeStyle != null &&
-        widget.packagingResources.isNotEmpty;
+        (widget.packagingResources.isNotEmpty || !widget.resourcesReady);
     return Column(
       children: [
         Expanded(

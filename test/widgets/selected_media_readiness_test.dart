@@ -6,8 +6,49 @@ import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/utils/game_metadata.dart';
 import 'package:retro_eshop/widgets/cover_reveal.dart';
+import 'package:retro_eshop/widgets/unboxing_preview.dart';
 
 void main() {
+  testWidgets('GBA retains its preparation owner when packaging arrives',
+      (tester) async {
+    final cover = FileImage(File.fromUri(File('assets/icon.png').absolute.uri));
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    await tester.runAsync(() =>
+        precacheImage(cover, tester.element(find.byType(SizedBox).first)));
+    Widget view(Map<String, List<String>> resources, {bool ready = false}) =>
+        MaterialApp(
+            home: CoverSection(
+                game: const GameItem(
+                    filename: 'Fixture (USA).gba',
+                    displayName: 'Fixture',
+                    url: ''),
+                system: SystemModel.supportedSystems
+                    .firstWhere((s) => s.id == 'gba'),
+                coverUrls: const [],
+                cachedUrl: cover.file.uri.toString(),
+                metadata: GameMetadata.parse('Fixture (USA).gba'),
+                contentTags: const ['official'],
+                physicalMediaEnabled: true,
+                resourcesReady: ready,
+                packagingResources: resources,
+                showPresentationControls: false));
+    await tester.pumpWidget(view(const {}));
+    expect(find.byType(UnboxingPreview), findsOneWidget,
+        reason:
+            'Late packaging must not replace a different waiting-cover owner.');
+    final owner = tester.element(find.byType(UnboxingPreview));
+    await tester.runAsync(() => precacheImage(cover, owner));
+    await tester.pump();
+    await tester.pumpWidget(view({
+      'outer-box-front': [cover.file.uri.toString()]
+    }));
+    expect(tester.element(find.byType(UnboxingPreview)), same(owner));
+    await tester.pumpWidget(view(const {}, ready: true));
+    expect(find.byType(UnboxingPreview), findsNothing,
+        reason: 'A completed no-art lookup retains the established fallback.');
+    expect(find.byType(CoverReveal), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('selected preview holds its real cover until all media is ready',
       (tester) async {
     final key = GlobalKey<CoverSectionState>();

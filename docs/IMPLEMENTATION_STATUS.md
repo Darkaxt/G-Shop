@@ -7,6 +7,19 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
+2026-10-20, revision 114: only the affected handoff and special cartridges are
+in the current native scope; never repeat the Top 25 for each correction.
+The gap traces to two lifecycle replacements: CoverSection switched from
+CoverReveal to UnboxingPreview only when packaging arrived, then UnboxingPreview
+replaced its preparation Image tree after decoding. Both widget-owner regression
+checks reproduce the old behavior. The pending candidate mounts the GBA
+preparation owner while resources load and keeps its Image subtree across decode
+and GPU preparation; a same-game replacement retains decoded pixels. Identity
+changes reset that subtree. Completed no-art lookups retain the existing fallback.
+Focused host readiness/lifecycle and actual supplied special geometry/holder
+checks pass. Signed Thor handoff, Boktai and US Yoshi checks remain required;
+ordinary/Twisted evidence is reused. No native pass or public release is claimed.
+
 2026-10-20, revision 113: owner approved retaining LaunchBox priority with an
 estimated global colour-cast correction, superseding the proposed source switch.
 The collector now fits one robust RGB affine transform, using corresponding

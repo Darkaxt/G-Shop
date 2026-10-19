@@ -1,6 +1,15 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 113, 2026-10-20.
+Authoritative specification, revision 114, 2026-10-20.
+
+Owner GBA closure scope: fix the observed cover-to-scene gap and perform targeted
+native checks for the supplied Boktai and US Yoshi special housings, fitted
+holders, extraction and isolated inspection. Reuse unchanged ordinary/Twisted
+evidence. Do not repeat the Top 25: select only games exercising changed or
+special features. The decoded cover must remain present while classified panels
+and the actual GPU scene prepare; no timer may admit the handoff. Preserve the
+blue corrected Sapphire front and existing no-art fallback. S25 remains the only
+ACTIVE stage; do not begin Game Boy implementation before this checkpoint.
 
 Owner colour-cast decision: retain LaunchBox priority for replacement English
 faces, but estimate and reverse their global colour cast against the original
