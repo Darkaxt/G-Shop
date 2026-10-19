@@ -11,6 +11,11 @@ import 'socket_media_model.dart';
 /// The standard-shape hollow cartridge is a private import, never a Socket
 /// resource replacement. The board is illustrative, not per-game electronics.
 class GbaCartridgeModel {
+  static const specialStyles = {'twisted-us', 'boktai', 'yoshi-us'};
+  static String? cartonVariant(String? style) =>
+      specialStyles.contains(style) ? style : null;
+  static double cartonDepth(String? style) =>
+      style == 'twisted-us' ? 49 / 64 : .3523316;
   static String? styleFor(String filename, Iterable<String> tags) {
     final normalized = EditionIdentity.normalizeContentTags(tags);
     if (normalized.length != 1 || !normalized.contains('official')) return null;
@@ -18,6 +23,17 @@ class GbaCartridgeModel {
         .toLowerCase()
         .replaceAll('é', 'e')
         .replaceAll(RegExp('[^a-z0-9]'), '');
+    final regions = GameMetadata.extractRegion(filename).name.split(' / ');
+    if (title == 'wariowaretwisted') {
+      return regions.any({'USA', 'Australia'}.contains) ? 'twisted-us' : null;
+    }
+    if ({
+      'boktaithesunisinyourhand',
+      'boktai2solarboydjango',
+      'shinbokuranotaiyougyakushuunosabata'
+    }.contains(title)) return 'boktai';
+    if (title == 'yoshitopsyturvy')
+      return regions.contains('USA') ? 'yoshi-us' : null;
     // Exact commercial titles only. Never strip a hack's suffix or borrow its
     // base-game identity. Nonstandard moulds remain on their existing path.
     if ({
@@ -48,14 +64,23 @@ class GbaCartridgeModel {
 
   static Future<SocketMediaModel?> load(String style,
       {Directory? modelsDirectory}) async {
-    if (!{'gray', 'red', 'blue', 'green', 'cloudy-red', 'cloudy-green'}
-        .contains(style)) {
+    if (!{
+      'gray',
+      'red',
+      'blue',
+      'green',
+      'cloudy-red',
+      'cloudy-green',
+      ...specialStyles
+    }.contains(style)) {
       throw const FormatException('Invalid GBA cartridge style');
     }
     if (modelsDirectory == null && !Platform.isAndroid) return null;
     final root =
         modelsDirectory ?? Directory('/storage/emulated/0/RShop/models');
-    final directory = Directory('${root.path}/cartridges/gba');
+    final special = specialStyles.contains(style);
+    final directory =
+        Directory('${root.path}/cartridges/gba${special ? '/$style' : ''}');
     final manifest = File('${directory.path}/model.json');
     if (!await manifest.exists()) return null;
     final file = File('${directory.path}/model.mesh');
@@ -83,27 +108,47 @@ class GbaCartridgeModel {
     final bytes = ByteData.sublistView(await file.readAsBytes());
     // Verify the untouched conversion before applying selected material values.
     SocketMediaModel.privateCartridge(data, bytes);
-    final profiles = data['profiles'] as Map;
-    final profile = profiles[style] as Map;
-    final color = (profile['color'] as List).cast<num>();
-    if (color.length != 4 ||
-        color.any((v) => !v.isFinite || v < 0 || v > 1) ||
-        color[3] != 1) {
-      throw const FormatException('Invalid cartridge color');
+    if (special && data['cartridgeStyle'] != style) {
+      throw const FormatException('Special cartridge identity mismatch');
     }
-    for (final key in [
-      'roughness',
-      'metallic',
-      'transmission',
-      'ior',
-      'thickness'
-    ]) {
-      final value = profile[key];
-      if (value is! num ||
-          !value.isFinite ||
-          value < (key == 'ior' ? 1 : 0) ||
-          value > (key == 'ior' ? 3 : 1)) {
-        throw const FormatException('Invalid cartridge optical material');
+    if (!special) {
+      final profiles = data['profiles'] as Map;
+      final profile = profiles[style] as Map;
+      final color = (profile['color'] as List).cast<num>();
+      if (color.length != 4 ||
+          color.any((v) => !v.isFinite || v < 0 || v > 1) ||
+          color[3] != 1) {
+        throw const FormatException('Invalid cartridge color');
+      }
+      for (final key in [
+        'roughness',
+        'metallic',
+        'transmission',
+        'ior',
+        'thickness'
+      ]) {
+        final value = profile[key];
+        if (value is! num ||
+            !value.isFinite ||
+            value < (key == 'ior' ? 1 : 0) ||
+            value > (key == 'ior' ? 3 : 1)) {
+          throw const FormatException('Invalid cartridge optical material');
+        }
+      }
+      for (final surface in data['surfaces'] as List) {
+        final material = surface['material'] as Map;
+        if (surface['shellMaterial'] == true) {
+          material['color'] = color;
+          final optical = Map<String, dynamic>.from(profile)..remove('color');
+          optical['sourceTransmission'] = optical['transmission'];
+          optical['transmission'] = (optical['transmission'] as num) == 0
+              ? 0.0
+              : style.startsWith('cloudy-')
+                  ? .24
+                  : .42;
+          optical['roughness'] = (optical['roughness'] as num).clamp(.32, 1.0);
+          (material['sourceProperties'] as Map).addAll(optical);
+        }
       }
     }
     final receipts = (data['textureFiles'] as Map).cast<String, String>();
@@ -122,23 +167,8 @@ class GbaCartridgeModel {
         if (!receipts.containsKey(name))
           throw const FormatException('Texture without receipt');
       }
-      if (surface['shellMaterial'] == true) {
-        material['color'] = color;
-        final optical = Map<String, dynamic>.from(profile)..remove('color');
-        optical['sourceTransmission'] = optical['transmission'];
-        // The owner's source is almost optical glass. Retail dyed cartridge
-        // plastic is translucent: retain a solid diffuse housing and its own
-        // colour, with a weaker view of the separately textured green PCB.
-        optical['transmission'] = (optical['transmission'] as num) == 0
-            ? 0.0
-            : style.startsWith('cloudy-')
-                ? .24
-                : .42;
-        optical['roughness'] = (optical['roughness'] as num).clamp(.32, 1.0);
-        (material['sourceProperties'] as Map).addAll(optical);
-      }
     }
-    data['name'] = 'gba-hollow-pcb-$style';
+    data['name'] = special ? 'gba-special-$style' : 'gba-hollow-pcb-$style';
     data['cartridgeStyle'] = style;
     return SocketMediaModel.privateCartridge(data, bytes,
         textureBundle: _CartridgeTextures(directory, receipts));

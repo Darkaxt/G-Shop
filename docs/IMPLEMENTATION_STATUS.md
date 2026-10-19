@@ -7,6 +7,20 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
+Current owner closure request (revision 109), ACTIVE: verify the current signed
+GBA workflow across all 24 actual ranked games, including real cartridge labels,
+typed box resources, available manuals and trailer-first gallery. The old ranked
+pass used superseded models and does not establish current cohort acceptance.
+The five Pokemon color mappings exist but were not all native-verified. Standard
+shape material reuse does not cover WarioWare: Twisted! (rank 13): its larger
+sensor/rumble housing was excluded by the old style selector. The owner has now
+supplied Twisted, Boktai and US Yoshi meshes with fitted holders; selected source
+models have been converted privately, not bundled into the public APK. Mapping,
+seat-fit integration and native verification remain acceptance blockers. The
+inspection defect is reproduced: non-focused parts remain rendered behind the
+selected object. A shared render/hit-test visibility correction is implemented
+and awaits verification. No Game Boy implementation has begun.
+
 Current owner small-glimpse correction (revision 107), ACTIVE: the owner rejected
 the 40-degree focused booklet gap because its two-page construction looks unnatural.
 Reduce the actual hinge to 18 degrees and the reader-route entry to 16-19 degrees;

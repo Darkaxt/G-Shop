@@ -455,17 +455,22 @@ class _LabelLayer extends RenderRepaintBoundary {
 }
 
 class SocketMediaGpu {
+  static bool partVisible(String? part, SocketMediaPose pose) =>
+      part == null || pose.inspectedPart == null || part == pose.inspectedPart;
   static double surfaceOpening(SocketMediaModel model,
       Map<String, dynamic> surface, SocketMediaPose pose) {
     if (model.data['unboxingGeometry'] == true &&
         surface['unboxingPart'] == 'booklet') {
       if (pose.inspectedPart != 'booklet') return 0;
-      return (18 * math.pi / 180 /
+      return (18 *
+              math.pi /
+              180 /
               (model.data['maxOpenRadians'] as num).toDouble()) *
           pose.inspection;
     }
     return pose.opening;
   }
+
   // Packaging meshes retain Blender's outward counter-clockwise triangles.
   // Socket's model transform reflects Y, reversing its imported winding.
   static gpu.WindingOrder windingOrder(SocketMediaModel model) =>
@@ -658,6 +663,7 @@ class SocketMediaGpu {
     final base = modelTransform(model, pose);
     final result = <String, Rect>{};
     for (final entry in (model.data['partBounds'] as Map).entries) {
+      if (!partVisible(entry.key as String, pose)) continue;
       final bounds = (entry.value as List).cast<List>();
       final transform = projection.clone()
         ..multiply(base)
@@ -1009,6 +1015,7 @@ class SocketMediaGpu {
                     ? 1
                     : 0));
         for (final surface in ordered) {
+          if (!partVisible(surface['unboxingPart'] as String?, pose)) continue;
           final opening = surfaceOpening(model, surface, pose);
           if (opaqueOnly && transmitting(surface['material'])) continue;
           pass.setCullMode(surface['singleSided'] == true
@@ -1027,8 +1034,7 @@ class SocketMediaGpu {
           }
           if (surface['openingHinges'] is List) {
             transform.multiply(openingTransform(surface, opening));
-          } else if (surface['hinged'] == true &&
-              opening != 0) {
+          } else if (surface['hinged'] == true && opening != 0) {
             final pivot = (surface['pivot'] as List).cast<num>();
             transform
               ..translateByDouble(pivot[0].toDouble(), 0, 0, 1)

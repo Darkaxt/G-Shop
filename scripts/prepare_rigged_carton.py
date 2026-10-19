@@ -19,6 +19,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--fit-spec', type=Path)
     args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:])
     if args.output.exists():
         raise ValueError('Choose an absent output directory; preserve earlier conversions')
@@ -70,7 +71,8 @@ def main():
         fit_low = Vector([min(p[a] for p in fitted) for a in range(3)])
         fit_high = Vector([max(p[a] for p in fitted) for a in range(3)])
         fit_size = (fit_high-fit_low)*1000
-        pocket = [36.5, 61.5, 8.8]
+        fit_spec = json.loads(args.fit_spec.read_text()) if args.fit_spec else None
+        pocket = fit_spec['holder_mm']['clear_pocket'] if fit_spec else [36.5, 61.5, 8.8]
         clearance = [pocket[a]-fit_size[a] for a in range(3)]
         if any(v <= 0 for v in clearance):
             raise ValueError('Fitting cartridge size exceeds the inferred clear pocket')

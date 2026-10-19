@@ -13,10 +13,14 @@ enum PackagingKind { box, keepCase, jewelCase, booklet }
 class PackagingModel {
   final PackagingKind kind;
   final double aspect, depth;
-  final String? systemId;
+  final String? systemId, cartridgeStyle;
   final Directory? modelsDirectory;
   PackagingModel(this.kind,
-      {this.aspect = .72, double? depth, this.systemId, this.modelsDirectory})
+      {this.aspect = .72,
+      double? depth,
+      this.systemId,
+      this.modelsDirectory,
+      this.cartridgeStyle})
       : depth = depth ?? (kind == PackagingKind.booklet ? .025 : .14) {
     if (!aspect.isFinite ||
         aspect < .25 ||
@@ -28,7 +32,8 @@ class PackagingModel {
     }
   }
   bool get canOpen => kind != PackagingKind.box;
-  String get id => 'rshop-${kind.name}-v1';
+  String get id =>
+      'rshop-${kind.name}-v1${cartridgeStyle == null ? '' : '-$cartridgeStyle'}';
 
   Future<SocketMediaModel> load() async {
     Map<String, dynamic> data;
@@ -37,8 +42,12 @@ class PackagingModel {
         (Platform.isAndroid
             ? Directory('/storage/emulated/0/RShop/models')
             : null);
+    if (cartridgeStyle != null &&
+        !{'twisted-us', 'boktai', 'yoshi-us'}.contains(cartridgeStyle)) {
+      throw const FormatException('Unknown fitted carton variant');
+    }
     final name = kind == PackagingKind.box && systemId != null
-        ? 'cartons/$systemId/model'
+        ? 'cartons/$systemId/${cartridgeStyle == null ? '' : '$cartridgeStyle/'}model'
         : 'booklet';
     final manifest = local == null ? null : File('${local.path}/$name.json');
     if ((kind == PackagingKind.booklet ||

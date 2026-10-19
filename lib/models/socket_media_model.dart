@@ -165,7 +165,13 @@ class SocketMediaModel {
       throw const FormatException('Invalid local packaging import');
     }
     final surfaces = data['surfaces'];
-    final surfaceBudget = data['unboxingGeometry'] == true ? 128 : 64;
+    // The supplied Twisted assembly has 65 surfaces; its fitted carton and
+    // booklet are additional surfaces in the combined inspection scene.
+    final surfaceBudget = data['unboxingGeometry'] == true
+        ? 192
+        : data['cartridgeGeometry'] == true
+            ? 128
+            : 64;
     if (surfaces is! List ||
         surfaces.isEmpty ||
         surfaces.length > surfaceBudget) {

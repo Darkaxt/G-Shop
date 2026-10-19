@@ -8,19 +8,61 @@ import 'package:retro_eshop/models/socket_media_model.dart';
 import 'package:retro_eshop/widgets/socket_media_renderer.dart';
 
 void main() {
-  test('focused scene booklet opens eighteen degrees without opening the carton', () {
+  test('inspection isolates the selected object until overview is restored',
+      () {
+    final model = PackagingModel(PackagingKind.box).build();
+    model.data.addAll({
+      'unboxingGeometry': true,
+      'partBounds': {
+        for (final part in ['box', 'cartridge', 'booklet'])
+          part: [
+            [-.5, -.3, -.05],
+            [.5, .3, .05]
+          ]
+      },
+      'seatCenter': [0, 0, 0],
+      'seatScale': .9,
+      'bookletSeatScale': .5,
+      'hasBooklet': true,
+    });
+    for (final selected in ['box', 'cartridge', 'booklet']) {
+      for (final progress in [0.0, .01, .5, 1.0]) {
+        final bounds = SocketMediaGpu.inspectionBounds(
+            model,
+            SocketMediaPose(
+                unboxing: 1, inspectedPart: selected, inspection: progress),
+            const Size(1240, 1080));
+        expect(bounds.keys, [selected]);
+      }
+    }
+    expect(
+        SocketMediaGpu.inspectionBounds(model,
+                const SocketMediaPose(unboxing: 1), const Size(1240, 1080))
+            .keys,
+        containsAll(['box', 'cartridge', 'booklet']));
+  });
+  test(
+      'focused scene booklet opens eighteen degrees without opening the carton',
+      () {
     final model = PackagingModel(PackagingKind.booklet).build();
     model.data['unboxingGeometry'] = true;
     final maximum = (model.data['maxOpenRadians'] as num).toDouble();
     for (final progress in [0.0, .5, 1.0]) {
-      final pose = SocketMediaPose(inspectedPart: 'booklet', inspection: progress);
-      expect(SocketMediaGpu.surfaceOpening(model,
-              {'unboxingPart': 'booklet'}, pose) * maximum,
+      final pose =
+          SocketMediaPose(inspectedPart: 'booklet', inspection: progress);
+      expect(
+          SocketMediaGpu.surfaceOpening(
+                  model, {'unboxingPart': 'booklet'}, pose) *
+              maximum,
           closeTo(18 * math.pi / 180 * progress, .00001));
-      expect(SocketMediaGpu.surfaceOpening(model, {'unboxingPart': 'box'}, pose), 0);
+      expect(
+          SocketMediaGpu.surfaceOpening(model, {'unboxingPart': 'box'}, pose),
+          0);
     }
-    expect(SocketMediaGpu.surfaceOpening(model, {'unboxingPart': 'booklet'},
-        const SocketMediaPose(opening: 1)), 0,
+    expect(
+        SocketMediaGpu.surfaceOpening(model, {'unboxingPart': 'booklet'},
+            const SocketMediaPose(opening: 1)),
+        0,
         reason: 'The booklet stays closed inside the extraction sequence');
   });
   for (final size in [const Size(1240, 1080), const Size(1920, 1080)]) {

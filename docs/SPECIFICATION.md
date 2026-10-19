@@ -1,6 +1,26 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 107, 2026-10-19.
+Authoritative specification, revision 109, 2026-10-19.
+
+Owner inspection correction, 2026-10-19: hide every other tableau model during
+focused cartridge, booklet or box inspection, including the zoom/rotate/return
+transition. Exclude hidden parts from touch targets as well as both opaque and
+transmissive rendering passes. Restore all available models only on returning
+to the overview; do not let the anchored box move visibly behind the cartridge.
+The owner supplied `gba-special-models.zip`: integrate its international Twisted,
+Boktai and US Yoshi housings with their matching fitted inserts. Preserve actual
+regional limitations rather than borrowing these moulds for unsupported editions.
+
+Owner GBA closure request, 2026-10-19: finish the current GBA acceptance before
+moving to Game Boy. Validate the actual 24 distinct ranked entries against the
+current signed models/animation, real game labels, available manuals and merged
+gallery; do not invent a 25th title or substitute an older generic-model pass.
+Reconcile commercial shell/region/edition mappings with the acquired geometry.
+The ranked WarioWare: Twisted! entry requires its actual enlarged sensor housing,
+not the standard hollow shell recolored to imply matching geometry. Retain an
+explicit missing-model blocker if no appropriate asset can be acquired; this must
+not prevent checking the remaining actual GBA workflows. Preserve existing data,
+settings and cache; no next-console implementation or unrequested ROM launch.
 
 Owner booklet focus correction, 2026-10-19: when the booklet zooms into
 inspection, progressively open its real hinge to a small 18-degree glimpse.

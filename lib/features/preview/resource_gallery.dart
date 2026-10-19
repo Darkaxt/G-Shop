@@ -264,6 +264,10 @@ class ResourceGalleryState extends State<ResourceGallery>
   }
 
   String? _aspectUrl;
+  String? get _cartonVariant => widget.systemId == 'gba'
+      ? GbaCartridgeModel.cartonVariant(GbaCartridgeModel.styleFor(
+          widget.filename ?? widget.title, widget.contentTags))
+      : null;
   void _resolveAspect() {
     final url = view == ResourceView.manual
         ? pages.firstOrNull
@@ -283,6 +287,9 @@ class ResourceGalleryState extends State<ResourceGallery>
                 {'gba', 'gb', 'gbc'}.contains(widget.systemId)
             ? .34
             : .14;
+    if (view == ResourceView.box && _cartonVariant != null) {
+      depth = GbaCartridgeModel.cartonDepth(_cartonVariant);
+    }
     if (url == null) return;
     final provider = _provider(url);
     _coverStream = provider.resolve(createLocalImageConfiguration(context));
@@ -304,7 +311,9 @@ class ResourceGalleryState extends State<ResourceGallery>
       _detachCover();
     }, onError: (_, __) => _detachCover());
     _coverStream!.addListener(_coverListener!);
-    if (spine != null && view != ResourceView.manual) {
+    if (spine != null &&
+        view != ResourceView.manual &&
+        _cartonVariant == null) {
       _spineStream =
           _provider(spine).resolve(createLocalImageConfiguration(context));
       _spineListener = ImageStreamListener((info, sync) {
@@ -776,7 +785,11 @@ class ResourceGalleryState extends State<ResourceGallery>
     if (mounted) setState(() {});
     // Bounded transition evidence, not a frame-by-frame UI stream. No URLs,
     // titles, account data or tokens are logged.
+    final snapshot = rendererKey.currentState?.snapshot;
     debugPrint('RShopResources ${jsonEncode({
+          'frameRendered': snapshot?['frameRendered'],
+          'labelReady': snapshot?['labelReady'],
+          'error': snapshot?['error'],
           'identity': widget.identity,
           'system': widget.systemId,
           'view': view.name,
@@ -786,7 +799,16 @@ class ResourceGalleryState extends State<ResourceGallery>
             for (final entry in widget.resources.entries)
               entry.key: entry.value.length
           },
-          'model': rendererKey.currentState?.snapshot,
+          'model': {
+            for (final key in [
+              'model',
+              'geometrySha256',
+              'canOpen',
+              'opening',
+              'cartridgeStyle'
+            ])
+              key: snapshot?[key],
+          },
         })}');
   }
 
@@ -842,7 +864,8 @@ class ResourceGalleryState extends State<ResourceGallery>
                         onInteractionStart: (_) {
                           _readerDrag = Offset.zero;
                           _readerCanPage =
-                              _readingTransform.value.getMaxScaleOnAxis() <= 1.01;
+                              _readingTransform.value.getMaxScaleOnAxis() <=
+                                  1.01;
                         },
                         onInteractionUpdate: (event) {
                           if (event.pointerCount != 1 || event.scale != 1) {
@@ -902,6 +925,12 @@ class ResourceGalleryState extends State<ResourceGallery>
                     : SocketMediaRenderer.packaging(
                         key: rendererKey,
                         model: PackagingModel(kind,
+                            cartridgeStyle: GbaCartridgeModel.cartonVariant(
+                                widget.systemId == 'gba'
+                                    ? GbaCartridgeModel.styleFor(
+                                        widget.filename ?? widget.title,
+                                        widget.contentTags)
+                                    : null),
                             aspect: aspect,
                             depth: depth,
                             systemId: widget.systemId),

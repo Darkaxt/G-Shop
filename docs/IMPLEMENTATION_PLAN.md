@@ -1,9 +1,19 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 107, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 109, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**.
+Owner resumed the GBA checkpoint for final acceptance, not another visual-polish
+round: reconcile the current ranked 24, shell/edition mappings and existing
+resource inventory; then verify ordinary signed Thor preview/Resources/manual/
+gallery and current animation across the cohort. Reuse unchanged inspected
+lifecycle/reader evidence where applicable. WarioWare: Twisted!'s enlarged
+housing has now been supplied together with Boktai and US Yoshi and fitted
+inserts. Integrate those real meshes; do not pass a standard-shape fallback as
+authentic. Hide non-focused tableau models and touch targets during inspection.
+Finish actionable checks, fix actual
+acceptance defects and reconcile the final GBA ledger before another console.
 The retained-process reopening correction is native-verified on `f17888a` (see
 status receipt); do not repeat that investigation. Include the owner's near-level
 console hardware camera, preserving upright rotation and gestures, and the

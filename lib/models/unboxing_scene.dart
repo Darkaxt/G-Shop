@@ -26,8 +26,9 @@ class UnboxingScene {
   Future<SocketMediaModel?> load() async {
     final carton = await PackagingModel(PackagingKind.box,
             systemId: 'gba',
+            cartridgeStyle: GbaCartridgeModel.cartonVariant(style),
             aspect: 1,
-            depth: .3523316,
+            depth: GbaCartridgeModel.cartonDepth(style),
             modelsDirectory: modelsDirectory)
         .load();
     final slot = carton.data['cartridgeSlot'];
@@ -98,13 +99,22 @@ class UnboxingScene {
         .toString();
     final center = (slot['fitCenter'] as List).cast<num>();
     final fit = (slot['fitBounds'] as List).cast<List>();
+    final special = GbaCartridgeModel.specialStyles.contains(style);
+    final cartBounds = bounds['cartridge']!;
+    final cartWidth = cartBounds[1][0] - cartBounds[0][0];
+    final cartHeight = cartBounds[1][1] - cartBounds[0][1];
+    final fitWidth = (fit[1][0] as num) - (fit[0][0] as num);
+    final fitHeight = (fit[1][1] as num) - (fit[0][1] as num);
+    final turned = special &&
+        (fitWidth / cartHeight - fitHeight / cartWidth).abs() <
+            (fitWidth / cartWidth - fitHeight / cartHeight).abs();
     return SocketMediaModel.privatePackaging({
       'name': 'gba-holder-tableau-v2',
       'packagingGeometry': true,
       'privateImport': true,
       'unboxingGeometry': true,
       'motionKind': 'packaging',
-      'bounds': [2, 2, .3523316],
+      'bounds': [2, 2, GbaCartridgeModel.cartonDepth(style)],
       'sourceWidth': 2,
       'labelAspect': .75,
       'frontSign': 1,
@@ -112,8 +122,15 @@ class UnboxingScene {
       'openingDurationMs': 3000,
       'maxOpenRadians': booklet?.data['maxOpenRadians'] ?? math.pi * .85,
       'cartridgeStyle': style,
-      'seatCenter': [center[0], center[1], center[2] * .3523316 / 2],
-      'seatScale': (fit[1][0] as num) - (fit[0][0] as num),
+      'seatCenter': [
+        center[0],
+        center[1],
+        center[2] * GbaCartridgeModel.cartonDepth(style) / 2
+      ],
+      'seatScale': special
+          ? (turned ? fitWidth / cartHeight : fitWidth / cartWidth)
+          : fitWidth,
+      'seatRotationZ': turned ? -math.pi / 2 : 0.0,
       'openingSide': carton.data['openingSide'],
       'partBounds': bounds,
       'hasBooklet': booklet != null,
@@ -195,7 +212,10 @@ class UnboxingScene {
                     (1 - spread) +
                 .5 * spread
             : scale + (1.45 - scale) * spread;
-    var rz = (book ? -math.pi / 2 * (1 - spread) : 0.0) +
+    var rz = (book
+            ? -math.pi / 2 * (1 - spread)
+            : ((model.data['seatRotationZ'] as num?)?.toDouble() ?? 0) *
+                (1 - spread)) +
         (box
                 ? 0.0
                 : book
