@@ -29,6 +29,16 @@ checks now pass for cached-before-paint, scrolled-visible and detached producers
 plus unchanged shelf geometry/badges, score rounding and reader/gallery routes.
 Signed native scrolling verification remains required; no device-fix claim yet.
 
+Signed diagnostic `7cf705a`, run 39309966831, installed/downloaded SHA-256
+`d0b80ada7547d1c5f607a5127193ae2bbb6e7a8afb57515bade9dd0774babcfa`,
+confirms the upper shelf's null-check failure on Thor. It also isolates Twisted's
+separate native draw failure: `offset=16320,length=192` crosses the fixed 16 KiB
+uniform block. The installed Flutter HostBuffer checks only aligned start against
+capacity, not the write end. Size each pass from its environment, per-surface
+matrix/material payloads and actual GPU alignment; do not change global tools or
+substitute simpler geometry. The capacity regression reproduces the overflow;
+native Twisted rendering remains an acceptance blocker pending the corrected build.
+
 Current owner closure request (revision 109), ACTIVE: verify the current signed
 GBA workflow across all 24 actual ranked games, including real cartridge labels,
 typed box resources, available manuals and trailer-first gallery. The old ranked

@@ -458,6 +458,14 @@ class _LabelLayer extends RenderRepaintBoundary {
 }
 
 class SocketMediaGpu {
+  static int uniformBlockLength(int surfaces, int alignment) {
+    int aligned(int bytes) => (bytes + alignment - 1) ~/ alignment * alignment;
+    // EnvironmentInfo: 16 floats; each surface has three matrices and 28
+    // material floats. This SDK's HostBuffer rollover tests only the aligned
+    // start, not the end of a write. Fit the whole pass without a rollover.
+    return aligned(16 * 4) + surfaces * (aligned(48 * 4) + aligned(28 * 4));
+  }
+
   static bool partVisible(String? part, SocketMediaPose pose) =>
       part == null || pose.inspectedPart == null || part == pose.inspectedPart;
   static double surfaceOpening(SocketMediaModel model,
@@ -962,8 +970,9 @@ class SocketMediaGpu {
                     end: bookletPageTransform(model, size,
                         pageAspect: pose.pageAspect))
                 .transform(pose.pageFocus);
-        final uniforms =
-            context.createHostBuffer(blockLengthInBytes: 16 * 1024);
+        final uniforms = context.createHostBuffer(
+            blockLengthInBytes: uniformBlockLength(
+                model.surfaces.length, context.minimumUniformByteAlignment));
         final direction =
             (environmentData['lightDirection'] as List).cast<num>();
         pass.bindUniform(

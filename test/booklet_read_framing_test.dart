@@ -8,6 +8,31 @@ import 'package:retro_eshop/models/socket_media_model.dart';
 import 'package:retro_eshop/widgets/socket_media_renderer.dart';
 
 void main() {
+  test('all scene uniforms fit their block including GPU alignment padding',
+      () {
+    final materialBytes = SocketMediaGpu.materialUniforms({
+      'color': [1, 1, 1, 1],
+      'sourceProperties': <String, dynamic>{},
+    }).lengthInBytes;
+    expect(materialBytes, 112);
+    for (final alignment in [16, 64, 256]) {
+      for (final surfaces in [59, 65, 101, 131, 192]) {
+        var cursor = 0;
+        final capacity = SocketMediaGpu.uniformBlockLength(surfaces, alignment);
+        for (final length in [
+          64,
+          for (var i = 0; i < surfaces; i++) ...[192, materialBytes]
+        ]) {
+          cursor = (cursor + alignment - 1) ~/ alignment * alignment;
+          expect(cursor + length, lessThanOrEqualTo(capacity),
+              reason:
+                  '$surfaces surfaces at $alignment-byte uniform alignment');
+          cursor += length;
+        }
+        expect(capacity - cursor, lessThan(alignment));
+      }
+    }
+  });
   test('inspection isolates the selected object until overview is restored',
       () {
     final model = PackagingModel(PackagingKind.box).build();
