@@ -110,6 +110,20 @@ def main():
                     identity = target[1]
                     if identity != previous and identity not in visited:
                         break
+                # Cover the actual upper viewport through ordinary scrolling;
+                # lower-preview success does not establish shelf rendering.
+                if ordinal % 4 == 0 or ordinal == 23:
+                    subprocess.run([sys.executable, str(args.capture_helper),
+                        '--serial', args.serial, '--screens', 'up',
+                        '--up-id', '4630946441858561667', '--output-dir',
+                        str(args.output), '--prefix', f'{ordinal+1:02}-shelf'],
+                        check=True, stdout=subprocess.DEVNULL)
+                if ordinal == 15:
+                    subprocess.run([sys.executable, str(args.capture_helper),
+                        '--serial', args.serial, '--screens', 'down',
+                        '--down-id', '4630946482288158084', '--output-dir',
+                        str(args.output), '--prefix', f'{ordinal+1:02}-special-tableau'],
+                        check=True, stdout=subprocess.DEVNULL)
                 # One primary HUD Select opens Details, never a second Select
                 # (which would launch). Wait for its fresh frame, then use the
                 # secondary Resources button, away from Play/Download.
@@ -168,7 +182,9 @@ def main():
                 report.write(json.dumps({'selection': identity, 'gallery': playback}) + '\n')
                 report.flush()
                 # The first image follows the trailer in the same carousel.
-                tap(412, 1000, lower=True)
+                # This point lies inside the first image with and without
+                # overflow arrows on the verified 1240px secondary display.
+                tap(580, 1000, lower=True)
                 wait_for(lambda line: 'RShopGallery ' in line and '"kind":"image"' in line)
                 visited.add(identity)
                 previous = identity

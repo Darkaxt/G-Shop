@@ -1,9 +1,13 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 111, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 112, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**.
+Owner narrowed verification: stop the repetitive full-cohort sweep and focus on
+the supplied special cartridge/holder and Sapphire's English-front colour seam.
+Ordinary model behavior already inspected is retained evidence, not a claim that
+all 24 games passed. This supersedes the exhaustive native sweep below.
 Owner resumed the GBA checkpoint for final acceptance, not another visual-polish
 round: reconcile the current ranked 24, shell/edition mappings and existing
 resource inventory; then verify ordinary signed Thor preview/Resources/manual/

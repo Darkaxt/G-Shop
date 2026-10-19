@@ -7,6 +7,45 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
+Owner scope update (revision 112): the repeated ordinary-ROM sweep is stopped,
+not reported as a completed cohort. Continue with the supplied special cartridge
+and Sapphire's English-front colour discontinuity. Current signed `35342ce`
+(run 39313705720) is installed in place; downloaded and installed APK SHA-256
+`aa05cf4749bf2bee0de9ff62d1a16a1313a6dcaa9c8ff10b86cfb7085a9ed723`
+and the existing production certificate agree. Newly exposed upper rows have
+visually inspected solid cartons without the former null-check failure. The
+special-scene overflow correction still requires its targeted native inspection.
+The earlier black trailer recording was taken minutes after playback started;
+it does not distinguish an ended black final frame from failed video rendering.
+No trailer regression is established from that recording alone.
+
+Targeted native evidence on that same build: WarioWare: Twisted!'s actual
+enlarged cartridge, fitted carton/insert and booklet reach the three-object
+endpoint. The focus recording and rotated close-up show only the selected
+cartridge; the other models are hidden, with no draw-buffer failure. Evidence:
+`D:/Temp/rshop-s25-gba-final-20261019/twisted-native-35342ce-down.png`,
+`twisted-focus-35342ce` and `twisted-rotate-35342ce-down.png`. Recording time is
+estimated raw H264; the remux does not establish wall-clock timing. Exported
+contact sheets were inspected, but their budget omits some intermediate frames.
+
+Sapphire's blue-to-purple front change is reproduced in the handoff recording.
+The actual classified English front is purple before rendering; the waiting
+catalogue cover is another, bluer English image. The preparation layer prioritizes
+that unrelated cover over `outer-box-front`, then fades to the atlas front. A
+failing regression reproduces the mismatched image binding. Preparation now uses
+the exact classified face as soon as available, retaining the catalogue cover
+only when that face is absent. No hue adjustment, shader change or replacement
+of the remaining donor faces. Focused preparation/scene/framing/reader checks
+pass; signed native handoff verification is still required.
+
+Broad host verification is not green: the full suite completed with 40 failures
+and 17 skips. Recorded causes include unchanged schema-39 expectations against
+schema 42, unavailable localhost RomM integration, missing font fixtures and older
+UI/test signatures. The Top-25 fixture supplies US-only art for its selected EU
+edition; strict regional ownership correctly leaves that image unmatched. Do not
+weaken ranking or region ownership to pass it. Current focused renderer, uniform
+capacity, reader, shelf and score regressions passed. No full S25 completion claim.
+
 Current acceptance failure (2026-10-19): native signed `dd3f42b` displays
 "Model unavailable" on newly exposed upper rows while already mounted cartons
 and lower resources render. The ranked driver was stopped at 12/21 remaining

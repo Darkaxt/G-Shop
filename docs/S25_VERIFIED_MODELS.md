@@ -18,6 +18,20 @@ This ledger does not declare the full S25 stage complete.
 
 ## Evidence and limits
 
+Targeted special-cartridge checkpoint, 2026-10-19: signed source `35342ce`,
+run 39313705720, installed/downloaded APK SHA-256
+`aa05cf4749bf2bee0de9ff62d1a16a1313a6dcaa9c8ff10b86cfb7085a9ed723`.
+WarioWare: Twisted! uses its supplied 65-surface enlarged international housing,
+not the standard shell, with matching fitted carton/holder and readable game
+label. Thor reaches the three-object endpoint and the focused/rotated cartridge
+has no other model behind it. The uniform-buffer overflow is absent. Inspectable
+evidence is under `D:/Temp/rshop-s25-gba-final-20261019/twisted-*35342ce*`.
+The source-model board is illustrative, not verified game-specific electronics.
+Boktai and US Yoshi retain host geometry/fit evidence only; no native claim is
+inferred. The owner stopped the repetitive full-ROM sweep; ordinary shelf proof
+does not establish every physical edition. Sapphire's front-image handoff
+correction is awaiting native verification; broader S25 remains ACTIVE.
+
 Owner revision 107 reduces the focused booklet to an 18-degree glimpse after
 the 40-degree gap exposed its two-page construction. VERIFIED on Thor with signed
 `16eb4d5`, run 39277674812, installed/downloaded APK SHA-256

@@ -37,14 +37,17 @@ void main() {
     expect(cover.height, closeTo(canvas.shortestSide * .9, .001));
     await tester.pumpWidget(const SizedBox());
   });
-  testWidgets('classified artwork arrival does not replace the waiting cover',
+  testWidgets('the prepared cover uses the same English front as the carton',
       (tester) async {
     final key = GlobalKey<UnboxingPreviewState>();
     final front = File.fromUri(File('assets/icon.png').absolute.uri);
-    final waiting = FileImage(front);
+    final waiting = FileImage(File.fromUri(
+        File('assets/brand_logos/publisher_nintendo.png').absolute.uri));
     await tester.pumpWidget(const MaterialApp(home: SizedBox()));
     await tester.runAsync(() =>
         precacheImage(waiting, tester.element(find.byType(SizedBox).first)));
+    await tester.runAsync(() => precacheImage(
+        FileImage(front), tester.element(find.byType(SizedBox).first)));
     Widget preview(Map<String, List<String>> resources) => MaterialApp(
         home: UnboxingPreview(
             key: key,
@@ -67,7 +70,9 @@ void main() {
     final after = tester.widget<Image>(
         find.byKey(const ValueKey('unboxing-preparation-cover')));
     expect(identical(before.image, waiting), true);
-    expect(identical(after.image, waiting), true);
+    expect(after.image, FileImage(front),
+        reason: 'The catalog cover can be a different English scan. The waiting '
+            'front must match the exact classified face used by the GPU atlas.');
     expect(key.currentState!.snapshot['started'], false);
     await tester.pumpWidget(const SizedBox());
   });

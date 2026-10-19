@@ -301,8 +301,9 @@ class UnboxingPreviewState extends State<UnboxingPreview>
 
   Widget _preparationCover() {
     final path = boxPanelPath(widget.resources, 0);
-    final image =
-        widget.waitingCover ?? (path == null ? null : _provider(path));
+    // The catalogue cover may be another English scan with different colour
+    // grading. Once classified, keep the exact atlas front through the handoff.
+    final image = path == null ? widget.waitingCover : _provider(path);
     return image == null
         ? const Center(child: CircularProgressIndicator())
         : LayoutBuilder(builder: (context, constraints) {

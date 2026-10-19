@@ -1,6 +1,15 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 111, 2026-10-19.
+Authoritative specification, revision 112, 2026-10-19.
+
+Owner verification scope correction, 2026-10-19: stop the repetitive full-ROM
+rendering sweep. The consistent ordinary-GBA behavior is sufficient for this
+checkpoint; focus native verification on the supplied special cartridge and its
+holder/extraction/inspection. Inspect Sapphire's visible colour discontinuity
+between the English replacement front and the retained carton artwork. Preserve
+English artwork and original remaining faces; fix the actual discontinuity,
+not by reverting to Spanish or repeating the front on other faces. This supersedes
+the full-24 native sweep below, not the underlying resource/model requirements.
 
 Owner native library failure, 2026-10-19: an upper shelf saying "Model
 unavailable" while the lower preview has the same game's resources is a rendering
