@@ -342,7 +342,8 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
-        flutterEngine?.plugins?.get(EngineOwnedSqflitePlugin::class.java)?.closeOwnedDatabases()
+        (flutterEngine?.plugins?.get(EngineOwnedSqflitePlugin::class.java) as? EngineOwnedSqflitePlugin)
+            ?.closeOwnedDatabases()
         preview?.dispose()
         patchWork?.dispose()
         socketImport?.dispose()

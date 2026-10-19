@@ -19,6 +19,9 @@ sqflite's retiring process-wide worker pool. Main and both headless entry routes
 install the same adapter; the renderer still has no database plugin. Host ownership
 checks pass for late opens, explicit close, queued SQL rejection, cross-engine
 isolation and handoff ordering. Signed native verification is still required.
+Run 39238983345 stopped at Kotlin compilation: Flutter's registry returns the
+base plugin type, so Activity cleanup now explicitly casts the registered owner.
+No APK was installed from that failed run; the native owner algorithm is unchanged.
 
 Initial reproduction with GitHub-signed `55623be`, run 39232486830, installed APK
 SHA-256 `7443e135421dd3865ec4fb13cb60002e94405939a304cb135a28d01e1fc48917`.
