@@ -18,6 +18,26 @@ This ledger does not declare the full S25 stage complete.
 
 ## Evidence and limits
 
+Owner revision 105 removes the forward shelf pitch/roll for readability.
+Host pose/yaw/badge checks pass; signed Thor verification is pending. The
+following `3373325` evidence records the preceding tilted shelf, not this change.
+
+Owner focus/reader/camera refinement, 2026-10-19: signed source `3373325`,
+GitHub run 39266909295, installed SHA-256
+`15f4461bfb4efa31580fd3abfbdc6013ae07a1427f550495552f1a3b20e3afcb`.
+Thor shows the selected GBA carton turning through front to both sides, with
+red backdrop/halo and still unselected cartons. The existing ~8-degree shelf
+pitch is unchanged. Hardware preview uses near-level pitch .18, with native
+imported geometry/GPU readiness and visible upright slow rotation. Sapphire
+booklet opens its actual inside spread, frames page 2 and reaches that full-screen
+reader page; physical swipes reach page 3/back to 2, and double-tap restores the
+open booklet. Both entry paths retain inspected evidence (Resources on unchanged
+`4e86b63`, preview/final swipes on `3373325`). Evidence root:
+`D:/Temp/rshop-s25-focus-reader-20261019`; all final camera/shelf contact sheets
+and full-size reader evidence were inspected. Raw video timing is estimated;
+native logs measure the final opening-to-reader transition at 2.330s. No whole
+cohort or audible-audio claim; the wider S25 ledger remains ACTIVE.
+
 Retained-process GBA reopening correction, 2026-10-19: signed `f17888a`, run
 39245008357, installed APK SHA-256
 `6c32ab7607ba37db7f1c86a1f8a7f4bd11d4de38fd744260b27a18f367436c07`.

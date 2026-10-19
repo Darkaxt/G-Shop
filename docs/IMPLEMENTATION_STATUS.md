@@ -7,11 +7,21 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
-Current owner refinement (revision 104), ACTIVE: red library backdrop,
+Current owner readability correction (revision 105), ACTIVE: remove the shelf
+cartons' forward pitch and roll, retaining the verified selected yaw/halo. The
+upright-pose regression fails on the old .14-radian pitch. Focused host checks
+now pass for upright selected/static/Reduced Motion poses, both yaw extremes,
+front crossings and badges. Signed native verification remains required.
+
+Preceding owner refinement (revision 104): red library backdrop,
 selected-only -30/front/+30 degree carton sweep/halo, animated booklet-to-reader
-handoff and near-level console hardware camera. The new sweep and camera pass
-focused host contracts; signed native verification remains an internal acceptance
-blocker. No later-stage deferral or second ACTIVE stage.
+handoff and near-level console hardware camera. This refinement is VERIFIED on
+Thor with signed source `3373325c981f17ae66cd6a820cd5ee02c67d3d0e`,
+[run 39266909295](https://github.com/Darkaxt/R-Shop/actions/runs/39266909295).
+Downloaded and installed APK SHA-256 both equal
+`15f4461bfb4efa31580fd3abfbdc6013ae07a1427f550495552f1a3b20e3afcb`;
+local signature verification confirms the existing production certificate.
+No later-stage deferral or second ACTIVE stage.
 The verified reopening receipt below remains applicable to unchanged lifecycle code.
 The integrated implementation now passes focused host selection/Reduced Motion,
 real grid, booklet UV-corner framing at both display sizes, readiness/cancellation,
@@ -35,7 +45,38 @@ could lose slow drags to the nested InteractiveViewer and required fling velocit
 The actual slow-drag regression fails before correction. Reader-owned interaction
 events now turn pages by horizontal displacement beyond Flutter's touch slop;
 pinch/zoomed panning and vertical gestures do not turn pages. Focused reader/framing
-checks pass. Signed native verification of this correction is still required.
+checks pass. Final Thor evidence resolves these refinement acceptance blockers:
+
+- Actual hardware snapshot has `paintedPose.rx=.18`, imported console geometry,
+  `frameRendered=true`, no renderer error. Both `final-camera-motion` contact
+  sheets were inspected: near-level view and upright slow rotation are visible.
+- All three `final-shelf-motion` sheets and representative full-resolution frames
+  show selected Mega Man turning through front to both sides, halo/red backdrop,
+  face-bound badges and stationary unselected cartons. No flash events; encoded
+  size-spike candidates were inspected and do not show visual discontinuities.
+  Raw video timelines are estimated, not measured wall-clock animation timing.
+- Sapphire preview opens the actual left inside page: 16:40:09.105 opening ->
+  16:40:11.435 reader, page 2. Real 300ms swipes reach page 3 and return to page 2;
+  `final-reader-page3-down.png` and `final-reader-back-down.png` were inspected.
+  Double-tap returns to the open 3D booklet (`final-return-model-down.png`).
+  Resources-tab entry was independently exercised on unchanged handoff code in
+  `4e86b63` at 16:04:51.562 -> 16:04:53.881; the final change only fixes paging.
+- GBA discovery returns the same 24 unique matches: metadata ready 2.233s and
+  discovery .516s. Warm Sapphire resources resolve in 1.219s, reveal at 2.810s,
+  settled at 12.828s. First Mega Man resource loading is slower (8.362s), so this
+  is not an instant/full-cohort cache claim. Trailer reports saved volume .2248569;
+  audible output was not verified. Startup publication completes independently
+  with 2,142,474,049 cached bytes.
+
+Evidence root: `D:/Temp/rshop-s25-focus-reader-20261019`, including `native.log`.
+The owner subsequently requested removal of the ~8-degree shelf pitch for bottom
+detail readability. That authorized revision 105 supersedes the earlier tilted
+shelf pose; the receipt above proves the preceding yaw/camera/reader refinement.
+Focused host contracts and GitHub native tests/signing pass. Analyzer has no
+errors/warnings in affected files, only existing style infos; not a clean-lint claim.
+No Windows Gradle build was run. This resolves the current refinement, not wider
+S25 model/edition/cohort acceptance. No additional architecture is required for
+this change; no new later-stage deferral or another console/stage was opened.
 Incorrect first test-driver double-taps fell below Flutter's 40ms minimum;
 correct protocol input works, with no production workaround. Cache/data were not
 reset and no catalogue refresh was triggered. This is not whole-S25 completion.

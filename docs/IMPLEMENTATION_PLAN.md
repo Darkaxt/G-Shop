@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 104, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 105, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**.
@@ -8,6 +8,12 @@ The retained-process reopening correction is native-verified on `f17888a` (see
 status receipt); do not repeat that investigation. Include the owner's near-level
 console hardware camera, preserving upright rotation and gestures, and the
 selected-only -30/front/+30 degree carton sweep in this same GBA refinement.
+The owner now requests removal of the shelf's forward lean: keep pitch and roll
+zero throughout the selected yaw cycle, retaining halo/badges and Reduced Motion.
+This readability correction is the current acceptance blocker pending verification.
+The preceding refinement is native-verified on signed `3373325`; see the
+status receipt. Stop at the existing GBA owner-review checkpoint, without
+claiming the wider S25 cohort/edition criteria or opening another console.
 Current owner refinement:
 restore the shared red library backdrop and selected-only carton wobble/halo;
 wire booklet double-tap through hinge opening -> first left-page framing ->

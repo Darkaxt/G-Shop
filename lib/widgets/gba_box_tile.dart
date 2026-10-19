@@ -105,7 +105,6 @@ class _GbaBoxTileState extends State<GbaBoxTile>
       child: AnimatedBuilder(
           animation: _wobble,
           builder: (context, _) {
-            final wave = math.sin(_wobble.value * math.pi * 2);
             return Stack(fit: StackFit.expand, children: [
               if (widget.selected)
                 const IgnorePointer(
@@ -128,11 +127,11 @@ class _GbaBoxTileState extends State<GbaBoxTile>
                 pose: SocketMediaPose(
                     // Selected cartons turn through the front to reveal both sides;
                     // unselected and Reduced Motion cartons retain the shelf angle.
-                    rx: .14 + wave * .018,
+                    rx: 0,
                     ry: _wobble.isAnimating
                         ? -math.cos(_wobble.value * math.pi * 2) * math.pi / 6
                         : -.70,
-                    rz: wave * .012,
+                    rz: 0,
                     scaleX: widget.selected ? 1.05 : 1,
                     scaleY: widget.selected ? 1.05 : 1,
                     scaleZ: widget.selected ? 1.05 : 1),

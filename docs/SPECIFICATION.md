@@ -1,6 +1,13 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 104, 2026-10-19.
+Authoritative specification, revision 105, 2026-10-19.
+
+Owner readability correction, 2026-10-19: library cartons must remain upright
+(zero forward pitch and roll), including selected motion and Reduced Motion.
+The forward lean makes bottom artwork/badges tiring to read. Retain the selected
+side-to-side yaw sweep, stationary unselected yaw, halo and face-bound badges.
+This supersedes the earlier top-edge-revealing shelf pitch requirement; actual
+mesh depth remains visible through the angled sides. Verify on Thor.
 
 Owner selected-box refinement, 2026-10-19: only the selected library carton
 gently sweeps its yaw from -30 degrees through the front to +30 degrees and back,

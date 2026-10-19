@@ -31,23 +31,32 @@ void main() {
         .widget<SocketMediaRenderer>(find.byType(SocketMediaRenderer))
         .pose;
     await tester.pumpWidget(tile(true));
+    void expectUpright() {
+      expect(pose().rx, 0, reason: 'Keep bottom details as readable as the top');
+      expect(pose().rz, 0, reason: 'Turn sideways without leaning or rolling');
+    }
+    expectUpright();
     final limit = math.pi / 6;
     expect(pose().ry, closeTo(-limit, .0001));
     await tester.pump(const Duration(seconds: 2));
     expect(pose().ry, closeTo(0, .0001));
+    expectUpright();
     await tester.pump(const Duration(seconds: 2));
     expect(pose().ry, closeTo(limit, .0001));
+    expectUpright();
     await tester.pump(const Duration(seconds: 2));
     expect(pose().ry, closeTo(0, .0001));
     await tester.pump(const Duration(seconds: 2));
     expect(pose().ry, closeTo(-limit, .0001));
     expect(find.byKey(const ValueKey('gba-selection-halo')), findsOneWidget);
     await tester.pumpWidget(tile(false));
+    expectUpright();
     final still = pose().ry;
     await tester.pump(const Duration(milliseconds: 700));
     expect(pose().ry, still);
     expect(find.byKey(const ValueKey('gba-selection-halo')), findsNothing);
     await tester.pumpWidget(tile(true, reduced: true));
+    expectUpright();
     final reduced = pose().ry;
     await tester.pump(const Duration(milliseconds: 700));
     expect(pose().ry, reduced);
@@ -138,8 +147,8 @@ void main() {
         (frontRight - backRight).distance / (frontRight - frontLeft).distance,
         greaterThan(.09),
         reason: 'The closed box side must be clearly visible, not a sliver');
-    expect(renderer.pose.rx.abs(), greaterThanOrEqualTo(.1),
-        reason: 'The shelf camera must also reveal a top edge');
+    expect(renderer.pose.rx, 0,
+        reason: 'The shelf carton must stay upright, not lean toward the viewer');
     final atlas = renderer.label;
     await tester.pumpWidget(MaterialApp(
         home: Scaffold(
