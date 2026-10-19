@@ -205,6 +205,10 @@ class GameListController extends ChangeNotifier {
 
   Future<void> loadGames(
       {bool forceRefresh = false, bool silent = false}) async {
+    final loadingWatch = Stopwatch()..start();
+    void phase(String name) => debugPrint('RShopConsoleLoad scope=${system.id} '
+        'phase=$name elapsedMs=${loadingWatch.elapsedMilliseconds}');
+    phase('started');
     if (silent) {
       _state = _state.copyWith(error: null);
     } else {
@@ -228,8 +232,10 @@ class GameListController extends ChangeNotifier {
       }
 
       // Cache-first: show cached games immediately if available
+      phase('cache-query');
       if (!forceRefresh && await _databaseService.hasCache(system.id)) {
         var cached = await _databaseService.getGames(system.id);
+        phase('cache-loaded');
         if (cached.isNotEmpty) {
           // DB strips auth for security — rehydrate from config
           cached = GameItem.rehydrateAuth(cached, systemConfig.providers);
@@ -237,6 +243,7 @@ class GameListController extends ChangeNotifier {
           _groupGames();
           _restoreFilters();
           _resolveInstalledStatus();
+          phase('projected');
           // Browsing a cached console is not a sync request. The existing
           // explicit Sync action owns remote catalogue refresh/publication.
           return;

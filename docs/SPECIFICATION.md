@@ -1,6 +1,14 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 99, 2026-10-19.
+Authoritative specification, revision 100, 2026-10-19.
+
+Owner GBA reopening regression, 2026-10-19: normal app reopen with its Android
+process retained must load the cached collection, including after activity/engine
+recreation and interrupted projection work. A force-stop launch alone does not
+verify this path. Pending placeholders must use the same four-column dual-screen
+layout as the loaded grid. Resolve the actual non-completing dependency; do not
+add a timeout, force a remote refresh or clear data to bypass it. These are current
+S25 acceptance blockers, superseding the earlier bounded-entry pass where affected.
 
 Owner GBA cache/presentation correction, 2026-10-19 (already authorized): keep
 S25 ACTIVE. Cached console browsing must not await recovery of unrelated consoles

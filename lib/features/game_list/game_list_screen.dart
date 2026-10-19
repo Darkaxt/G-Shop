@@ -787,7 +787,8 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
   Widget _buildGridOrStatus(GameListState state, bool syncActive) {
     if (state.queryingDiscovery && state.filteredGroups.isEmpty) {
       return GameGridLoading(
-          accentColor: widget.system.accentColor, crossAxisCount: _columns);
+          accentColor: widget.system.accentColor,
+          crossAxisCount: _effectiveColumns);
     }
     if (state.discoveryError != null) {
       return GameGridError(
@@ -801,7 +802,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
       }
       return GameGridLoading(
         accentColor: widget.system.accentColor,
-        crossAxisCount: _columns,
+        crossAxisCount: _effectiveColumns,
       );
     }
     if (state.error != null) {

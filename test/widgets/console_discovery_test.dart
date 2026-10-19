@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -25,6 +26,7 @@ import 'package:retro_eshop/providers/game_providers.dart';
 import 'package:retro_eshop/providers/installed_files_provider.dart';
 import 'package:retro_eshop/providers/library_providers.dart';
 import 'package:retro_eshop/providers/metadata_cloud_providers.dart';
+import 'package:retro_eshop/providers/preview_providers.dart';
 import 'package:retro_eshop/services/database_service.dart';
 import 'package:retro_eshop/services/config_storage_service.dart';
 import 'package:retro_eshop/services/device_info_service.dart';
@@ -227,8 +229,13 @@ void defineConsoleDiscoveryChecks({
     final storage = StorageService();
     await storage.init();
     await storage.setStartHintShown();
-    await storage.setGridColumns(system.name, 4);
+    await storage.setGridColumns(system.name, 3);
+    final recovery = Completer<AsyncValue<int>>();
+    var dual = true;
     final container = ProviderContainer(overrides: [
+      dualScreenPreviewProvider.overrideWith((ref) => dual),
+      scopedMetadataReadinessProvider
+          .overrideWith((ref, scope) => recovery.future),
       // This cache-only fixture has no configured cloud metadata library. Its
       // local covers/ratings below remain real; cloud hydration is separate QA.
       cloudSelectionMediaProvider.overrideWith((ref, selection) async => null),
@@ -336,6 +343,21 @@ void defineConsoleDiscoveryChecks({
       await tester.pumpAndSettle();
     }
 
+    await tester.pumpWidget(app());
+    expect(
+        tester
+            .widget<GameGridLoading>(find.byType(GameGridLoading))
+            .crossAxisCount,
+        4,
+        reason:
+            'Dual-screen loading must use the same columns as its real grid');
+    // Keep the existing single-screen navigation fixture independent of native
+    // preview/installation services after checking the pending dual-screen view.
+    await tester.pumpWidget(const SizedBox());
+    dual = false;
+    container.invalidate(dualScreenPreviewProvider);
+    recovery.complete(const AsyncData(0));
+    await storage.setGridColumns(system.name, 4);
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
     await container.read(cachedCoverRatingsProvider('psx').future);

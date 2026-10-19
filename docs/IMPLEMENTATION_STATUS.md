@@ -7,7 +7,20 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
-Current GBA correction is verified on Thor `bfa98654`, signed source `1cc768d`,
+Current reopening regression: the owner reports a permanent three-column loading
+view, reproduced read-only on Thor with the same installed `1cc768d` hash. The
+main engine had been recreated in retained process 25570; no discovery-complete
+milestone appeared. Force-stopping only R-Shop restored cached GBA discovery
+(5.314s scoped recovery, .545s query, 24 matches), without cache clearing or sync.
+This narrows but does not establish the root cause. Normal exit/reopen after work
+finishes succeeds; interrupted/recreated lifetime remains under investigation.
+Internal advancement blocker: normal reopen must complete cached discovery, and
+loading placeholders must match the real four-column dual-screen grid. The latter
+now has a failing-before/passing-after regression; bounded database/load phase logs
+are being added for native diagnosis. No timeout/retry/engine-retention workaround
+has been introduced. S25 stays ACTIVE; this is not another completed correction.
+
+Prior bounded GBA correction was verified on Thor `bfa98654`, signed source `1cc768d`,
 GitHub run 39188208354. Downloaded and installed APK SHA-256 both equal
 `271a9a0110f038e5c99810a1d9338d78788defa5b292dba3a9b5c43f5f2c3984`;
 the existing production certificate is unchanged. The owner-rejected near-flat

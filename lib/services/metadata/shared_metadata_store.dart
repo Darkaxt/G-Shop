@@ -65,6 +65,7 @@ class SharedMetadataStore {
       bool existingOnly = false,
       Future<void> Function()? verifyAccess}) async {
     final access = verifyAccess ?? requireStoragePermission;
+    debugPrint('RShopMetadataStore phase=permission');
     await access();
     final root = directory.absolute;
     if (existingOnly &&
@@ -74,6 +75,7 @@ class SharedMetadataStore {
           'Selected metadata storage is unavailable');
     }
     await root.create(recursive: true);
+    debugPrint('RShopMetadataStore phase=database-open');
     final db = await (factory ?? databaseFactory).openDatabase(
         p.join(root.path, 'metadata.sqlite'),
         options: OpenDatabaseOptions(
@@ -149,6 +151,7 @@ class SharedMetadataStore {
               if (old < 7) await _installPatchRecipes(db);
               if (old < 8) await _installPlatformIndex(db);
             }));
+    debugPrint('RShopMetadataStore phase=opened');
     return SharedMetadataStore._(root, db, access);
   }
 
@@ -216,7 +219,8 @@ class SharedMetadataStore {
                   });
           (packet['records'] as List).add({...row}
             ..remove('cursor')
-            ..remove('platform_id')); // Local lookup index is not cloud content.
+            ..remove(
+                'platform_id')); // Local lookup index is not cloud content.
           (packet['bindings'] as List).addAll(await txn.query(
               'identity_bindings',
               where: 'game_id = ? OR game_id = ?',
@@ -1605,7 +1609,11 @@ class SharedMetadataStore {
     var restored = 0;
     var catalogueRows = 0, recordRows = 0;
     final scopedMedia = <String>{};
+    debugPrint(
+        'RShopMetadataRecovery scope=${platformId ?? 'all'} phase=waiting-projection');
     await destination.transaction((txn) async {
+      debugPrint(
+          'RShopMetadataRecovery scope=${platformId ?? 'all'} phase=projection-acquired');
       // Android's system SQLite need not include JSON1. Decode bounded pages
       // with the existing artifact model, then index the same pinned catalogue
       // once per restore rather than rescanning it for each cached edition.
@@ -1643,6 +1651,8 @@ class SharedMetadataStore {
           shared_metadata_catalogue(platform, artifact_key)''');
         await txn.execute('''CREATE INDEX shared_metadata_object ON
           shared_metadata_catalogue(platform, provider, account, file_id)''');
+        debugPrint(
+            'RShopMetadataRecovery scope=${platformId ?? 'all'} phase=reading-facts catalogue=$catalogueRows');
         assert(() {
           debugPrint('Shared metadata catalogue indexed: '
               'rows=$catalogueRows elapsedMs=${watch.elapsedMilliseconds}');

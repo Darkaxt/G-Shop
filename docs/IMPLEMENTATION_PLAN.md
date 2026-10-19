@@ -1,10 +1,14 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 99, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 100, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
-Current execution, 2026-10-19: **S25 ACTIVE**. The owner now requires a retained
-three-object GBA endpoint (box centre, cartridge left, booklet right), tap-to-focus,
+Current execution, 2026-10-19: **S25 ACTIVE**.
+Normal retained-process GBA reopening and consistent loading-grid columns are
+current acceptance blockers after the owner's reproduced hang. Diagnose the exact
+await boundary; verify native ordinary reopening, not only force-stop startup.
+The current requirement remains a retained three-object GBA endpoint (box centre,
+cartridge left, booklet right), tap-to-focus,
 pinch-out return and double-tap booklet reading. The resting arrangement is a
 shallow semicircle: upright box at the rear centre, cartridge/booklet horizontal
 at the front-left/right on one supporting plane, with an elevated overview camera.
