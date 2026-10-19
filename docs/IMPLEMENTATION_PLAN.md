@@ -1,11 +1,14 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 102, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 104, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**.
 The retained-process reopening correction is native-verified on `f17888a` (see
-status receipt); do not repeat that investigation. Current owner refinement:
+status receipt); do not repeat that investigation. Include the owner's near-level
+console hardware camera, preserving upright rotation and gestures, and the
+selected-only -30/front/+30 degree carton sweep in this same GBA refinement.
+Current owner refinement:
 restore the shared red library backdrop and selected-only carton wobble/halo;
 wire booklet double-tap through hinge opening -> first left-page framing ->
 same-page reader with readiness and lifecycle cancellation. Reuse existing

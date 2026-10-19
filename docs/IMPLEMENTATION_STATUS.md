@@ -7,19 +7,32 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
-Current owner refinement (revision 102), ACTIVE: red library backdrop,
-selected-only carton wobble/halo and animated booklet-to-reader handoff. These
-are internal acceptance blockers until integrated and native-verified on Thor;
-the resolution condition is the requested visual selection and same-page reader
-workflow on both entry routes. No later-stage deferral or second ACTIVE stage.
+Current owner refinement (revision 104), ACTIVE: red library backdrop,
+selected-only -30/front/+30 degree carton sweep/halo, animated booklet-to-reader
+handoff and near-level console hardware camera. The new sweep and camera pass
+focused host contracts; signed native verification remains an internal acceptance
+blocker. No later-stage deferral or second ACTIVE stage.
 The verified reopening receipt below remains applicable to unchanged lifecycle code.
 The integrated implementation now passes focused host selection/Reduced Motion,
 real grid, booklet UV-corner framing at both display sizes, readiness/cancellation,
 reader paging/return and existing unified gallery checks. The new wobble and
 non-jumping opening assertions failed before implementation. Host tests have no
 Impeller GPU, so their simulated readiness callbacks do not verify actual model
-rendering or the final PDF handoff. GitHub signing and native visual verification
-remain required; this is an intermediate implementation checkpoint, not completion.
+rendering or the final PDF handoff. Signed source `4e86b63`, run 39261300121,
+was independently downloaded and installed in place; APK/installed SHA-256
+`68467bffcc9f99a6d07801d1403200094caf01e537a7fdf6f62ff157218ee6a9`,
+existing production certificate unchanged. Thor shows the red four-column shelf
+and selected-only halo/motion. Actual Sapphire preview double-tap opens the imported
+booklet, frames its left inside page and reaches the same full-screen reader page 2:
+native opening 15:57:18.874 -> reader 15:57:21.210. All eight contact sheets in
+`D:/Temp/rshop-s25-focus-reader-20261019/booklet-double-review` and both
+`reader-proof` screenshots were inspected. Raw video timing is estimated; timing
+above comes from app logs. Initial Resources route loading still takes roughly
+2.4 seconds before opening; no zero-gap route-loading claim. Resources-tab entry,
+paging/return and the new sweep/camera are being checked before final owner review.
+Incorrect first test-driver double-taps fell below Flutter's 40ms minimum;
+correct protocol input works, with no production workaround. Cache/data were not
+reset and no catalogue refresh was triggered. This is not whole-S25 completion.
 
 Current reopening correction: VERIFIED on Thor `bfa98654`, signed source
 `f17888ae29857442068ac87b84ce401562f5fa31`, [GitHub run 39245008357](https://github.com/Darkaxt/R-Shop/actions/runs/39245008357).

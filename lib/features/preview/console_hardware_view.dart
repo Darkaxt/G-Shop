@@ -27,12 +27,13 @@ class ConsoleHardwareView extends StatefulWidget {
 class ConsoleHardwareViewState extends State<ConsoleHardwareView>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   static const rotationPeriod = Duration(seconds: 40);
+  static const defaultPitch = .18;
   final rendererKey = GlobalKey<SocketMediaRendererState>();
   late final AnimationController _rotation;
   bool _resumed = true, _hasFrame = false;
   Timer? _idle;
   int _pointers = 0;
-  double _yaw = -.2, _pitch = .75, _zoom = .9, _startZoom = .9;
+  double _yaw = -.2, _pitch = defaultPitch, _zoom = .9, _startZoom = .9;
   Map<String, Object?> get snapshot => {
         ...?rendererKey.currentState?.snapshot,
         'system': widget.systemId,
@@ -106,7 +107,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
       _rotation.stop();
       _rotation.value = 0;
       _yaw = -.2;
-      _pitch = .75;
+      _pitch = defaultPitch;
       _zoom = .9;
       _hasFrame = false;
     }

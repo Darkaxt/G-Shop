@@ -95,6 +95,9 @@ void main() {
     // real texture/GPU/visual acceptance is performed separately on Thor.
     final renderer = find.byType(SocketMediaRenderer);
     expect(renderer, findsOneWidget);
+    expect(tester.widget<SocketMediaRenderer>(renderer).pose.rx,
+        closeTo(.18, .001),
+        reason: 'Use a near-level view, not the former steep overhead camera');
     expect(key.currentState!.snapshot['rotationRunning'], false);
     tester.widget<SocketMediaRenderer>(renderer).onReady!();
     await tester.pump();

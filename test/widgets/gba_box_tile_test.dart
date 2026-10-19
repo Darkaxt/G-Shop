@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,7 +16,7 @@ import '../helpers/pump_helpers.dart';
 import 'cover_rating_test.dart' show score;
 
 void main() {
-  testWidgets('only the selected shelf carton wobbles and carries a halo',
+  testWidgets('selected carton sweeps both sides through front at thirty degrees',
       (tester) async {
     Widget tile(bool selected, {bool reduced = false}) => MaterialApp(
         home: MediaQuery(
@@ -30,9 +31,16 @@ void main() {
         .widget<SocketMediaRenderer>(find.byType(SocketMediaRenderer))
         .pose;
     await tester.pumpWidget(tile(true));
-    final before = pose().ry;
-    await tester.pump(const Duration(milliseconds: 700));
-    expect(pose().ry, isNot(closeTo(before, .0001)));
+    final limit = math.pi / 6;
+    expect(pose().ry, closeTo(-limit, .0001));
+    await tester.pump(const Duration(seconds: 2));
+    expect(pose().ry, closeTo(0, .0001));
+    await tester.pump(const Duration(seconds: 2));
+    expect(pose().ry, closeTo(limit, .0001));
+    await tester.pump(const Duration(seconds: 2));
+    expect(pose().ry, closeTo(0, .0001));
+    await tester.pump(const Duration(seconds: 2));
+    expect(pose().ry, closeTo(-limit, .0001));
     expect(find.byKey(const ValueKey('gba-selection-halo')), findsOneWidget);
     await tester.pumpWidget(tile(false));
     final still = pose().ry;

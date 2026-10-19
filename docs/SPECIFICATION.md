@@ -1,6 +1,18 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 102, 2026-10-19.
+Authoritative specification, revision 104, 2026-10-19.
+
+Owner selected-box refinement, 2026-10-19: only the selected library carton
+gently sweeps its yaw from -30 degrees through the front to +30 degrees and back,
+showing both physical sides. Retain the halo, front-bound badges and unselected
+angled still pose. Reduced Motion retains a steady selected pose and halo.
+
+Owner console camera refinement, 2026-10-19: the rotating GBA hardware preview
+must use a near-object-level default camera, not the steep overhead inspection
+angle. Keep a slight elevation for depth, upright-axis rotation, gesture pitch/
+zoom and five-second idle rotation resume. Apply the same default when a model
+changes, without overwriting an active user's inspected pose. Verify the actual
+GBA hardware on Thor; this remains the existing S25 pilot, not broader S27 work.
 
 Owner GBA selection/booklet refinement, 2026-10-19: within ACTIVE S25 restore
 the shared red console-selection backdrop on the ROM library, including pending

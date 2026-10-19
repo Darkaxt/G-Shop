@@ -32,7 +32,7 @@ class GbaBoxTile extends StatefulWidget {
 class _GbaBoxTileState extends State<GbaBoxTile>
     with SingleTickerProviderStateMixin {
   late final _wobble = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 3600));
+      vsync: this, duration: const Duration(seconds: 8));
 
   void _updateMotion() {
     if (widget.selected &&
@@ -126,11 +126,12 @@ class _GbaBoxTileState extends State<GbaBoxTile>
                 model: PackagingModel(PackagingKind.box,
                     systemId: 'gba', aspect: 1, depth: .3671875),
                 pose: SocketMediaPose(
-                    // Near-front yaw cancels against this camera's perspective at the
-                    // right edge, hiding nearly all physical depth. Show the closed
-                    // carton's right side and top. Only the selected object moves.
+                    // Selected cartons turn through the front to reveal both sides;
+                    // unselected and Reduced Motion cartons retain the shelf angle.
                     rx: .14 + wave * .018,
-                    ry: -.70 + wave * .07,
+                    ry: _wobble.isAnimating
+                        ? -math.cos(_wobble.value * math.pi * 2) * math.pi / 6
+                        : -.70,
                     rz: wave * .012,
                     scaleX: widget.selected ? 1.05 : 1,
                     scaleY: widget.selected ? 1.05 : 1,
