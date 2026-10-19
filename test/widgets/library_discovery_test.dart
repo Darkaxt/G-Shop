@@ -67,7 +67,9 @@ class _GalleryCache extends MetadataArtworkCache {
       : super(Future.value(db), Directory.systemTemp);
   @override
   Future<Map<String, List<String>>> galleryForEdition(String editionId,
-          {bool hydrate = false}) =>
+          {bool hydrate = false,
+          bool hydrateBooklet = false,
+          Set<String> hydrateTypes = const {}}) =>
       error == null ? gallery : Future.error(error!);
 }
 
@@ -88,6 +90,71 @@ class _MetadataScopeObserver extends ProviderObserver {
 
 void main() {
   defineLibraryDiscoveryChecks();
+  testWidgets('library search recovers after an empty result', (tester) async {
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    sqfliteFfiInit();
+    final db =
+        await databaseFactoryFfiNoIsolate.openDatabase(inMemoryDatabasePath);
+    addTearDown(db.close);
+    await LibrarySchema.install(db);
+    await MetadataRefreshJobs.install(db);
+    await db.execute('''CREATE TABLE games(id INTEGER PRIMARY KEY,
+      systemSlug TEXT, displayName TEXT, filename TEXT, url TEXT,
+      artifact_key TEXT, remote_artifact TEXT, provider_config TEXT,
+      is_folder INTEGER DEFAULT 0)''');
+    await LibraryQuery.install(db);
+    await db.insert('games', {
+      'id': 1,
+      'systemSlug': 'gba',
+      'displayName': 'Yoshi Topsy-Turvy',
+      'filename': 'Yoshi Topsy-Turvy (USA).7z',
+      'url': ''
+    });
+    SharedPreferences.setMockInitialValues({
+      'favorites_version': 1,
+      'secure_auth_migrated': true,
+      'physical_media_reduced_motion': true
+    });
+    FlutterSecureStorage.setMockInitialValues({});
+    final storage = StorageService();
+    await storage.init();
+    final container = ProviderContainer(overrides: [
+      libraryDbProvider.overrideWithValue(_Database(db)),
+      storageServiceProvider.overrideWithValue(storage),
+      bootstrappedConfigProvider.overrideWith((ref) async => AppConfig.empty),
+      installedFilesProvider.overrideWith((ref) async => InstalledFilesState()),
+      selectionContinuityProvider.overrideWith((ref) async {}),
+      cachedMetadataReadinessProvider
+          .overrideWith((ref) async => const AsyncData(0)),
+      deviceMemoryProvider.overrideWithValue(
+          const DeviceMemoryInfo(totalBytes: 0, tier: MemoryTier.standard)),
+      sourcesProvider
+          .overrideWith((ref) => SourcesNotifier(_Config(), db: _Database(db))),
+    ]);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(
+        container: container,
+        child: createTestApp(const LibraryScreen(openSearch: true))));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'no such game');
+    await tester.pumpAndSettle();
+    expect(find.byType(BaseGameCard), findsNothing);
+    await tester.enterText(find.byType(TextField), 'Yoshi');
+    // Bounded diagnostic pumps expose a stuck busy state without waiting on
+    // the spinner's indefinitely scheduled animation.
+    for (var i = 0; i < 12; i++) {
+      await tester.pump();
+    }
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.byType(BaseGameCard), findsOneWidget);
+    expect(tester.widget<BaseGameCard>(find.byType(BaseGameCard)).displayName,
+        'Yoshi Topsy-Turvy (USA)');
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+  });
   testWidgets('dual preview uses eight covers and retains gallery focus',
       (tester) async {
     tester.view.physicalSize = const Size(1920, 1080);

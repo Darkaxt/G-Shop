@@ -179,7 +179,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   bool _isFiltering = false;
   bool _queryingDiscovery = false;
   int _discoveryGeneration = 0;
-  Future<void>? _discoveryWork;
+  bool _discoveryRunning = false;
   Future<void>? _genreWork;
   Future<void> _filterSave = Future.value();
   List<LibraryEntry> _discoveryEntries = const [];
@@ -783,7 +783,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         _coverUrlCache = {};
         _updateItemKeys();
       });
-      _discoveryWork ??= _runDiscovery();
+      if (!_discoveryRunning) {
+        // Claim before invoking: an empty query can finish synchronously.
+        // Assigning its returned Future afterwards would resurrect a finished
+        // worker and prevent every subsequent search from starting.
+        _discoveryRunning = true;
+        unawaited(_runDiscovery());
+      }
       return;
     }
     _discoveryVariants = const {};
@@ -927,7 +933,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         }
       }
     } finally {
-      _discoveryWork = null;
+      _discoveryRunning = false;
     }
   }
 

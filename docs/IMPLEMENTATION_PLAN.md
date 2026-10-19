@@ -1,9 +1,12 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 114, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 115, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**.
+Search prerequisite: fix the reproduced empty-result worker ownership race,
+verify zero-match -> matching-query recovery with saved filters unchanged, and
+include its ordinary Thor route check in the pending coherent GBA candidate.
 Current closure work: reproduce and fix the preparation-cover lifecycle gap;
 verify the affected Sapphire handoff, then Boktai and US Yoshi's special
 extraction/inspection through the ordinary signed Thor app. Reuse unchanged

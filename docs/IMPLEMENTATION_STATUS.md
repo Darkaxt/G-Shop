@@ -7,6 +7,22 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
+2026-10-20, revision 115: the user's Explorer search confirms the USA Yoshi ROM
+exists; the private catalogue also contains that exact filename. Native GBA
+search returned zero results under active filters, while wider Library search
+remained busy. A focused widget reproduction establishes a worker ownership
+race: `_discoveryWork ??= _runDiscovery()` stores a completed Future after an
+empty-query worker's synchronous `finally` clears it. Subsequent queries never
+start. Claiming a running flag before invocation resolves that reproduction;
+empty-result -> Yoshi recovery, selection-migration invalidation and exact-copy
+continuity checks pass on the host. No filter resets or ROM downloads were used.
+This search correction is not yet installed/native-verified; it remains an
+internal prerequisite to the targeted special-cartridge checks, not S25 closure.
+The preceding cover-only source `8ef0624` signed successfully in GitHub run
+39331707425, including signature/payload verification and signing-copy cleanup;
+it is not a public Release and has not been installed. Retain its result rather
+than launching duplicate builds. The installed baseline remains `e881651`.
+
 2026-10-20, revision 114: only the affected handoff and special cartridges are
 in the current native scope; never repeat the Top 25 for each correction.
 The gap traces to two lifecycle replacements: CoverSection switched from

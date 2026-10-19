@@ -1,6 +1,12 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 114, 2026-10-20.
+Authoritative specification, revision 115, 2026-10-20.
+
+Search blocker during GBA closure: an empty Library search must settle normally
+and a later matching query must execute without reopening the route. Preserve
+the user's saved filters and release preferences; a filter-excluded result is
+not evidence of a missing ROM. Resolve this prerequisite in ACTIVE S25 without
+expanding to another console or repeating the Top 25.
 
 Owner GBA closure scope: fix the observed cover-to-scene gap and perform targeted
 native checks for the supplied Boktai and US Yoshi special housings, fitted
