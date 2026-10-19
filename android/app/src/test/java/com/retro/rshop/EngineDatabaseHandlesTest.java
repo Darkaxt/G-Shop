@@ -15,6 +15,7 @@ public class EngineDatabaseHandlesTest {
     private static class Native implements EngineDatabaseHandles.NativeCall {
         final List<String> events = new ArrayList<>();
         final Deque<EngineDatabaseHandles.Reply> closes = new ArrayDeque<>();
+        final Set<Integer> transactions = new HashSet<>();
         EngineDatabaseHandles.Reply opening;
         boolean holdOpen;
         int next = 1;
@@ -25,9 +26,21 @@ public class EngineDatabaseHandlesTest {
                 if (holdOpen) opening = reply;
                 else reply.success(Collections.singletonMap("id", next++));
             } else if (method.equals("closeDatabase")) {
+                assertFalse("An acquired transaction must end before native close",
+                        transactions.contains(((Number) ((Map<?, ?>) args).get("id")).intValue()));
                 events.add("close:" + ((Map<?, ?>) args).get("id"));
                 closes.add(reply);
-            } else { events.add(method); reply.success(null); }
+            } else if (method.equals("execute") && "ROLLBACK".equals(((Map<?, ?>) args).get("sql"))) {
+                int id = ((Number) ((Map<?, ?>) args).get("id")).intValue();
+                assertEquals(-1, ((Map<?, ?>) args).get("transactionId"));
+                assertEquals(false, ((Map<?, ?>) args).get("inTransaction"));
+                if (transactions.remove(id)) reply.success(null);
+                // Idle handles also allow shutdown: SQLite reports no transaction.
+                else reply.error("sqlite_error", "cannot rollback - no transaction is active", null);
+            } else {
+                if (method.equals("execute")) transactions.add(((Number) ((Map<?, ?>) args).get("id")).intValue());
+                events.add(method); reply.success(null);
+            }
         }
         void finishClose() { closes.removeFirst().success(null); }
     }
@@ -37,7 +50,8 @@ public class EngineDatabaseHandlesTest {
         Native backend = new Native();
         EngineDatabaseHandles old = new EngineDatabaseHandles(backend);
         old.call("openDatabase", OPEN, new Reply());
-        old.call("execute", Collections.singletonMap("sql", "BEGIN"), new Reply());
+        Map<String, Object> begin = new HashMap<>(); begin.put("sql", "BEGIN"); begin.put("id", 1);
+        old.call("execute", begin, new Reply());
         old.close();
         Reply rejected = new Reply();
         old.call("execute", Collections.singletonMap("sql", "INSERT"), rejected);

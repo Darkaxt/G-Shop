@@ -15,6 +15,8 @@ SQLite transactions in release mode, not just debug. Close the destroyed native
 engine's actual connections and reject its queued requests; rollback alone must
 not resume its abandoned queue on the next engine. Serialize native open/close
 acknowledgements so a new open cannot enter a retiring sqflite worker pool.
+End an acquired transaction on its owning SQL worker before closing its native
+handle; Android pool close alone need not release an in-use connection.
 Headless save/cache passes
 must own separate connections and close them after joined completion/cancellation,
 before their engines are destroyed. Foreground recovery must never roll back or

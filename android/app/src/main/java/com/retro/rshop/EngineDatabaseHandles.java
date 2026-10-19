@@ -105,10 +105,24 @@ public final class EngineDatabaseHandles {
     private void closeNext(ArrayDeque<Integer> remaining, Runnable done) {
         Integer id = remaining.pollFirst();
         if (id == null) { done.run(); return; }
-        nativeCall.call("closeDatabase", Collections.singletonMap("id", id), new Reply() {
+        Reply closed = new Reply() {
             public void success(Object value) { closeNext(remaining, done); }
             public void error(String code, String message, Object details) { closeNext(remaining, done); }
             public void notImplemented() { closeNext(remaining, done); }
+        };
+        Map<String, Object> rollback = new HashMap<>();
+        rollback.put("id", id);
+        rollback.put("sql", "ROLLBACK");
+        rollback.put("transactionId", -1); // sqflite's forced transaction boundary
+        rollback.put("inTransaction", false);
+        // Android's pool close does not release an acquired transaction. End
+        // ours on its SQL worker first. An idle handle reports no active txn;
+        // either way, enqueue close before sqflite resumes its abandoned queue.
+        nativeCall.call("execute", rollback, new Reply() {
+            private void closeHandle() { nativeCall.call("closeDatabase", Collections.singletonMap("id", id), closed); }
+            public void success(Object value) { closeHandle(); }
+            public void error(String code, String message, Object details) { closeHandle(); }
+            public void notImplemented() { closeHandle(); }
         });
     }
 }

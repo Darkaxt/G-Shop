@@ -22,6 +22,14 @@ isolation and handoff ordering. Signed native verification is still required.
 Run 39238983345 stopped at Kotlin compilation: Flutter's registry returns the
 base plugin type, so Activity cleanup now explicitly casts the registered owner.
 No APK was installed from that failed run; the native owner algorithm is unchanged.
+Run 39240146108 then passed native compilation/tests/signing, but was not installed:
+review of [Android 13's pool contract](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-13.0.0_r1/core/java/android/database/sqlite/SQLiteConnectionPool.java#L205-L242)
+confirmed that close alone need not release an acquired transaction. The shutdown
+regression now fails before correction if native close sees an active transaction;
+owner teardown explicitly forces rollback on its own native handle, then immediately
+queues close before abandoned sqflite operations can resume. The existing global
+open/close boundary still waits for that close acknowledgement. This completes the
+same connection-lifetime correction; no new stage or resource/cache reset is added.
 
 Initial reproduction with GitHub-signed `55623be`, run 39232486830, installed APK
 SHA-256 `7443e135421dd3865ec4fb13cb60002e94405939a304cb135a28d01e1fc48917`.
