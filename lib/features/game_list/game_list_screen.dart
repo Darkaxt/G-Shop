@@ -21,6 +21,7 @@ import '../../providers/ra_providers.dart';
 import '../../services/config_bootstrap.dart';
 import '../../services/library_sync_service.dart';
 import '../../services/input_debouncer.dart';
+import '../../services/secondary_preview.dart';
 import '../../services/thumbnail_service.dart';
 import '../game_detail/game_detail_screen.dart';
 import 'logic/game_list_controller.dart';
@@ -78,6 +79,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
   final _previewKey = GlobalKey<DualScreenPreviewHostState>();
   double _lastPinchScale = 1.0;
   late InputDebouncer _debouncer;
+  late final SecondaryPreview _secondaryPreview;
   SystemConfig? _systemConfig;
 
   @override
@@ -185,6 +187,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
   @override
   void initState() {
     super.initState();
+    _secondaryPreview = ref.read(secondaryPreviewProvider);
     _columns = ref.read(gridColumnsProvider(widget.system.name));
     _debouncer = ref.read(inputDebouncerProvider);
 
@@ -298,8 +301,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
   @override
   void dispose() {
     final retained = widget.retainedPreviewOwner;
-    if (retained != null)
-      unawaited(ref.read(secondaryPreviewProvider).hide(retained));
+    if (retained != null) unawaited(_secondaryPreview.hide(retained));
     // Capture before dispose, defer save to avoid provider modification during finalization
     final selectedIndex = _focusManager.selectedIndex;
     Future.microtask(() {

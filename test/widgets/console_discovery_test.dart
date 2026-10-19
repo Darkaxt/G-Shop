@@ -24,6 +24,7 @@ import 'package:retro_eshop/providers/app_providers.dart';
 import 'package:retro_eshop/providers/game_providers.dart';
 import 'package:retro_eshop/providers/installed_files_provider.dart';
 import 'package:retro_eshop/providers/library_providers.dart';
+import 'package:retro_eshop/providers/metadata_cloud_providers.dart';
 import 'package:retro_eshop/services/database_service.dart';
 import 'package:retro_eshop/services/config_storage_service.dart';
 import 'package:retro_eshop/services/device_info_service.dart';
@@ -228,11 +229,13 @@ void defineConsoleDiscoveryChecks({
     await storage.setStartHintShown();
     await storage.setGridColumns(system.name, 4);
     final container = ProviderContainer(overrides: [
+      // This cache-only fixture has no configured cloud metadata library. Its
+      // local covers/ratings below remain real; cloud hydration is separate QA.
+      cloudSelectionMediaProvider.overrideWith((ref, selection) async => null),
       storageServiceProvider.overrideWithValue(storage),
       libraryDbProvider.overrideWithValue(service),
       bootstrappedConfigProvider.overrideWith((ref) async => appConfig),
-      installedFilesProvider
-          .overrideWith((ref) async => InstalledFilesState()),
+      installedFilesProvider.overrideWith((ref) async => InstalledFilesState()),
       deviceMemoryProvider.overrideWithValue(
           const DeviceMemoryInfo(totalBytes: 0, tier: MemoryTier.standard)),
       sourcesProvider.overrideWith(
@@ -241,6 +244,7 @@ void defineConsoleDiscoveryChecks({
     addTearDown(container.dispose);
     await container.read(bootstrappedConfigProvider.future);
     await container.read(installedFilesProvider.future);
+    final retainedPreviewOwner = Object();
     Widget app() => UncontrolledProviderScope(
         container: container,
         child: MaterialApp(
@@ -248,7 +252,9 @@ void defineConsoleDiscoveryChecks({
             localizationsDelegates: L.localizationsDelegates,
             supportedLocales: L.supportedLocales,
             home: GameListScreen(
-                system: system, targetFolder: config.targetFolder)));
+                retainedPreviewOwner: retainedPreviewOwner,
+                system: system,
+                targetFolder: config.targetFolder)));
     List<String> firstGames(int n) =>
         List.generate(n, (i) => 'Game ${(i + 1).toString().padLeft(2, '0')}');
     Future<void> expectGames(List<String> expected) async {

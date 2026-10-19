@@ -769,7 +769,9 @@ class MetadataCloudLibrary {
       await _retainHistoricalMedia(verifyRemote: pull);
       if (pull) await _archiveLegacyFolders();
       await _trim(budgetBytes);
-      changed?.call();
+      // Backup receipts do not mutate local artwork. Actual download/eviction
+      // already notifies its exact key; only a pull replaces projected facts.
+      if (pull) changed?.call();
     });
   }
 

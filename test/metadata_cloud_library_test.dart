@@ -249,11 +249,13 @@ void main() {
         factory: databaseFactoryFfiNoIsolate);
     final db = await controlsDatabase();
     final remote = MemoryMetadataDrive();
+    var viewChanges = 0;
     final cloud = MetadataCloudLibrary(
         store: store,
         remote: remote,
         accountId: 'account',
-        rootId: 'metadata-root');
+        rootId: 'metadata-root',
+        changed: () => viewChanges++);
     addTearDown(() async {
       await cloud.close();
       await store.close();
@@ -264,6 +266,12 @@ void main() {
     expect(remote.childListings, 0,
         reason: 'Startup publication must not list every remote console/game');
     expect(remote.downloads, 0);
+    expect(viewChanges, 0,
+        reason: 'Unchanged backup completion must not reload mounted previews');
+    await cloud.sync(Future.value(db));
+    expect(viewChanges, 1,
+        reason:
+            'An explicit remote pull still publishes newly recovered facts');
   });
   test('default media budget is two GiB, separate from ROMs and text', () {
     expect(MetadataCloudLibrary.defaultBudgetBytes, 2 * 1024 * 1024 * 1024);
@@ -995,8 +1003,8 @@ void main() {
     expect(controls.state.report!.counts, {'matched': 3});
     expect(provider.calls, hasLength(1));
     await cloud.sync(Future.value(db), pull: false);
-    expect(mediaChanges, 1,
-        reason: 'Remote publication is not a local media change per game');
+    expect(mediaChanges, 0,
+        reason: 'Backup receipts do not mutate local media, even at batch end');
     final publishedChanges = mediaChanges;
     await cloud.publishSelection(edition, {});
     expect(mediaChanges, publishedChanges,

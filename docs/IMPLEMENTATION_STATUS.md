@@ -66,6 +66,23 @@ the affected production files pass analysis without issues. This is host evidenc
 not acceptance of the remaining first-entry delay. Raw display recordings use an
 estimated 60-fps remux timeline; only the monotonic app logs above provide timing.
 
+Signed `e1a020f` (run 39180939947) is installed with independently matching hash
+`76caf01929d32f278fc606c03bf53c935ca5deff86bc040cd2915c04535680fa`.
+Its score badges arrive with the boxes. Cold GBA recovery/query were 3.337s/
+.493s while the startup backup was active; selected resources were ready at
+10.432s, versus 25.485s in the first candidate. Warm Sapphire resources were ready
+at 1.150s, reveal at 2.675s, completion at 12.693s. This does not establish a
+two-second cold-preview budget or zero network requests. The route-exit check
+caught a real retained-owner cleanup error (`ref.read` after widget disposal).
+The current fix captures that bridge while mounted. A backup-only completion
+also emitted an unrelated whole-preview invalidation; only an explicit pull now
+emits that notification, with local mutations retaining their exact-key events.
+Both regressions reproduced before their fixes. The console fixture now isolates
+its absent cloud hydration (real local discovery, covers and scores remain under
+test); its unrelated offline-cloud refresh build-notification assertion also
+reproduced with the cleanup fix removed. Native exit/re-entry and publication
+stability of the corrected candidate remain acceptance work.
+
 ### S25 handoff/booklet polish — 2026-10-19, ACTIVE
 
 Revision 97 addresses the owner's two motion observations without changing the
