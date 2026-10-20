@@ -79,6 +79,139 @@ void main() {
     expect(a.transform3(up.clone()).distanceTo(b.transform3(up.clone())),
         lessThan(1e-6));
   });
+  test('handheld imports use exact MAME hardware sets, never title variants',
+      () async {
+    expect(ConsoleModel.gameWatchSet('gnw_dkong.zip'), 'gnw_dkong');
+    expect(ConsoleModel.gameWatchSet('folder/gnw_smbn.zip'), 'gnw_smbn');
+    expect(ConsoleModel.gameWatchSet('Donkey Kong (World).7z'), 'gnw_dkong');
+    expect(
+        ConsoleModel.gameWatchSet('Fire (World) (Wide Screen).7z'), 'gnw_fire');
+    for (final wrong in [
+      'gnw_smb.zip',
+      'gnw_fires.zip',
+      'gnw_dkjrp.zip',
+      'Donkey Kong.zip',
+      'gnw_dkong (USA).zip',
+      'gnw_dkong.zip.exe',
+      'Fire (World) (Silver).7z',
+      'Donkey Kong Jr. (World) (Panorama Screen).7z',
+      "Mario's Cement Factory (World) (Table Top).7z"
+    ]) {
+      expect(ConsoleModel.gameWatchSet(wrong), isNull);
+    }
+    final dir = Directory('${root.path}/handhelds/gameandwatch/gnw_dkong');
+    await dir.create(recursive: true);
+    final base = PackagingModel(PackagingKind.keepCase).build();
+    final handheld = {
+      ...data,
+      'system': 'gameandwatch',
+      'romSet': 'gnw_dkong',
+      'canOpen': true,
+      'openingDurationMs': 2000
+    };
+    await File('${dir.path}/model.json').writeAsString(jsonEncode(handheld));
+    await File('${dir.path}/model.mesh')
+        .writeAsBytes(base.mesh.buffer.asUint8List());
+    await File('${dir.path}/screen.png').writeAsBytes([1, 2, 3]);
+    final model = (await ConsoleModel.findGameWatch('gnw_dkong.zip',
+        modelsDirectory: root))!;
+    expect(model.canOpen, true);
+    expect((await model.load()).data['romSet'], 'gnw_dkong');
+    expect(
+        await ConsoleModel.findGameWatch('gnw_smb.zip', modelsDirectory: root),
+        isNull);
+    await File('${dir.path}/model.json')
+        .writeAsString(jsonEncode({...handheld, 'romSet': 'gnw_zelda'}));
+    final wrong = (await ConsoleModel.findGameWatch('gnw_dkong.zip',
+        modelsDirectory: root))!;
+    await expectLater(wrong.load(), throwsFormatException);
+  });
+  testWidgets(
+      'folding handheld starts open and double tap drives its actual hinge pose',
+      (tester) async {
+    final dir = Directory('${root.path}/handhelds/gameandwatch/gnw_mario');
+    await tester.runAsync(() async {
+      await dir.create(recursive: true);
+      await File('${dir.path}/model.json').writeAsString(jsonEncode({
+        ...data,
+        'system': 'gameandwatch',
+        'romSet': 'gnw_mario',
+        'canOpen': true,
+        'openingDurationMs': 2000
+      }));
+    });
+    final model = (await tester.runAsync(() =>
+        ConsoleModel.findGameWatch('gnw_mario.zip', modelsDirectory: root)))!;
+    final key = GlobalKey<ConsoleHardwareViewState>();
+    await tester.pumpWidget(MaterialApp(
+        home: ConsoleHardwareView(
+            key: key,
+            model: model,
+            title: 'Mario Bros.',
+            reducedMotion: true)));
+    expect(key.currentState!.snapshot['opening'], 1);
+    final surface = find.byKey(const ValueKey('console-model-gestures'));
+    await tester.tap(surface);
+    await tester.pump(const Duration(milliseconds: 70));
+    await tester.tap(surface);
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(key.currentState!.snapshot['opening'], inExclusiveRange(0, 1));
+    await tester.pump(const Duration(seconds: 1));
+    expect(key.currentState!.snapshot['opening'], 0);
+    expect(find.byType(IconButton), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+  test('independent emission maps do not replace the surface albedo', () {
+    final material = <String, dynamic>{
+      'color': [1, 1, 1, 1],
+      'textures': {'albedo': 'paint.png', 'emission': 'lights.png'},
+      'sourceProperties': {
+        'emission': [1, .5, .25]
+      }
+    };
+    expect(SocketMediaGpu.materialUniforms(material).sublist(20, 24),
+        [1, .5, .25, 1]);
+    material['textures'] = {'albedo': 'paint.png'};
+    expect(SocketMediaGpu.materialUniforms(material).sublist(20, 24),
+        [1, .5, .25, 0]);
+  });
+  final handhelds = Platform.environment['RSHOP_GAMEWATCH_MODEL_DIR'];
+  test('all supplied mapped handhelds load exact geometry and texture receipts',
+      () async {
+    const folding = {'gnw_dkong', 'gnw_zelda', 'gnw_dkong2', 'gnw_mario'};
+    for (final set in ConsoleModel.gameWatchSets) {
+      final model = (await ConsoleModel.findGameWatch('$set.zip',
+          modelsDirectory: Directory(handhelds!)))!;
+      final geometry = await model.load();
+      expect(model.canOpen, folding.contains(set), reason: set);
+      expect(geometry.triangles, greaterThan(0), reason: set);
+      expect(geometry.data['romSet'], set);
+      expect(
+          geometry.surfaces.any((s) => (s['openingHinges'] as List).isNotEmpty),
+          folding.contains(set),
+          reason: set);
+      if (model.canOpen) {
+        expect(geometry.data['animationVerifiedMaxError'], lessThan(.0001));
+        for (final surface in geometry.surfaces) {
+          for (final hinge in surface['openingHinges'] as List) {
+            expect((hinge['keys'] as List).first[1], 0,
+                reason: 'Frame-zero geometry must receive no hinge delta');
+          }
+        }
+      }
+      for (final file in (geometry.data['textureFiles'] as Map).keys) {
+        expect(
+            (await geometry.textureBundle!
+                    .load('${SocketMediaModel.assetRoot}$file'))
+                .lengthInBytes,
+            greaterThan(0));
+      }
+    }
+  },
+      skip: handhelds == null
+          ? 'Requires private supplied handheld imports'
+          : false);
   testWidgets(
       'console rotates only after a GPU frame and obeys reduced motion and lifecycle',
       (tester) async {

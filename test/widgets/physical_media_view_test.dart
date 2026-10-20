@@ -9,6 +9,8 @@ import 'package:retro_eshop/widgets/socket_media_renderer.dart';
 import 'package:retro_eshop/widgets/smart_cover_image.dart';
 import 'package:retro_eshop/widgets/media_cover_fallback.dart';
 import 'package:retro_eshop/features/game_detail/widgets/cover_section.dart';
+import 'package:retro_eshop/features/preview/game_watch_preview.dart';
+import 'package:retro_eshop/widgets/cover_reveal.dart';
 import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/socket_media_model.dart';
 import 'package:retro_eshop/models/system_model.dart';
@@ -20,6 +22,32 @@ import '../helpers/socket_media_oracle.dart';
 void main() {
   setUpAll(useSocketOracle);
   tearDownAll(() => SocketMediaModel.importedBundle = null);
+  testWidgets(
+      'integrated handheld bypasses carton reveal and settles honest fallback',
+      (tester) async {
+    final system =
+        SystemModel.supportedSystems.singleWhere((s) => s.id == 'gameandwatch');
+    const game = GameItem(
+        filename: 'Donkey Kong (World).7z',
+        displayName: 'Donkey Kong',
+        url: '');
+    var ready = 0;
+    await tester.pumpWidget(MaterialApp(
+        home: CoverSection(
+            game: game,
+            system: system,
+            coverUrls: const [],
+            physicalMediaEnabled: true,
+            metadata: GameMetadata.parse(game.filename),
+            onReady: () => ready++)));
+    expect(find.byType(GameWatchPreview), findsOneWidget);
+    expect(find.byType(CoverReveal), findsNothing);
+    await tester.pump();
+    await tester.pump();
+    expect(ready, 1,
+        reason: 'Missing private imports must not keep selection pending');
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('UMD fallback uses the disc layout away from the central badge',
       (tester) async {
     final system =
@@ -179,7 +207,9 @@ void main() {
             .state<CoverSectionState>(find.byType(CoverSection))
             .renderSnapshot['labelExpected'],
         false);
-    await tester.tap(find.byTooltip('Cover view'));
+    // Presentation buttons were removed in favor of gesture/external route
+    // control; retain this artwork-separation contract through the view owner.
+    tester.state<CoverSectionState>(find.byType(CoverSection)).toggleView();
     await tester.pump();
     expect(
         tester.widget<SmartCoverImage>(find.byType(SmartCoverImage)).cachedUrl,

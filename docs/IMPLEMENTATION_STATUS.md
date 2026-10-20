@@ -7,6 +7,41 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
+Current native checkpoint: the remaining Boktai and US Yoshi special housing,
+fitted extraction, settling and isolated touch rotation checks pass on signed
+`814a878` (run 39335116043). The downloaded/installed APK hashes agree and the
+production certificate is unchanged. Both one-edition packaging imports and
+Drive publication completed. Yoshi required the normal owned-ROM download and
+raw-hash lookup (3952) to establish its official US identity; no game was launched.
+See S25_VERIFIED_MODELS.md for inspected evidence and missing-media limits.
+No ordinary-ROM sweep was repeated. GBA's narrowed closure checkpoint is satisfied;
+G&W is now the implementation focus within the same ACTIVE S25.
+
+2026-10-20, revision 116: owner authorizes G&W after the remaining GBA checks,
+ahead of Game Boy. Supplied archive is 344,381,849 bytes, SHA-256
+`4f791bb42d090325b779af53cbc9374c2e86675111376b7db5782aadaa357f2a`.
+Read-only GLB inspection confirms 15 individual devices, 13 exact ROM mappings,
+four Open/Close clip pairs, no skins or required glTF extensions. External and
+archive mappings agree. Modern Zelda and tabletop DK Jr. stay unmapped. Archive
+scripts were not executed; supplied validation/preview reports are not native
+acceptance. G&W implementation follows the verified GBA special-model checkpoint;
+no later stage is ACTIVE.
+G&W integration checkpoint: 13 private geometry/texture inventories load through
+the production validator; the four supplied folding models retain their rigid
+hinge keys and start open. Exact descriptive release aliases for the 12 devices
+present in the collection were cross-checked against MAME program CRCs; shared
+Mickey/Egg ROM uses the supplied Mickey presentation, and SMB uses the original
+New Wide Screen presentation. Autoslalom has a model but no matching library ROM.
+No fuzzy title matching or Silver/Panorama substitution is used. Private assets
+were hash-verified and placed on Thor via transfer c15a5dab3057406c9c3ff1d88d65253a;
+they are not APK assets. Native viewing/material/hinge acceptance remains pending
+the signed 1.9.20 candidate. GBA's Best 25 and rating-order filters and enabled
+second screen are restored. Remaining G&W acceptance is an internal advancement
+blocker in ACTIVE S25, resolved by the signed-device view/gesture/folding pass.
+Search correction is included in the one signed candidate run 39335116043,
+source `814a878`, retained through its original watch session. It is integration
+work for reaching the two games, not a third console-feature acceptance project.
+
 2026-10-20, revision 115: the user's Explorer search confirms the USA Yoshi ROM
 exists; the private catalogue also contains that exact filename. Native GBA
 search returned zero results under active filters, while wider Library search

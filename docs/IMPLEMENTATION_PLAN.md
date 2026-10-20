@@ -1,9 +1,17 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 115, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 116, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**.
+Owner-authorized console order: finish GBA's Boktai/US Yoshi real-app checks,
+then G&W before Game Boy. Both remaining GBA special checks now pass on signed
+814a878; G&W is the current implementation focus inside ACTIVE S25. Read-only inventory
+confirms 15 models, 13 exact-set bindings and four pairs of Open/Close clips.
+Reuse the imported-medium renderer for per-ROM handhelds; preserve normal
+manual/gallery and touch interaction, validate exact hardware matching and
+upright materials, then inspect the actual Thor view and folding variants.
+Do not turn supplied static LCD artwork into a promised live-emulation feature.
 Search prerequisite: fix the reproduced empty-result worker ownership race,
 verify zero-match -> matching-query recovery with saved filters unchanged, and
 include its ordinary Thor route check in the pending coherent GBA candidate.

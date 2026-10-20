@@ -13,11 +13,13 @@ class ConsoleHardwareView extends StatefulWidget {
   String get systemId => model.systemId;
   String get generation => model.generation;
   final bool reducedMotion;
+  final bool showTitle;
   final VoidCallback? onReady;
   const ConsoleHardwareView(
       {super.key,
       required this.model,
       required this.title,
+      this.showTitle = true,
       this.reducedMotion = false,
       this.onReady});
   @override
@@ -25,11 +27,12 @@ class ConsoleHardwareView extends StatefulWidget {
 }
 
 class ConsoleHardwareViewState extends State<ConsoleHardwareView>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   static const rotationPeriod = Duration(seconds: 40);
   static const defaultPitch = .18;
   final rendererKey = GlobalKey<SocketMediaRendererState>();
   late final AnimationController _rotation;
+  late final AnimationController _opening;
   bool _resumed = true, _hasFrame = false;
   Timer? _idle;
   int _pointers = 0;
@@ -43,6 +46,9 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
         'reducedMotion': widget.reducedMotion,
         'interaction': 'gestures',
         'resumeAfterIdleMs': 5000,
+        'opening': _opening.value,
+        'canOpen': widget.model.canOpen,
+        'romSet': widget.model.romSet,
       };
   Future<Map<String, Object?>> get renderReady async {
     await rendererKey.currentState?.ready;
@@ -53,6 +59,10 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
   void initState() {
     super.initState();
     _rotation = AnimationController(vsync: this, duration: rotationPeriod);
+    _opening = AnimationController(
+        vsync: this,
+        value: widget.model.canOpen ? 1 : 0,
+        duration: Duration(milliseconds: widget.model.openingDurationMs));
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -110,6 +120,10 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
       _pitch = defaultPitch;
       _zoom = .9;
       _hasFrame = false;
+      _opening.stop();
+      _opening.value = widget.model.canOpen ? 1 : 0;
+      _opening.duration =
+          Duration(milliseconds: widget.model.openingDurationMs);
     }
     if (!oldWidget.reducedMotion && widget.reducedMotion) {
       _yaw += _rotation.value * math.pi * 2;
@@ -126,6 +140,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
       _idle?.cancel();
       _idle = null;
       _pointers = 0;
+      _opening.stop();
     }
     _updateMotion();
   }
@@ -135,14 +150,16 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
         decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
         child: SafeArea(
             child: Column(children: [
-          const SizedBox(height: 24),
-          Text(widget.title,
-              textAlign: TextAlign.center,
-              style:
-                  const TextStyle(fontSize: 26, fontWeight: FontWeight.w600)),
+          if (widget.showTitle) ...[
+            const SizedBox(height: 24),
+            Text(widget.title,
+                textAlign: TextAlign.center,
+                style:
+                    const TextStyle(fontSize: 26, fontWeight: FontWeight.w600)),
+          ],
           Expanded(
               child: AnimatedBuilder(
-                  animation: _rotation,
+                  animation: Listenable.merge([_rotation, _opening]),
                   builder: (_, __) => Listener(
                       key: const ValueKey('console-model-gestures'),
                       onPointerDown: _touchDown,
@@ -150,6 +167,15 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
                       onPointerCancel: _touchUp,
                       child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
+                          onDoubleTap: widget.model.canOpen
+                              ? () {
+                                  if (_opening.value < .5) {
+                                    _opening.forward();
+                                  } else {
+                                    _opening.reverse();
+                                  }
+                                }
+                              : null,
                           onScaleStart: (_) => _startZoom = _zoom,
                           onScaleUpdate: (event) => setState(() {
                                 _yaw += event.focalPointDelta.dx * .012;
@@ -163,10 +189,11 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
                             key: rendererKey,
                             model: widget.model,
                             identity:
-                                'console:${widget.systemId}:${widget.generation}',
+                                'console:${widget.systemId}:${widget.model.romSet ?? ''}:${widget.generation}',
                             title: widget.title,
                             onReady: _ready,
                             pose: SocketMediaPose(
+                                opening: _opening.value,
                                 rx: _pitch,
                                 ry: _yaw +
                                     (widget.reducedMotion
@@ -185,6 +212,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
     debugPrint(
         'RShopConsolePreview hidden system=${widget.systemId} rotationRunning=${_rotation.isAnimating}');
     _rotation.dispose();
+    _opening.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

@@ -14,6 +14,7 @@ import '../../models/gba_cartridge_model.dart';
 import '../../widgets/socket_media_renderer.dart';
 import '../../widgets/handwritten_media_sticker.dart';
 import '../../widgets/media_cover_fallback.dart';
+import 'game_watch_preview.dart';
 
 enum ResourceView { box, cover, cartridge, manual, gallery }
 
@@ -153,7 +154,8 @@ class ResourceGalleryState extends State<ResourceGallery>
       '3do'
     }.contains(widget.systemId);
     return [
-      if (physical && !caseOnly) ResourceView.box,
+      if (physical && !caseOnly && widget.systemId != 'gameandwatch')
+        ResourceView.box,
       if (physical &&
           !{
             'gameandwatch',
@@ -882,46 +884,53 @@ class ResourceGalleryState extends State<ResourceGallery>
                         },
                         child: image(pages[page % pages.length]))
                 : view == ResourceView.cartridge
-                    ? widget.importedModels && format != null
-                        ? SocketMediaRenderer(
-                            key: rendererKey,
-                            format: format!,
-                            cartridgeStyle: widget.systemId == 'gba'
-                                ? GbaCartridgeModel.styleFor(
-                                    widget.filename ?? widget.title,
-                                    widget.contentTags)
-                                : null,
-                            pose: SocketMediaPose(
-                                rx: -math.pi / 2 + pitch,
-                                ry: yaw,
-                                scaleX: zoom,
-                                scaleY: zoom,
-                                scaleZ: zoom),
-                            identity: widget.identity,
+                    ? widget.importedModels && widget.systemId == 'gameandwatch'
+                        ? GameWatchPreview(
+                            filename: widget.filename ?? '',
                             title: widget.title,
-                            onReady: _rendered,
-                            label: image(first('support-texture'),
-                                umd: format == PhysicalMediaFormat.psp,
-                                disc: format == PhysicalMediaFormat.disc ||
-                                    format == PhysicalMediaFormat.psp,
-                                fit: BoxFit.fill),
-                            labelIdentity:
-                                first('support-texture') ?? widget.identity)
-                        : Transform(
-                            key: const ValueKey('flat-medium-pose'),
-                            alignment: Alignment.center,
-                            transform: Matrix4.identity()
-                              ..setEntry(3, 2, .001)
-                              ..rotateY(yaw)
-                              ..rotateX(pitch)
-                              ..scaleByDouble(zoom, zoom, zoom, 1),
-                            child: MediaCoverFallback(
-                                systemId: widget.systemId,
-                                title: widget.title,
+                            identity: widget.identity,
+                            reducedMotion: widget.reducedMotion)
+                        : widget.importedModels && format != null
+                            ? SocketMediaRenderer(
+                                key: rendererKey,
+                                format: format!,
+                                cartridgeStyle: widget.systemId == 'gba'
+                                    ? GbaCartridgeModel.styleFor(
+                                        widget.filename ?? widget.title,
+                                        widget.contentTags)
+                                    : null,
+                                pose: SocketMediaPose(
+                                    rx: -math.pi / 2 + pitch,
+                                    ry: yaw,
+                                    scaleX: zoom,
+                                    scaleY: zoom,
+                                    scaleZ: zoom),
                                 identity: widget.identity,
-                                physicalLabel: first('support-texture') == null
-                                    ? null
-                                    : image(first('support-texture'))))
+                                title: widget.title,
+                                onReady: _rendered,
+                                label: image(first('support-texture'),
+                                    umd: format == PhysicalMediaFormat.psp,
+                                    disc: format == PhysicalMediaFormat.disc ||
+                                        format == PhysicalMediaFormat.psp,
+                                    fit: BoxFit.fill),
+                                labelIdentity:
+                                    first('support-texture') ?? widget.identity)
+                            : Transform(
+                                key: const ValueKey('flat-medium-pose'),
+                                alignment: Alignment.center,
+                                transform: Matrix4.identity()
+                                  ..setEntry(3, 2, .001)
+                                  ..rotateY(yaw)
+                                  ..rotateX(pitch)
+                                  ..scaleByDouble(zoom, zoom, zoom, 1),
+                                child: MediaCoverFallback(
+                                    systemId: widget.systemId,
+                                    title: widget.title,
+                                    identity: widget.identity,
+                                    physicalLabel:
+                                        first('support-texture') == null
+                                            ? null
+                                            : image(first('support-texture'))))
                     : SocketMediaRenderer.packaging(
                         key: rendererKey,
                         model: PackagingModel(kind,
@@ -999,18 +1008,24 @@ class ResourceGalleryState extends State<ResourceGallery>
         onLongPress: view == ResourceView.manual && pages.isNotEmpty
             ? _toggleOpening
             : null,
-        onScaleStart:
-            reading || _manualRequested || view == ResourceView.gallery
-                ? null
-                : (_) => _startZoom = zoom,
-        onScaleUpdate:
-            reading || _manualRequested || view == ResourceView.gallery
-                ? null
-                : (event) => setState(() {
-                      yaw += event.focalPointDelta.dx * .012;
-                      pitch += event.focalPointDelta.dy * .012;
-                      zoom = (_startZoom * event.scale).clamp(.35, 1.5);
-                    }),
+        onScaleStart: reading ||
+                _manualRequested ||
+                view == ResourceView.gallery ||
+                widget.systemId == 'gameandwatch' &&
+                    view == ResourceView.cartridge
+            ? null
+            : (_) => _startZoom = zoom,
+        onScaleUpdate: reading ||
+                _manualRequested ||
+                view == ResourceView.gallery ||
+                widget.systemId == 'gameandwatch' &&
+                    view == ResourceView.cartridge
+            ? null
+            : (event) => setState(() {
+                  yaw += event.focalPointDelta.dx * .012;
+                  pitch += event.focalPointDelta.dy * .012;
+                  zoom = (_startZoom * event.scale).clamp(.35, 1.5);
+                }),
         child: Stack(fit: StackFit.expand, children: [
           SizedBox.expand(child: content),
           if (_manualRequested && _pageBlend > 0)
@@ -1068,6 +1083,8 @@ class ResourceGalleryState extends State<ResourceGallery>
   }
 
   String _viewName(ResourceView mode) => switch (mode) {
+        ResourceView.cartridge when widget.systemId == 'gameandwatch' =>
+          'Device',
         ResourceView.cover => 'Case',
         ResourceView.gallery => 'Gallery',
         _ => mode.name[0].toUpperCase() + mode.name.substring(1),

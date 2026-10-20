@@ -790,7 +790,7 @@ class SocketMediaGpu {
       ...((props['emission'] as List?) ?? const [0, 0, 0])
           .cast<num>()
           .map((v) => v.toDouble()),
-      0,
+      (material['textures'] as Map?)?['emission'] != null ? 1 : 0,
       number('transmission', 0),
       number('ior', 1.5),
       number('thickness', 0),
@@ -1097,7 +1097,8 @@ class SocketMediaGpu {
             'roughness',
             'metallic',
             'normal',
-            'ao'
+            'ao',
+            'emission'
           ]) {
             final texture = role == 'albedo' && isLabel
                 ? label

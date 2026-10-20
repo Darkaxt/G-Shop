@@ -11,7 +11,80 @@ class ConsoleModel {
   final String systemId;
   final Directory directory;
   final String generation;
-  ConsoleModel._(this.systemId, this.directory, this.generation);
+  final String? romSet;
+  final bool canOpen;
+  final int openingDurationMs;
+  ConsoleModel._(this.systemId, this.directory, this.generation,
+      {this.romSet, this.canOpen = false, this.openingDurationMs = 2000});
+
+  // Hardware identity is the MAME set, not a game title. Crystal, Silver and
+  // Panorama variants deliberately do not borrow their similarly named models.
+  static const gameWatchSets = {
+    'gnw_dkong',
+    'gnw_dkjr',
+    'gnw_zelda',
+    'auslalom',
+    'gnw_mariocm',
+    'gnw_mmouse',
+    'gnw_pchute',
+    'gnw_smbn',
+    'gnw_chef',
+    'gnw_fire',
+    'gnw_octopus',
+    'gnw_dkong2',
+    'gnw_mario',
+  };
+  static String? gameWatchSet(String filename) {
+    final leaf = filename.split(RegExp(r'[/\\]')).last;
+    // Exact No-Intro release aliases observed in the owner's collection. These
+    // bind hardware editions explicitly, not a normalized/fuzzy game title.
+    final release = gameWatchReleases[leaf];
+    if (release != null) return release;
+    final match = RegExp(r'^([a-z0-9_]+)\.(?:zip|7z)$').firstMatch(leaf);
+    final set = match?.group(1);
+    return gameWatchSets.contains(set) ? set : null;
+  }
+
+  static const gameWatchReleases = {
+    'Donkey Kong (World).7z': 'gnw_dkong',
+    'Donkey Kong Jr. (World) (New Wide Screen).7z': 'gnw_dkjr',
+    'Zelda (World).7z': 'gnw_zelda',
+    "Mario's Cement Factory (World) (New Wide Screen).7z": 'gnw_mariocm',
+    'Mickey Mouse ~ Egg (World) (Wide Screen).7z': 'gnw_mmouse',
+    'Parachute (World).7z': 'gnw_pchute',
+    'Super Mario Bros. (World).7z': 'gnw_smbn',
+    'Chef (World).7z': 'gnw_chef',
+    'Fire (World) (Wide Screen).7z': 'gnw_fire',
+    'Octopus (World).7z': 'gnw_octopus',
+    'Donkey Kong II (World).7z': 'gnw_dkong2',
+    'Mario Bros. (World).7z': 'gnw_mario',
+  };
+
+  static Future<ConsoleModel?> findGameWatch(String filename,
+      {Directory? modelsDirectory}) async {
+    final set = gameWatchSet(filename);
+    if (set == null || modelsDirectory == null && !Platform.isAndroid) {
+      return null;
+    }
+    final root =
+        modelsDirectory ?? Directory('/storage/emulated/0/RShop/models');
+    final dir = Directory('${root.path}/handhelds/gameandwatch/$set');
+    final manifest = File('${dir.path}/model.json');
+    if (!await manifest.exists()) return null;
+    if (await manifest.length() > 1024 * 1024) {
+      throw const FormatException('Handheld manifest exceeds import size');
+    }
+    final bytes = await manifest.readAsBytes();
+    final data = jsonDecode(utf8.decode(bytes)) as Map;
+    final duration = data['openingDurationMs'] ?? 2000;
+    if (duration is! int || duration < 50 || duration > 10000) {
+      throw const FormatException('Invalid handheld animation duration');
+    }
+    return ConsoleModel._('gameandwatch', dir, sha256.convert(bytes).toString(),
+        romSet: set,
+        canOpen: data['canOpen'] == true,
+        openingDurationMs: duration);
+  }
 
   static Future<ConsoleModel?> find(String systemId,
       {Directory? modelsDirectory}) async {
@@ -39,6 +112,7 @@ class ConsoleModel {
     }
     final data = jsonDecode(utf8.decode(manifest)) as Map<String, dynamic>;
     if (data['system'] != systemId ||
+        romSet != null && data['romSet'] != romSet ||
         data['motionKind'] != 'hardware' ||
         data['sourceWidth'] is! num ||
         !(data['sourceWidth'] as num).isFinite ||

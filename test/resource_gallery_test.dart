@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/features/preview/resource_gallery.dart';
 import 'package:retro_eshop/widgets/socket_media_renderer.dart';
+import 'package:retro_eshop/features/preview/game_watch_preview.dart';
 // Exercise the real controller's native boundary without decoding media on host.
 // ignore: depend_on_referenced_packages
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
@@ -44,6 +45,32 @@ class _GalleryPlayer extends VideoPlayerPlatform {
 }
 
 void main() {
+  testWidgets(
+      'Game and Watch exposes the device, not a fabricated box or cartridge',
+      (tester) async {
+    final key = GlobalKey<ResourceGalleryState>();
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: ResourceGallery(
+                key: key,
+                identity: 'gnw_dkong.zip',
+                filename: 'gnw_dkong.zip',
+                title: 'Donkey Kong',
+                importedModels: true,
+                systemId: 'gameandwatch',
+                resources: const {
+          'video': ['file:///trailer.mp4'],
+          'manual-page': ['file:///manual.png']
+        }))));
+    expect(key.currentState!.view, ResourceView.cartridge);
+    expect(find.text('Device'), findsOneWidget);
+    expect(find.byType(GameWatchPreview), findsOneWidget);
+    expect(find.byKey(const ValueKey('resource-mode-box')), findsNothing);
+    expect(find.byKey(const ValueKey('resource-mode-cover')), findsNothing);
+    expect(find.byKey(const ValueKey('resource-mode-manual')), findsOneWidget);
+    expect(find.byKey(const ValueKey('resource-mode-gallery')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('Reduced Motion opens the real inside page and preserves paging',
       (tester) async {
     final file = File.fromUri(File('assets/icon.png').absolute.uri);
@@ -80,16 +107,19 @@ void main() {
     await tester.drag(find.byType(InteractiveViewer), const Offset(-350, 0));
     await tester.pump(const Duration(milliseconds: 40));
     expect(key.currentState!.page, 2,
-        reason: 'The real reader must receive page swipes through its zoom viewer');
+        reason:
+            'The real reader must receive page swipes through its zoom viewer');
     await tester.drag(find.byType(InteractiveViewer), const Offset(0, -200));
     await tester.pump(const Duration(milliseconds: 40));
     expect(key.currentState!.page, 2);
-    final transform = tester.widget<InteractiveViewer>(find.byType(InteractiveViewer))
+    final transform = tester
+        .widget<InteractiveViewer>(find.byType(InteractiveViewer))
         .transformationController!;
     transform.value = Matrix4.diagonal3Values(2, 2, 1);
     await tester.drag(find.byType(InteractiveViewer), const Offset(-200, 0));
     await tester.pump(const Duration(milliseconds: 40));
-    expect(key.currentState!.page, 2, reason: 'Zoomed page panning must not turn pages');
+    expect(key.currentState!.page, 2,
+        reason: 'Zoomed page panning must not turn pages');
     transform.value = Matrix4.identity();
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pump();

@@ -13,6 +13,7 @@ import '../../../widgets/unboxing_preview.dart';
 import '../../../models/gba_cartridge_model.dart';
 import '../../../services/image_cache_service.dart';
 import '../../preview/resource_gallery.dart';
+import '../../preview/game_watch_preview.dart';
 
 class CoverSection extends StatefulWidget {
   final GameItem game;
@@ -224,6 +225,20 @@ class CoverSectionState extends State<CoverSection> {
   @override
   Widget build(BuildContext context) {
     final game = widget.game, system = widget.system;
+    if (_physical &&
+        widget.physicalMediaEnabled &&
+        system.id == 'gameandwatch') {
+      return GameWatchPreview(
+          key: ValueKey(game.selectionKey),
+          filename: game.filename,
+          title: game.displayName,
+          identity: game.selectionKey,
+          reducedMotion: _reducedMotion || widget.reducedMotion,
+          onReady: () {
+            widget.onReady?.call();
+            widget.onRevealed?.call();
+          });
+    }
     final format = PhysicalMediaFormat.forSystem(system.id,
         region: widget.metadata.region.name, dualMode: widget.gbcDualMode);
     final physical = _physical;

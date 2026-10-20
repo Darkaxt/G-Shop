@@ -1,6 +1,25 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 115, 2026-10-20.
+Authoritative specification, revision 116, 2026-10-20.
+
+Owner next-console direction, 2026-10-20: finish the remaining GBA special
+housing checks, then integrate the supplied Game & Watch collection within S25,
+before Game Boy. Each matching game is its own physical handheld: show that
+handheld in the medium/cartridge position and interactive resource viewer,
+retaining the existing selection, touch rotation/pinch, focus isolation and
+secondary-display lifecycle. Do not fabricate a removable cartridge or carton
+extraction for an integrated handheld. Preserve available manual/gallery paths.
+Use the supplied `rom-model-map.json` exact MAME set basenames and explicit,
+verified No-Intro release aliases from the real collection, not fuzzy titles:
+13 sets map to 13 models; modern Zelda and tabletop Donkey Kong Jr. are not
+automatically assigned to similarly named classic sets. Missing/unmapped assets
+retain the honest existing fallback. Import user assets privately, with source
+hashes/credits and bounded texture/geometry validation; do not bundle them in the
+public APK. Verify upright framing/materials and real touch interaction, plus
+actual Open/Close behavior on the four supplied folding models where supported.
+Record model-specific results in S25_VERIFIED_MODELS.md; supplied browser QA is
+input evidence, not R-Shop/Thor acceptance. GBA completion precedes G&W
+implementation; S25 remains the sole ACTIVE stage. No repeated GBA Top-25 sweep.
 
 Search blocker during GBA closure: an empty Library search must settle normally
 and a later matching query must execute without reopening the route. Preserve

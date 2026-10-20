@@ -4,7 +4,7 @@ uniform FragInfo {
   vec4 uv_info; // scale, offset xy, albedo impact
   vec4 flags; // casing shader, label, disc metal, AO strength
   vec4 channels; // source roughness, metallic, AO selectors; housing roughness floor
-  vec4 emission; // albedo-linked emissive RGB, reserved
+  vec4 emission; // emissive RGB factor, independent map present
   vec4 transmission; // weight, IOR, normalized wall thickness, reserved
 } material;
 uniform EnvironmentInfo {
@@ -21,6 +21,7 @@ uniform sampler2D roughness_map;
 uniform sampler2D metallic_map;
 uniform sampler2D normal_map;
 uniform sampler2D ao_map;
+uniform sampler2D emission_map;
 uniform sampler2D opaque_scene;
 in vec3 v_position;
 in vec3 v_normal;
@@ -127,7 +128,8 @@ void main() {
     vec3 rainbow = 0.5 + 0.5 * cos(angle + vec3(0.0, 2.094, 4.188));
     lit += rainbow * pow(1.0 - ndv, 2.0) * 0.2;
   }
-  lit += base * material.emission.rgb;
+  vec3 emissive = mix(base, from_srgb(texture(emission_map, uv).rgb), material.emission.w);
+  lit += emissive * material.emission.rgb;
   if (transmission > 0.0) {
     // Thin closed-shell approximation of glTF optical transmission. Sample the
     // independently rendered opaque PCB/label, not the framebuffer being written.

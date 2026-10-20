@@ -18,6 +18,23 @@ This ledger does not declare the full S25 stage complete.
 
 ## Evidence and limits
 
+Boktai special-model checkpoint, 2026-10-20: signed source `814a878`, GitHub
+run 39335116043, downloaded and installed APK SHA-256
+`05e39a8daccab5dc611c71f6f200b55a86a929ac451cf6f7266d37c669a2d81f`;
+existing production certificate verified. Normal Settings import added one
+Boktai 2 USA packaging edition from the supplied archive; Drive publication
+completed and `box.png` matches `9d70b201…81a3764`. The source front/back are
+USA LaunchBox references; the European spine is explicitly regional reconstruction
+and plain end flaps derive from the supplied reconstructed atlas. No Boktai 1
+label or invented manual is assigned to Boktai 2. The actual special housing
+clears the right-opening fitted carton, settles to the left, focuses and rotates
+alone with other models hidden. Inspected recording: `boktai-selection-814a878.mp4`,
+both contact sheets and full-size tableau/focused/rotated images under
+`D:/Temp/rshop-s25-gba-close-20261020`. Analysis scans all 1,375 decoded frames
+without export truncation; its remuxed 60-fps timeline is estimated, not wall-clock
+timing. This verifies the Boktai housing workflow, not missing label/manual media,
+all ROMs or the wider stage. US Yoshi remains the other GBA special-model check.
+
 Sapphire colour-cast checkpoint, 2026-10-20: signed source `e881651`, successful
 GitHub run 39324488584, downloaded/installed APK SHA-256
 `f5096e2eb6247904ab1fae003e766623df54ca3b0dc5de018aa7b1079ebeb0da`.
@@ -467,3 +484,23 @@ The console-review stop and subsequent cinematic work remain explicitly pending.
 | P25-08 production delivery | GitHub-signed 30853c9 candidate installed in place with matching artifact/device hash and unchanged certificate | Remaining coherent correction/acceptance and public publication; candidate retains code 35 and is not existing public 1.9.19 |
 
 No S25 requirement is moved into S26. The rebrand remains NOT STARTED.
+# US Yoshi native checkpoint — 2026-10-20
+
+Signed 814a878 on Thor: normal download of the owned USA ROM followed by the
+one-game collector produces an exact raw-hash ScreenScraper match (3952), official
+US classification, actual label and trailer. No ROM was launched. The one-edition
+supplied packaging pack passes the production importer against the published
+identity; normal app import reports games=1. Its Drive front SHA-256 is
+`6d9dc2b9e48e940a113134eb4f7de8b9267bae0b2f9b609a0308c66b52fdfaaf`, matching
+the prepared pack. Publication reaches 1403/1403 and terminal sync completion.
+
+Inspected all four sheets in private `rshop-s25-gba-close-20261020/yoshi-extraction-analysis`
+(1701 decoded frames, no evidence truncation): the right flap opens, the tall
+green/white USA housing clears its fitted carton and settles left; carton stays.
+The native isolated and rotated captures show only that cartridge, its real label
+upright, matte green front and white rear. The absent manual is not fabricated.
+This is special-housing acceptance, not a claim of all-game/full-media coverage.
+The remuxed raw H.264 timeline is estimated, not measured animation timing.
+The earlier settled-only film is not extraction evidence. Original second-screen
+enabled state and Best-25/rating-order filters are restored; no Top-25 render sweep
+was repeated.
