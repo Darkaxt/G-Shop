@@ -5,6 +5,32 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-20 current G&W acceptance correction: the owner identified doubled D-pad
+and offset buttons on DK II and Mario Bros. Their supplied reconstruction
+faceplates already photograph the controls; separate raised controls are
+undersized/misaligned in the original GLBs. This is a source registration defect,
+not duplicated scene rendering. Correct the two exact-source imports while
+preserving artwork, depth, hinge clips and other models. Native control alignment
+and folding/gesture acceptance remain internal advancement blockers in ACTIVE
+S25 until the corrected imports are inspected on Thor; the earlier static
+framing screenshots are not a control-alignment pass.
+The corrected DK II/Mario imports now pass the native initial-view control
+alignment check on signed 5473dba; texture bytes and source hinge clips remain
+unchanged. Their pale raised menu controls were also corrected to charcoal.
+The subsequent owner pivot/motion corrections remain uninstalled: measured open
+centres were displaced from the swept-envelope origin by 0.21-0.49 normalized
+units in depth. Converter now records all 61 authored pose centres; the renderer
+recentres before yaw. Exact imported geometry checks confirm no orbit at closed,
+half and fully open poses. Game previews use an eight-second +/-0.14-radian
+wobble; the selector retains its turntable. Both library routes pass exact ROM
+filenames into actual handheld cards, static unless selected. Host regression,
+gallery/GBA-card compatibility and all 13 real private import checks pass. The
+analyzer reports only the existing renderer protected-layer warning and two old
+brace-style infos, no new errors. These results are not native motion acceptance.
+Remaining acceptance: signed-device centred gestures, subdued library/preview
+motion, four folding variants, preserved resource navigation, then normal public
+release/download and identical Thor delivery. S25 remains ACTIVE.
+
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
 Current native checkpoint: the remaining Boktai and US Yoshi special housing,

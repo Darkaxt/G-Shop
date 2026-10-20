@@ -1,6 +1,15 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 116, 2026-10-20.
+Authoritative specification, revision 117, 2026-10-20.
+
+Owner G&W corrections: register DK II and Mario Bros. raised controls with their
+original faceplate artwork. Turntable motion is exclusive to the console
+selector. Per-game handheld previews and the selected library tile use gentle
+wobble, with touch rotation/pinch retained in the viewer; nonselected cards are
+static and Reduced Motion disables ambient movement. The library uses the exact
+per-ROM handheld, not a generic disc. Folding-device manual rotation must stay
+centred on its current visible pose, not the combined open/closed swept bounds.
+Verify corrected controls, subdued motion and centred touch rotation on Thor.
 
 Owner next-console direction, 2026-10-20: finish the remaining GBA special
 housing checks, then integrate the supplied Game & Watch collection within S25,
@@ -20,6 +29,10 @@ actual Open/Close behavior on the four supplied folding models where supported.
 Record model-specific results in S25_VERIFIED_MODELS.md; supplied browser QA is
 input evidence, not R-Shop/Thor acceptance. GBA completion precedes G&W
 implementation; S25 remains the sole ACTIVE stage. No repeated GBA Top-25 sweep.
+The requested GBA/G&W outcome includes a normal published release and independent
+delivery verification under the owner's 2026-10-20 standing instructions. Complete
+the requested integration/native checks before publication; preserve private
+model imports outside the public APK. The signed CI artifact alone is not delivery.
 
 Search blocker during GBA closure: an empty Library search must settle normally
 and a later matching query must execute without reopening the route. Preserve

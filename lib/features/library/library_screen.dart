@@ -2515,6 +2515,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                 builder: (isSelected) => BaseGameCard(
                   systemId: entry.systemSlug,
                   gameIdentity: entry.selectionKey,
+                  filename: entry.filename,
                   displayName: entry.cardTitle,
                   variantCount: variants.length,
                   systemLabel: systemLabel,
@@ -2629,8 +2630,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             child: HeroMode(
                 enabled: false,
                 child: CoverSection(
-                  packagingResources: physicalMetadata?.editionId == null ? const {} :
-                      ref.watch(editionGalleryMediaProvider(physicalMetadata!.editionId!)).valueOrNull ?? const {},
+                  packagingResources: physicalMetadata?.editionId == null
+                      ? const {}
+                      : ref
+                              .watch(editionGalleryMediaProvider(
+                                  physicalMetadata!.editionId!))
+                              .valueOrNull ??
+                          const {},
                   key: ValueKey(entry.selectionKey),
                   game: game,
                   system: system,

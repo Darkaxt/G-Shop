@@ -6,7 +6,7 @@ import 'console_hardware_view.dart';
 /// A ROM is the complete handheld. It never enters a cartridge/carton timeline.
 class GameWatchPreview extends StatefulWidget {
   final String filename, title, identity;
-  final bool reducedMotion;
+  final bool reducedMotion, transparentBackground;
   final VoidCallback? onReady;
   const GameWatchPreview(
       {super.key,
@@ -14,6 +14,7 @@ class GameWatchPreview extends StatefulWidget {
       required this.title,
       required this.identity,
       this.reducedMotion = false,
+      this.transparentBackground = false,
       this.onReady});
   @override
   State<GameWatchPreview> createState() => _GameWatchPreviewState();
@@ -66,6 +67,8 @@ class _GameWatchPreviewState extends State<GameWatchPreview> {
             model: model,
             title: widget.title,
             showTitle: false,
+            turntable: false,
+            transparentBackground: widget.transparentBackground,
             reducedMotion: widget.reducedMotion,
             onReady: widget.onReady);
       });

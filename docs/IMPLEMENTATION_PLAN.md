@@ -1,9 +1,14 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 116, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 117, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**.
+Current owner corrections remain in S25: exact-source control registration for
+DK II/Mario Bros.; active-pose centring for folding-device rotation; subtle game
+wobble rather than selector turntable; actual per-ROM handheld library tiles.
+These invalidate only their affected presentation checks, not the GBA special
+housing acceptance or the eight unchanged single-screen model checks.
 Owner-authorized console order: finish GBA's Boktai/US Yoshi real-app checks,
 then G&W before Game Boy. Both remaining GBA special checks now pass on signed
 814a878; G&W is the current implementation focus inside ACTIVE S25. Read-only inventory
@@ -12,6 +17,14 @@ Reuse the imported-medium renderer for per-ROM handhelds; preserve normal
 manual/gallery and touch interaction, validate exact hardware matching and
 upright materials, then inspect the actual Thor view and folding variants.
 Do not turn supplied static LCD artwork into a promised live-emulation feature.
+Final delivery for the requested GBA/G&W batch belongs to this S25 work: after
+the required integrated/native checks pass, publish normal release 1.9.20 with
+the GitHub-signed APK, BUILDINFO and SHA256SUMS. Read back its tag/source and
+published state, independently download and verify the package/version/certificate,
+and verify the identical package installed on Thor. The owner's 2026-10-20
+standing release authorization applies; no additional publication approval is
+needed. CI artifacts, an intermediate commit or an installed test candidate do
+not satisfy this final delivery gate. No second stage is ACTIVE.
 Search prerequisite: fix the reproduced empty-result worker ownership race,
 verify zero-match -> matching-query recovery with saved filters unchanged, and
 include its ordinary Thor route check in the pending coherent GBA candidate.

@@ -14,12 +14,15 @@ class ConsoleHardwareView extends StatefulWidget {
   String get generation => model.generation;
   final bool reducedMotion;
   final bool showTitle;
+  final bool turntable, transparentBackground;
   final VoidCallback? onReady;
   const ConsoleHardwareView(
       {super.key,
       required this.model,
       required this.title,
       this.showTitle = true,
+      this.turntable = true,
+      this.transparentBackground = false,
       this.reducedMotion = false,
       this.onReady});
   @override
@@ -37,11 +40,15 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
   Timer? _idle;
   int _pointers = 0;
   double _yaw = -.2, _pitch = defaultPitch, _zoom = .9, _startZoom = .9;
+  double get _motionYaw => widget.turntable
+      ? _rotation.value * math.pi * 2
+      : math.sin(_rotation.value * math.pi * 2) * .14;
   Map<String, Object?> get snapshot => {
         ...?rendererKey.currentState?.snapshot,
         'system': widget.systemId,
         'consoleGeneration': widget.generation,
-        'rotationPeriodMs': rotationPeriod.inMilliseconds,
+        'rotationPeriodMs': _rotation.duration!.inMilliseconds,
+        'motion': widget.turntable ? 'turntable' : 'wobble',
         'rotationRunning': _rotation.isAnimating,
         'reducedMotion': widget.reducedMotion,
         'interaction': 'gestures',
@@ -58,7 +65,10 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
   @override
   void initState() {
     super.initState();
-    _rotation = AnimationController(vsync: this, duration: rotationPeriod);
+    _rotation = AnimationController(
+        vsync: this,
+        duration:
+            widget.turntable ? rotationPeriod : const Duration(seconds: 8));
     _opening = AnimationController(
         vsync: this,
         value: widget.model.canOpen ? 1 : 0,
@@ -82,7 +92,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
     _idle?.cancel();
     _idle = null;
     if (_pointers++ == 0) {
-      _yaw += _rotation.value * math.pi * 2;
+      _yaw += _motionYaw;
       _rotation.stop();
       _rotation.value = 0;
     }
@@ -126,7 +136,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
           Duration(milliseconds: widget.model.openingDurationMs);
     }
     if (!oldWidget.reducedMotion && widget.reducedMotion) {
-      _yaw += _rotation.value * math.pi * 2;
+      _yaw += _motionYaw;
       _rotation.stop();
       _rotation.value = 0;
     }
@@ -147,7 +157,9 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
 
   @override
   Widget build(BuildContext context) => Container(
-        decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
+        decoration: widget.transparentBackground
+            ? null
+            : const BoxDecoration(gradient: AppTheme.backgroundGradient),
         child: SafeArea(
             child: Column(children: [
           if (widget.showTitle) ...[
@@ -196,9 +208,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
                                 opening: _opening.value,
                                 rx: _pitch,
                                 ry: _yaw +
-                                    (widget.reducedMotion
-                                        ? 0
-                                        : _rotation.value * math.pi * 2),
+                                    (widget.reducedMotion ? 0 : _motionYaw),
                                 scaleX: _zoom,
                                 scaleY: _zoom,
                                 scaleZ: _zoom),

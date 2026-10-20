@@ -13,12 +13,14 @@ import 'installed_indicator.dart';
 import 'smart_cover_image.dart';
 import 'gba_box_tile.dart';
 import 'handwritten_media_sticker.dart';
+import '../features/preview/game_watch_preview.dart';
 
 class BaseGameCard extends StatelessWidget {
   // Core
   final String displayName;
   final String? systemId;
   final String? gameIdentity;
+  final String? filename;
   final List<String> coverUrls;
   final String? cachedUrl;
   final bool isInstalled;
@@ -77,6 +79,7 @@ class BaseGameCard extends StatelessWidget {
     required this.displayName,
     this.systemId,
     this.gameIdentity,
+    this.filename,
     required this.coverUrls,
     required this.cachedUrl,
     required this.isInstalled,
@@ -125,13 +128,34 @@ class BaseGameCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rs = context.rs;
-    if (systemId == 'gba' && gameIdentity != null) {
+    if ((systemId == 'gba' || systemId == 'gameandwatch') &&
+        gameIdentity != null) {
       Widget boxCard = GestureDetector(
           onTapDown: (_) => onTapSelect?.call(),
           onTap: onTap,
           onLongPress: onLongPress,
           child: Column(children: [
             Expanded(child: Consumer(builder: (context, ref, _) {
+              if (systemId == 'gameandwatch') {
+                return Stack(fit: StackFit.expand, children: [
+                  IgnorePointer(
+                      child: GameWatchPreview(
+                          key: ValueKey('handheld-grid-$filename'),
+                          filename: filename ?? '',
+                          title: displayName,
+                          identity: gameIdentity!,
+                          transparentBackground: true,
+                          reducedMotion: !isSelected ||
+                              reducedMotion ||
+                              MediaQuery.disableAnimationsOf(context))),
+                  if (isInstalled || isRemoteAvailable)
+                    Positioned(
+                        bottom: 8,
+                        right: 8,
+                        child: _AvailabilityBadge(
+                            installed: isInstalled, isSmall: false)),
+                ]);
+              }
               final boxRating = overallRating ??
                   (showRating
                       ? ref

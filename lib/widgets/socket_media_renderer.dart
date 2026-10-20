@@ -531,10 +531,27 @@ class SocketMediaGpu {
     // Turn around the console's original upright axis; pitch is the fixed
     // inspection-camera angle, not an axis tilted by every yaw increment.
     if (model.data['hardwareGeometry'] == true) {
+      var center = vm.Vector3.zero();
+      final centers = model.data['poseCenters'] as List?;
+      if (centers != null) {
+        for (var i = 1; i < centers.length; i++) {
+          final a = (centers[i - 1] as List).cast<num>();
+          final b = (centers[i] as List).cast<num>();
+          if (pose.opening <= b[0] || i == centers.length - 1) {
+            final f = ((pose.opening - a[0]) / (b[0] - a[0])).clamp(0.0, 1.0);
+            center = vm.Vector3(
+                a[1].toDouble() + (b[1] - a[1]) * f,
+                a[2].toDouble() + (b[2] - a[2]) * f,
+                a[3].toDouble() + (b[3] - a[3]) * f);
+            break;
+          }
+        }
+      }
       return vm.Matrix4.identity()
         ..rotateX(pose.rx)
         ..rotateY(pose.ry)
-        ..scaleByDouble(pose.scaleX, pose.scaleY, pose.scaleZ, 1);
+        ..scaleByDouble(pose.scaleX, pose.scaleY, pose.scaleZ, 1)
+        ..translateByDouble(-center.x, -center.y, -center.z, 1);
     }
     if (model.data['ownedGeometry'] == true ||
         model.data['cartridgeGeometry'] == true ||

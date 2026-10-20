@@ -125,6 +125,25 @@ class ConsoleModel {
           'Invalid console model dimensions or identity');
     }
     final receipts = (data['textureFiles'] as Map).cast<String, String>();
+    final centers = data['poseCenters'];
+    if (centers != null) {
+      if (centers is! List ||
+          centers.length < 2 ||
+          centers.length > 1024 ||
+          centers.any((row) =>
+              row is! List ||
+              row.length != 4 ||
+              row.any((v) => v is! num || !v.isFinite)) ||
+          centers.first[0] != 0 ||
+          centers.last[0] != 1) {
+        throw const FormatException('Invalid hardware pose centres');
+      }
+      for (var i = 1; i < centers.length; i++) {
+        if ((centers[i][0] as num) <= (centers[i - 1][0] as num)) {
+          throw const FormatException('Hardware pose centres must be ordered');
+        }
+      }
+    }
     if (receipts.isEmpty || receipts.length > 64) {
       throw const FormatException('Invalid console texture inventory');
     }

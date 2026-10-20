@@ -102,6 +102,7 @@ def main():
     points = [axis(o.matrix_world @ v.co) for o in objects for v in o.data.vertices]
     # Frame the actual articulated envelope, not only the closed shell. Mesh
     # vertices and hinge pivots are still exported from the closed rest pose.
+    pose_bounds = []
     if animation:
         key_times = sorted({t[0] for s in animation['samplers'] for t in values(s['input'])})
         fps = bpy.context.scene.render.fps / bpy.context.scene.render.fps_base
@@ -109,7 +110,11 @@ def main():
             frame = frame_origin + time * fps
             bpy.context.scene.frame_set(int(frame), subframe=frame-int(frame))
             bpy.context.view_layer.update()
-            points.extend(axis(o.matrix_world @ v.co) for o in objects for v in o.data.vertices)
+            current = [axis(o.matrix_world @ v.co) for o in objects for v in o.data.vertices]
+            points.extend(current)
+            pose_bounds.append((time/key_times[-1], Vector([
+                (min(p[a] for p in current)+max(p[a] for p in current))/2
+                for a in range(3)])))
         bpy.context.scene.frame_set(int(frame_origin))
         bpy.context.view_layer.update()
     low = Vector([min(p[a] for p in points) for a in range(3)])
@@ -212,6 +217,10 @@ def main():
     if args.rom_set:
         manifest['romSet'] = args.rom_set
         manifest['openingDurationMs'] = round(duration*1000) if hinges else 2000
+    if pose_bounds:
+        manifest['poseCenters'] = [[time, *list((point-center)*scale)] for time, point in pose_bounds]
+    if gltf.get('extras', {}).get('controlRegistration'):
+        manifest['sourceReference']['controlRegistration'] = gltf['extras']['controlRegistration']
     args.output.mkdir(parents=True)
     (args.output/'model.mesh').write_bytes(payload)
     (args.output/'model.json').write_text(json.dumps(manifest, indent=2), encoding='utf8')

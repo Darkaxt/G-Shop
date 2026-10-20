@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -78,6 +79,31 @@ void main() {
     final up = vm.Vector3(0, 1, 0);
     expect(a.transform3(up.clone()).distanceTo(b.transform3(up.clone())),
         lessThan(1e-6));
+  });
+  test(
+      'folding turntable rotates around the visible pose, not its swept envelope',
+      () async {
+    final dir = Directory('${root.path}/consoles/gba');
+    await File('${dir.path}/model.json').writeAsString(jsonEncode({
+      ...data,
+      'poseCenters': [
+        [0, .5, .2, -.1],
+        [1, 0, -.2, -.5]
+      ]
+    }));
+    final geometry =
+        await (await ConsoleModel.find('gba', modelsDirectory: root))!.load();
+    for (final opening in [0.0, .5, 1.0]) {
+      final center =
+          vm.Vector3(.5 * (1 - opening), .2 - .4 * opening, -.1 - .4 * opening);
+      for (final yaw in [-3.0, -1.0, 0.0, 1.0, 3.0]) {
+        final matrix = SocketMediaGpu.modelTransform(
+            geometry, SocketMediaPose(rx: .18, ry: yaw, opening: opening));
+        expect(matrix.transform3(center.clone()).length, lessThan(1e-6),
+            reason:
+                'Visible centre must remain fixed through yaw at opening=$opening');
+      }
+    }
   });
   test('handheld imports use exact MAME hardware sets, never title variants',
       () async {
@@ -176,6 +202,27 @@ void main() {
     expect(SocketMediaGpu.materialUniforms(material).sublist(20, 24),
         [1, .5, .25, 0]);
   });
+  testWidgets(
+      'game hardware only wobbles while the selector keeps its turntable',
+      (tester) async {
+    final model = (await tester
+        .runAsync(() => ConsoleModel.find('gba', modelsDirectory: root)))!;
+    final key = GlobalKey<ConsoleHardwareViewState>();
+    await tester.pumpWidget(MaterialApp(
+        home: ConsoleHardwareView(
+            key: key, model: model, title: 'Game handheld', turntable: false)));
+    await tester.pump();
+    final renderer = find.byType(SocketMediaRenderer);
+    tester.widget<SocketMediaRenderer>(renderer).onReady!();
+    await tester.pump();
+    expect(key.currentState!.snapshot['motion'], 'wobble');
+    for (var i = 0; i < 24; i++) {
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.widget<SocketMediaRenderer>(renderer).pose.ry,
+          inInclusiveRange(-.340001, -.059999));
+    }
+    await tester.pumpWidget(const SizedBox());
+  });
   final handhelds = Platform.environment['RSHOP_GAMEWATCH_MODEL_DIR'];
   test('all supplied mapped handhelds load exact geometry and texture receipts',
       () async {
@@ -193,6 +240,34 @@ void main() {
           reason: set);
       if (model.canOpen) {
         expect(geometry.data['animationVerifiedMaxError'], lessThan(.0001));
+        expect(geometry.data['poseCenters'], isNotEmpty,
+            reason:
+                'Folding imports must provide visible-pose rotation centres');
+        for (final opening in [0.0, .5, 1.0]) {
+          final low = vm.Vector3.all(double.infinity);
+          final high = vm.Vector3.all(double.negativeInfinity);
+          for (final surface in geometry.surfaces) {
+            final hinge = SocketMediaGpu.openingTransform(surface, opening);
+            for (var i = 0; i < (surface['vertexCount'] as int); i++) {
+              final offset = (surface['vertexOffset'] as int) + i * 32;
+              final point = hinge.transform3(vm.Vector3(
+                  geometry.mesh.getFloat32(offset, Endian.little),
+                  geometry.mesh.getFloat32(offset + 4, Endian.little),
+                  geometry.mesh.getFloat32(offset + 8, Endian.little)));
+              for (var axis = 0; axis < 3; axis++) {
+                if (point[axis] < low[axis]) low[axis] = point[axis];
+                if (point[axis] > high[axis]) high[axis] = point[axis];
+              }
+            }
+          }
+          final center = (low + high) * .5;
+          for (final yaw in [0.0, 1.5, 3.0]) {
+            final matrix = SocketMediaGpu.modelTransform(
+                geometry, SocketMediaPose(opening: opening, ry: yaw));
+            expect(matrix.transform3(center.clone()).length, lessThan(.00001),
+                reason: '$set must rotate in place at opening=$opening');
+          }
+        }
         for (final surface in geometry.surfaces) {
           for (final hinge in surface['openingHinges'] as List) {
             expect((hinge['keys'] as List).first[1], 0,
