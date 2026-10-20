@@ -487,12 +487,17 @@ class _PreviewScreenState extends State<PreviewScreen>
                                 : details
                                     ? Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: _details(snapshot))
                                     : GestureDetector(
-                                        onTap: () => _action('details'),
+                                        onTap: system.id == 'gameandwatch' && snapshot['threeD'] == true ? null : () => _action('details'),
                                         child: prefs.modelVisible && snapshot['mediaLoading'] == true && snapshot['cover'] == null
                                             ? const Center(child: CircularProgressIndicator(key: ValueKey('preview-loading-cover')))
                                             : prefs.modelVisible
                                                 ? CoverSection(
                                                     showGameWatchVariants: true,
+                                                    onHardwareReference: () => _action('hardware-source'),
+                                                    inspectedHardware: snapshot['inspectedHardware'] as int?,
+                                                    hardwareInformationVisible: snapshot['hardwareInformationVisible'] == true,
+                                                    onHardwareInspection: (index) => index == null ? _action('hardware-overview') : _action('hardware-inspect', variant: index),
+                                                    onHardwareInformation: (show) => _action(show ? 'hardware-info' : 'hardware-hide-info'),
                                                     initiallySettled: _previewSettled,
                                                     initialInspectionPart: _inspectedPart,
                                                     onInspectionChanged: (part) => _inspectedPart = part,
@@ -538,7 +543,13 @@ class _PreviewScreenState extends State<PreviewScreen>
                                                     showPresentationControls: false)
                                                 : const Center(child: Icon(Icons.touch_app_outlined, size: 48)))),
                         if (!details && !gallery)
-                          const Text('Select for details',
+                          Text(
+                              system.id == 'gameandwatch' &&
+                                      snapshot['threeD'] == true
+                                  ? (snapshot['inspectedHardware'] == null
+                                      ? 'Tap a model to inspect'
+                                      : 'Select for hardware information')
+                                  : 'Select for details',
                               style: TextStyle(color: Colors.white70)),
                       ]))),
               if (!gallery && !details && system.id == 'gba') ...[

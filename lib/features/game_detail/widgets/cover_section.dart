@@ -44,6 +44,11 @@ class CoverSection extends StatefulWidget {
   final String? initialInspectionPart;
   final bool initiallySettled;
   final bool showGameWatchVariants;
+  final int? inspectedHardware;
+  final bool hardwareInformationVisible;
+  final ValueChanged<int?>? onHardwareInspection;
+  final ValueChanged<bool>? onHardwareInformation;
+  final VoidCallback? onHardwareReference;
   const CoverSection({
     super.key,
     required this.game,
@@ -74,6 +79,11 @@ class CoverSection extends StatefulWidget {
     this.initialInspectionPart,
     this.initiallySettled = false,
     this.showGameWatchVariants = false,
+    this.inspectedHardware,
+    this.hardwareInformationVisible = false,
+    this.onHardwareInspection,
+    this.onHardwareInformation,
+    this.onHardwareReference,
   });
 
   @override
@@ -234,12 +244,20 @@ class CoverSectionState extends State<CoverSection> {
         widget.physicalMediaEnabled &&
         system.id == 'gameandwatch') {
       if (widget.showGameWatchVariants) {
-        return GameWatchVariantsPreview(key: _variantsKey,
-            filename: game.filename, title: game.displayName,
+        return GameWatchVariantsPreview(
+            key: _variantsKey,
+            inspectedIndex: widget.inspectedHardware,
+            informationVisible: widget.hardwareInformationVisible,
+            onInspect: widget.onHardwareInspection,
+            onInformation: widget.onHardwareInformation,
+            onReference: widget.onHardwareReference,
+            filename: game.filename,
+            title: game.displayName,
             identity: game.selectionKey,
             reducedMotion: _reducedMotion || widget.reducedMotion,
             onReady: () {
-              _modelReady = _variantsKey.currentState?.snapshot?['frameRendered'] == true;
+              _modelReady =
+                  _variantsKey.currentState?.snapshot?['frameRendered'] == true;
               widget.onReady?.call();
               widget.onRevealed?.call();
             });

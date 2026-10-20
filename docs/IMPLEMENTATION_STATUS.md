@@ -5,6 +5,33 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-20 revision 123: expansion, conditional categories and model inspection
+refinement batch **ACTIVE**, within sole ACTIVE S25. Explicit user correction
+supersedes overview captions with an enlarged exact-edition inspector, attributed
+translucent information and panel-only slow rotation. Internal advancement blocker:
+complete and integrate this path, its controller access and fresh host/native UI
+acceptance before final 1.9.24 delivery. No required tracked deferral. All 32 new
+private imports have native matching geometry/frame receipts; five new Panorama
+hoods have native close/reopen captures, retained for unchanged model behavior.
+The later `(1).zip` is byte-identical to the first expansion (same SHA-256 and all
+166 entries), with no new corrections. Earlier signed candidate is unpublished;
+its successful build alone cannot satisfy the revised UI delivery criterion.
+The two unrelated broader diagnostic failures reproduce unchanged in a standalone
+483ed06 source snapshot; they are not regressions introduced by category changes.
+The complete inspection path is now wired and passes focused host acceptance:
+one/two/three models retain exact identities and aggregate readiness, the primary
+occupies the arc's forward centre, captions appear only in the inspector, and
+its translucent reference panel preserves all model states. A 1.3 text-scale
+check verifies bounded scroll/source controls. Information rotation is one turn
+per 120 seconds, paused by lifecycle and Reduced Motion; closing the panel
+restores the manual pose and normal motion. Missing modern/reference editions
+remain explicit instead of borrowing facts. The main engine owns external source
+navigation through the existing preview action bridge. Existing preview lifecycle,
+single Resources and G&W/GBA library-presentation checks pass. Analysis reports
+no error/warning; surrounding pre-existing style infos remain. Final signed Thor
+checks for arc appearance, controller menu, conditional tabs and actual source
+navigation are still required before publication.
+
 2026-10-20 revision 122: coverage expansion and conditional category correction
 batch **ACTIVE** within sole ACTIVE S25. The category row and controller cycling
 are hard-coded; resolve with complete-console category and cached index/saved

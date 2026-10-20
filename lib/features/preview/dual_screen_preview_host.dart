@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/game_item.dart';
+import '../../models/console_model.dart';
+import '../../models/game_watch_hardware_info.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/game_metadata_info.dart';
 import '../../models/preview_settings.dart';
 import '../../models/scraped_metadata.dart';
@@ -77,6 +80,29 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
   bool _clipLoading = false;
   int _clipRequest = 0;
   int _generation = 0;
+  List<GameWatchModelVariant> _hardwareModels = const [];
+  String? _hardwareFilename;
+  int? _inspectedHardware;
+  bool _hardwareInformationVisible = false;
+  int _hardwareRequest = 0;
+  Future<void> _loadHardware(String filename) async {
+    final request = ++_hardwareRequest;
+    final generation = _generation;
+    try {
+      final models = await ConsoleModel.findGameWatchVariants(filename);
+      if (!mounted ||
+          request != _hardwareRequest ||
+          generation != _generation ||
+          _hardwareFilename != filename) {
+        return;
+      }
+      setState(() => _hardwareModels = models);
+    } catch (_) {
+      // The existing lower-preview import owner reports import failures.
+      // No imported model means no speculative controller inspection entry.
+    }
+  }
+
   bool? _clipPreference;
   String? _bindingSignature;
   final _launcher = OwnedEmulatorLauncher();
@@ -154,6 +180,11 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     }
     _bindingSignature = signature;
     _generation++;
+    _hardwareRequest++;
+    _hardwareModels = const [];
+    _hardwareFilename = null;
+    _inspectedHardware = null;
+    _hardwareInformationVisible = false;
     _details = false;
     _gallery = false;
     _galleryManual = false;
@@ -186,6 +217,11 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     if (!ref.read(dualScreenPreviewProvider) ||
         !_visible ||
         _controller == null) return false;
+    if (_inspectedHardware != null) {
+      setState(
+          () => _hardwareInformationVisible = !_hardwareInformationVisible);
+      return true;
+    }
     if (_details) {
       unawaited(
           _action(_controller!.canOpenSelected ? 'launch' : 'download', null));
@@ -196,6 +232,14 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
   }
 
   bool closeDetails() {
+    if (_hardwareInformationVisible) {
+      setState(() => _hardwareInformationVisible = false);
+      return true;
+    }
+    if (_inspectedHardware != null) {
+      setState(() => _inspectedHardware = null);
+      return true;
+    }
     if (!_details) return false;
     setState(() => _details = false);
     return true;
@@ -214,6 +258,42 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
               onSelect: () {
                 if (mounted) setState(() => _details = true);
               }),
+          if (_hardwareModels.isNotEmpty)
+            QuickMenuItem(
+                label: 'Inspect hardware',
+                icon: Icons.zoom_in,
+                children: [
+                  for (var i = 0; i < _hardwareModels.length; i++)
+                    QuickMenuItem(
+                        label: _hardwareModels[i].label ??
+                            GameWatchHardwareInfo.forHardware(
+                                    _hardwareModels[i].model.hardwareId)
+                                ?.series ??
+                            'Hardware edition',
+                        icon: Icons.view_in_ar,
+                        onSelect: () => _action('hardware-inspect', i))
+                ]),
+          if (_inspectedHardware != null) ...[
+            QuickMenuItem(
+                label: _hardwareInformationVisible
+                    ? 'Hide hardware information'
+                    : 'Hardware information',
+                icon: Icons.info_outline,
+                onSelect: () => _action(
+                    _hardwareInformationVisible
+                        ? 'hardware-hide-info'
+                        : 'hardware-info',
+                    null)),
+            if (_hardwareInformationVisible)
+              QuickMenuItem(
+                  label: 'Open reference page',
+                  icon: Icons.open_in_new,
+                  onSelect: () => _action('hardware-source', null)),
+            QuickMenuItem(
+                label: 'Back to models',
+                icon: Icons.arrow_back,
+                onSelect: () => _action('hardware-overview', null)),
+          ],
           if (controller.canOpenSelected)
             QuickMenuItem(
                 label: 'Play',
@@ -301,6 +381,48 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
 
   Future<void> _action(String action, int? variant) async {
     if (!mounted || !_visible) return;
+    if (action == 'hardware-inspect') {
+      if (variant == null || variant < 0 || variant >= _hardwareModels.length) {
+        return;
+      }
+      setState(() {
+        _inspectedHardware = variant;
+        _hardwareInformationVisible = false;
+        _details = false;
+        _gallery = false;
+      });
+      return;
+    }
+    if (action == 'hardware-info' || action == 'hardware-hide-info') {
+      if (_inspectedHardware == null) return;
+      setState(() => _hardwareInformationVisible = action == 'hardware-info');
+      return;
+    }
+    if (action == 'hardware-source') {
+      final index = _inspectedHardware;
+      if (index == null || index >= _hardwareModels.length) return;
+      final generation = _generation;
+      final info = GameWatchHardwareInfo.forHardware(
+          _hardwareModels[index].model.hardwareId);
+      final opened = await launchUrl(
+          Uri.parse(info?.sourceUrl ??
+              'https://nintendogameandwatch.com/collection/'),
+          mode: LaunchMode.externalApplication);
+      if (!opened &&
+          mounted &&
+          generation == _generation &&
+          _inspectedHardware == index) {
+        setState(() => _notice = 'The reference page could not be opened.');
+      }
+      return;
+    }
+    if (action == 'hardware-overview') {
+      setState(() {
+        _inspectedHardware = null;
+        _hardwareInformationVisible = false;
+      });
+      return;
+    }
     if (action == 'gallery' || action == 'manual' || action == 'preview') {
       final edition = _metadata?.editionId;
       if (action != 'preview' && _galleryLoading) return;
@@ -310,6 +432,8 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
         _galleryManual = action == 'manual';
         _galleryLoading = _gallery && edition != null;
         _details = false;
+        _inspectedHardware = null;
+        _hardwareInformationVisible = false;
         _notice = null;
       });
       if (action != 'preview' && edition != null) {
@@ -338,7 +462,11 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
       return;
     }
     if (action == 'details') {
-      setState(() => _details = true);
+      setState(() {
+        _details = true;
+        _inspectedHardware = null;
+        _hardwareInformationVisible = false;
+      });
       return;
     }
     if (action == 'close') {
@@ -462,6 +590,20 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
       final prefs = ref.watch(previewSettingsProvider);
       final audio = ref.watch(soundSettingsProvider);
       final media = ref.watch(mediaPresentationProvider);
+      final hardwareFilename = controller.selectedVariant.filename;
+      if (selection.system.id == 'gameandwatch' &&
+          media.enabled &&
+          _hardwareFilename != hardwareFilename) {
+        _hardwareFilename = hardwareFilename;
+        _hardwareModels = const [];
+        _inspectedHardware = null;
+        _hardwareInformationVisible = false;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _hardwareFilename == hardwareFilename) {
+            unawaited(_loadHardware(hardwareFilename));
+          }
+        });
+      }
       ref.listen(romChangeSignalProvider,
           (previous, next) => controller.checkInstallationStatus());
       final clipChanged =
@@ -511,6 +653,8 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
         'threeD': media.enabled,
         'reducedMotion': media.reducedMotion,
         'details': _details,
+        'inspectedHardware': _inspectedHardware,
+        'hardwareInformationVisible': _hardwareInformationVisible,
         'gallery': _gallery,
         'galleryManual': _galleryManual,
         'galleryLoading': _galleryLoading,

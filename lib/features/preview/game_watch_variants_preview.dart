@@ -1,5 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
+import 'package:url_launcher/url_launcher.dart';
+import '../../models/game_watch_hardware_info.dart';
 import 'package:flutter/material.dart';
 import '../../models/console_model.dart';
 import 'console_hardware_view.dart';
@@ -9,6 +12,11 @@ import 'game_watch_preview.dart';
 class GameWatchVariantsPreview extends StatefulWidget {
   final String filename, title, identity;
   final bool reducedMotion;
+  final int? inspectedIndex;
+  final bool informationVisible;
+  final ValueChanged<int?>? onInspect;
+  final ValueChanged<bool>? onInformation;
+  final VoidCallback? onReference;
   final VoidCallback? onReady;
   final Directory? modelsDirectory;
   const GameWatchVariantsPreview(
@@ -17,6 +25,11 @@ class GameWatchVariantsPreview extends StatefulWidget {
       required this.title,
       required this.identity,
       this.reducedMotion = false,
+      this.inspectedIndex,
+      this.informationVisible = false,
+      this.onInspect,
+      this.onInformation,
+      this.onReference,
       this.onReady,
       this.modelsDirectory});
   @override
@@ -77,6 +90,11 @@ class GameWatchVariantsPreviewState extends State<GameWatchVariantsPreview> {
             return GameWatchVariantsView(
                 key: _viewKey,
                 variants: variants,
+                inspectedIndex: widget.inspectedIndex,
+                informationVisible: widget.informationVisible,
+                onInspect: widget.onInspect,
+                onInformation: widget.onInformation,
+                onReference: widget.onReference,
                 reducedMotion: widget.reducedMotion,
                 onReady: widget.onReady);
           });
@@ -85,11 +103,21 @@ class GameWatchVariantsPreviewState extends State<GameWatchVariantsPreview> {
 class GameWatchVariantsView extends StatefulWidget {
   final List<GameWatchModelVariant> variants;
   final bool reducedMotion;
+  final int? inspectedIndex;
+  final bool informationVisible;
+  final ValueChanged<int?>? onInspect;
+  final ValueChanged<bool>? onInformation;
+  final VoidCallback? onReference;
   final VoidCallback? onReady;
   const GameWatchVariantsView(
       {super.key,
       required this.variants,
       this.reducedMotion = false,
+      this.inspectedIndex,
+      this.informationVisible = false,
+      this.onInspect,
+      this.onInformation,
+      this.onReference,
       this.onReady});
   @override
   State<GameWatchVariantsView> createState() => GameWatchVariantsViewState();
@@ -100,11 +128,80 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView> {
   final _ready = <int>{};
   int _generation = 0;
   bool _reported = false;
+  int? _localInspection;
+  bool _localInformation = false;
+  int? get _inspected {
+    final index =
+        widget.onInspect == null ? _localInspection : widget.inspectedIndex;
+    return index != null && index >= 0 && index < widget.variants.length
+        ? index
+        : null;
+  }
+
+  bool get _information =>
+      _inspected != null &&
+      (widget.onInformation == null
+          ? _localInformation
+          : widget.informationVisible);
+  void _inspect(int? index) {
+    if (widget.onInspect case final changed?) {
+      changed(index);
+    } else {
+      setState(() {
+        _localInspection = index;
+        _localInformation = false;
+      });
+      _announceInspection();
+    }
+  }
+
+  void _showInformation(bool visible) {
+    if (widget.onInformation case final changed?) {
+      changed(visible);
+    } else {
+      setState(() => _localInformation = visible);
+      _announceInspection();
+    }
+  }
+
+  void _announceInspection() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final index = _inspected;
+      final model = index == null ? null : widget.variants[index].model;
+      final state = index == null ? null : _keys[index].currentState?.snapshot;
+      debugPrint('RShopGameWatchInspection ${jsonEncode({
+            'hardware': model?.hardwareId,
+            'informationVisible': _information,
+            'sourceUrl': model == null
+                ? null
+                : GameWatchHardwareInfo.forHardware(model.hardwareId)
+                    ?.sourceUrl,
+            'geometrySha256': state?['geometrySha256'],
+            'frameRendered': state?['frameRendered'],
+            'rotationRunning': state?['rotationRunning'],
+            'rotationPeriodMs': state?['rotationPeriodMs'],
+            'reducedMotion': widget.reducedMotion,
+            'layout': widget.variants.length > 1 ? 'semicircle' : 'single',
+            'models': [
+              for (var i = 0; i < _keys.length; i++)
+                {
+                  'hardware': widget.variants[i].model.hardwareId,
+                  'yaw': _keys[i].currentState?.snapshot['manualYaw'],
+                  'opening': _keys[i].currentState?.snapshot['opening'],
+                }
+            ],
+          })}');
+    });
+  }
+
   String _signature(List<GameWatchModelVariant> models) => models
       .map((v) => '${v.model.directory.path}:${v.model.generation}')
       .join('|');
   void _reset() {
     _generation++;
+    _localInspection = null;
+    _localInformation = false;
     _keys = [
       for (final _ in widget.variants) GlobalKey<ConsoleHardwareViewState>()
     ];
@@ -116,7 +213,9 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView> {
         'frameRendered': _reported,
         'expectedModels': widget.variants.length,
         'readyModels': _ready.length,
-        'layout': widget.variants.length > 1 ? 'sideBySide' : 'single',
+        'layout': widget.variants.length > 1 ? 'semicircle' : 'single',
+        'inspectedIndex': _inspected,
+        'informationVisible': _information,
         'error': _keys
             .map((key) => key.currentState?.snapshot['error'])
             .where((value) => value != null)
@@ -160,28 +259,196 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView> {
   void didUpdateWidget(GameWatchVariantsView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (_signature(oldWidget.variants) != _signature(widget.variants)) _reset();
+    if (oldWidget.inspectedIndex != widget.inspectedIndex ||
+        oldWidget.informationVisible != widget.informationVisible) {
+      _announceInspection();
+    }
+  }
+
+  String _label(int index) =>
+      widget.variants[index].label ??
+      GameWatchHardwareInfo.forHardware(widget.variants[index].model.hardwareId)
+          ?.series ??
+      'Hardware edition';
+
+  Future<void> _source(GameWatchHardwareInfo? info) async {
+    final opened = await launchUrl(
+        Uri.parse(
+            info?.sourceUrl ?? 'https://nintendogameandwatch.com/collection/'),
+        mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('The reference page could not be opened.')));
+    }
+  }
+
+  Widget _informationPanel(int index, double height) {
+    final info = GameWatchHardwareInfo.forHardware(
+        widget.variants[index].model.hardwareId);
+    return Positioned(
+        left: 12,
+        right: 12,
+        bottom: 12,
+        child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: math.max(64, height - 72)),
+            child: Material(
+                key: const ValueKey('gamewatch-hardware-information'),
+                color: const Color(0xB3161113),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: Color(0x40FFFFFF))),
+                clipBehavior: Clip.antiAlias,
+                child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(info?.title ?? _label(index),
+                              style: const TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 8),
+                          Text(_label(index),
+                              style: const TextStyle(color: Colors.white70)),
+                          if (info?.released case final released?) ...[
+                            const SizedBox(height: 6),
+                            Text('Released $released'),
+                          ],
+                          const SizedBox(height: 12),
+                          Text(
+                              info?.summary ??
+                                  'This reference has no matching entry for this hardware edition.',
+                              style:
+                                  const TextStyle(fontSize: 14, height: 1.45)),
+                          const SizedBox(height: 12),
+                          TextButton.icon(
+                              onPressed:
+                                  widget.onReference ?? () => _source(info),
+                              icon: const Icon(Icons.open_in_new, size: 17),
+                              label: const Text('NintendoGameAndWatch.com')),
+                        ])))));
   }
 
   @override
-  Widget build(BuildContext context) {
-    final generation = _generation;
-    final paired = widget.variants.length > 1;
-    return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      for (var i = 0; i < widget.variants.length; i++) ...[
-        if (i != 0) const SizedBox(width: 12),
-        Expanded(
-            child: Semantics(
-                label: widget.variants[i].label,
-                child: ConsoleHardwareView(
-                    key: _keys[i],
-                    model: widget.variants[i].model,
-                    title: widget.variants[i].label ?? '',
-                    showTitle: paired,
-                    turntable: false,
-                    reducedMotion: widget.reducedMotion,
-                    transparentBackground: true,
-                    onReady: () => _rendered(i, generation)))),
-      ],
-    ]);
-  }
+  Widget build(BuildContext context) =>
+      LayoutBuilder(builder: (context, bounds) {
+        final generation = _generation;
+        final count = widget.variants.length;
+        final inspected = _inspected;
+        final width = bounds.maxWidth, height = bounds.maxHeight;
+        final cellWidth = (width - 12 * (count - 1)) / count;
+        return Stack(clipBehavior: Clip.hardEdge, children: [
+          for (var i = 0; i < count; i++)
+            Builder(builder: (context) {
+              // Primary stays first in identity/catalogue order and occupies the
+              // forward centre of the arc; alternates retain their relative order.
+              final centre = (count - 1) ~/ 2;
+              final slot = i == 0
+                  ? centre
+                  : i <= centre
+                      ? i - 1
+                      : i;
+              final angle = count == 1 ? 0.0 : (slot / (count - 1) - .5) * 1.9;
+              final x = width / 2 +
+                  (count == 1
+                      ? 0
+                      : (width - cellWidth) /
+                          2 *
+                          math.sin(angle) /
+                          math.sin(.95));
+              final y = height * (.39 + .20 * math.cos(angle));
+              final overview = count == 1
+                  ? Rect.fromLTWH(0, 0, width, height)
+                  : Rect.fromCenter(
+                      center: Offset(x, y),
+                      width: cellWidth,
+                      height: height * .78);
+              final rect = inspected == i
+                  ? Rect.fromLTWH(0, 48, width, math.max(1, height - 48))
+                  : overview;
+              final visible = inspected == null || inspected == i;
+              return Positioned.fromRect(
+                  rect: rect,
+                  child: Offstage(
+                      offstage: !visible,
+                      child: TickerMode(
+                          enabled: visible,
+                          child: Stack(fit: StackFit.expand, children: [
+                            IgnorePointer(
+                                ignoring: _information,
+                                child: Semantics(
+                                    label: _label(i),
+                                    child: ConsoleHardwareView(
+                                        key: _keys[i],
+                                        model: widget.variants[i].model,
+                                        title: _label(i),
+                                        showTitle: false,
+                                        turntable: false,
+                                        reducedMotion: widget.reducedMotion,
+                                        informationRotation:
+                                            inspected == i && _information,
+                                        stagingYaw:
+                                            inspected == null && count > 1
+                                                ? .2 - angle * .35
+                                                : 0,
+                                        stagingScale:
+                                            inspected == null && count > 1
+                                                ? .90 + .10 * math.cos(angle)
+                                                : 1,
+                                        onInspect: inspected == null
+                                            ? () => _inspect(i)
+                                            : null,
+                                        transparentBackground: true,
+                                        onReady: () =>
+                                            _rendered(i, generation)))),
+                            if (inspected == null)
+                              Positioned(
+                                  right: 0,
+                                  top: 0,
+                                  child: IconButton(
+                                      key: ValueKey('gamewatch-inspect-$i'),
+                                      tooltip: 'Inspect ${_label(i)}',
+                                      constraints: const BoxConstraints(
+                                          minWidth: 44, minHeight: 44),
+                                      onPressed: () => _inspect(i),
+                                      icon:
+                                          const Icon(Icons.zoom_in, size: 21))),
+                          ]))));
+            }),
+          if (inspected != null) ...[
+            Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                height: 48,
+                child: Row(children: [
+                  IconButton(
+                      key: const ValueKey('gamewatch-inspection-back'),
+                      tooltip:
+                          _information ? 'Close information' : 'Back to models',
+                      onPressed: () => _information
+                          ? _showInformation(false)
+                          : _inspect(null),
+                      icon:
+                          Icon(_information ? Icons.close : Icons.arrow_back)),
+                  Expanded(
+                      child: Text(_label(inspected),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w600))),
+                  IconButton(
+                      key: const ValueKey('gamewatch-information-toggle'),
+                      tooltip: _information
+                          ? 'Hide hardware information'
+                          : 'Hardware information',
+                      onPressed: () => _showInformation(!_information),
+                      icon:
+                          Icon(_information ? Icons.info : Icons.info_outline)),
+                ])),
+            if (_information) _informationPanel(inspected, height),
+          ],
+        ]);
+      });
 }

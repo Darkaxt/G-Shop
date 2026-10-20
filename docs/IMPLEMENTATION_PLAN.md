@@ -1,7 +1,15 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 122, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 123, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
+
+2026-10-20 revision 123 adds the authorized clean overview/enlarged hardware
+inspector, projected semicircle arrangement and attributed translucent information
+panel, with slow panel-only
+rotation and existing controller-menu access, to the same ACTIVE S25 batch.
+Implement the whole selection/inspection/information path before focused host
+acceptance; verify the final signed Thor UI and one normal 1.9.24 release. Reuse
+unchanged import/hinge evidence; overview captions are explicitly superseded.
 
 2026-10-20 revision 122 adds conditional category correction to this same batch:
 classifications and cached patch index/saved recipe availability govern the row;

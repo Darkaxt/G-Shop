@@ -15,6 +15,9 @@ class ConsoleHardwareView extends StatefulWidget {
   final bool reducedMotion;
   final bool showTitle;
   final bool turntable, transparentBackground;
+  final bool informationRotation;
+  final double stagingYaw, stagingScale;
+  final VoidCallback? onInspect;
   final VoidCallback? onReady;
   const ConsoleHardwareView(
       {super.key,
@@ -22,6 +25,10 @@ class ConsoleHardwareView extends StatefulWidget {
       required this.title,
       this.showTitle = true,
       this.turntable = true,
+      this.informationRotation = false,
+      this.stagingYaw = 0,
+      this.stagingScale = 1,
+      this.onInspect,
       this.transparentBackground = false,
       this.reducedMotion = false,
       this.onReady});
@@ -32,15 +39,17 @@ class ConsoleHardwareView extends StatefulWidget {
 class ConsoleHardwareViewState extends State<ConsoleHardwareView>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   static const rotationPeriod = Duration(seconds: 40);
+  static const informationRotationPeriod = Duration(seconds: 120);
   static const defaultPitch = .18;
   final rendererKey = GlobalKey<SocketMediaRendererState>();
   late final AnimationController _rotation;
   late final AnimationController _opening;
   bool _resumed = true, _hasFrame = false;
   Timer? _idle;
+  double? _inspectionYaw;
   int _pointers = 0;
   double _yaw = -.2, _pitch = defaultPitch, _zoom = .9, _startZoom = .9;
-  double get _motionYaw => widget.turntable
+  double get _motionYaw => widget.informationRotation || widget.turntable
       ? _rotation.value * math.pi * 2
       : math.sin(_rotation.value * math.pi * 2) * .14;
   Map<String, Object?> get snapshot => {
@@ -48,8 +57,18 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
         'system': widget.systemId,
         'consoleGeneration': widget.generation,
         'rotationPeriodMs': _rotation.duration!.inMilliseconds,
-        'motion': widget.turntable ? 'turntable' : 'wobble',
+        'motion': widget.informationRotation
+            ? 'informationTurntable'
+            : widget.turntable
+                ? 'turntable'
+                : 'wobble',
         'rotationRunning': _rotation.isAnimating,
+        'informationRotation': widget.informationRotation,
+        'stagingYaw': widget.stagingYaw,
+        'stagingScale': widget.stagingScale,
+        'manualYaw': _yaw,
+        'manualPitch': _pitch,
+        'manualZoom': _zoom,
         'reducedMotion': widget.reducedMotion,
         'interaction': 'gestures',
         'resumeAfterIdleMs': 5000,
@@ -69,8 +88,12 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
     super.initState();
     _rotation = AnimationController(
         vsync: this,
-        duration:
-            widget.turntable ? rotationPeriod : const Duration(seconds: 8));
+        duration: widget.informationRotation
+            ? informationRotationPeriod
+            : widget.turntable
+                ? rotationPeriod
+                : const Duration(seconds: 8));
+    if (widget.informationRotation) _inspectionYaw = _yaw;
     _opening = AnimationController(
         vsync: this,
         value: widget.model.canOpen ? 1 : 0,
@@ -82,8 +105,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
     if (_hasFrame &&
         _resumed &&
         !widget.reducedMotion &&
-        _pointers == 0 &&
-        _idle == null) {
+        (widget.informationRotation || (_pointers == 0 && _idle == null))) {
       if (!_rotation.isAnimating) _rotation.repeat();
     } else {
       _rotation.stop();
@@ -114,13 +136,47 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
   void _ready() {
     _hasFrame = true;
     _updateMotion();
+    _reportInformationMotion();
     debugPrint('RShopConsolePreview ${jsonEncode(snapshot)}');
     widget.onReady?.call();
+  }
+
+  void _reportInformationMotion() {
+    if (!widget.informationRotation) return;
+    debugPrint('RShopGameWatchInformationMotion ${jsonEncode({
+          'hardware': widget.model.hardwareId,
+          'foreground': _resumed,
+          'running': _rotation.isAnimating,
+          'periodMs': _rotation.duration!.inMilliseconds,
+          'reducedMotion': widget.reducedMotion,
+        })}');
   }
 
   @override
   void didUpdateWidget(ConsoleHardwareView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.informationRotation != widget.informationRotation) {
+      _idle?.cancel();
+      _idle = null;
+      _rotation.stop();
+      if (widget.informationRotation) {
+        _inspectionYaw = _yaw;
+        if (!oldWidget.reducedMotion) {
+          _yaw += oldWidget.turntable
+              ? _rotation.value * math.pi * 2
+              : math.sin(_rotation.value * math.pi * 2) * .14;
+        }
+      } else {
+        _yaw = _inspectionYaw ?? _yaw;
+        _inspectionYaw = null;
+      }
+      _rotation.value = 0;
+      _rotation.duration = widget.informationRotation
+          ? informationRotationPeriod
+          : widget.turntable
+              ? rotationPeriod
+              : const Duration(seconds: 8);
+    }
     if (oldWidget.systemId != widget.systemId ||
         oldWidget.generation != widget.generation) {
       _idle?.cancel();
@@ -155,6 +211,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
       _opening.stop();
     }
     _updateMotion();
+    _reportInformationMotion();
   }
 
   @override
@@ -181,6 +238,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
                       onPointerCancel: _touchUp,
                       child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
+                          onTap: widget.onInspect,
                           onDoubleTap: widget.model.canOpen
                               ? () {
                                   if (_opening.value < .5) {
@@ -209,11 +267,12 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
                             pose: SocketMediaPose(
                                 opening: _opening.value,
                                 rx: _pitch,
-                                ry: _yaw +
+                                ry: widget.stagingYaw +
+                                    _yaw +
                                     (widget.reducedMotion ? 0 : _motionYaw),
-                                scaleX: _zoom,
-                                scaleY: _zoom,
-                                scaleZ: _zoom),
+                                scaleX: _zoom * widget.stagingScale,
+                                scaleY: _zoom * widget.stagingScale,
+                                scaleZ: _zoom * widget.stagingScale),
                           ))))),
         ])),
       );

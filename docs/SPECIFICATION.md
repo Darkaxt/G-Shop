@@ -1,7 +1,38 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 122, 2026-10-20.
+Authoritative specification, revision 123, 2026-10-20.
 
+
+Owner model inspection refinement, 2026-10-20 (explicit scope change): remove
+per-model white edition captions from the lower overview. Arrange multiple
+models on a shallow projected semicircle: the primary toward the front/centre,
+outer editions farther back and angled inward. Preserve exact primary metadata,
+independent model poses and selectable hit targets; all models fit the canvas. Keep the game heading
+and one primary model per library card/Resources. Tapping a model or its enlarge
+control opens that exact hardware edition in an enlarged inspector; show its
+edition name there. A corner info button opens a partially translucent frame with
+the model visible underneath, presenting short factual reference information and
+an attributed, explicit NintendoGameAndWatch.com source link for that exact
+hardware edition. Use the site's matching series/model pages, not the Wide Screen
+page for every edition. Never borrow facts for an absent/modern reference entry
+or use site metadata to change ROM identity. Keep metadata factual and compact;
+no copied articles, photographs, embedded scripts or invented missing details.
+The model enters slow full rotation (one turn per 120 seconds) only while the
+information panel is open, respecting Reduced Motion and app lifecycle. Closing
+it restores normal inspection behavior and the prior pose. Enlarging/closing a
+model preserves independent model poses and the overview selection. A new game
+selection clears the inspector and panel. Touch and the existing controller Game
+actions menu must reach model selection, information and return to overview;
+Back closes information before inspection, without launching/downloading a ROM.
+Design contract: on Thor's 1240x1080 lower display (369 dpi, 537.67 logical width),
+clean one/two/three-model overview, at least 44 logical point controls, bounded
+scrollable translucent information within the model canvas, readable headings and
+no clipped controls at normal or 1.3 text scale. Verify real primary/visual-edition
+identity, overlay/motion/lifecycle/selection contracts on host, then the served
+signed Thor workflow and images/video before the one final normal 1.9.24 release.
+This explicitly replaces earlier visible overview-caption acceptance; prior
+asset geometry/texture/hinge evidence remains applicable to unchanged imports.
+S25 remains sole ACTIVE, with no extra box/unboxing stage or approval checkpoint.
 
 Owner conditional category correction, 2026-10-20 (already authorized): within
 this same S25 batch, show Commercial/Hacks only when represented in the selected

@@ -4,6 +4,8 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/models/console_model.dart';
+import 'package:retro_eshop/models/game_watch_hardware_info.dart';
+import 'package:retro_eshop/widgets/socket_media_renderer.dart';
 import 'package:retro_eshop/models/packaging_model.dart';
 import 'package:retro_eshop/models/socket_media_model.dart';
 import 'package:retro_eshop/features/preview/console_hardware_view.dart';
@@ -181,8 +183,9 @@ void main() {
         .toList();
     expect(views.length, 2);
     expect(views.every((v) => v.reducedMotion && !v.turntable), true);
-    expect(find.text('Multi Screen'), findsOneWidget);
-    expect(find.text('2021 edition'), findsOneWidget);
+    expect(find.text('Multi Screen'), findsNothing);
+    expect(find.text('2021 edition'), findsNothing);
+    expect(views.every((v) => !v.showTitle), isTrue);
     final left = tester.getRect(find.byType(ConsoleHardwareView).at(0));
     final right = tester.getRect(find.byType(ConsoleHardwareView).at(1));
     expect(left.right, lessThanOrEqualTo(right.left));
@@ -268,15 +271,165 @@ void main() {
         .widgetList<ConsoleHardwareView>(find.byType(ConsoleHardwareView))
         .toList();
     expect(views.length, 3);
+    final rects = [
+      for (var i = 0; i < 3; i++)
+        tester.getRect(find.byType(ConsoleHardwareView).at(i))
+    ];
+    expect(rects[0].center.dx, closeTo(1240 / (369 / 160) / 2, .001));
+    expect(rects[0].center.dy, greaterThan(rects[1].center.dy));
+    expect(rects[0].center.dy, greaterThan(rects[2].center.dy));
+    expect(views[1].stagingYaw, greaterThan(.2));
+    expect(views[2].stagingYaw, lessThan(.2));
+    expect(views[0].stagingScale, greaterThan(views[1].stagingScale));
+    final ordered = rects.toList()..sort((a, b) => a.left.compareTo(b.left));
     var edge = 0.0;
-    for (var i = 0; i < 3; i++) {
-      final rect = tester.getRect(find.byType(ConsoleHardwareView).at(i));
-      expect(rect.left, greaterThanOrEqualTo(edge));
+    for (final rect in ordered) {
+      expect(rect.left, greaterThanOrEqualTo(edge - .001));
       expect(rect.right, lessThanOrEqualTo(1240 / (369 / 160) + .001));
+      expect(rect.top, greaterThanOrEqualTo(0));
+      expect(rect.bottom, lessThanOrEqualTo(764 / (369 / 160) + .001));
       edge = rect.right;
+    }
+    for (var i = 0; i < 3; i++) {
       views[i].onReady?.call();
       expect(ready, i == 2 ? 1 : 0);
     }
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+  test(
+      'reference facts use exact hardware editions without ROM identity claims',
+      () {
+    expect(GameWatchHardwareInfo.forHardware('gnw_climber')!.path,
+        'crystal-screen/climber');
+    expect(GameWatchHardwareInfo.forHardware('gnw_climbern')!.path,
+        'wide-screen/climber');
+    expect(GameWatchHardwareInfo.forHardware('gnw_dkjrp')!.path,
+        'panorama/donkey-kong-jr');
+    expect(GameWatchHardwareInfo.forHardware('dkjr-tabletop')!.path,
+        'tabletop/donkey-kong-jr');
+    expect(GameWatchHardwareInfo.forHardware('zelda-2021'), isNull);
+    expect(GameWatchHardwareInfo.forHardware('gnw_helmet'), isNull);
+    expect(GameWatchHardwareInfo.forHardware('unknown-edition'), isNull);
+    for (final info in GameWatchHardwareInfo.entries.values) {
+      final uri = Uri.parse(info.sourceUrl);
+      expect(uri.scheme, 'https');
+      expect(uri.host, 'nintendogameandwatch.com');
+      expect(info.summary.length, lessThan(180));
+    }
+  });
+
+  testWidgets(
+      'inspection preserves models, reveals facts and rotates only behind information',
+      (tester) async {
+    tester.view.physicalSize = const Size(1240, 764);
+    tester.view.devicePixelRatio = 369 / 160;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final models = (await tester.runAsync(() =>
+        ConsoleModel.findGameWatchVariants('gnw_zelda.zip',
+            modelsDirectory: root)))!;
+    int? inspected;
+    var information = false, reduced = true;
+    var referenceOpened = 0;
+    late StateSetter redraw;
+    final viewKey = GlobalKey<GameWatchVariantsViewState>();
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(body: StatefulBuilder(builder: (context, setState) {
+      redraw = setState;
+      return MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: const TextScaler.linear(1.3)),
+          child: GameWatchVariantsView(
+              key: viewKey,
+              variants: models,
+              reducedMotion: reduced,
+              inspectedIndex: inspected,
+              informationVisible: information,
+              onInspect: (index) => setState(() {
+                    inspected = index;
+                    information = false;
+                  }),
+              onReference: () => referenceOpened++,
+              onInformation: (visible) =>
+                  setState(() => information = visible)));
+    }))));
+    final states = tester
+        .stateList<ConsoleHardwareViewState>(find.byType(ConsoleHardwareView))
+        .toList();
+    expect(find.text('Multi Screen'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('gamewatch-inspect-0')));
+    await tester.pump();
+    expect(inspected, 0);
+    expect(find.text('Multi Screen'), findsOneWidget);
+    expect(
+        tester
+            .stateList<ConsoleHardwareViewState>(
+                find.byType(ConsoleHardwareView, skipOffstage: false))
+            .toList(),
+        states);
+    expect(states.first.snapshot['informationRotation'], isFalse);
+    final yaw = states.first.snapshot['manualYaw'];
+    await tester
+        .tap(find.byKey(const ValueKey('gamewatch-information-toggle')));
+    await tester.pump();
+    expect(information, isTrue);
+    expect(find.text('Released 1989'), findsOneWidget);
+    expect(find.text('NintendoGameAndWatch.com'), findsOneWidget);
+    await tester.ensureVisible(find.text('NintendoGameAndWatch.com'));
+    await tester.tap(find.text('NintendoGameAndWatch.com'));
+    await tester.pump();
+    expect(referenceOpened, 1,
+        reason: 'Reference navigation uses the parent engine callback');
+    final panel = tester.widget<Material>(
+        find.byKey(const ValueKey('gamewatch-hardware-information')));
+    expect(panel.color!.a, allOf(greaterThan(.5), lessThan(.9)));
+    expect(states.first.snapshot['informationRotation'], isTrue);
+    expect(states.first.snapshot['rotationPeriodMs'], 120000);
+    expect(states.first.snapshot['rotationRunning'], isFalse,
+        reason: 'Reduced Motion applies to information rotation');
+    redraw(() => reduced = false);
+    await tester.pump();
+    (states.first.rendererKey.currentWidget as SocketMediaRenderer)
+        .onReady
+        ?.call();
+    await tester.pump();
+    expect(states.first.snapshot['rotationRunning'], isTrue);
+    final before =
+        (states.first.rendererKey.currentWidget as SocketMediaRenderer).pose.ry;
+    await tester.pump(const Duration(seconds: 1));
+    final after =
+        (states.first.rendererKey.currentWidget as SocketMediaRenderer).pose.ry;
+    expect(after - before, closeTo(2 * 3.141592653589793 / 120, .002));
+    states.first.didChangeAppLifecycleState(AppLifecycleState.paused);
+    expect(states.first.snapshot['rotationRunning'], isFalse);
+    states.first.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    expect(states.first.snapshot['rotationRunning'], isTrue);
+    await tester.tap(find.byKey(const ValueKey('gamewatch-inspection-back')));
+    await tester.pump();
+    expect(information, isFalse);
+    expect(inspected, 0, reason: 'Back closes information before inspection');
+    expect(states.first.snapshot['manualYaw'], yaw);
+    expect(states.first.snapshot['informationRotation'], isFalse);
+    expect(states.first.snapshot['rotationPeriodMs'], 8000);
+    await tester.tap(find.byKey(const ValueKey('gamewatch-inspection-back')));
+    await tester.pump();
+    expect(inspected, isNull);
+    expect(find.text('Multi Screen'), findsNothing);
+    expect(
+        tester
+            .stateList<ConsoleHardwareViewState>(
+                find.byType(ConsoleHardwareView))
+            .toList(),
+        states);
+    await tester.tap(find.byKey(const ValueKey('gamewatch-inspect-1')));
+    await tester.pump();
+    await tester
+        .tap(find.byKey(const ValueKey('gamewatch-information-toggle')));
+    await tester.pump();
+    expect(find.textContaining('no matching entry'), findsOneWidget);
+    expect(find.text('Released 1989'), findsNothing,
+        reason: 'Modern Zelda never borrows the classic reference');
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
