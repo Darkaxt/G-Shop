@@ -16,6 +16,72 @@ follows, then the box closes. This timing now has both host and Thor evidence.
 Earlier top-opening or closed-inspector evidence does not verify that correction.
 This ledger does not declare the full S25 stage complete.
 
+## GBA closure and Game & Watch checkpoint — 2026-10-20
+
+The two remaining GBA special-housing workflows pass on signed `814a878`:
+Boktai 2 USA and US Yoshi, including fitted extraction/settling and isolated
+touch rotation. The later Yoshi section supersedes the earlier pending wording.
+No ordinary Top-25 sweep was repeated. Game & Watch is the owner's next console.
+
+Signed `5473dba` on Thor rendered the following real matched handhelds, upright
+with their original textures. This is initial-view evidence, not acceptance of
+the subsequent centred-motion/library correction in `27bae20`. Its signed Thor
+checks now verify bounded wobble, current-pose-centred manual rotation/pinch,
+all four real double-tap close/reopen interactions and resource navigation.
+In particular, the owner rejected the original
+DK II/Mario controls: corrected imports were inspected again, aligned to the
+photographed faceplate controls and with charcoal rather than pale menu buttons.
+
+| Exact hardware set | Initial native rendering | Folding acceptance |
+| --- | --- | --- |
+| `gnw_chef` | Chef; separate screen emission retained | Not applicable |
+| `gnw_pchute` | Parachute | Not applicable |
+| `gnw_octopus` | Octopus | Not applicable |
+| `gnw_mmouse` | Mickey Mouse; shared Egg/Mickey program explicitly mapped | Not applicable |
+| `gnw_mariocm` | Cement Factory New Wide; Table Top not substituted | Not applicable |
+| `gnw_dkjr` | DK Jr New Wide; Panorama not substituted | Not applicable |
+| `gnw_smbn` | SMB New Wide; Crystal not inferred from a different set name | Not applicable |
+| `gnw_fire` | Fire Wide; Silver not substituted | Not applicable |
+| `gnw_dkong` | Donkey Kong, open | Thor `27bae20`: actual double-tap close and reopen |
+| `gnw_dkong2` | DK II, open; corrected control geometry `25bb16c7…94cf64d` | Thor `27bae20`: close/reopen and centred manual rotation |
+| `gnw_zelda` | Classic Zelda, open | Thor `27bae20`: actual double-tap close and reopen |
+| `gnw_mario` | Mario Bros., open; corrected control geometry `8106acf2…34cdbcd` | Thor `27bae20`: close/reopen, centred manual rotation and real two-pointer pinch |
+
+Private native evidence is under `rshop-s25-gba-close-20261020`, named by the
+hardware/check (`gw-*-frame.log`, `gw-*-up/down.png`). Final corrected faceplate
+captures are `gw-mario-controls-final-down.png` and the DK II control-fit capture;
+the first fit-only images precede the menu-material correction. Static LCD
+backgrounds are not live emulation. Autoslalom passes host import validation but
+has no matching owned ROM, so it is not native-verified. Modern Zelda and tabletop
+DK Jr remain unassigned, rather than being borrowed for classic/Panorama games.
+Unknown hardware retains an honest fallback. Models are private imports outside
+the public APK; source GLBs/ZIPs are preserved.
+
+Native evidence: `gw-*-viewer-close/reopen-27bae20-down.png`, Mario's
+`gw-mario-confirm-reopen/close-27bae20-down.png`, the DK II rotation recording,
+and `gw-mario-pinch-27bae20-down.png`. DK II's reopening contact sheets show the
+hinge progression without detached controls. Raw H.264 recordings have an
+estimated playback timeline, not measured display FPS or exact animation timing.
+Mario's Manual/Gallery tabs show honest missing-media states and return normally.
+The upper selected Mario card wobbles subtly through the recorded cycle while
+the unselected SMB card stays still. Selector turntable behavior is unchanged.
+
+Signed `49223f7` now passes the model-area touch check on Thor: a tap at the
+visible Mario handheld opens Mario's details (`gw-final-model-touch-49223f7`).
+Upper/lower model framing is inspected on that exact installed package. APK and
+installed base hashes agree at
+`c08544f397d14ca64435c677f611889d237a753c3b127ddb062fe9eba170c7f4`;
+version 1.9.20/code 36 and the existing production certificate are verified.
+The only runtime diff from native-verified `27bae20` is parent-card hit testing;
+viewer/hinge evidence remains applicable. Normal
+[1.9.20](https://github.com/Darkaxt/R-Shop/releases/tag/v1.9.20) is now published
+from 49223f7 with APK, BUILDINFO and SHA256SUMS. Independently downloaded public
+assets match that source, version/code, production certificate and installed
+base hash. This requested GBA/G&W batch is verified and delivered, with no
+remaining batch blocker or tracked deferral. S25 as a wider all-console stage
+remains ACTIVE.
+No new console or all-ROM sweep is added by this checkpoint.
+
 ## Evidence and limits
 
 Boktai special-model checkpoint, 2026-10-20: signed source `814a878`, GitHub
@@ -433,7 +499,7 @@ and cinematic acceptance remain separate required work.
 | `arcadia2001` | Systematic flat fallback | Box A02; Case A03 | Flat only; no console-specific 3D verified | Geometry inspected; game artwork/assembly pending |
 | `arcade` | Systematic flat fallback | Not applicable | Flat only; no console-specific 3D verified | Geometry inspected; game artwork/assembly pending |
 | `dos` | Systematic flat fallback | Box A02; Case A03 | Flat only; no console-specific 3D verified | Geometry inspected; game artwork/assembly pending |
-| `gameandwatch` | Systematic flat fallback | Box A02 | Flat only; no console-specific 3D verified | Geometry inspected; game artwork/assembly pending |
+| `gameandwatch` | Exact per-ROM handheld import; see current checkpoint above | No invented carton/removable cartridge | Twelve matched native initial views; centred-motion candidate pending | Unmapped hardware stays fallback; no live LCD emulation |
 | `tic80` | Systematic flat fallback | Not applicable | Flat only; no console-specific 3D verified | Geometry inspected; game artwork/assembly pending |
 | `pico8` | Systematic flat fallback | Not applicable | Flat only; no console-specific 3D verified | Geometry inspected; game artwork/assembly pending |
 

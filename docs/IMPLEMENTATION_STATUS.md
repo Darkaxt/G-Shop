@@ -17,7 +17,7 @@ framing screenshots are not a control-alignment pass.
 The corrected DK II/Mario imports now pass the native initial-view control
 alignment check on signed 5473dba; texture bytes and source hinge clips remain
 unchanged. Their pale raised menu controls were also corrected to charcoal.
-The subsequent owner pivot/motion corrections remain uninstalled: measured open
+The subsequent owner pivot/motion corrections are now installed: measured open
 centres were displaced from the swept-envelope origin by 0.21-0.49 normalized
 units in depth. Converter now records all 61 authored pose centres; the renderer
 recentres before yaw. Exact imported geometry checks confirm no orbit at closed,
@@ -27,9 +27,11 @@ filenames into actual handheld cards, static unless selected. Host regression,
 gallery/GBA-card compatibility and all 13 real private import checks pass. The
 analyzer reports only the existing renderer protected-layer warning and two old
 brace-style infos, no new errors. These results are not native motion acceptance.
-Remaining acceptance: signed-device centred gestures, subdued library/preview
-motion, four folding variants, preserved resource navigation, then normal public
-release/download and identical Thor delivery. S25 remains ACTIVE.
+Native acceptance on signed 27bae20 now verifies centred gestures, subdued
+library/preview motion, four real double-tap close/reopen variants and preserved
+resource navigation. See the model ledger for exact evidence and static-LCD limits.
+The subsequent normal public release/download and identical Thor delivery are
+recorded below. S25 remains ACTIVE for its wider all-console scope.
 Signed 27bae20 now installs with exact artifact/device SHA-256
 `ac6c3e0690e4c2203ed6065aa748bb14b70c7c0a96211f46691af9a8f5f41277`.
 Actual upper Mario/SMB handheld cards and corrected lower framing pass. The
@@ -40,6 +42,40 @@ an opaque parent hit area resolves it and preserves the GBA card checks. This
 is the same library integration's internal acceptance blocker, not a new task.
 Include that correction in the final signed candidate; unchanged viewer/hinge
 checks on 27bae20 remain applicable after checking the final diff.
+The final diff has been inspected: one runtime line makes the card GestureDetector
+opaque; model conversion, renderer transforms and viewer behavior are unchanged.
+Signed 49223f7 passed run 39353891832 and is installed on Thor. Native model-area
+touch selection now opens the matching game details; upper/lower handheld
+framing also passes. Artifact and installed base SHA-256 agree at
+`c08544f397d14ca64435c677f611889d237a753c3b127ddb062fe9eba170c7f4`.
+Version 1.9.20/code 36, production signature and exclusion of private model assets
+are independently checked. All current GBA/G&W implementation/native acceptance
+criteria are satisfied. Normal public release
+[v1.9.20](https://github.com/Darkaxt/R-Shop/releases/tag/v1.9.20) is published,
+not a draft/prerelease, with APK, BUILDINFO and SHA256SUMS. The tag and BUILDINFO
+both point to 49223f7cea5ea5d5fa05076afbf1eb7e9df74d9e. A separate public-asset
+download verifies version/code, the existing certificate
+`075031272c9ccfa3229cdfe5266e0e50e85e4bd841111f320d83910290b55f1c`,
+absence of private models and the exact hash of Thor's installed base. The
+requested GBA/G&W batch has no unresolved blockers or tracked deferrals and is
+delivered; this does not close the wider all-console S25 scope. No model sweep
+or additional implementation stage is opened. No Windows Gradle build was run;
+signing/unit-test/package verification used the existing GitHub Linux workflow.
+
+Cleanup: the exact SHA-verified 2,952-byte shell gesture probe and its empty
+task-owned directory were removed under the owner's explicit exception; host
+source/class/dex cleanup transaction 4fd4f1d20639b08708928b817bb76159 is applied.
+Four duplicate signed-candidate download folders were removed through applied
+transaction 8b0c2366643c1d30bd3ad6e1514e1fb7 (309,665,412 bytes). The independently
+retrieved final public package remains in `public-1.9.20` with its build records;
+the source-specific verification screenshots/recordings remain retained.
+Private imported models, source ZIPs/GLBs, ROMs, settings and evidence remain.
+
+Refactoring assessment for this requested batch: both game routes reuse
+GameWatchPreview and the same renderer-owned pose/hinge path. Exact-source
+control registration is isolated in the import script; no duplicated runtime
+control correction or competing scene-state owner was introduced. No material
+current-acceptance consolidation finding or new required deferral.
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 

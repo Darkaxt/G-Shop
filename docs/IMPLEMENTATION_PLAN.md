@@ -4,6 +4,12 @@ Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 117, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**.
+2026-10-20 requested-batch checkpoint: GBA special-housing closure and G&W
+integration are verified and delivered in normal public 1.9.20. All four folding
+variants, control registration, centred gestures, subdued motion, exact library
+models and card-area touch passed their applicable Thor checks. Public tag/source,
+APK version/signature/hash and installed-package identity are verified. Wider
+all-console S25 remains ACTIVE; no next-console implementation has begun.
 Current owner corrections remain in S25: exact-source control registration for
 DK II/Mario Bros.; active-pose centring for folding-device rotation; subtle game
 wobble rather than selector turntable; actual per-ROM handheld library tiles.
