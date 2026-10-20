@@ -138,8 +138,8 @@ class GameWatchHardwareInfo {
         'Mario\'s Bombs Away', 'panorama/marios-bombs-away', '1983'),
     'gnw_mmousep':
         GameWatchHardwareInfo('Mickey Mouse', 'panorama/mickey-mouse', '1984'),
-    'gnw_dkcirc': GameWatchHardwareInfo(
-        'Donkey Kong Circus', 'panorama/', '1984'),
+    'gnw_dkcirc':
+        GameWatchHardwareInfo('Donkey Kong Circus', 'panorama/', '1984'),
     'gnw_ssparky': GameWatchHardwareInfo(
         'Spitball Sparky', 'super-color/spitball-sparky', '1984'),
     'gnw_cgrab':
@@ -156,6 +156,8 @@ class GameWatchHardwareInfo {
         GameWatchHardwareInfo('Climber', 'crystal-screen/climber', '1986'),
     'gnw_bfight': GameWatchHardwareInfo(
         'Balloon Fight', 'crystal-screen/balloon-fight', '1986'),
+    'balloon-fight-new-wide': GameWatchHardwareInfo(
+        'Balloon Fight', 'wide-screen/balloon-fight', '1988'),
     'super-mario-bros-special': GameWatchHardwareInfo(
         'Super Mario Bros.', 'other/super-mario-bros-special', null),
   };

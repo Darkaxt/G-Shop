@@ -27,6 +27,12 @@ PROFILES = {
             ('Printed_face_1', ('Menu_key.001',), (1341, 772, 1376, 832)),
             ('Printed_face_1', ('Menu_key.002',), (1439, 771, 1474, 832))]}}
 
+# The 20 October rear/battery refinement preserves these faceplate images,
+# UVs, control vertices and local transforms byte-for-byte. Keep the same
+# inspected registration while retaining its newly refined rear geometry.
+PROFILES['089e1af86f9b651f7aaee1be754cb80d26abf03d2bba3a881aeceeb1311b4d0f'] = (
+    PROFILES['2fe07958903a2deb216044a69c4d7d28bb7d3f1e19f41b29e3fe05e4bad5944d'])
+
 
 def transform(m, p):
     return tuple(sum(m[c*4+r]*p[c] for c in range(3))+m[12+r] for r in range(3))

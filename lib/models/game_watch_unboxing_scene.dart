@@ -35,6 +35,16 @@ class GameWatchUnboxingScene {
       throw const FormatException('Unboxing requires the exact hardware box');
     }
     final console = await handheld.load(), carton = await box.load();
+    final restPitch =
+        ((console.data['restingPitchRadians'] as num?) ?? -math.pi / 2)
+            .toDouble();
+    if (!restPitch.isFinite || restPitch.abs() > math.pi) {
+      throw const FormatException('Invalid handheld resting orientation');
+    }
+    final insertNodes =
+        ((carton.data['removableInsertNodes'] as List?) ?? const <String>[])
+            .cast<String>()
+            .toSet();
     final bytes = BytesBuilder(copy: false);
     final surfaces = <Map<String, dynamic>>[];
     final bundles = <String, AssetBundle>{};
@@ -47,7 +57,10 @@ class GameWatchUnboxingScene {
             jsonDecode(jsonEncode(original)) as Map<String, dynamic>;
         surface['vertexOffset'] = (surface['vertexOffset'] as int) + offset;
         surface['indexOffset'] = (surface['indexOffset'] as int) + offset;
-        surface['hardwarePart'] = part;
+        surface['hardwarePart'] =
+            part == 'box' && insertNodes.contains(surface['node'])
+                ? 'insert'
+                : part;
         final maps = surface['material']['textures'] as Map;
         for (final role in maps.keys.toList()) {
           final name = maps[role] as String;
@@ -60,15 +73,59 @@ class GameWatchUnboxingScene {
     }
     final consoleClosed = bounds(console, 0);
     final boxClosed = bounds(carton, 0);
+    final boxCenter = SocketMediaModel.poseCenter(carton.data, 0);
+    final seating = carton.data['seatingBounds'] as List?;
+    final cavity = seating == null
+        ? boxClosed
+        : [
+            for (final row in seating.cast<List>())
+              [
+                for (var a = 0; a < 3; a++)
+                  (row[a] as num).toDouble() - boxCenter[a]
+              ]
+          ];
+    if (cavity.length != 2 ||
+        cavity.any((r) => r.length != 3) ||
+        [0, 1, 2].any((a) =>
+            !cavity[0][a].isFinite ||
+            !cavity[1][a].isFinite ||
+            cavity[0][a] >= cavity[1][a])) {
+      throw const FormatException('Invalid reviewed carton seating cavity');
+    }
+    final seatOffset = [
+      for (var a = 0; a < 3; a++) (cavity[0][a] + cavity[1][a]) / 2
+    ];
+    final insertBounds =
+        insertNodes.isEmpty ? null : bounds(carton, 0, nodes: insertNodes);
+    final exitAxis = extractionAxis(carton, boxClosed);
+    final boxExit = bounds(carton, 1);
+    final centreDelta = SocketMediaModel.poseCenter(carton.data, 1) -
+        SocketMediaModel.poseCenter(carton.data, 0);
+    final exitOffset = List.filled(3, 0.0);
     // Both imports have independent uniform normalization. Fit the folded
     // handheld inside the real closed carton, preserving every aspect ratio.
     var seatScale = double.infinity;
     for (var axis = 0; axis < 3; axis++) {
       seatScale = math.min(
           seatScale,
-          (boxClosed[1][axis] - boxClosed[0][axis]) *
+          (cavity[1][axis] - cavity[0][axis]) *
               .88 /
               (consoleClosed[1][axis] - consoleClosed[0][axis]));
+    }
+    for (var axis = 0; axis < 3; axis++) {
+      if (exitAxis[axis] == 0) continue;
+      final positive = exitAxis[axis] > 0;
+      var contentsEdge =
+          consoleClosed[positive ? 0 : 1][axis] * seatScale + seatOffset[axis];
+      if (insertBounds != null) {
+        contentsEdge = positive
+            ? math.min(contentsEdge, insertBounds[0][axis])
+            : math.max(contentsEdge, insertBounds[1][axis]);
+      }
+      exitOffset[axis] = boxExit[positive ? 1 : 0][axis] +
+          centreDelta[axis] -
+          contentsEdge +
+          (positive ? .1 : -.1);
     }
     final geometry = bytes.takeBytes();
     final sources = [
@@ -91,15 +148,28 @@ class GameWatchUnboxingScene {
       'consoleOpeningMs': handheld.canOpen ? handheld.openingDurationMs : 0,
       'sequenceDurationMs': durationMs,
       'seatScale': seatScale,
+      'seatOffset': seatOffset,
+      'seatingBounds': cavity,
+      'extractionAxis': exitAxis,
+      'exitOffset': exitOffset,
+      'motionFrameWidth': math.max(
+          4.8,
+          2 *
+              (exitOffset[0].abs() +
+                  console.sourceWidth * seatScale / 2 +
+                  .25)),
+      'motionFrameHeight': math.max(2.0,
+          2 * (exitOffset[1].abs() + console.height * seatScale / 2 + .25)),
       'boxClosedBounds': boxClosed,
       'consoleClosedBounds': consoleClosed,
       'consoleData': {'poseCenters': console.data['poseCenters']},
       'boxData': {'poseCenters': carton.data['poseCenters']},
       'consoleRestLows': [
         for (var i = 0; i <= 60; i++)
-          bounds(console, i / 60, pitch: -math.pi / 2)[0][1]
+          bounds(console, i / 60, pitch: restPitch)[0][1]
       ],
-      'consoleRestScale': 1.45 / console.sourceWidth,
+      'consoleRestPitch': restPitch,
+      'consoleRestScale': seatScale * .84,
       'consoleSourceWidth': console.sourceWidth,
       'consoleHeight': console.height,
       'consoleGeometrySha256': console.data['geometrySha256'],
@@ -116,9 +186,36 @@ class GameWatchUnboxingScene {
     }, ByteData.sublistView(geometry), textureBundle: _PairTextures(bundles));
   }
 
+  /// New reconstructions declare their reviewed opening. The original imports
+  /// have all root flap pivots on one end: derive that actual end, rather than
+  /// moving a handheld through the opposite, still-closed carton wall.
+  static List<double> extractionAxis(
+      SocketMediaModel carton, List<List<double>> closed) {
+    final declared = carton.data['extractionAxis'];
+    if (declared is List &&
+        declared.length == 3 &&
+        declared.every((v) => v is num && (v == 0 || v == 1 || v == -1)) &&
+        declared.where((v) => v != 0).length == 1) {
+      return declared.cast<num>().map((v) => v.toDouble()).toList();
+    }
+    final pivots = <double>[];
+    for (final surface in carton.surfaces) {
+      final hinges = surface['openingHinges'];
+      if (hinges is List && hinges.isNotEmpty) {
+        pivots.add((hinges.first['pivot'][0] as num).toDouble());
+      }
+    }
+    final middle = (closed[0][0] + closed[1][0]) / 2;
+    if (pivots.isEmpty ||
+        !(pivots.every((x) => x < middle) || pivots.every((x) => x > middle))) {
+      throw const FormatException('Carton needs its reviewed extraction axis');
+    }
+    return [pivots.first < middle ? -1 : 1, 0, 0];
+  }
+
   /// Exact animated vertex bounds, also used to seat the resting underside.
   static List<List<double>> bounds(SocketMediaModel model, double opening,
-      {double pitch = 0}) {
+      {double pitch = 0, Set<String>? nodes}) {
     final low = List.filled(3, double.infinity);
     final high = List.filled(3, double.negativeInfinity);
     final center = SocketMediaModel.poseCenter(model.data, opening);
@@ -126,6 +223,7 @@ class GameWatchUnboxingScene {
       ..rotateX(pitch)
       ..translateByDouble(-center.x, -center.y, -center.z, 1);
     for (final surface in model.surfaces) {
+      if (nodes != null && !nodes.contains(surface['node'])) continue;
       final transform =
           basis * SocketMediaModel.openingTransform(surface, opening);
       for (var i = 0; i < surface['vertexCount']; i++) {
@@ -161,7 +259,8 @@ class GameWatchUnboxingScene {
 
   static vm.Matrix4 partTransform(
       SocketMediaModel model, String part, SocketMediaPose pose) {
-    final box = part == 'box';
+    final insert = part == 'insert';
+    final box = part != 'console';
     final data = model.data;
     final opening = box ? boxOpening(model, pose.unboxing) : pose.opening;
     final center = SocketMediaModel.poseCenter(
@@ -178,16 +277,18 @@ class GameWatchUnboxingScene {
     final unfoldEnd = opened + 1.9 + (data['consoleOpeningMs'] as num) / 1000;
     final settle = phase(s, unfoldEnd, unfoldEnd + 1.8);
     final closedBox = (data['boxClosedBounds'] as List).cast<List>();
-    final closedConsole = (data['consoleClosedBounds'] as List).cast<List>();
     final seat = (data['seatScale'] as num).toDouble();
     final rest = (data['consoleRestScale'] as num).toDouble();
     final size = box ? 1 - .16 * settle : seat + (rest - seat) * settle;
-    // First clear the right end completely, then move in front, only then
+    // First clear the actual opened end, then move in front, only then
     // unfold and return to centre. The carton never moves through its contents.
-    final clearance = (closedBox[1][0] as num).toDouble() +
-        -(closedConsole[0][0] as num).toDouble() * seat +
-        .5;
-    final x = box ? 0.0 : clearance * extract * (1 - settle);
+    final exit = (data['exitOffset'] as List).cast<num>();
+    final seated = (data['seatOffset'] as List).cast<num>();
+    final tray =
+        insert ? extract * (1 - phase(s, opened + 1.9, opened + 2.6)) : 0.0;
+    final x = box
+        ? exit[0] * tray
+        : exit[0] * extract * (1 - settle) + seated[0] * (1 - forward);
     final support = (data['consoleRestLows'] as List).cast<num>();
     final supportPosition = opening.clamp(0.0, 1.0) * (support.length - 1);
     final supportIndex = supportPosition.floor();
@@ -196,12 +297,19 @@ class GameWatchUnboxingScene {
                 support[supportIndex]) *
             (supportPosition - supportIndex);
     final y = box
-        ? (-.65 - (closedBox[0][1] as num) * .84) * settle
-        : (-.65 - restLow * rest) * settle;
-    final z = box ? -.6 * settle : .95 * forward - .4 * settle;
+        ? exit[1] * tray + (-.65 - (closedBox[0][1] as num) * .84) * settle
+        : exit[1] * extract * (1 - settle) +
+            seated[1] * (1 - forward) +
+            (-.65 - restLow * rest) * settle;
+    final z = box
+        ? exit[2] * tray - .6 * settle
+        : exit[2] * extract * (1 - settle) +
+            seated[2] * (1 - forward) +
+            .95 * forward -
+            .4 * settle;
     return vm.Matrix4.identity()
       ..translateByDouble(x, y, z, 1)
-      ..rotateX(box ? 0 : -math.pi / 2 * settle)
+      ..rotateX(box ? 0 : (data['consoleRestPitch'] as num).toDouble() * settle)
       ..scaleByDouble(size, size, size, 1)
       ..translateByDouble(-center.x, -center.y, -center.z, 1);
   }

@@ -1,7 +1,34 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 124, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 129, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
+
+Revision 129 authorizes autonomous S26 implementation immediately after the
+current G&W integration/delivery gate. Preserve its existing supported-source,
+migration and rebranding scope, reconcile remaining S25 work explicitly and
+maintain one ACTIVE stage. No waiting for the owner's return or fresh approval.
+
+2026-10-20 revisions 127-128 retain sole ACTIVE S25: validate the replacement
+split hardware refinement delivery and integrate its exact assets; resume the
+same bounded agent to complete all archive carton editions as a reusable private
+catalogue, rather than stopping at regional representatives. Asset preparation
+does not require broad runtime integration. Preserve the prior validated outputs,
+record every edition and real source limitation, and independently review the
+completed catalogue alongside the final G&W/native/release reconciliation.
+
+2026-10-20 revision 126 adds the explicitly requested bounded agent preparation
+of animated carton assets for every archive-supported console generation/family.
+One gpt-6.1-sol Low agent owns separate asset outputs; main retains G&W runtime,
+all integration, acceptance and delivery in this same sole ACTIVE S25. Catalogue,
+editable models, real hinge/visual evidence and honest conversion census are
+required local asset deliverables; no other app runtime scope is opened.
+
+2026-10-20 revision 125 extends the same ACTIVE S25 batch: Blender root-cause
+inspection/correction of Crystal windows; scan-based exact-edition carton
+reconstruction and validation of supplied cartons; complete private integration,
+closed-box library presentation with exact fallback, native acceptance and
+conversion census/report. Finish this enlarged coherent outcome before the one
+normal 1.9.24 release. Earlier signing candidates remain unpublished diagnostics.
 
 2026-10-20 revision 124 extends the same ACTIVE S25 batch with sequential
 exact-edition box opening, closed-handheld extraction/unfolding and a resting
@@ -270,7 +297,7 @@ Authority: [preview/acquisition extension](PREVIEW_ACQUISITION_SPECIFICATION.md)
 | S24 Drive-backed metadata cache | COMPLETE | METADATA-CLOUD-01: normalized console/game/typed-resource Drive tree; local searchable facts and background media cache with configurable 2 GiB default; mandatory actual GBA Top 25 box/cartridge/trailer integration | GitHub run 39039861817 builds/signs code 33; every one of 24 actual eligible ranked GBA entries passes the installed gallery-to-renderer path and visual label inspection. Native motion/left-edge review, startup preservation and public/installed SHA-256 equality pass. Earlier cloud/cache acceptance remains applicable where unchanged. Wider Nintendo job completion is not claimed. |
 | S25 Interactive media gallery and preserved startup | ACTIVE | Preserve PREVIEW-START-01; compact independently inspectable Box / Case / Cartridge / Manual / Gallery, trailer-first combined media and controls. Use local NintAndBox -> public low-res .es -> LaunchBox -> ScreenScraper, actual multilingual evidence, distinct fitted panels, adapted cardboard/booklet and era-appropriate cases. Retain focus, volume and companion ownership. | Earlier 1.9.19 native evidence applies only to unchanged paths. Current source/model/gallery changes require integrated Drive/cache/native verification. Individual Nintendo model verification precedes the deliberately held cinematic; gaps remain in S25_VERIFIED_MODELS.md. |
 | Historical REGION-01 (formerly S26) | COMPLETE | Ordered EUR/USA/JPN collection preference, one preferred commercial release per canonical game and Show all versions; Hacks/Patches unaffected | Native touch/controller/restart/reset, a real regional pair with one game/two retained versions, JPN/EUR selection and exact EUR archive download/RetroArch launch pass. Shared query/rank/bundle/unknown/modification and encrypted migration checks pass. Final GBA model/trailer/audio rendering passes in 1.9.16. |
-| S26 G-Shop rebranding and supported-source scope | NOT STARTED | Owner-requested evaluation: G-Shop naming; remove original remote server and standalone local-only collection modes, retaining the Drive-backed library and our on-device functionality | Evaluate migration/update/OAuth/configuration and remaining integrations after S25 planning. No rename, integration removal or live configuration change has been implemented. Preserve historical REGION-01 acceptance. |
+| S26 G-Shop rebranding and supported-source scope | NOT STARTED | Owner-authorized implementation after current G&W delivery: G-Shop repository/internal naming; remove original remote server and standalone local-only collection modes, retaining the Drive-backed library and our on-device functionality | Establish migration/update/OAuth/configuration acceptance, implement and verify retained integrations and data preservation, then deliver one proper verified final release. Preserve historical REGION-01 acceptance. |
 
 S24's correction is COMPLETE with fresh integrated and public delivery evidence.
 S25 alone is ACTIVE at the current owner-requested model-inspection checkpoint.

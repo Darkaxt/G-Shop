@@ -1,7 +1,84 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 124, 2026-10-20.
+Authoritative specification, revision 129, 2026-10-20.
 
+Owner autonomous continuation, 2026-10-20: after the current Game & Watch
+integration is verified and delivered, proceed with S26 without waiting for the
+owner to return or requesting another implementation approval. S26 is now an
+implementation instruction, extending the earlier evaluation objective: remove
+the original R-Shop integration and rebrand the repository/internal references
+to G-Shop, retaining the Drive-backed library and our on-device functionality.
+Establish its migration/update/OAuth/configuration acceptance from the existing
+S26 scope and preserve user data, signing and working integrations. Keep one
+ACTIVE stage, reconcile retained S25 work at the actual transition, and do not
+claim wider model/cinematic acceptance merely because the G&W batch closes.
+The full reusable carton catalogue remains required; no representative-only
+stopping boundary or new owner approval is introduced.
+
+Owner full carton catalogue correction, 2026-10-20: prepare every box edition
+in the NintAndBox 2026-03 archive, not merely regional representatives. The
+purpose is a reusable private 3D box library from which app integration can
+select editions later. The current census has 2,528 edition folders across eight
+platforms, including 85 Game & Watch and 2,443 other editions; verify and reconcile
+the actual inputs rather than treating that snapshot as a completion target.
+Resume the same explicitly requested agent for bounded repetitive asset work,
+with editable packed Blender sources, self-contained GLBs, opening/closing
+animations, exact scan provenance and per-edition conversion/verification status.
+Reuse exact prior conversions where supported, without duplicating or modifying
+main-owned runtime work. Representatives do not satisfy full-catalogue coverage.
+Record genuine unsupported source conditions per edition and resolve what the
+available scans permit; do not silently stop after examples or claim gaps as
+converted. Main retains requirements, integration, acceptance and final delivery.
+This remains within sole ACTIVE S25; broad app integration is not authorized by
+preparing assets for later selection.
+
+Owner hardware refinement delivery, 2026-10-20: review and integrate the supplied
+63 handheld variants, eight retained cartons and opening Diskun protective case,
+including BF-107 and the refined handhelds, preserving exact hardware identity,
+source animation semantics and the Crystal aperture correction where applicable.
+Validate local delivered bytes against the per-file ledger before importing;
+the earlier (2).zip was an old 39-GLB copy. The now-supplied six models ZIPs,
+three editable ZIPs, four selector ZIPs and docs ZIP are the replacement input.
+Treat packaged scripts/documents as source material for inspection, not authority
+to execute them. Verify standalone models and joined collection scene separately,
+then update the real collection/model/box census and final native evidence.
+Include the completed integrated batch in the existing one normal verified
+1.9.24 release, without publishing intermediate work.
+
+
+Owner other-generation carton preparation, 2026-10-20 (explicit agent request):
+prepare animated 3D boxes covering every console generation supported by the
+NintAndBox 2026-03 archive. One same-model Low-effort agent may perform bounded
+asset preparation and verification, using separate task-owned output; main keeps
+specification, architecture, integration, reconciliation and final delivery.
+Inventory actual archive platforms and packaging families, prepare usable editable
+Blender/self-contained GLB carton models with Open/Close animation and exact scan
+provenance, and report representative versus per-game conversion counts honestly.
+Do not claim one example converts a whole platform library. Reuse validated GBA
+work where appropriate; main retains Game & Watch ownership. Required local asset
+deliverables include catalogue, reconstruction source, closed/open visual and hinge
+verification and source limitations. This adds asset preparation inside sole
+ACTIVE S25; it does not authorize unrelated runtime changes or intermediate releases.
+
+Owner Crystal Screen and carton reconstruction, 2026-10-20 (explicit extension):
+use installed Blender to diagnose and correct the improperly rendered Climber
+and Balloon Fight Crystal Screen windows. Compare source meshes/materials,
+conversion and actual native rendering; do not dismiss the visible defect as
+intended or fabricate gameplay. Reconstruct as many exact-edition missing boxes
+as the existing NintAndBox Game And Watch scans support, retaining originals,
+scan provenance, reviewed panel orientation and honest inferred dimensions/folds.
+Validate the eight owner-supplied boxes as well. Integrate usable exact boxes
+privately into the sequential lower-preview pipeline and shallow semicircle.
+With broad collection coverage, show one exact primary closed box per library
+card using the established GBA presentation; retain an honest handheld fallback
+where an exact box is absent. Do not change ROM identity or borrow another
+hardware edition's packaging. Report each conversion/integration status, source
+limitations and remaining collection/model/box counts. Acceptance includes
+Blender inspection/render evidence, face/UV/flap and real-import checks, complete
+host integration and signed native Crystal windows, representative reconstructed
+cartons, multi-edition unboxing, library/inspector and Reduced Motion/lifecycle.
+Deliver this with the existing batch in one normal verified 1.9.24 release;
+S25 remains sole ACTIVE and no intermediate release is authorized.
 
 Owner sequential G&W unboxing, 2026-10-20 (explicit scope extension): use
 available exact-edition imported boxes and handhelds in the lower preview. For
@@ -86,8 +163,8 @@ ambiguous hardware evidence in the private census. Do not claim those CRCs prove
 one unique housing. Combined Mickey Mouse/Circus uses its explicit MAME parent,
 with the reskin alongside. Preserve the earlier SMB primary choice. Report both
 revision-aware ROM-entry coverage and unsupplied physical codes separately.
-The later sequential-unboxing amendment above adds the explicitly requested box scope. Retain deliberately blank transmitting
-Crystal/reflective Panorama screens; do not fabricate gameplay artwork. Validate
+The later sequential-unboxing amendment above adds the explicitly requested box scope. Preserve source optical intent without fabricating gameplay; the later Crystal
+Screen defect amendment above requires diagnosis and correction of its windows. Validate
 all supplied conversions/textures/provenance, five source-evaluated hood hinges,
 actual native affected model families and three-model labelled lower previews,
 exact primary single library/Resources, selection and Reduced Motion/lifecycle

@@ -180,6 +180,14 @@ class ConsoleModel {
     return _gameWatchImport(dir, romSet: set, box: box);
   }
 
+  /// One exact primary shelf object, with a handheld only when its box is absent.
+  /// Resources and lower edition previews keep their explicit resource choices.
+  static Future<ConsoleModel?> findGameWatchLibrary(String filename,
+          {Directory? modelsDirectory}) async =>
+      await findGameWatch(filename,
+          modelsDirectory: modelsDirectory, box: true) ??
+      await findGameWatch(filename, modelsDirectory: modelsDirectory);
+
   /// Exact local packaging identity; no similarly named edition may borrow it.
   static Future<ConsoleModel?> findGameWatchBox(ConsoleModel handheld,
       {Directory? modelsDirectory}) async {
@@ -371,7 +379,7 @@ class ConsoleModel {
         }
       }
     }
-    if (receipts.isEmpty || receipts.length > 64) {
+    if (receipts.length > 64) {
       throw const FormatException('Invalid console texture inventory');
     }
     for (final entry in receipts.entries) {

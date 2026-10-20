@@ -146,7 +146,7 @@ class BaseGameCard extends StatelessWidget {
                       restYaw: -.2,
                       builder: (context, pose) => IgnorePointer(
                           child: GameWatchPreview(
-                              key: ValueKey('handheld-grid-$filename'),
+                              key: ValueKey('gamewatch-shelf-$filename'),
                               filename: filename ?? '',
                               title: displayName,
                               identity: gameIdentity!,

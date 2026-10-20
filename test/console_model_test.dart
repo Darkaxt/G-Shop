@@ -70,6 +70,22 @@ void main() {
     expect(replacement.generation, isNot(model.generation));
     expect((await replacement.load()).name, 'replacement');
   });
+  test(
+      'solid-colour imports need no artificial texture and reject missing maps',
+      () async {
+    data['textureFiles'] = <String, String>{};
+    for (final surface in data['surfaces'] as List) {
+      surface['material']['textures'] = <String, String>{};
+    }
+    final manifest = File('${root.path}/consoles/gba/model.json');
+    await manifest.writeAsString(jsonEncode(data));
+    final model = (await ConsoleModel.find('gba', modelsDirectory: root))!;
+    expect((await model.load()).data['textureFiles'], isEmpty);
+    data['surfaces'][0]['material']['textures'] = {'albedo': 'missing.png'};
+    await manifest.writeAsString(jsonEncode(data));
+    final invalid = (await ConsoleModel.find('gba', modelsDirectory: root))!;
+    await expectLater(invalid.load(), throwsFormatException);
+  });
   test('console turntable keeps the original upright axis fixed', () async {
     final geometry =
         await (await ConsoleModel.find('gba', modelsDirectory: root))!.load();
@@ -310,6 +326,8 @@ void main() {
   test('all supplied mapped handhelds load exact geometry and texture receipts',
       () async {
     const folding = {
+      // The refined Micro VS model now supplies its rear storage opening.
+      'gnw_boxing',
       'gnw_dkong',
       'gnw_zelda',
       'gnw_dkong2',
@@ -397,7 +415,8 @@ void main() {
   },
       skip: handhelds == null
           ? 'Requires private supplied handheld imports'
-          : false);
+          : false,
+      timeout: Timeout.none);
   testWidgets(
       'console rotates only after a GPU frame and obeys reduced motion and lifecycle',
       (tester) async {

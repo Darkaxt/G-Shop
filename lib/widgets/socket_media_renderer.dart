@@ -682,7 +682,14 @@ class SocketMediaGpu {
           unfoldEnd,
           unfoldEnd + 1.8);
       return math.min(
-          size.width * .72 / (4.8 - 2.2 * settle), size.height * .68 / 2);
+          size.width *
+              .72 /
+              ((model.data['motionFrameWidth'] as num) * (1 - settle) +
+                  2.6 * settle),
+          size.height *
+              .68 /
+              ((model.data['motionFrameHeight'] as num) * (1 - settle) +
+                  2 * settle));
     }
     if (model.data['unboxingGeometry'] == true) {
       final overview =

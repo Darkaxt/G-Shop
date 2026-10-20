@@ -42,30 +42,60 @@ def main():
     if args.visual_variant_id and (args.rom_set or args.system != 'gameandwatch' or
             not __import__('re').fullmatch('[a-z0-9_-]+', args.visual_variant_id)):
         raise ValueError('Expected a visual-only Game & Watch variant identity')
-    if args.resource_kind == 'box' and not args.rom_set:
-        raise ValueError('A box import requires its exact associated ROM set')
-    animation = next((a for a in gltf.get('animations', []) if a['name'] == 'Open'), None)
-    if gltf.get('animations') and (animation is None or
-            {a['name'] for a in gltf['animations']} != {'Open', 'Close'}):
-        raise ValueError('Only the inspected rigid Open/Close pair is supported')
+    if args.resource_kind == 'box' and not (args.rom_set or args.visual_variant_id):
+        raise ValueError('A box import requires its exact associated hardware identity')
+    source_animations = {a['name']: a for a in gltf.get('animations', [])}
+    if len(source_animations) != len(gltf.get('animations', [])):
+        raise ValueError('Source animation names must be unique')
+    clip_names = set(source_animations)
+    if clip_names not in (set(), {'Open', 'Close'},
+            {'BatteryRemove', 'BatteryInsert'},
+            {'Open', 'Close', 'BatteryRemove', 'BatteryInsert'}):
+        raise ValueError('Expected inspected opening and/or battery animation pairs')
+    animation = source_animations.get('Open')
     def values(index):
         a = gltf['accessors'][index]
         view = gltf['bufferViews'][a['bufferView']]
-        width = {'SCALAR': 1, 'VEC4': 4}[a['type']]
+        width = {'SCALAR': 1, 'VEC3': 3, 'VEC4': 4}[a['type']]
         if a['componentType'] != 5126 or 'sparse' in a:
             raise ValueError('Expected float rigid animation keys')
         start = view.get('byteOffset', 0) + a.get('byteOffset', 0)
         stride = view.get('byteStride', width * 4)
         return [struct.unpack_from('<'+'f'*width, binary, start+i*stride) for i in range(a['count'])]
+    # Battery removal is a separate source action, not a handheld opening. Keep
+    # it closed in the preview and preserve the complete original GLB/Blend.
+    # Accept only the inspected reversible rigid tracks whose first removal
+    # pose agrees with the authored node rest; never bake an arbitrary NLA pose.
+    if 'BatteryRemove' in source_animations:
+        remove, insert = (source_animations[n] for n in ('BatteryRemove', 'BatteryInsert'))
+        def battery_tracks(clip):
+            tracks = {}
+            for channel in clip['channels']:
+                target = channel['target']
+                sampler = clip['samplers'][channel['sampler']]
+                key = (target['node'], target['path'])
+                if key in tracks or target['path'] not in ('translation', 'rotation') or sampler.get('interpolation', 'LINEAR') != 'LINEAR':
+                    raise ValueError('Expected independent linear rigid battery action')
+                tracks[key] = values(sampler['output'])
+            return tracks
+        removed, inserted = battery_tracks(remove), battery_tracks(insert)
+        if removed.keys() != inserted.keys():
+            raise ValueError('Battery removal/insertion target mismatch')
+        opening_targets = {c['target']['node'] for c in animation['channels']} if animation else set()
+        for (index, path), keys in removed.items():
+            reverse = inserted[(index, path)]
+            rest = gltf['nodes'][index].get(path, [0, 0, 0] if path == 'translation' else [0, 0, 0, 1])
+            if index in opening_targets or len(keys) != len(reverse) or any(abs(a-b) > 1e-6 for a, b in zip(keys[0], rest)) or any(abs(a-b) > 1e-6 for left, right in zip(keys, reversed(reverse)) for a, b in zip(left, right)):
+                raise ValueError('Battery action must preserve closed rest and reverse exactly')
     images = {}
-    for i, image in enumerate(gltf['images']):
+    for i, image in enumerate(gltf.get('images', [])):
         if image.get('mimeType') not in ('image/png', 'image/jpeg'):
             raise ValueError('Unsupported embedded texture format')
         view = gltf['bufferViews'][image['bufferView']]
         start = view.get('byteOffset', 0)
         images[i] = binary[start:start+view['byteLength']]
     names = {i: f'texture-{i:02d}.' + ('png' if image['mimeType'] == 'image/png' else 'jpg')
-             for i, image in enumerate(gltf['images'])}
+             for i, image in enumerate(gltf.get('images', []))}
     def texture(slot):
         return names[gltf['textures'][slot['index']]['source']]
     materials = {}
@@ -102,14 +132,16 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=str(args.source))
     frame_origin = 0
+    starts = []
+    for obj in bpy.context.scene.objects:
+        if obj.animation_data:
+            obj.animation_data.action = None
+            for track in obj.animation_data.nla_tracks:
+                track.mute = not animation or track.name != 'Open'
+                if not track.mute: starts.extend(s.frame_start for s in track.strips)
     if animation:
-        starts = []
-        for obj in bpy.context.scene.objects:
-            if obj.animation_data:
-                obj.animation_data.action = None
-                for track in obj.animation_data.nla_tracks:
-                    track.mute = track.name != 'Open'
-                    if not track.mute: starts.extend(s.frame_start for s in track.strips)
+        if not starts:
+            raise ValueError('Imported opening action was not found')
         frame_origin = min(starts)
         bpy.context.scene.frame_set(int(frame_origin))
         bpy.context.view_layer.update()
@@ -119,16 +151,21 @@ def main():
     # Frame the actual articulated envelope, not only the closed shell. Mesh
     # vertices and hinge pivots are still exported from the closed rest pose.
     pose_bounds = []
+    animation_start, duration = 0, 0
     if animation:
         key_times = sorted({t[0] for s in animation['samplers'] for t in values(s['input'])})
+        animation_start, animation_end = key_times[0], key_times[-1]
+        duration = animation_end - animation_start
+        if duration <= 0:
+            raise ValueError('Opening action requires a positive time span')
         fps = bpy.context.scene.render.fps / bpy.context.scene.render.fps_base
         for time in key_times:
-            frame = frame_origin + time * fps
+            frame = frame_origin + (time - animation_start) * fps
             bpy.context.scene.frame_set(int(frame), subframe=frame-int(frame))
             bpy.context.view_layer.update()
             current = [axis(o.matrix_world @ v.co) for o in objects for v in o.data.vertices]
             points.extend(current)
-            pose_bounds.append((time/key_times[-1], Vector([
+            pose_bounds.append(((time-animation_start)/duration, Vector([
                 (min(p[a] for p in current)+max(p[a] for p in current))/2
                 for a in range(3)])))
         bpy.context.scene.frame_set(int(frame_origin))
@@ -137,7 +174,6 @@ def main():
     high = Vector([max(p[a] for p in points) for a in range(3)])
     center, scale = (low + high) / 2, 2 / max(high - low)
     hinges = {}
-    duration = 0
     if animation:
         for channel in animation['channels']:
             node = gltf['nodes'][channel['target']['node']]
@@ -153,12 +189,13 @@ def main():
             pairs = []
             direction = None
             times = values(sampler['input'])
-            duration = max(duration, times[-1][0])
+            if abs(times[0][0] - animation_start) > 1e-6 or abs(times[-1][0] - animation_end) > 1e-6:
+                raise ValueError('Opening hinges must share the inspected clip time span')
             for time, q in zip(times, rotations):
                 delta = Quaternion((q[3], *q[:3])) @ base.inverted()
                 if delta.w < 0: delta.negate()
                 if delta.angle > .00001 and direction is None: direction = delta.axis.copy()
-                pairs.append((time[0] / times[-1][0], delta))
+                pairs.append(((time[0] - animation_start) / duration, delta))
             direction = direction or Vector((1, 0, 0))
             parent = obj.parent.matrix_world.to_3x3() if obj.parent else Matrix.Identity(3)
             blender_direction = Vector((direction.x, -direction.z, direction.y))
@@ -230,6 +267,10 @@ def main():
         'geometrySha256': hashlib.sha256(payload).hexdigest(), 'textureFiles': textures,
         'sourceReference': {'author': args.author, 'url': args.source_url,
             'licence': 'local-import-only', 'sha256': hashlib.sha256(raw).hexdigest(),
+            'sourceAnimationClips': list(source_animations),
+            'previewAnimationPolicy': {
+                'opening': ['Open', 'Close'] if animation else [],
+                'heldAtAuthoredRest': ['BatteryRemove', 'BatteryInsert'] if 'BatteryRemove' in source_animations else []},
             'adaptation': 'Full authored scene; uniform centering/scale, Y-up, source UV/PBR and screen emission'},
         'surfaces': surfaces}
     if args.rom_set:
@@ -238,7 +279,7 @@ def main():
         manifest['openingDurationMs'] = round(duration*1000) if hinges else 2000
     if args.visual_variant_id:
         manifest['visualVariantId'] = args.visual_variant_id
-        manifest['resourceKind'] = 'handheld'
+        manifest['resourceKind'] = args.resource_kind
         manifest['openingDurationMs'] = round(duration*1000) if hinges else 2000
     if pose_bounds:
         manifest['poseCenters'] = [[time, *list((point-center)*scale)] for time, point in pose_bounds]

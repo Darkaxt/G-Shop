@@ -5,6 +5,94 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-20 revision 129: S25 remains the only **ACTIVE** stage. Owner explicitly
+authorizes S26 implementation after the current G&W integration is verified and
+delivered, without waiting for their return. S26 is **NOT STARTED** until that
+gate; its prior evaluation-only scope now includes source removal and G-Shop
+repository/internal rebranding. Reconcile retained S25 requirements at transition;
+do not falsely declare the wider console/cinematic inventory complete. The full
+archive carton catalogue remains required and its existing agent continues.
+
+2026-10-20 revision 128: batch **ACTIVE**, sole ACTIVE S25. Owner explicitly
+clarifies that all archive box editions must be prepared for later selection.
+The prior agent completed 17 regional examples plus unchanged GBA reuse; that
+bounded assignment did not satisfy the intended full catalogue. Its 18 GLBs,
+packed Blends and reports remain preserved and their contact sheets reviewed.
+Resume the same agent for all actual archive edition folders (snapshot 2,528),
+retaining exact provenance, animations, editable sources and per-edition status.
+Full catalogue preparation remains an internal advancement blocker; main owns
+acceptance/integration/delivery, with no new ACTIVE stage or tracked deferral.
+
+Replacement hardware delivery is now available as six models ZIPs, three editable
+ZIPs, four selector chunk ZIPs and docs ZIP. The old monolithic local ZIP did not
+match the 73-GLB ledger. Archive/per-file validation and exact refined imports
+remain internal acceptance blockers; no further user download is currently needed.
+The previous ADB transfer plan completed before interruption (manifest
+7b91bfa8c38d48f6abd9d348ce11b28e); no apply or private placement was launched.
+
+Fresh final-geometry host evidence all-59-final-cavity-framing.log passes actual
+cavity containment, source opening direction, tray/console extraction and full
+single/triple Thor framing for all 59 current box editions. Blender v3 corrects
+the coplanar dust/lid and tuck/front geometry; inferred closures remain explicit.
+Native acceptance and final normal 1.9.24 delivery remain unsatisfied.
+
+Revision 128 integration checkpoint: all 73 delivered GLBs match ledger sizes
+and SHA-256, including the independently joined selector; all 35 editable scenes
+are present. Main converted the 33 refined handhelds, BF-107, Diskun case and
+three retained Crystal sources, retaining repaired apertures and the proven
+Mario Bros. control alignment. Separate battery actions stay at authored closed
+rest in previews and remain preserved in the original GLB/Blend sources. The
+real nonzero-start BF-107 carton clip exposed and corrected a converter time-span
+assumption; its converted hinge motion now matches Blender. The exact BF-107
+carton has independently reviewed closed/mid/open renders and source provenance.
+The current integrated private catalogue has 63 handhelds, 60 cardboard cartons
+and one protective case. All 61 package/handheld pairs pass cavity, extraction,
+support-plane, exact identity, texture and single/triple Thor framing checks.
+Diskun exits through its actual front; the eight retained cartons use their
+left openings and removable trays. Refined Panorama parts retain their authored
+geometry under a bounded hardware surface allowance. Full actual handheld and
+eight-pair checks pass; the test framework's generic 30-second limit was removed
+from the long real-pair check without adding app timing or weakening assertions.
+Existing preview/variant/library/GBA/lifecycle focused contracts pass; analysis
+has no new finding (the renderer's existing protected-layer warning and style
+infos remain). Native verification, full archive carton catalogue and the one
+normal 1.9.24 release remain advancement blockers. S25 remains sole ACTIVE.
+
+2026-10-20 revision 126: batch **ACTIVE**, sole ACTIVE S25. User explicitly
+requested one agent for animated boxes across archive-supported generations.
+Confirmed current main model gpt-6.1-sol from this rollout's turn_context; launched
+nintandbox_console_boxes with that exact model and Low effort, isolated output
+D:/Temp/rshop-nintandbox-generations-20261020. Main owns G&W and final integration.
+Required asset catalogue, editable outputs, hinge/visual acceptance and conversion
+report remain internal advancement blockers until delivered and independently
+reviewed. No second ACTIVE stage or required tracked deferral.
+
+Revision 125 implementation checkpoint: Blender repairs both Crystal apertures
+by cutting overlapping rear battery solids; 209 grid rays per model find no
+remaining opaque obstruction, and source/repaired renders demonstrate the cause.
+51 additional exact-edition carton reconstructions have converted in Blender,
+with reviewed source panels and source-evaluated hinge errors below tolerance.
+Four Table Top cartons preserve four scanned printed faces and infer their plain
+stock closures; they are not claimed as six fully scanned printed faces. The eight
+supplied cartons retain geometry/textures; integration now uses their actual left
+opening, measured foam cavity and removable tray, instead of a right-side exit.
+Library prefers one exact primary closed box with handheld fallback. Combined
+acceptance is still open: host projection found Zelda clipping during extraction/
+unfolding, so framing must use the actual excursion; native and final release
+verification remain unsatisfied. No success/release claim is made.
+
+2026-10-20 revision 125: batch **ACTIVE**, sole ACTIVE S25. Explicit additional
+requirements are Crystal Screen defect repair and Blender reconstruction of
+missing exact-edition cartons from the owner's NintAndBox scans, supplied-carton
+validation, private integration, box library presentation and conversion report.
+Internal advancement blockers: these newly requested outcomes are not yet
+implemented/verified; host/native combined acceptance and final 1.9.24 delivery
+remain dependent. Resolve within this same batch; no tracked deferral. Inventory
+finds 190 box scans; scan availability alone does not establish valid conversion.
+Installed Blender is D:/Tools/Blender/blender-5.2.2-windows-x64/blender.exe.
+Prior native Crystal appearance is superseded by the reported defect and must
+not be treated as accepted optical behavior. Original scans/GLBs/ROMs preserved.
+
 2026-10-20 revision 124: batch **ACTIVE**, sole ACTIVE S25. The owner explicitly
 extends the batch to sequential G&W unboxing using available exact boxes, then
 resting box/console pairs in the arc. Current internal advancement blocker: the

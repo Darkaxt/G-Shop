@@ -47,19 +47,23 @@ class GameWatchPreview extends StatefulWidget {
 class _GameWatchPreviewState extends State<GameWatchPreview> {
   late Future<ConsoleModel?> _model;
   bool _fallbackReady = false;
+  Future<ConsoleModel?> _findModel() => widget.libraryPose != null
+      ? ConsoleModel.findGameWatchLibrary(widget.filename)
+      : ConsoleModel.findGameWatch(widget.filename, box: widget.isBox);
   @override
   void initState() {
     super.initState();
-    _model = ConsoleModel.findGameWatch(widget.filename, box: widget.isBox);
+    _model = _findModel();
   }
 
   @override
   void didUpdateWidget(GameWatchPreview oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.filename != widget.filename ||
-        oldWidget.isBox != widget.isBox) {
+        oldWidget.isBox != widget.isBox ||
+        (oldWidget.libraryPose == null) != (widget.libraryPose == null)) {
       _fallbackReady = false;
-      _model = ConsoleModel.findGameWatch(widget.filename, box: widget.isBox);
+      _model = _findModel();
     }
   }
 
@@ -129,7 +133,7 @@ class _GameWatchPreviewState extends State<GameWatchPreview> {
               title: widget.title,
               onReady: widget.onReady,
               pose: SocketMediaPose(
-                  opening: model.canOpen ? 1 : 0,
+                  opening: !model.isBox && model.canOpen ? 1 : 0,
                   ry: pose.ry,
                   scaleX: .9 * pose.scaleX,
                   scaleY: .9 * pose.scaleY,

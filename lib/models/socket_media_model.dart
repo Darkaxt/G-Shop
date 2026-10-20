@@ -215,14 +215,14 @@ class SocketMediaModel {
       throw const FormatException('Invalid local packaging import');
     }
     final surfaces = data['surfaces'];
-    // The supplied Twisted assembly has 65 surfaces; its fitted carton and
-    // booklet are additional surfaces in the combined inspection scene.
-    final surfaceBudget =
-        data['unboxingGeometry'] == true || data['gameWatchUnboxing'] == true
-            ? 192
-            : data['cartridgeGeometry'] == true
-                ? 128
-                : 64;
+    // Twisted has 65 cartridge surfaces and the refined Panorama hardware has
+    // up to 70. Paired scenes also include their separate carton/booklet parts.
+    final surfaceBudget = data['unboxingGeometry'] == true ||
+            data['gameWatchUnboxing'] == true
+        ? 192
+        : data['cartridgeGeometry'] == true || data['hardwareGeometry'] == true
+            ? 128
+            : 64;
     if (surfaces is! List ||
         surfaces.isEmpty ||
         surfaces.length > surfaceBudget) {
