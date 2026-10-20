@@ -60,6 +60,8 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
   double? _inspectionYaw;
   int _pointers = 0;
   double _yaw = -.2, _pitch = defaultPitch, _zoom = .9, _startZoom = .9;
+  double get _initialPitch =>
+      widget.model.isCollectionOverview ? .85 : defaultPitch;
   double get _motionYaw => widget.informationRotation || widget.turntable
       ? _rotation.value * math.pi * 2
       : math.sin(_rotation.value * math.pi * 2) * .14;
@@ -99,6 +101,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
   @override
   void initState() {
     super.initState();
+    _pitch = _initialPitch;
     _rotation = AnimationController(
         vsync: this,
         duration: widget.informationRotation
@@ -212,7 +215,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
       _rotation.stop();
       _rotation.value = 0;
       _yaw = -.2;
-      _pitch = defaultPitch;
+      _pitch = _initialPitch;
       _zoom = .9;
       _hasFrame = false;
       _opening.stop();

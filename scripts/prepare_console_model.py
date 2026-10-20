@@ -144,12 +144,9 @@ def main():
         devices = sorted(o.name for o in root.children if o != board)
         source_triangles = sum(len(o.data.polygons) for o in root.children_recursive if o.type == 'MESH')
         bpy.data.objects.remove(board, do_unlink=True)
-        # The authored display is horizontal. Stand the complete arrangement up
-        # as one unit so the existing upright turntable presents its faces.
-        # glTF imports use quaternion mode; an Euler assignment alone is ignored.
-        root.rotation_mode = 'XYZ'
-        root.rotation_euler.rotate_axis('X', __import__('math').pi / 2)
-        bpy.context.view_layer.update()
+        # Preserve the authored horizontal layout and vertical rotation axis.
+        # The selector viewer uses an elevated camera so standing tabletop
+        # consoles and flat handhelds remain readable together.
         # Close-up imports remain untouched. At overview scale each device is
         # only a small fraction of the display; retain every object and its UVs
         # while reducing curved tessellation and limiting decoded texture memory.
@@ -364,7 +361,7 @@ def main():
         'surfaces': surfaces}
     if collection:
         manifest['selectorScene'] = collection
-        manifest['sourceReference']['adaptation'] = 'All 63 original placements; only Display_board hidden; upright overview, reduced tessellation and 256px textures; original sources retained'
+        manifest['sourceReference']['adaptation'] = 'All 63 original placements and vertical axis; only Display_board hidden; elevated overview camera, reduced tessellation and 256px textures; original sources retained'
     if args.rom_set:
         manifest['romSet'] = args.rom_set
         manifest['resourceKind'] = args.resource_kind

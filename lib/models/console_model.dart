@@ -13,6 +13,7 @@ class ConsoleModel {
   final String generation;
   final String? romSet;
   final String? visualVariantId;
+  final bool isCollectionOverview;
   String get hardwareId =>
       romSet == null ? visualVariantId ?? '' : _physicalRomSet(romSet!);
   final bool canOpen;
@@ -21,6 +22,7 @@ class ConsoleModel {
   ConsoleModel._(this.systemId, this.directory, this.generation,
       {this.romSet,
       this.visualVariantId,
+      this.isCollectionOverview = false,
       this.canOpen = false,
       this.isBox = false,
       this.openingDurationMs = 2000});
@@ -333,8 +335,10 @@ class ConsoleModel {
     if (await manifest.length() > 1024 * 1024) {
       throw const FormatException('Console manifest exceeds import size');
     }
-    return ConsoleModel._(
-        systemId, dir, sha256.convert(await manifest.readAsBytes()).toString());
+    final bytes = await manifest.readAsBytes();
+    return ConsoleModel._(systemId, dir, sha256.convert(bytes).toString(),
+        isCollectionOverview: SocketMediaModel.isGameWatchCollection(
+            jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>));
   }
 
   Future<SocketMediaModel> load() async {

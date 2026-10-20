@@ -153,6 +153,34 @@ void main() {
       }
     }
   });
+  testWidgets('collection camera views the original layout from above',
+      (tester) async {
+    final model = await tester.runAsync(() async {
+      final dir = Directory('${root.path}/consoles/gameandwatch');
+      await dir.create(recursive: true);
+      await File('${root.path}/consoles/gba/model.mesh')
+          .copy('${dir.path}/model.mesh');
+      data['system'] = 'gameandwatch';
+      data['selectorScene'] = {
+        'kind': 'gamewatchCollection',
+        'deviceCount': 63,
+        'devices': List.generate(63, (i) => 'device-$i'),
+        'hiddenNodes': ['Display_board'],
+        'textureMaxDimension': 256,
+      };
+      await File('${dir.path}/model.json').writeAsString(jsonEncode(data));
+      return ConsoleModel.find('gameandwatch', modelsDirectory: root);
+    });
+    await tester.pumpWidget(MaterialApp(
+        home: ConsoleHardwareView(model: model!, title: 'Game & Watch')));
+    expect(
+        tester
+            .widget<SocketMediaRenderer>(find.byType(SocketMediaRenderer))
+            .pose
+            .rx,
+        .85);
+    await tester.pumpWidget(const SizedBox());
+  });
   test('expanded handheld imports retain exact hardware editions', () {
     const releases = {
       'Black Jack (World).7z': 'gnw_bjack',
@@ -560,9 +588,9 @@ void main() {
     expect(scene['deviceCount'], 63);
     expect((scene['devices'] as List).toSet().length, 63);
     expect(scene['hiddenNodes'], ['Display_board']);
-    expect((geometry.data['bounds'][1] as num),
-        greaterThan((geometry.data['bounds'][2] as num) * 3),
-        reason: 'The collection must face the upright selector camera');
+    expect((geometry.data['bounds'][2] as num),
+        greaterThan((geometry.data['bounds'][1] as num) * 3),
+        reason: 'Preserve the source tabletop arrangement and vertical axis');
     expect(
         scene['devices'],
         containsAll([

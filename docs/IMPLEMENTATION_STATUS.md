@@ -5,6 +5,15 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+Revision 131 camera reconciliation: the source is a horizontal collection with
+standing tabletop devices. Rotating the entire grid upright would also tilt those
+devices away from the viewer. The actual elevated-camera diagnostic on Thor shows
+all 63 original placements clearly with the board absent, preserving the original
+vertical turntable axis. Retain that source geometry and set this validated
+collection's initial viewing pitch to .85 radians; ordinary consoles keep .18.
+This replaces the unsuitable upright-grid bounds assertion with an original-layout
+and elevated-camera contract. The final signed default-view check remains required.
+
 Revision 131 native reconciliation: the signed 28137b1 candidate loads the
 collection on Thor, but its first capture exposes a flat orientation. Blender
 diagnostics prove the imported root is in quaternion mode, so the earlier Euler
