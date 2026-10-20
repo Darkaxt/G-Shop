@@ -45,6 +45,12 @@ void main() {
       expect(variant.box!.hardwareId, set);
       final scene = GameWatchUnboxingScene(variant.model, variant.box!);
       final model = await scene.load();
+      // The renderer reads this complete metadata contract after GPU loading;
+      // geometry-only validation previously missed the absent label dimensions.
+      expect(model.labelAspect, 1);
+      expect(model.frontSign, 1);
+      expect(model.motionKind, 'hardware');
+      expect(model.triangles, greaterThan(0));
       final console = await variant.model.load(),
           box = await variant.box!.load();
       expect(model.mesh.lengthInBytes,

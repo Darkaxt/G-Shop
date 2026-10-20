@@ -15,6 +15,41 @@ publication depends on this new acceptance as well as the pending revised UI
 checks. No required tracked deferral. Prior f162 signing run remains observed but
 its candidate cannot deliver this newly requested behavior.
 
+Revision 124 native checkpoint: unboxed arc/clean overview, exact enlarged
+inspection, translucent attributed facts, source intent handoff and lifecycle
+pause/resume pass on signed Thor. Controller A toggles information; B closes
+information before inspection. G&W hides Hacks/Patches and retains Commercial.
+First boxed selection exposes a missing combined-scene labelAspect field in the
+renderer layout contract. This is an internal advancement blocker; 7848 remains
+unpublished. Add the required explicit scene metadata and regression coverage,
+then verify the corrected exact signed package before accepting box playback.
+The corrected scene now supplies labelAspect and frontSign explicitly; the real
+eight-pair regression reads every renderer metadata getter and passes, alongside
+extraction/resting/viewport and owner timeline checks.
+
+Revision 124 host checkpoint: the integrated real-import scene and preview path
+passes focused acceptance. All eight exact pairs retain source mesh bytes and
+checksum-verified namespaced textures; the folded console fits inside the closed
+carton, clears the right-hand flap before unfolding, and rests in front with its
+underside on the box's plane. Animated vertices fit Thor logical single/triple
+canvases. A sampled underside curve preserves contact during independent folding.
+One timeline waits for every GPU-ready callback, sequences editions, pauses and
+resumes without restarting, settles for inspection/Reduced Motion, and rejects
+old-selection callbacks. Synthetic scheduler pairing is only a test; it does not
+invent a same-game group in the owner's catalogue. Current multi-edition groups
+have no supplied boxes; all eight supplied pairs are single exact-edition groups.
+Existing GBA preview preparation/reader/inspection, G&W card, arc/info/controller
+bridge and secondary-preview lifecycle checks pass. The optional real GBA holder
+scene check was skipped because its import environment was not supplied; no
+claim of a new real GBA native sweep is made. Analysis finds no new issue; the
+renderer retains its pre-existing protected-layer warning and style infos.
+No material design-debt finding: one sequence owner and one depth-tested pair
+renderer reuse the existing hinge evaluation and exact import validation. Native
+signed scene/UI acceptance and the one final normal release remain blockers to
+this batch's completion; S25 stays ACTIVE and S26 NOT STARTED.
+Signed candidate source is 7848d30752d65b7a48bb4a6a5736e0727b7be951, run
+39454931751. Earlier f162 signing succeeded and remains unpublished/superseded.
+
 2026-10-20 revision 123: expansion, conditional categories and model inspection
 refinement batch **ACTIVE**, within sole ACTIVE S25. Explicit user correction
 supersedes overview captions with an enlarged exact-edition inspector, attributed

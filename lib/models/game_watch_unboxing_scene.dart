@@ -82,6 +82,8 @@ class GameWatchUnboxingScene {
       'privateImport': true,
       'motionKind': 'hardware',
       'sourceWidth': 4.8,
+      'labelAspect': 1,
+      'frontSign': 1,
       'bounds': [4.8, 3.0, 2.0],
       'canOpen': handheld.canOpen,
       'openingDurationMs': handheld.openingDurationMs,
