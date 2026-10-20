@@ -1,6 +1,29 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 129, 2026-10-20.
+Authoritative specification, revision 131, 2026-10-20.
+
+Owner selector clarification, 2026-10-20: the Game & Watch selection must show
+the supplied multi-console collection as a large rotating 3D scene on the
+secondary display. Hide only its separate Display_board mesh; retain all 63
+console placements, including tabletop controls. This is distinct from library
+cards and per-game edition previews. Prepare a bounded overview import from the
+verified collection, preserving originals and recording any overview reduction;
+reuse the existing console turntable, gestures, reduced-motion and route/lifecycle
+ownership. Verify actual lower-screen rendering and rotation on Thor. Missing
+selector integration is an advancement blocker within the same ACTIVE S25 batch.
+
+Owner Helmet correction, 2026-10-20: CN-17 denotes the bug-fixed MCU/program
+revision of Helmet model CN-07; that alone does not establish a distinct exterior.
+Reuse the supplied Helmet exterior for both exact ROM sets, preserving filename,
+CRC, selected ROM-set identity and selection/lifecycle ownership separately from
+the shared physical model. Do not duplicate the same exterior in the lower view
+or require a fabricated second mesh. Reuse the available reconstructed Helmet
+family carton as shared packaging presentation, explicitly recording that a
+distinct CN-17-specific carton has not been established. The eight supplied
+cartons did not contain Helmet; its scan reconstruction remains separate evidence.
+Report ROM-revision bindings, available physical designs and packaging coverage
+as separate measures. This supersedes prior CN-17 missing-exterior/box assertions
+and the test expectations derived from them; it does not weaken exact ROM identity.
 
 Owner autonomous continuation, 2026-10-20: after the current Game & Watch
 integration is verified and delivered, proceed with S26 without waiting for the

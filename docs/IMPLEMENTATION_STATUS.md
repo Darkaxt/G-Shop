@@ -5,6 +5,39 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-20 revision 131: S25 remains **ACTIVE**. The collection GLB was joined
+and verified but never installed under consoles/gameandwatch; the host therefore
+hid the secondary preview. The owner means this large rotating lower-screen scene,
+not the Home logo. Integrate all 63 placements with only Display_board hidden,
+record overview preparation and verify real rendering/rotation and ownership.
+This is an internal advancement blocker, not a new stage or approval checkpoint.
+
+Revision 131 host checkpoint: the real board-free selector import loads with all
+63 placements, 155,344 triangles, 313 material draws and 261 decoded/checksummed
+textures bounded to 256 pixels; geometry stays within the existing 20 MiB cap.
+The scoped collection contract leaves ordinary handheld limits unchanged. Exact
+Helmet revision/exterior and selection-readiness regressions pass, and the fresh
+census now binds 53/53 archives with 52 primary physical IDs and 51 game labels.
+Climber and Balloon Fight both reach the actual two-edition boxed settled frame
+on Thor with matching geometry/box receipts; the signed 332753a candidate still
+lacks the Helmet alias and selector contract, so final native acceptance requires
+the new signed source. No current batch release has been published.
+
+Full archive census is now read back as 2,527 real editions: GW 85, GB 192,
+GBA 192, GBC 102, NES 623, N64 473, SNES 845 and VB 15. The previous 2,528
+snapshot included a metadata directory; the other-platform subtotal is 2,442.
+The agent's full build remains observed; generation is not catalogue acceptance.
+
+2026-10-20 revision 130: S25 remains **ACTIVE**. The owner corrected our prior
+CN-17 inference; MAME explicitly identifies Helmet as model CN-07 and CN-17 as
+a bug-fixed MCU release. A second exterior/box is not established. Current
+advancement blocker: bind both exact ROM revisions to the supplied exterior,
+retain selection/ROM identity and honest shared packaging provenance, verify
+both real selections, and replace the misleading missing-physical-model census.
+The earlier 52/53 physical-coverage assertion is superseded, not current evidence.
+The signing run for source 332753a remains observed; a final package must include
+this correction too. No additional approval or implementation stage is required.
+
 2026-10-20 revision 129: S25 remains the only **ACTIVE** stage. Owner explicitly
 authorizes S26 implementation after the current G&W integration is verified and
 delivered, without waiting for their return. S26 is **NOT STARTED** until that

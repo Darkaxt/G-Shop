@@ -13,7 +13,8 @@ class ConsoleModel {
   final String generation;
   final String? romSet;
   final String? visualVariantId;
-  String get hardwareId => romSet ?? visualVariantId ?? '';
+  String get hardwareId =>
+      romSet == null ? visualVariantId ?? '' : _physicalRomSet(romSet!);
   final bool canOpen;
   final bool isBox;
   final int openingDurationMs;
@@ -24,8 +25,11 @@ class ConsoleModel {
       this.isBox = false,
       this.openingDurationMs = 2000});
 
-  // Hardware identity is the MAME set, not a game title. Crystal, Silver and
-  // Panorama variants deliberately do not borrow their similarly named models.
+  // ROM identity remains the exact MAME set. A documented MCU-only revision
+  // may share its exterior; Crystal/Silver/Panorama designs remain separate.
+  // MAME identifies Helmet as CN-07 and CN-17 as its bug-fixed MCU release.
+  static String _physicalRomSet(String set) =>
+      set == 'gnw_helmet' ? 'gnw_helmeto' : set;
   static const gameWatchSets = {
     'gnw_dkong',
     'gnw_dkjr',
@@ -176,7 +180,7 @@ class ConsoleModel {
     final root =
         modelsDirectory ?? Directory('/storage/emulated/0/RShop/models');
     final dir = Directory(
-        '${root.path}/${box ? 'boxes' : 'handhelds'}/gameandwatch/$set');
+        '${root.path}/${box ? 'boxes' : 'handhelds'}/gameandwatch/${_physicalRomSet(set)}');
     return _gameWatchImport(dir, romSet: set, box: box);
   }
 
@@ -341,7 +345,7 @@ class ConsoleModel {
     }
     final data = jsonDecode(utf8.decode(manifest)) as Map<String, dynamic>;
     if (data['system'] != systemId ||
-        romSet != null && data['romSet'] != romSet ||
+        romSet != null && data['romSet'] != _physicalRomSet(romSet!) ||
         visualVariantId != null &&
             (data['visualVariantId'] != visualVariantId ||
                 data['romSet'] != null) ||
@@ -358,6 +362,17 @@ class ConsoleModel {
             .any((v) => v is! num || !v.isFinite || v <= 0)) {
       throw const FormatException(
           'Invalid console model dimensions or identity');
+    }
+    if (romSet != null && romSet != data['romSet']) {
+      // Bind the selected program without rewriting or duplicating the source
+      // exterior. Package artwork is shared, not a claimed revision-specific box.
+      data['physicalModelRomSet'] = data['romSet'];
+      data['romSet'] = romSet;
+    }
+    final collection = SocketMediaModel.isGameWatchCollection(data);
+    if (data['selectorScene'] != null &&
+        (!collection || romSet != null || visualVariantId != null)) {
+      throw const FormatException('Invalid console collection identity');
     }
     final receipts = (data['textureFiles'] as Map).cast<String, String>();
     final centers = data['poseCenters'];
@@ -379,7 +394,7 @@ class ConsoleModel {
         }
       }
     }
-    if (receipts.length > 64) {
+    if (receipts.length > (collection ? 272 : 64)) {
       throw const FormatException('Invalid console texture inventory');
     }
     for (final entry in receipts.entries) {

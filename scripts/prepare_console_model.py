@@ -25,6 +25,8 @@ def main():
     parser.add_argument('--rom-set', help='Exact supplied Game & Watch MAME set')
     parser.add_argument('--visual-variant-id', help='Explicit visual-only hardware edition; no ROM binding')
     parser.add_argument('--resource-kind', choices=('handheld', 'box'), default='handheld')
+    parser.add_argument('--gamewatch-collection', action='store_true',
+                        help='Bounded overview of the supplied 63-device selector; hide its display board')
     args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:])
     if args.output.exists():
         raise ValueError('Preserve existing conversions; select an absent output')
@@ -131,6 +133,70 @@ def main():
             properties['ior'] = extensions['KHR_materials_ior'].get('ior', 1.5)
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=str(args.source))
+    collection = None
+    if args.gamewatch_collection:
+        if args.system != 'gameandwatch' or args.rom_set or args.visual_variant_id or source_animations:
+            raise ValueError('Collection preparation is only for the static Game & Watch selector')
+        root = bpy.data.objects.get('LCD_handheld_collection')
+        board = bpy.data.objects.get('Display_board')
+        if root is None or board is None or board.parent != root or len(root.children) != 64:
+            raise ValueError('Expected the inspected collection with 63 devices and its separate board')
+        devices = sorted(o.name for o in root.children if o != board)
+        source_triangles = sum(len(o.data.polygons) for o in root.children_recursive if o.type == 'MESH')
+        bpy.data.objects.remove(board, do_unlink=True)
+        # The authored display is horizontal. Stand the complete arrangement up
+        # as one unit so the existing upright turntable presents its faces.
+        root.rotation_euler.rotate_axis('X', __import__('math').pi / 2)
+        bpy.context.view_layer.update()
+        # Close-up imports remain untouched. At overview scale each device is
+        # only a small fraction of the display; retain every object and its UVs
+        # while reducing curved tessellation and limiting decoded texture memory.
+        for obj in list(root.children_recursive):
+            if obj.type != 'MESH' or len(obj.data.polygons) <= 24:
+                continue
+            bpy.context.view_layer.objects.active = obj
+            mod = obj.modifiers.new('Selector overview tessellation', 'DECIMATE')
+            mod.ratio = max(.10, 24 / len(obj.data.polygons))
+            mod.use_collapse_triangulate = True
+            bpy.ops.object.modifier_apply(modifier=mod.name)
+        # Semantically identical materials can share a draw without altering
+        # printed artwork, optical properties or the individual placements.
+        canonical = {}
+        aliases = {}
+        for name, material in materials.items():
+            key = json.dumps([material, double_sided[name]], sort_keys=True)
+            aliases[name] = canonical.setdefault(key, name)
+        for obj in root.children_recursive:
+            if obj.type == 'MESH':
+                for slot in obj.material_slots:
+                    slot.material = bpy.data.materials[aliases[slot.material.name]]
+        # Merge only surfaces sharing the full material contract after geometry
+        # export below; retain per-device names in provenance.
+        collection = {'kind': 'gamewatchCollection', 'deviceCount': len(devices),
+                      'devices': devices, 'hiddenNodes': ['Display_board'],
+                      'textureMaxDimension': 256, 'sourcePolygons': source_triangles,
+                      'overviewDecimationRatio': .10}
+        for i, content in list(images.items()):
+            # Blender's imported images carry the exact embedded bytes; find by
+            # glTF image name, and encode a private smaller overview copy.
+            source_name = gltf['images'][i].get('name')
+            image = bpy.data.images.get(source_name) if source_name else None
+            if image is None:
+                raise ValueError(f'Cannot identify selector texture {i}: {source_name}')
+            width, height = image.size[:]
+            if max(width, height) > 256:
+                ratio = 256 / max(width, height)
+                image.scale(max(1, round(width * ratio)), max(1, round(height * ratio)))
+            # pack() encodes the in-memory resized pixels without a scratch file.
+            image.pack()
+            images[i] = bytes(image.packed_file.data)
+            if images[i][:8] == b'\x89PNG\r\n\x1a\n':
+                replacement = f'texture-{i:02d}.png'
+                original = names[i]
+                for material in materials.values():
+                    for role, value in material['textures'].items():
+                        if value == original: material['textures'][role] = replacement
+                names[i] = replacement
     frame_origin = 0
     starts = []
     for obj in bpy.context.scene.objects:
@@ -256,6 +322,27 @@ def main():
                     animation_error = max(animation_error, (expected-point).length)
         if animation_error > .0001:
             raise ValueError(f'Converted hinge differs from source animation: {animation_error}')
+    if collection:
+        merged = {}
+        for surface in surfaces:
+            key = surface['name']
+            group = merged.setdefault(key, [])
+            group.append(surface)
+        source_payload, payload, surfaces = payload, bytearray(), []
+        for name, group in merged.items():
+            surface = dict(group[0])
+            offset, count = len(payload), 0
+            for part in group:
+                start, size = part['vertexOffset'], part['vertexCount'] * 32
+                payload.extend(source_payload[start:start+size])
+                count += part['vertexCount']
+            indices = len(payload)
+            for i in range(count): payload.extend(struct.pack('<I', i))
+            surface.update(node='Collection material ' + name, vertexOffset=offset,
+                           vertexCount=count, indexOffset=indices, indexCount=count)
+            surfaces.append(surface)
+        if len(payload) > 20 * 1024 * 1024 or len(surfaces) > 384:
+            raise ValueError('Selector exceeds the bounded overview geometry budget')
     used = {name for s in surfaces for name in s['material']['textures'].values()}
     textures = {names[i]: hashlib.sha256(content).hexdigest()
                 for i, content in images.items() if names[i] in used}
@@ -273,6 +360,9 @@ def main():
                 'heldAtAuthoredRest': ['BatteryRemove', 'BatteryInsert'] if 'BatteryRemove' in source_animations else []},
             'adaptation': 'Full authored scene; uniform centering/scale, Y-up, source UV/PBR and screen emission'},
         'surfaces': surfaces}
+    if collection:
+        manifest['selectorScene'] = collection
+        manifest['sourceReference']['adaptation'] = 'All 63 original placements; only Display_board hidden; upright overview, reduced tessellation and 256px textures; original sources retained'
     if args.rom_set:
         manifest['romSet'] = args.rom_set
         manifest['resourceKind'] = args.resource_kind

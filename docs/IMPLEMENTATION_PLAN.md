@@ -1,7 +1,18 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 129, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 131, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
+
+Revision 131 adds the owner's clarified secondary-screen collection selector to
+the same ACTIVE S25 batch: retain all 63 placements, hide only Display_board,
+prepare a bounded overview import and verify the real turntable on Thor before
+the final release. Reuse existing route, lifecycle and reduced-motion behavior.
+
+Revision 130 corrects Helmet's asset binding within the same ACTIVE S25 batch:
+both MCU revisions use the existing exterior; exact selected ROM/CRC identity
+and selection invalidation remain separate. Shared Helmet packaging carries no
+claim of a proven CN-17-specific printing. Verify both revision selections and
+revise the census by ROM bindings, physical designs and packaging independently.
 
 Revision 129 authorizes autonomous S26 implementation immediately after the
 current G&W integration/delivery gate. Preserve its existing supported-source,

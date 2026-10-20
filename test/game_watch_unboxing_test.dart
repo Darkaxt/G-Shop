@@ -282,10 +282,12 @@ void main() {
                 .load())
             .data['containerType'],
         'protectiveCase');
-    final missing = await ConsoleModel.findGameWatch('gnw_helmet.zip',
+    final shared = await ConsoleModel.findGameWatch('gnw_helmet.zip',
         modelsDirectory: root, box: true);
-    expect(missing, isNull,
-        reason: 'CN-07 packaging must not stand in for CN-17');
+    expect(shared!.romSet, 'gnw_helmet');
+    expect(shared.hardwareId, 'gnw_helmeto',
+        reason:
+            'MCU revision has shared Helmet-family packaging, not a new box');
     final shelf = await ConsoleModel.findGameWatchLibrary('gnw_smbn.zip',
         modelsDirectory: root);
     expect(shelf!.isBox, isTrue);

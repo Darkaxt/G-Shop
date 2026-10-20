@@ -249,7 +249,7 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
 
   String _signature(List<GameWatchModelVariant> models) => models
       .map((v) =>
-          '${v.model.directory.path}:${v.model.generation}:${v.box?.generation}')
+          '${v.model.romSet}:${v.model.directory.path}:${v.model.generation}:${v.box?.generation}')
       .join('|');
   void _reset() {
     _sequence.stop();

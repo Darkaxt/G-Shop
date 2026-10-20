@@ -183,6 +183,31 @@ class SocketMediaModel {
         textureBundle: textureBundle);
   }
 
+  /// The supplied 63-device overview has its own bounded draw/texture budget.
+  /// Individual consoles and paired unboxing scenes keep their existing limits.
+  static bool isGameWatchCollection(Map<String, dynamic> data) {
+    final scene = data['selectorScene'];
+    if (data['hardwareGeometry'] != true ||
+        data['system'] != 'gameandwatch' ||
+        data['romSet'] != null ||
+        data['visualVariantId'] != null ||
+        scene is! Map ||
+        scene['kind'] != 'gamewatchCollection' ||
+        scene['deviceCount'] != 63 ||
+        scene['textureMaxDimension'] != 256) {
+      return false;
+    }
+    final devices = scene['devices'], hidden = scene['hiddenNodes'];
+    return devices is List &&
+        devices.length == 63 &&
+        devices.every(
+            (v) => v is String && RegExp(r'^[a-z0-9_-]+$').hasMatch(v)) &&
+        devices.toSet().length == 63 &&
+        hidden is List &&
+        hidden.length == 1 &&
+        hidden.single == 'Display_board';
+  }
+
   factory SocketMediaModel.privateCartridge(
       Map<String, dynamic> data, ByteData mesh,
       {AssetBundle? textureBundle}) {
@@ -217,12 +242,14 @@ class SocketMediaModel {
     final surfaces = data['surfaces'];
     // Twisted has 65 cartridge surfaces and the refined Panorama hardware has
     // up to 70. Paired scenes also include their separate carton/booklet parts.
-    final surfaceBudget = data['unboxingGeometry'] == true ||
-            data['gameWatchUnboxing'] == true
-        ? 192
-        : data['cartridgeGeometry'] == true || data['hardwareGeometry'] == true
-            ? 128
-            : 64;
+    final surfaceBudget = isGameWatchCollection(data)
+        ? 384
+        : data['unboxingGeometry'] == true || data['gameWatchUnboxing'] == true
+            ? 192
+            : data['cartridgeGeometry'] == true ||
+                    data['hardwareGeometry'] == true
+                ? 128
+                : 64;
     if (surfaces is! List ||
         surfaces.isEmpty ||
         surfaces.length > surfaceBudget) {

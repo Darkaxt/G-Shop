@@ -83,6 +83,51 @@ void main() {
             modelsDirectory: root),
         isEmpty);
   });
+  testWidgets(
+      'changing Helmet MCU revision invalidates old readiness on the shared mesh',
+      (tester) async {
+    final revisions = (await tester.runAsync(() async {
+      await model('gnw_helmeto', set: 'gnw_helmeto');
+      return [
+        (await ConsoleModel.findGameWatch('gnw_helmeto.zip',
+            modelsDirectory: root))!,
+        (await ConsoleModel.findGameWatch('gnw_helmet.zip',
+            modelsDirectory: root))!,
+      ];
+    }))!;
+    final original = revisions[0], revised = revisions[1];
+    final key = GlobalKey<GameWatchVariantsViewState>();
+    Widget view(ConsoleModel selected) => MaterialApp(
+        home: GameWatchVariantsView(
+            key: key, variants: [GameWatchModelVariant(selected, null)]));
+    await tester.pumpWidget(view(original));
+    await tester.pump();
+    final oldState = tester
+        .state<ConsoleHardwareViewState>(find.byType(ConsoleHardwareView));
+    // The renderer already rejects disposed GPU callbacks. Exercise the
+    // parent's generation check directly at the child-ready boundary.
+    final oldReady = tester
+        .widget<ConsoleHardwareView>(find.byType(ConsoleHardwareView))
+        .onReady!;
+    await tester.pumpWidget(view(revised));
+    await tester.pump();
+    expect(
+        tester
+            .state<ConsoleHardwareViewState>(find.byType(ConsoleHardwareView)),
+        isNot(same(oldState)));
+    oldReady();
+    await tester.pump();
+    expect(key.currentState!.snapshot['readyModels'], 0);
+    final snapshots = key.currentState!.snapshot['models'] as List;
+    expect(snapshots.single['romSet'], 'gnw_helmet');
+    tester
+        .widget<SocketMediaRenderer>(find.byType(SocketMediaRenderer))
+        .onReady!();
+    await tester.pump();
+    expect(key.currentState!.snapshot['readyModels'], 1);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
   test('primary order follows the selected exact edition, not catalogue order',
       () async {
     await model('gnw_smb', set: 'gnw_smb');

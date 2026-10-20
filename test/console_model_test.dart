@@ -97,6 +97,37 @@ void main() {
     expect(a.transform3(up.clone()).distanceTo(b.transform3(up.clone())),
         lessThan(1e-6));
   });
+  test('collection overview has a scoped budget without widening handhelds',
+      () async {
+    final dir = Directory('${root.path}/consoles/gameandwatch');
+    await dir.create(recursive: true);
+    await File('${root.path}/consoles/gba/model.mesh')
+        .copy('${dir.path}/model.mesh');
+    final manifest = File('${dir.path}/model.json');
+    data['system'] = 'gameandwatch';
+    data['selectorScene'] = {
+      'kind': 'gamewatchCollection',
+      'deviceCount': 63,
+      'devices': List.generate(63, (i) => 'device-$i'),
+      'hiddenNodes': ['Display_board'],
+      'textureMaxDimension': 256,
+    };
+    data['surfaces'] = List.generate(140, (_) => data['surfaces'][0]);
+    await manifest.writeAsString(jsonEncode(data));
+    final scene =
+        (await ConsoleModel.find('gameandwatch', modelsDirectory: root))!;
+    expect((await scene.load()).surfaces.length, 140);
+    data.remove('selectorScene');
+    await manifest.writeAsString(jsonEncode(data));
+    final ordinary =
+        (await ConsoleModel.find('gameandwatch', modelsDirectory: root))!;
+    await expectLater(ordinary.load(), throwsFormatException);
+    data['selectorScene'] = {'kind': 'gamewatchCollection', 'deviceCount': 1};
+    await manifest.writeAsString(jsonEncode(data));
+    final invalid =
+        (await ConsoleModel.find('gameandwatch', modelsDirectory: root))!;
+    await expectLater(invalid.load(), throwsFormatException);
+  });
   test(
       'folding turntable rotates around the visible pose, not its swept envelope',
       () async {
@@ -151,6 +182,45 @@ void main() {
         ConsoleModel.gameWatchSet('Snoopy Tennis (World).7z'), 'gnw_stennis');
     expect(ConsoleModel.gameWatchSet('gnw_dkjrp.zip'), 'gnw_dkjrp');
     expect(ConsoleModel.gameWatchSet('Fire (World) (Silver).7z'), 'gnw_fires');
+  });
+  test(
+      'Helmet MCU revisions share an exterior while retaining exact ROM identity',
+      () async {
+    for (final kind in ['handhelds', 'boxes']) {
+      final dir = Directory('${root.path}/$kind/gameandwatch/gnw_helmeto');
+      await dir.create(recursive: true);
+      final base = PackagingModel(PackagingKind.keepCase).build();
+      await File('${dir.path}/model.json').writeAsString(jsonEncode({
+        ...data,
+        'system': 'gameandwatch',
+        'romSet': 'gnw_helmeto',
+        'resourceKind': kind == 'boxes' ? 'box' : 'handheld',
+      }));
+      await File('${dir.path}/model.mesh')
+          .writeAsBytes(base.mesh.buffer.asUint8List());
+      await File('${dir.path}/screen.png').writeAsBytes([1, 2, 3]);
+    }
+    final original = (await ConsoleModel.findGameWatch('Helmet (World).7z',
+        modelsDirectory: root))!;
+    final revised = (await ConsoleModel.findGameWatch(
+        'Helmet (World) (Rev 1).7z',
+        modelsDirectory: root))!;
+    expect(original.romSet, 'gnw_helmeto');
+    expect(revised.romSet, 'gnw_helmet');
+    expect(revised.hardwareId, original.hardwareId);
+    expect(revised.directory.path, original.directory.path);
+    expect(revised.generation, original.generation);
+    expect((await revised.load()).data['romSet'], 'gnw_helmet');
+    expect((await revised.load()).data['physicalModelRomSet'], 'gnw_helmeto');
+    expect((await original.load()).data['romSet'], 'gnw_helmeto');
+    final variants = await ConsoleModel.findGameWatchVariants('gnw_helmet.zip',
+        modelsDirectory: root);
+    expect(variants, hasLength(1));
+    expect(variants.single.model.romSet, 'gnw_helmet');
+    expect(variants.single.box!.romSet, 'gnw_helmet');
+    expect(variants.single.box!.hardwareId, 'gnw_helmeto');
+    expect((await variants.single.box!.load()).data['physicalModelRomSet'],
+        'gnw_helmeto');
   });
   test('handheld imports use exact MAME hardware sets, never title variants',
       () async {
@@ -350,15 +420,9 @@ void main() {
       'gnw_mmousep',
       'gnw_dkcirc',
     };
-    // CN-17 is a known archive revision with no supplied exact housing.
-    expect(
-        await ConsoleModel.findGameWatch('gnw_helmet.zip',
-            modelsDirectory: Directory(handhelds!)),
-        isNull);
-    for (final set
-        in ConsoleModel.gameWatchSets.where((s) => s != 'gnw_helmet')) {
+    for (final set in ConsoleModel.gameWatchSets) {
       final model = (await ConsoleModel.findGameWatch('$set.zip',
-          modelsDirectory: Directory(handhelds)))!;
+          modelsDirectory: Directory(handhelds!)))!;
       final geometry = await model.load();
       expect(model.canOpen, folding.contains(set), reason: set);
       expect(geometry.triangles, greaterThan(0), reason: set);
@@ -486,6 +550,41 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
   final actual = Platform.environment['RSHOP_CONSOLE_MODEL_DIR'];
+  final selector = Platform.environment['RSHOP_GW_SELECTOR_MODEL_DIR'];
+  test('owner collection selector retains 63 devices and hides only its board',
+      () async {
+    final model = (await ConsoleModel.find('gameandwatch',
+        modelsDirectory: Directory(selector!)))!;
+    final geometry = await model.load();
+    final scene = geometry.data['selectorScene'];
+    expect(scene['deviceCount'], 63);
+    expect((scene['devices'] as List).toSet().length, 63);
+    expect(scene['hiddenNodes'], ['Display_board']);
+    expect(
+        scene['devices'],
+        containsAll([
+          'donkey-kong-jr-tabletop',
+          'marios-cement-factory-tabletop',
+          'popeye-tabletop',
+          'snoopy-tabletop',
+          'balloon-fight-new-wide'
+        ]));
+    expect(geometry.surfaces.length, lessThanOrEqualTo(384));
+    expect(geometry.mesh.lengthInBytes, lessThanOrEqualTo(20 * 1024 * 1024));
+    expect(geometry.data['sourceReference']['sha256'],
+        '1093ca53da36b88ba472d713c31e278336a693c05cf2d09397e925c8c326e9cd');
+    for (final file in (geometry.data['textureFiles'] as Map).keys) {
+      expect(
+          (await geometry.textureBundle!
+                  .load('${SocketMediaModel.assetRoot}$file'))
+              .lengthInBytes,
+          greaterThan(0));
+    }
+  },
+      skip: selector == null
+          ? 'Requires private owner selector conversion'
+          : false,
+      timeout: Timeout.none);
   test('owner GBA scene retains all parts, textures and source identity',
       () async {
     final model =
