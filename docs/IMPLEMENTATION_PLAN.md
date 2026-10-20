@@ -3,13 +3,17 @@
 Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 120, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
-2026-10-20 hardware-variant display batch: **ACTIVE**, within sole ACTIVE S25.
+2026-10-20 hardware-variant display batch: **COMPLETE**, within sole ACTIVE S25.
 Use explicit private visual-edition metadata and two additional supplied imports;
 keep exact primary bindings and one library/Resources model, while the lower
 preview displays labelled editions together and waits for all rendered models.
 Complete the integrated feature before host acceptance; verify the three real
 paired families and relevant selection/hinge behavior on Thor, then deliver and
 independently verify normal 1.9.23. No broader unboxing or console sweep is added.
+Revision 120 checkpoint: all assigned criteria pass. Three labelled Thor pairs,
+independent gestures/folding, single card/Resources, pair-single-pair selection,
+private identity/import contracts and normal public/installed 1.9.23 verification
+are recorded in the status ledger. No batch blocker or tracked deferral remains.
 
 2026-10-20 G&W expansion batch within sole ACTIVE S25: import and wire the
 supplied exact handheld identities, two matched housing corrections and eight

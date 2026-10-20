@@ -5,30 +5,39 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-20 revision 120: hardware-variant display batch **ACTIVE** inside sole
-ACTIVE S25. Owner clarified one model per main library card and multiple labelled
-hardware editions together in the lower preview, including distinct hardware
-editions. Internal advancement blockers: explicit private variant metadata/imports,
-bottom-only paired layout and aggregate readiness, affected host/native acceptance,
-and final verified 1.9.23 delivery. Resolve within this batch; no tracked deferral.
-Exact ROM bindings, primary Resources view and missing-hardware census are retained.
-Box flap opening is delivered; full handheld extraction remains under the existing
-wider S25 cinematic criteria and review boundary, not this variant-display batch.
-The integrated implementation now uses an explicit private `variants.json` beside
-handheld imports. It loads the selected exact model first and labelled visual-only
-alternates without assigning them ROM sets. Only the lower preview opts into the
-paired presentation; library cards and Resources retain their existing single
-model. Host acceptance passes real imported geometry/texture validation, primary
-ordering, optional-file absence, catalogue-only extension, paired bounds, separate
-view state and aggregate readiness across replacement/disposal. Existing single
-Resources and library-selection contracts pass. The initial widget fixture waited
-on real filesystem work in Flutter's fake-async zone; using the established
-`tester.runAsync` pattern resolves that fixture error. No production workaround.
-Analysis reports no errors/warnings; the new widget/test files have no issues,
-with nine existing style infos in the unchanged surrounding preview/detail code.
-All fourteen new private files are hash-verified at Thor's actual model paths;
-the four existing primary imports are unchanged. Remaining batch criteria are
-signed Thor paired layout/gesture/selection checks and normal 1.9.23 delivery.
+2026-10-20 revision 120: hardware-variant display batch **COMPLETE** inside
+sole ACTIVE S25. One exact model remains in each library card and Resources;
+only the lower preview shows labelled same-game hardware editions. Explicit
+private metadata orders the exact primary first. Modern Zelda and Table Top
+DK Jr are visual-only imports, without ROM-set bindings or changes to the census.
+Host acceptance validates real geometry/textures, primary ordering, optional-file
+absence, catalogue-only extension, independent view state, Reduced Motion,
+lifecycle and readiness across selection replacement/disposal. Single Resources
+and library-selection contracts pass. Analysis has no errors/warnings; nine
+existing style infos remain in surrounding preview/detail code.
+All fourteen private additions are hash-verified at Thor's actual model paths;
+the four existing primary imports are unchanged. Signed source `b840db1`
+(run `39426638292`) renders SMB New Wide/Crystal, Zelda Multi Screen/2021 and
+DK Jr New Wide/Table Top with exact geometry receipts and both GPU frames ready.
+At native 1240x1080, density 369 (537.67 logical width), models and edition labels
+fit without overlap/clipping. Library cards and the inspected Resources device
+remain single/exact. Native pair -> Chef single -> Zelda pair selection passes.
+Crystal and Table Top drag independently; Zelda closes/reopens independently
+beside the 2021 model. All recording contact sheets and size-spike contexts were
+inspected; no visible flash. Export evidence is complete; raw-H264 timing remains
+estimated and GPU completion is not physical presentation timing.
+Normal public [v1.9.23](https://github.com/Darkaxt/R-Shop/releases/tag/v1.9.23)
+is published with APK, BUILDINFO and SHA256SUMS, targeting
+`b840db1237c1cf3651c1315a9642cbcef86ecbac`. Independent unauthenticated downloads
+verify 1.9.23/code 39, the existing production certificate and no private models.
+Public/candidate/installed Thor APK SHA-256 are identical:
+`b092b5034744d47722743584dcee2c8143d93fa9e2cf7e59b052fba3238a4406`.
+Final reconciliation has no batch blocker or tracked deferral. Refactoring
+assessment: one explicit catalogue and existing per-model renderer retain clear
+state ownership; no material scope-related debt or consolidation is required.
+Evidence/import instructions: `D:/Temp/rshop-s25-gw-variants-20261020/reports/`.
+Wider S25 remains ACTIVE, S26 NOT STARTED. Box flap opening is delivered; full
+handheld extraction remains under the existing wider S25 criteria/review boundary.
 
 2026-10-20 revision 119: G&W expansion batch **COMPLETE** within sole ACTIVE S25.
 Takeover is COMPLETE (private completion gate at E:/Codex/ContextTransfers/
