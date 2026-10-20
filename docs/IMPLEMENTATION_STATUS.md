@@ -30,6 +30,16 @@ brace-style infos, no new errors. These results are not native motion acceptance
 Remaining acceptance: signed-device centred gestures, subdued library/preview
 motion, four folding variants, preserved resource navigation, then normal public
 release/download and identical Thor delivery. S25 remains ACTIVE.
+Signed 27bae20 now installs with exact artifact/device SHA-256
+`ac6c3e0690e4c2203ed6065aa748bb14b70c7c0a96211f46691af9a8f5f41277`.
+Actual upper Mario/SMB handheld cards and corrected lower framing pass. The
+recorded selected-card cycle stays subtle while the unselected card remains
+static. Native touch exposed a new card hit-test gap: IgnorePointer around the
+3D child left the parent transparent to taps. A test reproduces zero callbacks;
+an opaque parent hit area resolves it and preserves the GBA card checks. This
+is the same library integration's internal acceptance blocker, not a new task.
+Include that correction in the final signed candidate; unchanged viewer/hinge
+checks on 27bae20 remain applicable after checking the final diff.
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 

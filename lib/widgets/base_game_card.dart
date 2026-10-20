@@ -131,6 +131,7 @@ class BaseGameCard extends StatelessWidget {
     if ((systemId == 'gba' || systemId == 'gameandwatch') &&
         gameIdentity != null) {
       Widget boxCard = GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTapDown: (_) => onTapSelect?.call(),
           onTap: onTap,
           onLongPress: onLongPress,

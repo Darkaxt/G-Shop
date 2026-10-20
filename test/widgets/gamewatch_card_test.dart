@@ -9,6 +9,7 @@ void main() {
   testWidgets(
       'library uses the exact handheld; only selected cards have subtle motion',
       (tester) async {
+    var taps = 0;
     Widget card(bool selected) => ProviderScope(
         child: MaterialApp(
             localizationsDelegates: L.localizationsDelegates,
@@ -27,13 +28,19 @@ void main() {
                         isInstalled: false,
                         isSelected: selected,
                         accentColor: Colors.red,
-                        onTap: () {})))));
+                        onTap: () {
+                          taps++;
+                        })))));
     await tester.pumpWidget(card(true));
     final preview =
         tester.widget<GameWatchPreview>(find.byType(GameWatchPreview));
     expect(preview.filename, 'Mario Bros. (World).7z');
     expect(preview.transparentBackground, true);
     expect(preview.reducedMotion, false);
+    await tester.tapAt(tester.getCenter(find.byType(GameWatchPreview)));
+    await tester.pump();
+    expect(taps, 1,
+        reason: 'The rendered handheld area must activate its library card');
     expect(find.byKey(const ValueKey('game-card-caption')), findsOneWidget);
     await tester.pumpWidget(card(false));
     expect(
