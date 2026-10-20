@@ -1,6 +1,32 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 119, 2026-10-20.
+Authoritative specification, revision 120, 2026-10-20.
+
+Owner G&W hardware-variant display, 2026-10-20 (already authorized and clarified):
+the main library grid keeps one exact-ROM handheld per card. Only the bottom
+game preview shows available hardware editions of that same game side by side,
+including New Wide/Crystal SMB, original/2021 Zelda, and Wide/Table Top DK Jr.
+Keep the exact-ROM model primary; label hardware editions clearly. Resources
+continues to inspect a single primary handheld and its exactly associated box.
+Explicit private import metadata groups visual editions; never use fuzzy titles
+or change ROM/launch bindings to obtain the alternate model. Modern Zelda and
+tabletop DK Jr may now be imported as explicitly labelled visual alternates,
+not as exact ROM matches. Missing exact hardware remains missing in the census.
+New supplied visual alternates can join those groups through local import data
+without duplicating library cards or changing application code. With one usable
+model, preserve the existing single view; missing optional alternates must not
+hide the exact primary. At Thor's 1240x1080 lower display, both models and their
+edition labels fit without overlap or clipping. Retain per-model gestures,
+folding/hood animation, gentle wobble, Reduced Motion and lifecycle handling.
+Aggregate readiness only after every displayed model has a successful GPU frame;
+stale selection callbacks must not complete a different game's preview.
+Verify actual private alternate imports, exact identity separation, single grid
+and Resource views, paired lower preview, selection changes and affected native
+hinges/layout. Deliver this bounded S25 change in one normal signed 1.9.23 release
+with independent public-package and installed Thor verification. S25 remains the
+sole ACTIVE stage. The box status question does not reopen the broader cinematic
+unboxing work: supplied flap opening is delivered; handheld extraction is pending
+under the existing S25 criteria and review boundary.
 
 Owner G&W expansion, 2026-10-20 (already authorized): review
 `gamewatch-models-update.zip` and `gamewatch-models (1).zip`, preserve both

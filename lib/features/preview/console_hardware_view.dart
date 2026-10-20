@@ -56,6 +56,8 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
         'opening': _opening.value,
         'canOpen': widget.model.canOpen,
         'romSet': widget.model.romSet,
+        if (widget.model.visualVariantId != null)
+          'visualVariantId': widget.model.visualVariantId,
       };
   Future<Map<String, Object?>> get renderReady async {
     await rendererKey.currentState?.ready;
@@ -201,7 +203,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
                             key: rendererKey,
                             model: widget.model,
                             identity:
-                                'console:${widget.systemId}:${widget.model.romSet ?? ''}:${widget.generation}',
+                                'console:${widget.systemId}:${widget.model.hardwareId}:${widget.generation}',
                             title: widget.title,
                             onReady: _ready,
                             pose: SocketMediaPose(

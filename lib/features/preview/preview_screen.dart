@@ -188,6 +188,7 @@ class _PreviewScreenState extends State<PreviewScreen>
       'viewportHeight': MediaQuery.sizeOf(context).height,
       'model': _consoleKey.currentState?.snapshot ??
           _physicalKey.currentState?.renderSnapshot ??
+          _coverKey.currentState?.renderSnapshot['handheldModels'] ??
           _coverKey.currentState?.renderSnapshot['unboxing'],
       'resourceGallery': _galleryKey.currentState?.snapshot,
       'media': _coverKey.currentState?.renderSnapshot,
@@ -491,6 +492,7 @@ class _PreviewScreenState extends State<PreviewScreen>
                                             ? const Center(child: CircularProgressIndicator(key: ValueKey('preview-loading-cover')))
                                             : prefs.modelVisible
                                                 ? CoverSection(
+                                                    showGameWatchVariants: true,
                                                     initiallySettled: _previewSettled,
                                                     initialInspectionPart: _inspectedPart,
                                                     onInspectionChanged: (part) => _inspectedPart = part,

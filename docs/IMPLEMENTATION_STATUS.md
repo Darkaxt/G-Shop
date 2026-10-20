@@ -5,6 +5,31 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-20 revision 120: hardware-variant display batch **ACTIVE** inside sole
+ACTIVE S25. Owner clarified one model per main library card and multiple labelled
+hardware editions together in the lower preview, including distinct hardware
+editions. Internal advancement blockers: explicit private variant metadata/imports,
+bottom-only paired layout and aggregate readiness, affected host/native acceptance,
+and final verified 1.9.23 delivery. Resolve within this batch; no tracked deferral.
+Exact ROM bindings, primary Resources view and missing-hardware census are retained.
+Box flap opening is delivered; full handheld extraction remains under the existing
+wider S25 cinematic criteria and review boundary, not this variant-display batch.
+The integrated implementation now uses an explicit private `variants.json` beside
+handheld imports. It loads the selected exact model first and labelled visual-only
+alternates without assigning them ROM sets. Only the lower preview opts into the
+paired presentation; library cards and Resources retain their existing single
+model. Host acceptance passes real imported geometry/texture validation, primary
+ordering, optional-file absence, catalogue-only extension, paired bounds, separate
+view state and aggregate readiness across replacement/disposal. Existing single
+Resources and library-selection contracts pass. The initial widget fixture waited
+on real filesystem work in Flutter's fake-async zone; using the established
+`tester.runAsync` pattern resolves that fixture error. No production workaround.
+Analysis reports no errors/warnings; the new widget/test files have no issues,
+with nine existing style infos in the unchanged surrounding preview/detail code.
+All fourteen new private files are hash-verified at Thor's actual model paths;
+the four existing primary imports are unchanged. Remaining batch criteria are
+signed Thor paired layout/gesture/selection checks and normal 1.9.23 delivery.
+
 2026-10-20 revision 119: G&W expansion batch **COMPLETE** within sole ACTIVE S25.
 Takeover is COMPLETE (private completion gate at E:/Codex/ContextTransfers/
 2026/2026-10-20-roms-manager/Records/completion-validation.json). Both new ZIPs

@@ -12,11 +12,14 @@ class ConsoleModel {
   final Directory directory;
   final String generation;
   final String? romSet;
+  final String? visualVariantId;
+  String get hardwareId => romSet ?? visualVariantId ?? '';
   final bool canOpen;
   final bool isBox;
   final int openingDurationMs;
   ConsoleModel._(this.systemId, this.directory, this.generation,
       {this.romSet,
+      this.visualVariantId,
       this.canOpen = false,
       this.isBox = false,
       this.openingDurationMs = 2000});
@@ -115,6 +118,11 @@ class ConsoleModel {
         modelsDirectory ?? Directory('/storage/emulated/0/RShop/models');
     final dir = Directory(
         '${root.path}/${box ? 'boxes' : 'handhelds'}/gameandwatch/$set');
+    return _gameWatchImport(dir, romSet: set, box: box);
+  }
+
+  static Future<ConsoleModel?> _gameWatchImport(Directory dir,
+      {String? romSet, String? visualVariantId, bool box = false}) async {
     final manifest = File('${dir.path}/model.json');
     if (!await manifest.exists()) return null;
     if (await manifest.length() > 1024 * 1024) {
@@ -127,10 +135,89 @@ class ConsoleModel {
       throw const FormatException('Invalid handheld animation duration');
     }
     return ConsoleModel._('gameandwatch', dir, sha256.convert(bytes).toString(),
-        romSet: set,
+        romSet: romSet,
+        visualVariantId: visualVariantId,
         isBox: box,
         canOpen: data['canOpen'] == true,
         openingDurationMs: duration);
+  }
+
+  /// Visual group membership is explicit private import data. It never changes
+  /// exact-ROM lookup, library cards, launch identity or missing-model coverage.
+  static Future<List<GameWatchModelVariant>> findGameWatchVariants(
+      String filename,
+      {Directory? modelsDirectory}) async {
+    final primary =
+        await findGameWatch(filename, modelsDirectory: modelsDirectory);
+    if (primary == null) return const [];
+    final single = [GameWatchModelVariant(primary, null)];
+    final root =
+        modelsDirectory ?? Directory('/storage/emulated/0/RShop/models');
+    final hardware = Directory('${root.path}/handhelds/gameandwatch');
+    final index = File('${hardware.path}/variants.json');
+    if (!await index.exists()) return single;
+    if (await index.length() > 256 * 1024) {
+      throw const FormatException(
+          'Visual variant catalogue exceeds import size');
+    }
+    final data = jsonDecode(await index.readAsString());
+    if (data is! Map || data['schemaVersion'] != 1 || data['groups'] is! List) {
+      throw const FormatException('Invalid visual variant catalogue');
+    }
+    final declared = <String>{};
+    Map? group;
+    for (final entry in data['groups'] as List) {
+      if (entry is! Map ||
+          entry['sets'] is! List ||
+          (entry['sets'] as List).isEmpty ||
+          entry['models'] is! List) {
+        throw const FormatException('Invalid visual variant group');
+      }
+      for (final set in entry['sets'] as List) {
+        if (set is! String ||
+            !gameWatchSets.contains(set) ||
+            !declared.add(set)) {
+          throw const FormatException('Ambiguous visual variant group');
+        }
+        if (set == primary.romSet) group = entry;
+      }
+    }
+    if (group == null) return single;
+    final variants = <GameWatchModelVariant>[];
+    final paths = <String>{};
+    GameWatchModelVariant? selected;
+    for (final entry in group['models'] as List) {
+      if (entry is! Map ||
+          entry['directory'] is! String ||
+          entry['label'] is! String ||
+          (entry['label'] as String).trim().isEmpty ||
+          (entry['label'] as String).length > 80) {
+        throw const FormatException('Invalid visual variant entry');
+      }
+      final path = entry['directory'] as String;
+      final visual = RegExp(r'^variants/([a-z0-9_-]+)$').firstMatch(path);
+      if ((!gameWatchSets.contains(path) && visual == null) ||
+          !paths.add(path)) {
+        throw const FormatException('Invalid visual variant directory');
+      }
+      final model = path == primary.romSet
+          ? primary
+          : visual != null
+              ? await _gameWatchImport(Directory('${hardware.path}/$path'),
+                  visualVariantId: visual.group(1))
+              : await findGameWatch('$path.zip', modelsDirectory: root);
+      if (model == null) continue; // Optional, not yet imported hardware.
+      final variant = GameWatchModelVariant(model, entry['label'] as String);
+      if (path == primary.romSet) {
+        selected = variant;
+      } else {
+        variants.add(variant);
+      }
+    }
+    if (selected == null) {
+      throw const FormatException('Visual group omits its exact primary');
+    }
+    return [selected, ...variants];
   }
 
   static Future<ConsoleModel?> find(String systemId,
@@ -160,7 +247,10 @@ class ConsoleModel {
     final data = jsonDecode(utf8.decode(manifest)) as Map<String, dynamic>;
     if (data['system'] != systemId ||
         romSet != null && data['romSet'] != romSet ||
-        romSet != null &&
+        visualVariantId != null &&
+            (data['visualVariantId'] != visualVariantId ||
+                data['romSet'] != null) ||
+        (romSet != null || visualVariantId != null) &&
             (data['resourceKind'] ?? 'handheld') !=
                 (isBox ? 'box' : 'handheld') ||
         data['motionKind'] != 'hardware' ||
@@ -218,6 +308,12 @@ class ConsoleModel {
         data, ByteData.sublistView(await file.readAsBytes()),
         textureBundle: _ConsoleTextures(directory, receipts));
   }
+}
+
+class GameWatchModelVariant {
+  final ConsoleModel model;
+  final String? label;
+  const GameWatchModelVariant(this.model, this.label);
 }
 
 class _ConsoleTextures extends SocketMediaDirectoryBundle {

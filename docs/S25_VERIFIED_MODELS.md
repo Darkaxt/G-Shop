@@ -2,6 +2,18 @@
 
 Updated 2026-10-20. This records actual inspected assets, not candidate listings.
 
+## Hardware-variant lower preview — 2026-10-20, ACTIVE
+
+Revision 120 keeps one exact model in library cards and Resources. The lower
+game preview opts into labelled side-by-side hardware editions from explicit
+private group metadata. Modern Zelda and tabletop DK Jr are visual-only imports;
+they have no ROM-set identity and do not reduce the missing-exact-hardware count.
+Existing primary geometry/materials are preserved. Host acceptance validates the
+real alternate geometry/textures and paired layout, identity and readiness
+contracts. Actual paired Thor frames/gestures and final 1.9.23 delivery remain
+required. The private current batch evidence is in
+`D:/Temp/rshop-s25-gw-variants-20261020/reports/`. Wider S25 remains ACTIVE.
+
 ## Game & Watch expansion — 2026-10-20, COMPLETE bounded batch
 
 The supplied update and full archives have identical catalogues/mappings and

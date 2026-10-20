@@ -14,6 +14,7 @@ import '../../../models/gba_cartridge_model.dart';
 import '../../../services/image_cache_service.dart';
 import '../../preview/resource_gallery.dart';
 import '../../preview/game_watch_preview.dart';
+import '../../preview/game_watch_variants_preview.dart';
 
 class CoverSection extends StatefulWidget {
   final GameItem game;
@@ -42,6 +43,7 @@ class CoverSection extends StatefulWidget {
   final ValueChanged<String?>? onInspectionChanged;
   final String? initialInspectionPart;
   final bool initiallySettled;
+  final bool showGameWatchVariants;
   const CoverSection({
     super.key,
     required this.game,
@@ -71,6 +73,7 @@ class CoverSection extends StatefulWidget {
     this.onInspectionChanged,
     this.initialInspectionPart,
     this.initiallySettled = false,
+    this.showGameWatchVariants = false,
   });
 
   @override
@@ -81,6 +84,7 @@ class CoverSectionState extends State<CoverSection> {
   bool _physical = true, _reducedMotion = false;
   bool _modelReady = false;
   final _unboxingKey = GlobalKey<UnboxingPreviewState>();
+  final _variantsKey = GlobalKey<GameWatchVariantsPreviewState>();
   ImageInfo? _label;
   ImageStream? _labelStream;
   ImageStreamListener? _labelListener;
@@ -94,6 +98,7 @@ class CoverSectionState extends State<CoverSection> {
         'resourcesReady': widget.resourcesReady,
         'modelReady': _modelReady,
         'unboxing': _unboxingKey.currentState?.snapshot,
+        'handheldModels': _variantsKey.currentState?.snapshot,
       };
 
   @override
@@ -228,6 +233,17 @@ class CoverSectionState extends State<CoverSection> {
     if (_physical &&
         widget.physicalMediaEnabled &&
         system.id == 'gameandwatch') {
+      if (widget.showGameWatchVariants) {
+        return GameWatchVariantsPreview(key: _variantsKey,
+            filename: game.filename, title: game.displayName,
+            identity: game.selectionKey,
+            reducedMotion: _reducedMotion || widget.reducedMotion,
+            onReady: () {
+              _modelReady = _variantsKey.currentState?.snapshot?['frameRendered'] == true;
+              widget.onReady?.call();
+              widget.onRevealed?.call();
+            });
+      }
       return GameWatchPreview(
           key: ValueKey(game.selectionKey),
           filename: game.filename,

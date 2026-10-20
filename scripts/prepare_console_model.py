@@ -23,6 +23,7 @@ def main():
     parser.add_argument('--author', required=True)
     parser.add_argument('--source-url', required=True)
     parser.add_argument('--rom-set', help='Exact supplied Game & Watch MAME set')
+    parser.add_argument('--visual-variant-id', help='Explicit visual-only hardware edition; no ROM binding')
     parser.add_argument('--resource-kind', choices=('handheld', 'box'), default='handheld')
     args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:])
     if args.output.exists():
@@ -33,11 +34,14 @@ def main():
         raise ValueError('Expected GLB JSON chunk')
     gltf = json.loads(raw[20:20+length])
     binary = raw[28+length:]
-    if gltf.get('skins') or gltf.get('animations') and not args.rom_set:
+    if gltf.get('skins') or gltf.get('animations') and not (args.rom_set or args.visual_variant_id):
         raise ValueError('This adapter preserves static console display scenes only')
     if args.rom_set and (args.system != 'gameandwatch' or
             not __import__('re').fullmatch('[a-z0-9_]+', args.rom_set)):
         raise ValueError('Expected an exact Game & Watch set')
+    if args.visual_variant_id and (args.rom_set or args.system != 'gameandwatch' or
+            not __import__('re').fullmatch('[a-z0-9_-]+', args.visual_variant_id)):
+        raise ValueError('Expected a visual-only Game & Watch variant identity')
     if args.resource_kind == 'box' and not args.rom_set:
         raise ValueError('A box import requires its exact associated ROM set')
     animation = next((a for a in gltf.get('animations', []) if a['name'] == 'Open'), None)
@@ -220,6 +224,10 @@ def main():
     if args.rom_set:
         manifest['romSet'] = args.rom_set
         manifest['resourceKind'] = args.resource_kind
+        manifest['openingDurationMs'] = round(duration*1000) if hinges else 2000
+    if args.visual_variant_id:
+        manifest['visualVariantId'] = args.visual_variant_id
+        manifest['resourceKind'] = 'handheld'
         manifest['openingDurationMs'] = round(duration*1000) if hinges else 2000
     if pose_bounds:
         manifest['poseCenters'] = [[time, *list((point-center)*scale)] for time, point in pose_bounds]
