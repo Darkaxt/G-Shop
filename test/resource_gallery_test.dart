@@ -45,6 +45,52 @@ class _GalleryPlayer extends VideoPlayerPlatform {
 }
 
 void main() {
+  testWidgets('Game and Watch adds matched Box without replacing Console',
+      (tester) async {
+    final key = GlobalKey<ResourceGalleryState>();
+    Widget gallery(String filename) => MaterialApp(
+        home: Scaffold(
+            body: ResourceGallery(
+                key: key,
+                identity: filename,
+                title: filename,
+                filename: filename,
+                systemId: 'gameandwatch',
+                importedModels: true)));
+    await tester.pumpWidget(gallery('Green House (World).7z'));
+    await tester.pump();
+    expect(key.currentState!.availableViews, contains(ResourceView.box));
+    expect(key.currentState!.view, ResourceView.cartridge,
+        reason: 'Adding packaging must preserve the handheld entry view');
+    await tester.tap(find.byKey(const ValueKey('resource-mode-box')));
+    await tester.pump();
+    expect(find.byType(GameWatchPreview), findsOneWidget,
+        reason: 'Use the exact imported box, not the generic packaging mesh');
+    expect(tester.widget<GameWatchPreview>(find.byType(GameWatchPreview)).isBox,
+        true);
+    expect(key.currentState!.canOpen, true);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
+    await tester.pump();
+    expect(key.currentState!.opening, 1);
+    expect(
+        tester
+            .widget<GameWatchPreview>(find.byType(GameWatchPreview))
+            .inspectionPose!
+            .opening,
+        1);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonRight2);
+    await tester.pump();
+    expect(key.currentState!.snapshot['yaw'], greaterThan(-.2));
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonX);
+    await tester.pump();
+    expect(key.currentState!.opening, 0);
+    await tester.pumpWidget(gallery('Spitball Sparky (World).7z'));
+    await tester.pump();
+    expect(key.currentState!.availableViews, isNot(contains(ResourceView.box)));
+    expect(key.currentState!.view, ResourceView.cartridge);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets(
       'Game and Watch exposes the device, not a fabricated box or cartridge',
       (tester) async {
@@ -65,7 +111,7 @@ void main() {
     expect(key.currentState!.view, ResourceView.cartridge);
     expect(find.text('Device'), findsOneWidget);
     expect(find.byType(GameWatchPreview), findsOneWidget);
-    expect(find.byKey(const ValueKey('resource-mode-box')), findsNothing);
+    expect(find.byKey(const ValueKey('resource-mode-box')), findsOneWidget);
     expect(find.byKey(const ValueKey('resource-mode-cover')), findsNothing);
     expect(find.byKey(const ValueKey('resource-mode-manual')), findsOneWidget);
     expect(find.byKey(const ValueKey('resource-mode-gallery')), findsOneWidget);

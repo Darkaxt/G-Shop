@@ -13,7 +13,8 @@ import 'package:retro_eshop/widgets/socket_media_renderer.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  final root = Directory('D:/Temp/rshop-s25-hardware-20261018/test-console');
+  final root =
+      Directory('${Directory.systemTemp.path}/rshop-console-model-test');
   late Map<String, dynamic> data;
   setUp(() async {
     final dir = Directory('${root.path}/consoles/gba');
@@ -105,6 +106,35 @@ void main() {
       }
     }
   });
+  test('expanded handheld imports retain exact hardware editions', () {
+    const releases = {
+      'Black Jack (World).7z': 'gnw_bjack',
+      'Bomb Sweeper (World).7z': 'gnw_bsweep',
+      'Boxing (World).7z': 'gnw_boxing',
+      'Gold Cliff (World).7z': 'gnw_gcliff',
+      'Green House (World).7z': 'gnw_ghouse',
+      'Lifeboat (World).7z': 'gnw_lboat',
+      'Mickey & Donald (World).7z': 'gnw_mickdon',
+      'Oil Panic (World).7z': 'gnw_opanic',
+      'Pinball (World).7z': 'gnw_pinball',
+      'Rain Shower (World).7z': 'gnw_rshower',
+      'Safe Buster (World).7z': 'gnw_sbuster',
+      'Snoopy (World).7z': 'gnw_snoopyp',
+      'Spitball Sparky (World).7z': 'gnw_ssparky',
+      'Squish (World).7z': 'gnw_squish',
+    };
+    for (final entry in releases.entries) {
+      expect(ConsoleModel.gameWatchSet(entry.key), entry.value,
+          reason: entry.key);
+      expect(ConsoleModel.gameWatchSet('${entry.value}.zip'), entry.value);
+    }
+    expect(ConsoleModel.gameWatchSet('gnw_smb.zip'), 'gnw_smb');
+    expect(
+        ConsoleModel.gameWatchSet('Super Mario Bros. (World).7z'), 'gnw_smbn');
+    expect(ConsoleModel.gameWatchSet('Snoopy Tennis (World).7z'), isNull);
+    expect(ConsoleModel.gameWatchSet('gnw_dkjrp.zip'), isNull);
+    expect(ConsoleModel.gameWatchSet('Fire (World) (Silver).7z'), isNull);
+  });
   test('handheld imports use exact MAME hardware sets, never title variants',
       () async {
     expect(ConsoleModel.gameWatchSet('gnw_dkong.zip'), 'gnw_dkong');
@@ -113,7 +143,7 @@ void main() {
     expect(
         ConsoleModel.gameWatchSet('Fire (World) (Wide Screen).7z'), 'gnw_fire');
     for (final wrong in [
-      'gnw_smb.zip',
+      'gnw_popeye.zip',
       'gnw_fires.zip',
       'gnw_dkjrp.zip',
       'Donkey Kong.zip',
@@ -188,6 +218,37 @@ void main() {
     expect(find.byType(IconButton), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
+  test('a box import cannot replace its handheld or another hardware set',
+      () async {
+    final dir = Directory('${root.path}/boxes/gameandwatch/gnw_ghouse');
+    await dir.create(recursive: true);
+    final base = PackagingModel(PackagingKind.keepCase).build();
+    final box = {
+      ...data,
+      'system': 'gameandwatch',
+      'romSet': 'gnw_ghouse',
+      'resourceKind': 'box',
+      'canOpen': true,
+      'openingDurationMs': 2000
+    };
+    await File('${dir.path}/model.json').writeAsString(jsonEncode(box));
+    await File('${dir.path}/model.mesh')
+        .writeAsBytes(base.mesh.buffer.asUint8List());
+    await File('${dir.path}/screen.png').writeAsBytes([1, 2, 3]);
+    final model = (await ConsoleModel.findGameWatch('Green House (World).7z',
+        box: true, modelsDirectory: root))!;
+    expect(model.isBox, true);
+    expect((await model.load()).data['resourceKind'], 'box');
+    expect(
+        await ConsoleModel.findGameWatch('Spitball Sparky (World).7z',
+            box: true, modelsDirectory: root),
+        isNull);
+    await File('${dir.path}/model.json')
+        .writeAsString(jsonEncode({...box, 'resourceKind': 'handheld'}));
+    final wrong = (await ConsoleModel.findGameWatch('Green House (World).7z',
+        box: true, modelsDirectory: root))!;
+    await expectLater(wrong.load(), throwsFormatException);
+  });
   test('independent emission maps do not replace the surface albedo', () {
     final material = <String, dynamic>{
       'color': [1, 1, 1, 1],
@@ -224,9 +285,53 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
   final handhelds = Platform.environment['RSHOP_GAMEWATCH_MODEL_DIR'];
+  test('all supplied boxes load exact art and articulated flap geometry',
+      () async {
+    for (final set in ConsoleModel.gameWatchBoxSets) {
+      final model = (await ConsoleModel.findGameWatch('$set.zip',
+          box: true, modelsDirectory: Directory(handhelds!)))!;
+      final geometry = await model.load();
+      expect(model.isBox, true, reason: set);
+      expect(model.canOpen, true, reason: set);
+      expect(geometry.data['romSet'], set);
+      expect(geometry.data['resourceKind'], 'box');
+      expect(geometry.data['animationVerifiedMaxError'], lessThan(.0001));
+      expect(geometry.data['poseCenters'], isNotEmpty);
+      expect(
+          geometry.surfaces.any((s) => (s['openingHinges'] as List).isNotEmpty),
+          true);
+      expect(geometry.triangles, greaterThan(0));
+      expect(geometry.textureBundle, isNotNull);
+      for (final file in (geometry.data['textureFiles'] as Map).keys) {
+        expect(
+            (await geometry.textureBundle!
+                    .load('${SocketMediaModel.assetRoot}$file'))
+                .lengthInBytes,
+            greaterThan(0),
+            reason: '$set/$file');
+      }
+    }
+  }, skip: handhelds == null ? 'Private source models not supplied' : false);
   test('all supplied mapped handhelds load exact geometry and texture receipts',
       () async {
-    const folding = {'gnw_dkong', 'gnw_zelda', 'gnw_dkong2', 'gnw_mario'};
+    const folding = {
+      'gnw_dkong',
+      'gnw_zelda',
+      'gnw_dkong2',
+      'gnw_mario',
+      'gnw_bjack',
+      'gnw_ghouse',
+      'gnw_mickdon',
+      'gnw_pinball',
+      'gnw_bsweep',
+      'gnw_gcliff',
+      'gnw_lboat',
+      'gnw_opanic',
+      'gnw_rshower',
+      'gnw_sbuster',
+      'gnw_squish',
+      'gnw_snoopyp',
+    };
     for (final set in ConsoleModel.gameWatchSets) {
       final model = (await ConsoleModel.findGameWatch('$set.zip',
           modelsDirectory: Directory(handhelds!)))!;

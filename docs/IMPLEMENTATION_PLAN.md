@@ -1,7 +1,20 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 118, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 119, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
+
+2026-10-20 G&W expansion batch within sole ACTIVE S25: import and wire the
+supplied exact handheld identities, two matched housing corrections and eight
+associated opening boxes through the existing model renderer/resource explorer;
+preserve prior corrected control imports and private provenance. Acceptance:
+exact collection-to-model census with revision-aware missing count; focused
+identity/box/view/controller/Reduced Motion and real import/hinge contracts;
+signed Thor checks for affected model families, corrected housings and boxes;
+then one normal 1.9.22 release, independent download and installed identity check.
+This is a coherent S25 expansion, not additional ACTIVE stages. Archive review
+and census precede implementation; finish all batch wiring before acceptance
+validation. No approval checkpoint or repeated ordinary GBA sweep. Wider S25
+and S26 status is unchanged; missing unsupplied hardware is reported, not invented.
 
 Current execution, 2026-10-19: **S25 ACTIVE**.
 Current correction: unify enabled 3D library selection presentation (GBA and

@@ -5,6 +5,31 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-20 revision 119: G&W expansion batch **ACTIVE** within sole ACTIVE S25.
+Takeover is COMPLETE (private completion gate at E:/Codex/ContextTransfers/
+2026/2026-10-20-roms-manager/Records/completion-validation.json). Both new ZIPs
+have identical catalogues/mappings and byte-identical overlapping GLBs: 15 new
+handhelds, eight boxes and three corrections. Actual GLBs have no skins or
+required extensions; hinges use existing linear rigid Open/Close rotations.
+Current internal acceptance blockers: new exact aliases/private imports and Box
+resource wiring, signed-device verification, exact current-collection coverage
+report and final 1.9.22 delivery. Resolve through integrated implementation,
+focused host/import checks, affected native model/box checks and public/installed
+package verification. No tracked deferral; wider S25 is not declared complete.
+The feature is now wired: exact new hardware/release mappings, independently
+bound Box imports, preserved default handheld view and shared resource controls.
+All 28 handheld imports and eight boxes pass production geometry/texture checks;
+articulated handheld centring and source-evaluated hinge transforms pass. The
+25 changed/new imports preserve source ZIP/model hashes and credits; prior
+DK II/Mario registered-control geometry is reused unchanged. Supplied box clips
+remain animated, with immediate Reduced Motion endpoints. Focused resource,
+controller, library state/selection and GBA compatibility checks pass. Analysis
+has no errors/warnings; only eleven pre-existing ResourceGallery style infos.
+The exact revision-aware private census is retained outside Git at
+`D:/Temp/rshop-s25-gw-update-20261020/reports/collection-coverage.json`.
+Remaining batch acceptance: verified model placement, signed Thor visual/gesture
+checks and normal 1.9.22 publication/independent download/installed verification.
+
 2026-10-20 revision 118 correction: **COMPLETE**, while wider S25 remains
 **ACTIVE**. Shared selected/unselected presentation, both Reduced Motion inputs,
 stable loaded-model identity and card-area touch contracts pass. Thor G&W

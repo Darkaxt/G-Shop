@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/packaging_model.dart';
+import '../../models/console_model.dart';
 import '../../models/socket_media_model.dart';
 import '../../models/gba_cartridge_model.dart';
 import '../../widgets/socket_media_renderer.dart';
@@ -125,10 +126,19 @@ class ResourceGalleryState extends State<ResourceGallery>
   PhysicalMediaFormat? get format =>
       PhysicalMediaFormat.forSystem(widget.systemId,
           region: widget.region, dualMode: widget.dualMode);
+  bool get _hasGameWatchBox =>
+      widget.importedModels &&
+      widget.systemId == 'gameandwatch' &&
+      ConsoleModel.gameWatchBoxSets
+          .contains(ConsoleModel.gameWatchSet(widget.filename ?? ''));
+  ResourceView get _defaultView => widget.systemId == 'gameandwatch'
+      ? ResourceView.cartridge
+      : availableViews.first;
   bool get canOpen =>
+      view == ResourceView.box && _hasGameWatchBox ||
       (view == ResourceView.cover ||
-          view == ResourceView.manual && pages.isNotEmpty) &&
-      kind != PackagingKind.box;
+              view == ResourceView.manual && pages.isNotEmpty) &&
+          kind != PackagingKind.box;
   List<ResourceView> get availableViews {
     final physical = !{'arcade', 'tic80', 'pico8'}.contains(widget.systemId);
     final caseOnly = {
@@ -154,7 +164,8 @@ class ResourceGalleryState extends State<ResourceGallery>
       '3do'
     }.contains(widget.systemId);
     return [
-      if (physical && !caseOnly && widget.systemId != 'gameandwatch')
+      if (physical && !caseOnly && widget.systemId != 'gameandwatch' ||
+          _hasGameWatchBox)
         ResourceView.box,
       if (physical &&
           !{
@@ -214,7 +225,7 @@ class ResourceGalleryState extends State<ResourceGallery>
     super.initState();
     view = availableViews.contains(widget.initialView)
         ? widget.initialView!
-        : availableViews.first;
+        : _defaultView;
     // Preserve the visibly ajar focused booklet on the reader-route handoff.
     // One eighth of the generic/imported hinge range keeps a small 16-19° glimpse.
     if (view == ResourceView.manual && widget.initiallyOpening) opening = .125;
@@ -258,7 +269,7 @@ class ResourceGalleryState extends State<ResourceGallery>
     if (old.identity != widget.identity) {
       unawaited(_stopVideo());
       reset();
-      view = availableViews.first;
+      view = _defaultView;
       _resolveAspect();
     } else if (old.resources.toString() != widget.resources.toString()) {
       _resolveAspect();
@@ -931,25 +942,34 @@ class ResourceGalleryState extends State<ResourceGallery>
                                         first('support-texture') == null
                                             ? null
                                             : image(first('support-texture'))))
-                    : SocketMediaRenderer.packaging(
-                        key: rendererKey,
-                        model: PackagingModel(kind,
-                            cartridgeStyle: GbaCartridgeModel.cartonVariant(
-                                widget.systemId == 'gba'
-                                    ? GbaCartridgeModel.styleFor(
-                                        widget.filename ?? widget.title,
-                                        widget.contentTags)
-                                    : null),
-                            aspect: aspect,
-                            depth: depth,
-                            systemId: widget.systemId),
-                        pose: pose,
-                        identity: widget.identity,
-                        title: widget.title,
-                        onReady: _rendered,
-                        label: _atlas(),
-                        labelIdentity:
-                            '${view.name}:${widget.resources}:${_paperColor.toARGB32()}');
+                    : view == ResourceView.box && _hasGameWatchBox
+                        ? GameWatchPreview.box(
+                            filename: widget.filename!,
+                            title: widget.title,
+                            identity: widget.identity,
+                            pose: pose,
+                            rendererKey: rendererKey,
+                            reducedMotion: widget.reducedMotion,
+                            onReady: _rendered)
+                        : SocketMediaRenderer.packaging(
+                            key: rendererKey,
+                            model: PackagingModel(kind,
+                                cartridgeStyle: GbaCartridgeModel.cartonVariant(
+                                    widget.systemId == 'gba'
+                                        ? GbaCartridgeModel.styleFor(
+                                            widget.filename ?? widget.title,
+                                            widget.contentTags)
+                                        : null),
+                                aspect: aspect,
+                                depth: depth,
+                                systemId: widget.systemId),
+                            pose: pose,
+                            identity: widget.identity,
+                            title: widget.title,
+                            onReady: _rendered,
+                            label: _atlas(),
+                            labelIdentity:
+                                '${view.name}:${widget.resources}:${_paperColor.toARGB32()}');
     final fullCanvas =
         view == ResourceView.gallery || reading || _manualRequested;
     final navigation = Row(children: [

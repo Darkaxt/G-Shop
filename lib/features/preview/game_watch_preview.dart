@@ -10,6 +10,9 @@ class GameWatchPreview extends StatefulWidget {
   final String filename, title, identity;
   final bool reducedMotion, transparentBackground;
   final SocketMediaPose? libraryPose;
+  final bool isBox;
+  final SocketMediaPose? inspectionPose;
+  final GlobalKey<SocketMediaRendererState>? rendererKey;
   final VoidCallback? onReady;
   const GameWatchPreview(
       {super.key,
@@ -19,7 +22,23 @@ class GameWatchPreview extends StatefulWidget {
       this.reducedMotion = false,
       this.transparentBackground = false,
       this.libraryPose,
-      this.onReady});
+      this.onReady})
+      : isBox = false,
+        inspectionPose = null,
+        rendererKey = null;
+  const GameWatchPreview.box(
+      {super.key,
+      required this.filename,
+      required this.title,
+      required this.identity,
+      required SocketMediaPose pose,
+      this.rendererKey,
+      this.reducedMotion = false,
+      this.onReady})
+      : isBox = true,
+        inspectionPose = pose,
+        libraryPose = null,
+        transparentBackground = true;
   @override
   State<GameWatchPreview> createState() => _GameWatchPreviewState();
 }
@@ -30,15 +49,16 @@ class _GameWatchPreviewState extends State<GameWatchPreview> {
   @override
   void initState() {
     super.initState();
-    _model = ConsoleModel.findGameWatch(widget.filename);
+    _model = ConsoleModel.findGameWatch(widget.filename, box: widget.isBox);
   }
 
   @override
   void didUpdateWidget(GameWatchPreview oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.filename != widget.filename) {
+    if (oldWidget.filename != widget.filename ||
+        oldWidget.isBox != widget.isBox) {
       _fallbackReady = false;
-      _model = ConsoleModel.findGameWatch(widget.filename);
+      _model = ConsoleModel.findGameWatch(widget.filename, box: widget.isBox);
     }
   }
 
@@ -60,11 +80,41 @@ class _GameWatchPreviewState extends State<GameWatchPreview> {
               }
             });
           }
+          if (widget.isBox) {
+            return const Center(child: Text('Box model not imported'));
+          }
           return MediaCoverFallback(
               systemId: 'gameandwatch',
               title: widget.title,
               identity: widget.identity,
               backgroundColor: Colors.transparent);
+        }
+        final inspection = widget.inspectionPose;
+        if (inspection != null) {
+          // ResourceGallery owns the inspection controls. Animate only the
+          // supplied opening clip, preserving the same loaded mesh and pose.
+          return TweenAnimationBuilder<double>(
+              tween: Tween(begin: inspection.opening, end: inspection.opening),
+              duration: widget.reducedMotion
+                  ? Duration.zero
+                  : Duration(milliseconds: model.openingDurationMs),
+              builder: (_, opening, __) => SocketMediaRenderer.console(
+                  key: widget.rendererKey,
+                  model: model,
+                  identity:
+                      'console:gameandwatch:${model.romSet}:box:${model.generation}',
+                  title: widget.title,
+                  onReady: widget.onReady,
+                  pose: SocketMediaPose(
+                      rx: inspection.rx,
+                      ry: inspection.ry,
+                      rz: inspection.rz,
+                      y: inspection.y,
+                      z: inspection.z,
+                      scaleX: inspection.scaleX,
+                      scaleY: inspection.scaleY,
+                      scaleZ: inspection.scaleZ,
+                      opening: opening)));
         }
         final pose = widget.libraryPose;
         if (pose != null) {

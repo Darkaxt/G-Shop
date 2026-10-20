@@ -13,9 +13,13 @@ class ConsoleModel {
   final String generation;
   final String? romSet;
   final bool canOpen;
+  final bool isBox;
   final int openingDurationMs;
   ConsoleModel._(this.systemId, this.directory, this.generation,
-      {this.romSet, this.canOpen = false, this.openingDurationMs = 2000});
+      {this.romSet,
+      this.canOpen = false,
+      this.isBox = false,
+      this.openingDurationMs = 2000});
 
   // Hardware identity is the MAME set, not a game title. Crystal, Silver and
   // Panorama variants deliberately do not borrow their similarly named models.
@@ -33,6 +37,31 @@ class ConsoleModel {
     'gnw_octopus',
     'gnw_dkong2',
     'gnw_mario',
+    'gnw_bjack',
+    'gnw_ghouse',
+    'gnw_mickdon',
+    'gnw_pinball',
+    'gnw_bsweep',
+    'gnw_gcliff',
+    'gnw_lboat',
+    'gnw_opanic',
+    'gnw_rshower',
+    'gnw_sbuster',
+    'gnw_squish',
+    'gnw_smb',
+    'gnw_ssparky',
+    'gnw_snoopyp',
+    'gnw_boxing',
+  };
+  static const gameWatchBoxSets = {
+    'gnw_ghouse',
+    'gnw_dkong',
+    'gnw_dkong2',
+    'gnw_bjack',
+    'gnw_opanic',
+    'gnw_bsweep',
+    'gnw_mario',
+    'gnw_rshower',
   };
   static String? gameWatchSet(String filename) {
     final leaf = filename.split(RegExp(r'[/\\]')).last;
@@ -58,17 +87,34 @@ class ConsoleModel {
     'Octopus (World).7z': 'gnw_octopus',
     'Donkey Kong II (World).7z': 'gnw_dkong2',
     'Mario Bros. (World).7z': 'gnw_mario',
+    'Black Jack (World).7z': 'gnw_bjack',
+    'Bomb Sweeper (World).7z': 'gnw_bsweep',
+    'Boxing (World).7z': 'gnw_boxing',
+    'Gold Cliff (World).7z': 'gnw_gcliff',
+    'Green House (World).7z': 'gnw_ghouse',
+    'Lifeboat (World).7z': 'gnw_lboat',
+    'Mickey & Donald (World).7z': 'gnw_mickdon',
+    'Oil Panic (World).7z': 'gnw_opanic',
+    'Pinball (World).7z': 'gnw_pinball',
+    'Rain Shower (World).7z': 'gnw_rshower',
+    'Safe Buster (World).7z': 'gnw_sbuster',
+    'Snoopy (World).7z': 'gnw_snoopyp',
+    'Spitball Sparky (World).7z': 'gnw_ssparky',
+    'Squish (World).7z': 'gnw_squish',
   };
 
   static Future<ConsoleModel?> findGameWatch(String filename,
-      {Directory? modelsDirectory}) async {
+      {Directory? modelsDirectory, bool box = false}) async {
     final set = gameWatchSet(filename);
-    if (set == null || modelsDirectory == null && !Platform.isAndroid) {
+    if (set == null ||
+        box && !gameWatchBoxSets.contains(set) ||
+        modelsDirectory == null && !Platform.isAndroid) {
       return null;
     }
     final root =
         modelsDirectory ?? Directory('/storage/emulated/0/RShop/models');
-    final dir = Directory('${root.path}/handhelds/gameandwatch/$set');
+    final dir = Directory(
+        '${root.path}/${box ? 'boxes' : 'handhelds'}/gameandwatch/$set');
     final manifest = File('${dir.path}/model.json');
     if (!await manifest.exists()) return null;
     if (await manifest.length() > 1024 * 1024) {
@@ -82,6 +128,7 @@ class ConsoleModel {
     }
     return ConsoleModel._('gameandwatch', dir, sha256.convert(bytes).toString(),
         romSet: set,
+        isBox: box,
         canOpen: data['canOpen'] == true,
         openingDurationMs: duration);
   }
@@ -113,6 +160,9 @@ class ConsoleModel {
     final data = jsonDecode(utf8.decode(manifest)) as Map<String, dynamic>;
     if (data['system'] != systemId ||
         romSet != null && data['romSet'] != romSet ||
+        romSet != null &&
+            (data['resourceKind'] ?? 'handheld') !=
+                (isBox ? 'box' : 'handheld') ||
         data['motionKind'] != 'hardware' ||
         data['sourceWidth'] is! num ||
         !(data['sourceWidth'] as num).isFinite ||

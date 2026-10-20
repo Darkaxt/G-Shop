@@ -1,6 +1,24 @@
 # S25 verified console model and motion ledger
 
 Updated 2026-10-20. This records actual inspected assets, not candidate listings.
+
+## Game & Watch expansion — 2026-10-20, ACTIVE
+
+The supplied update and full archives have identical catalogues/mappings and
+byte-identical overlapping models. New imports comprise fifteen handhelds,
+corrected Fire/SMB New Wide Screen appearances and eight associated opening
+boxes. Unmapped modern Zelda/tabletop DK Jr remain unassigned; the Crystal SMB
+binding is distinct from New Wide Screen. The existing corrected DK II/Mario
+control meshes are preserved. Models and original creator/artwork notices remain
+private; no GLB, texture or library inventory is added to public artifacts.
+Host production loading verifies all 28 mapped handheld imports and eight boxes,
+their mesh/texture receipts, exact identity/type separation, articulated pose
+centres and supplied hinge geometry. Resource/controller and library-selection
+contracts pass; this is not native GPU acceptance. New model/box native checks
+and final 1.9.22 delivery remain required. Private per-model conversion, CRC-bound
+collection census and forthcoming native evidence are under
+`D:/Temp/rshop-s25-gw-update-20261020/reports/`. Wider S25 remains ACTIVE.
+
 S25 is **ACTIVE** for the owner's shared collector/gallery/model correction.
 The owner's current target is a right-opening GBA carton with upright artwork,
 extracting both contents into a retained three-object arrangement. The assembly

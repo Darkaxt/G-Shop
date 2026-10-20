@@ -1,6 +1,29 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 118, 2026-10-20.
+Authoritative specification, revision 119, 2026-10-20.
+
+Owner G&W expansion, 2026-10-20 (already authorized): review
+`gamewatch-models-update.zip` and `gamewatch-models (1).zip`, preserve both
+originals and provenance, and integrate their supplied matching assets privately.
+S25 remains the sole ACTIVE stage. Exact hardware mapping must include the new
+handhelds without borrowing a model for an unrelated series or ROM edition;
+preserve the already corrected DK II/Mario controls. Apply the supplied Fire and
+New Wide Screen SMB corrections. Modern Zelda and unmatched tabletop hardware
+remain unassigned; a Crystal SMB model does not replace New Wide Screen SMB.
+Put each of the eight associated opening boxes in the matching game's Box
+resource view, separate from its Console/handheld view. The default G&W resource
+view remains its handheld. Box inspection uses the supplied textures and hinges,
+drag/pinch, controller rotation/zoom/open/reset and Reduced Motion; no fabricated
+cartridge extraction, missing packaging or generic substitution is introduced.
+Validate actual converted geometry, textures, identity and articulated poses;
+verify new/changed model families and box opening through the signed Thor app.
+Reuse unchanged GBA and earlier G&W evidence rather than repeat the ordinary
+Top-25 or all-console sweep. Census the real current G&W ROM folder, distinguish
+archive revisions from distinct hardware/game entries, and report exactly which
+entries still lack a matching handheld; keep the detailed private inventory out
+of the public repository. Deliver required app wiring in one normal signed
+1.9.22 release with independent public APK/version/signature/source checks and
+identical installed Thor package verification. Private models stay outside APKs.
 
 Owner library selection parity correction: every enabled 3D game-library model
 must use the same selection presentation as GBA, including Game & Watch. Share
