@@ -66,15 +66,19 @@ class _LibraryModelPresentationState extends State<LibraryModelPresentation>
                         .4,
                         1
                       ])))),
-            widget.builder(
-                context,
-                SocketMediaPose(
-                    ry: _motion.isAnimating
-                        ? -math.cos(_motion.value * math.pi * 2) * math.pi / 6
-                        : widget.restYaw,
-                    scaleX: widget.selected ? 1.05 : 1,
-                    scaleY: widget.selected ? 1.05 : 1,
-                    scaleZ: widget.selected ? 1.05 : 1))
+            KeyedSubtree(
+                key: const ValueKey('library-model-content'),
+                child: widget.builder(
+                    context,
+                    SocketMediaPose(
+                        ry: _motion.isAnimating
+                            ? -math.cos(_motion.value * math.pi * 2) *
+                                math.pi /
+                                6
+                            : widget.restYaw,
+                        scaleX: widget.selected ? 1.05 : 1,
+                        scaleY: widget.selected ? 1.05 : 1,
+                        scaleZ: widget.selected ? 1.05 : 1)))
           ]));
 
   @override

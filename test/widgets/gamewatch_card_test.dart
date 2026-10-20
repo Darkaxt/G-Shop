@@ -48,6 +48,7 @@ void main() {
         findsOneWidget,
         reason: 'G&W must share the GBA 3D library selection presentation');
     expect(find.byType(LibraryModelPresentation), findsOneWidget);
+    final mountedPreview = tester.state(find.byType(GameWatchPreview));
     double yaw() => tester
         .widget<GameWatchPreview>(find.byType(GameWatchPreview))
         .libraryPose!
@@ -63,6 +64,8 @@ void main() {
         reason: 'The rendered handheld area must activate its library card');
     expect(find.byKey(const ValueKey('game-card-caption')), findsOneWidget);
     await tester.pumpWidget(card(false));
+    expect(tester.state(find.byType(GameWatchPreview)), same(mountedPreview),
+        reason: 'Changing selection must not remount/reload the handheld');
     expect(find.byKey(const ValueKey('library-model-selection-halo')),
         findsNothing);
     final still = yaw();
@@ -76,6 +79,7 @@ void main() {
     for (final systemReduced in [false, true]) {
       await tester.pumpWidget(
           card(true, reduced: !systemReduced, systemReduced: systemReduced));
+      expect(tester.state(find.byType(GameWatchPreview)), same(mountedPreview));
       final reducedYaw = yaw();
       await tester.pump(const Duration(seconds: 2));
       expect(yaw(), reducedYaw);

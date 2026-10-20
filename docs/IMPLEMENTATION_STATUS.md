@@ -16,7 +16,7 @@ viewer/hinge/model-content acceptance is unchanged and must not be re-swept.
 No tracked deferral or additional ACTIVE stage.
 The regression first failed with zero selected-halo widgets. Both active 3D
 library paths now use LibraryModelPresentation for the same upright eight-second
-/-30-degree yaw, selection scale and transparent-edge halo; the G&W library
++/-30-degree yaw, selection scale and transparent-edge halo; the G&W library
 passes that pose directly to its renderer, without a second interactive-preview
 controller. Viewer/selector code is unchanged. Focused G&W/GBA card contracts,
 selection changes, both Reduced Motion inputs and existing viewer/navigation
@@ -24,6 +24,21 @@ checks pass on host. Host GPU rendering is unavailable (Impeller), so native
 visual acceptance remains outstanding. Targeted analysis has no errors/warnings;
 one existing GBA braces-style info remains. Next: signed candidate, targeted
 Thor G&W/GBA comparison, then normal 1.9.21 release and delivery verification.
+Refactoring reconciliation: the previously duplicated library effect is now
+owned by LibraryModelPresentation; GBA and G&W supply only their model renderer.
+The viewer retains its separate interaction semantics intentionally. No further
+current-scope consolidation finding or required deferral is introduced.
+Signed b6daea1/run 39398302907 renders the intended glow and sweep on Thor, but
+native selection switching exposed an internal regression: the unkeyed model
+child could be reused as the removed halo's slot, remounting the handheld.
+A regression test confirms the old state becomes defunct on deselection. Bind
+the model subtree's stable identity independently of halo presence; preserve
+that state across selection and Reduced Motion. This is an acceptance blocker
+in the same ACTIVE S25 correction. Do not publish the rejected candidate.
+The stable keyed content subtree now passes the reproducer: identical handheld
+state survives deselection/reselection and both Reduced Motion settings. The
+affected GBA/G&W card contracts pass; unchanged viewer checks remain applicable.
+The final candidate must additionally verify native selection without the reload.
 
 2026-10-20 current G&W acceptance correction: the owner identified doubled D-pad
 and offset buttons on DK II and Mario Bros. Their supplied reconstruction
