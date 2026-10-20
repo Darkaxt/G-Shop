@@ -18,6 +18,24 @@ This ledger does not declare the full S25 stage complete.
 
 ## GBA closure and Game & Watch checkpoint — 2026-10-20
 
+Library selection parity correction: signed `3a00226` (run `39401389017`,
+version 1.9.21+37) uses one LibraryModelPresentation for GBA cartons and G&W
+handhelds. Selected objects have the same upright +/-30-degree yaw sweep,
+selection scale and transparent-edge radial halo. Unselected cards stay still;
+host checks verify both Reduced Motion inputs retain the halo without movement.
+Thor Mario/Super Mario recordings verify the selected sweep and static neighbor;
+the final encoder-coordinated selection recording verifies both loaded models
+remain present while the halo moves, without the rejected candidate's reload.
+All four final-selection-analysis sheets were inspected, with no observed
+spinner/discontinuity. The unchanged GBA reference recording was inspected on
+the preceding candidate; the final runtime diff only stabilizes child identity.
+Model-area touch also opens the correct lower-screen details. Viewer/folding
+and selector-turntable behavior is unchanged, not a repeated model sweep.
+Evidence: `D:/Temp/rshop-s25-library-selection-20261020/` (mario-motion,
+smb-motion, gba-reference-motion, final-selection-analysis and final-touch-details).
+Raw H.264 timing was reconstructed at a declared 120 fps, not measured device
+timing. Public delivery verification is recorded in IMPLEMENTATION_STATUS.md.
+
 The two remaining GBA special-housing workflows pass on signed `814a878`:
 Boktai 2 USA and US Yoshi, including fitted extraction/settling and isolated
 touch rotation. The later Yoshi section supersedes the earlier pending wording.

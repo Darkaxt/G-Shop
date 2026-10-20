@@ -10,6 +10,13 @@ Acceptance: selected/unselected and Reduced Motion host contracts, shared-path
 wiring and preserved touch behavior; targeted Thor G&W/GBA visual inspection;
 normal signed 1.9.21 publication and independent download/installed verification.
 The existing S25 is the sole ACTIVE stage. No next-console/model sweep is added.
+Revision 118 correction checkpoint: **COMPLETE**. Shared selected/unselected and
+Reduced Motion contracts pass; final Thor selection retains loaded models while
+the halo/movement changes, and model-area touch opens the correct details. The
+reviewed key-only final diff preserves the inspected GBA reference. Normal
+public 1.9.21 is independently downloaded/version/signature/hash verified and
+matches the package installed on Thor. No correction blocker/deferral remains.
+Wider all-console S25 is still the sole ACTIVE stage, not declared complete.
 2026-10-20 requested-batch checkpoint: GBA special-housing closure and G&W
 integration are verified and delivered in normal public 1.9.20. All four folding
 variants, control registration, centred gestures, subdued motion, exact library

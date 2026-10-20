@@ -5,6 +5,28 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-20 revision 118 correction: **COMPLETE**, while wider S25 remains
+**ACTIVE**. Shared selected/unselected presentation, both Reduced Motion inputs,
+stable loaded-model identity and card-area touch contracts pass. Thor G&W
+movement/glow and no-reload selection pass; the unchanged GBA reference remains
+applicable after review of the key-only final runtime diff. No current-correction
+blocker or tracked deferral remains. Viewer/selector behavior is unchanged.
+Normal public [v1.9.21](https://github.com/Darkaxt/R-Shop/releases/tag/v1.9.21)
+is published, not draft/prerelease, with APK, BUILDINFO and SHA256SUMS. Its tag
+and BUILDINFO identify `3a002265f1475064d134c8923e02ee5297a9bfc9`, signed run
+`39401389017`. An independent public download verifies version 1.9.21/code 37,
+the existing production certificate SHA-256
+`075031272c9ccfa3229cdfe5266e0e50e85e4bd841111f320d83910290b55f1c`, no private
+model payload, and APK SHA-256
+`24a43205d3e0e5e74200036747aeac9180fce8cbe3ef83934671d81bc4a7f7b1`.
+Thor's installed base APK has that identical digest. The two redundant signed
+candidate folders were removed through reviewed transactional tickets (both
+applied, no residuals); the final public package and native evidence remain in
+`D:/Temp/rshop-s25-library-selection-20261020/`. User models, ROMs and the
+pre-existing untracked test/widgets/failures directory were preserved.
+
+### Revision 118 implementation and verification history
+
 2026-10-20 revision 118, ACTIVE S25: owner reports G&W selection lacks GBA's
 movement and glow and requires this for all enabled 3D library cards. Root cause:
 GbaBoxTile privately owns the +/-30-degree sweep/halo; G&W instead mounts the
@@ -39,6 +61,18 @@ The stable keyed content subtree now passes the reproducer: identical handheld
 state survives deselection/reselection and both Reduced Motion settings. The
 affected GBA/G&W card contracts pass; unchanged viewer checks remain applicable.
 The final candidate must additionally verify native selection without the reload.
+Signed 3a00226/run 39401389017 now passes that final Thor gate. The encoder-
+coordinated Mario Bros. -> Super Mario Bros. model-area tap retains both models,
+moves the halo and selected yaw, and leaves the old card static. All four
+contact sheets from final-selection-analysis were inspected; no spinner or
+visual discontinuity was observed (468 decoded frames, no detector events,
+untruncated evidence). Raw recording timing is estimated, not measured FPS.
+A second model-area tap opens Super Mario Bros. details on the lower display.
+The earlier GBA reference recording remains applicable: the final runtime diff
+only keys the model subtree, without changing its mesh, pose or halo math.
+Host selection/state/Reduced Motion contracts and the applicable native criteria
+are satisfied. At that checkpoint publication was pending; the verified public
+delivery above closes that final criterion without a deferral.
 
 2026-10-20 current G&W acceptance correction: the owner identified doubled D-pad
 and offset buttons on DK II and Mario Bros. Their supplied reconstruction
