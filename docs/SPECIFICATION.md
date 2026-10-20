@@ -1,7 +1,30 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 123, 2026-10-20.
+Authoritative specification, revision 124, 2026-10-20.
 
+
+Owner sequential G&W unboxing, 2026-10-20 (explicit scope extension): use
+available exact-edition imported boxes and handhelds in the lower preview. For
+each associated edition, play its supplied box opening, extract the closed
+handheld through the opening, then unfold the handheld where supported and settle
+it resting in front of its box. Run one edition at a time in primary/catalogue
+order, then retain the shallow semicircle of box/console pairs. An edition with
+no supplied box stays honestly unboxed and may unfold using its own clip; never
+borrow another edition's box or fabricate packaging. This explicitly resumes the
+G&W cinematic path previously outside the bounded expansion. Keep exact primary
+library/Resources views and ROM identities unchanged. Reuse source geometry,
+textures and hinges, with depth-correct box/handheld composition and uniform fit;
+these are presentation fits, not claimed measured physical dimensions. Start only
+after all displayed GPU frames are ready; selection changes invalidate the old
+sequence. Reduced Motion settles directly; lifecycle pauses/resumes the same
+sequence. Inspecting during playback settles it before entering the existing
+inspector; information rotation affects the selected handheld only. Preserve
+independent manual poses/folding, source panel and controller return behavior.
+Acceptance: real eight imported pairs, deterministic multi-edition sequencing,
+missing-box behavior, collision/viewport checks along extraction and settled
+poses, readiness/lifecycle/selection/Reduced Motion, existing GBA workflow, then
+fresh signed Thor box motion and combined UI evidence. Include the whole batch in
+the one final normal 1.9.24 delivery; S25 remains the only ACTIVE stage.
 
 Owner model inspection refinement, 2026-10-20 (explicit scope change): remove
 per-model white edition captions from the lower overview. Arrange multiple
@@ -63,7 +86,7 @@ ambiguous hardware evidence in the private census. Do not claim those CRCs prove
 one unique housing. Combined Mickey Mouse/Circus uses its explicit MAME parent,
 with the reskin alongside. Preserve the earlier SMB primary choice. Report both
 revision-aware ROM-entry coverage and unsupplied physical codes separately.
-No new box/unboxing scope is added. Retain deliberately blank transmitting
+The later sequential-unboxing amendment above adds the explicitly requested box scope. Retain deliberately blank transmitting
 Crystal/reflective Panorama screens; do not fabricate gameplay artwork. Validate
 all supplied conversions/textures/provenance, five source-evaluated hood hinges,
 actual native affected model families and three-model labelled lower previews,

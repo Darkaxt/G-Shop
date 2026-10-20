@@ -170,9 +170,7 @@ class ConsoleModel {
   static Future<ConsoleModel?> findGameWatch(String filename,
       {Directory? modelsDirectory, bool box = false}) async {
     final set = gameWatchSet(filename);
-    if (set == null ||
-        box && !gameWatchBoxSets.contains(set) ||
-        modelsDirectory == null && !Platform.isAndroid) {
+    if (set == null || modelsDirectory == null && !Platform.isAndroid) {
       return null;
     }
     final root =
@@ -180,6 +178,21 @@ class ConsoleModel {
     final dir = Directory(
         '${root.path}/${box ? 'boxes' : 'handhelds'}/gameandwatch/$set');
     return _gameWatchImport(dir, romSet: set, box: box);
+  }
+
+  /// Exact local packaging identity; no similarly named edition may borrow it.
+  static Future<ConsoleModel?> findGameWatchBox(ConsoleModel handheld,
+      {Directory? modelsDirectory}) async {
+    if (handheld.systemId != 'gameandwatch' || handheld.isBox) return null;
+    final root =
+        modelsDirectory ?? Directory('/storage/emulated/0/RShop/models');
+    final path = handheld.visualVariantId == null
+        ? handheld.hardwareId
+        : 'variants/${handheld.hardwareId}';
+    return _gameWatchImport(Directory('${root.path}/boxes/gameandwatch/$path'),
+        romSet: handheld.romSet,
+        visualVariantId: handheld.visualVariantId,
+        box: true);
   }
 
   static Future<ConsoleModel?> _gameWatchImport(Directory dir,
@@ -206,6 +219,19 @@ class ConsoleModel {
   /// Visual group membership is explicit private import data. It never changes
   /// exact-ROM lookup, library cards, launch identity or missing-model coverage.
   static Future<List<GameWatchModelVariant>> findGameWatchVariants(
+      String filename,
+      {Directory? modelsDirectory}) async {
+    final variants = await _findGameWatchVariants(filename,
+        modelsDirectory: modelsDirectory);
+    return [
+      for (final variant in variants)
+        GameWatchModelVariant(variant.model, variant.label,
+            box: await findGameWatchBox(variant.model,
+                modelsDirectory: modelsDirectory))
+    ];
+  }
+
+  static Future<List<GameWatchModelVariant>> _findGameWatchVariants(
       String filename,
       {Directory? modelsDirectory}) async {
     final primary =
@@ -374,7 +400,8 @@ class ConsoleModel {
 class GameWatchModelVariant {
   final ConsoleModel model;
   final String? label;
-  const GameWatchModelVariant(this.model, this.label);
+  final ConsoleModel? box;
+  const GameWatchModelVariant(this.model, this.label, {this.box});
 }
 
 class _ConsoleTextures extends SocketMediaDirectoryBundle {

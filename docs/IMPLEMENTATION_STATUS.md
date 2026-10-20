@@ -5,6 +5,16 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-20 revision 124: batch **ACTIVE**, sole ACTIVE S25. The owner explicitly
+extends the batch to sequential G&W unboxing using available exact boxes, then
+resting box/console pairs in the arc. Current internal advancement blocker: the
+existing box resource flap clip does not extract a handheld or sequence editions.
+Resolve through integrated real mesh composition, one owner timeline, readiness,
+inspection/lifecycle/Reduced Motion and native motion verification. Final 1.9.24
+publication depends on this new acceptance as well as the pending revised UI
+checks. No required tracked deferral. Prior f162 signing run remains observed but
+its candidate cannot deliver this newly requested behavior.
+
 2026-10-20 revision 123: expansion, conditional categories and model inspection
 refinement batch **ACTIVE**, within sole ACTIVE S25. Explicit user correction
 supersedes overview captions with an enlarged exact-edition inspector, attributed

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
+import 'package:vector_math/vector_math_64.dart' as vm;
 
 enum PhysicalMediaFormat {
   gameBoy('gb', 'Game Boy cartridge', 850),
@@ -75,6 +76,55 @@ enum PhysicalMediaFormat {
 /// Exact source triangles, UVs, material bindings and animation provenance.
 /// GPU resources belong to the selected view, not a cache of every console.
 class SocketMediaModel {
+  static vm.Matrix4 openingTransform(
+      Map<String, dynamic> surface, double opening) {
+    final transform = vm.Matrix4.identity();
+    for (final raw in surface['openingHinges'] as List? ?? const []) {
+      final hinge = raw as Map;
+      final keys = (hinge['keys'] as List).cast<List>();
+      final t = opening.clamp(0.0, 1.0);
+      var angle = (keys.last[1] as num).toDouble();
+      for (var i = 1; i < keys.length; i++) {
+        final a = keys[i - 1], b = keys[i];
+        if (t <= (b[0] as num)) {
+          final f = ((t - (a[0] as num)) / ((b[0] as num) - (a[0] as num)))
+              .clamp(0.0, 1.0);
+          angle =
+              (a[1] as num).toDouble() + ((b[1] as num) - (a[1] as num)) * f;
+          break;
+        }
+      }
+      final p = (hinge['pivot'] as List).cast<num>();
+      final a = (hinge['axis'] as List).cast<num>();
+      transform
+        ..translateByDouble(
+            p[0].toDouble(), p[1].toDouble(), p[2].toDouble(), 1)
+        ..rotate(vm.Vector3(a[0].toDouble(), a[1].toDouble(), a[2].toDouble()),
+            angle)
+        ..translateByDouble(
+            -p[0].toDouble(), -p[1].toDouble(), -p[2].toDouble(), 1);
+    }
+    return transform;
+  }
+
+  static vm.Vector3 poseCenter(Map<String, dynamic> data, double opening) {
+    final centers = data['poseCenters'] as List?;
+    if (centers != null) {
+      for (var i = 1; i < centers.length; i++) {
+        final a = (centers[i - 1] as List).cast<num>();
+        final b = (centers[i] as List).cast<num>();
+        if (opening <= b[0] || i == centers.length - 1) {
+          final f = ((opening - a[0]) / (b[0] - a[0])).clamp(0.0, 1.0);
+          return vm.Vector3(
+              a[1].toDouble() + (b[1] - a[1]) * f,
+              a[2].toDouble() + (b[2] - a[2]) * f,
+              a[3].toDouble() + (b[3] - a[3]) * f);
+        }
+      }
+    }
+    return vm.Vector3.zero();
+  }
+
   static const assetRoot = 'assets/socket_media/';
   static AssetBundle? importedBundle;
   static const apkSha256 =
@@ -167,11 +217,12 @@ class SocketMediaModel {
     final surfaces = data['surfaces'];
     // The supplied Twisted assembly has 65 surfaces; its fitted carton and
     // booklet are additional surfaces in the combined inspection scene.
-    final surfaceBudget = data['unboxingGeometry'] == true
-        ? 192
-        : data['cartridgeGeometry'] == true
-            ? 128
-            : 64;
+    final surfaceBudget =
+        data['unboxingGeometry'] == true || data['gameWatchUnboxing'] == true
+            ? 192
+            : data['cartridgeGeometry'] == true
+                ? 128
+                : 64;
     if (surfaces is! List ||
         surfaces.isEmpty ||
         surfaces.length > surfaceBudget) {

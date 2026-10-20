@@ -1,7 +1,13 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 123, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 124, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
+
+2026-10-20 revision 124 extends the same ACTIVE S25 batch with sequential
+exact-edition box opening, closed-handheld extraction/unfolding and a resting
+box-behind-console semicircle. Complete and integrate this with inspection and
+readiness before real-import host acceptance, then signed Thor motion/UI and the
+one normal 1.9.24 release. Missing boxes remain absent. No second ACTIVE stage.
 
 2026-10-20 revision 123 adds the authorized clean overview/enlarged hardware
 inspector, projected semicircle arrangement and attributed translucent information

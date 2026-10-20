@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -14,11 +15,13 @@ import '../models/packaging_model.dart';
 import '../models/console_model.dart';
 import '../models/gba_cartridge_model.dart';
 import '../models/unboxing_scene.dart';
+import '../models/game_watch_unboxing_scene.dart';
 
 class SocketMediaRenderer extends StatefulWidget {
   final PhysicalMediaFormat format;
   final PackagingModel? packaging;
   final ConsoleModel? console;
+  final GameWatchUnboxingScene? gameWatchScene;
   final String? cartridgeStyle;
   final UnboxingScene? unboxingScene;
   final SocketMediaPose pose;
@@ -37,6 +40,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.cartridgeStyle,
       this.onReady})
       : packaging = null,
+        gameWatchScene = null,
         console = null,
         unboxingScene = null;
   const SocketMediaRenderer.packaging(
@@ -50,6 +54,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.onReady})
       : packaging = model,
         unboxingScene = null,
+        gameWatchScene = null,
         console = null,
         cartridgeStyle = null,
         format = PhysicalMediaFormat.gameBoy;
@@ -59,7 +64,8 @@ class SocketMediaRenderer extends StatefulWidget {
       required this.pose,
       required this.identity,
       required this.title,
-      this.onReady})
+      this.onReady,
+      this.gameWatchScene})
       : console = model,
         unboxingScene = null,
         packaging = null,
@@ -78,6 +84,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.onReady})
       : unboxingScene = scene,
         packaging = null,
+        gameWatchScene = null,
         console = null,
         cartridgeStyle = null,
         format = PhysicalMediaFormat.gba;
@@ -101,6 +108,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
   int _textureRevision = -1;
   bool _captureQueued = false, _captureDirty = false;
   bool frameRendered = false;
+  bool _sceneSettledReported = false;
   Completer<Map<String, Object?>> _ready = Completer();
   Completer<Map<String, Object?>>? _poseReady;
   SocketMediaPose? _paintedPose;
@@ -137,8 +145,13 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
             widget.packaging?.id ??
             widget.console?.systemId ??
             widget.format.assetName,
-        'geometrySha256': _renderer?.model.data['geometrySha256'] ??
+        'geometrySha256': _renderer?.model.data['consoleGeometrySha256'] ??
+            _renderer?.model.data['geometrySha256'] ??
             _renderer?.model.data['meshSha256'],
+        'sceneGeometrySha256': widget.gameWatchScene == null
+            ? null
+            : _renderer?.model.data['geometrySha256'],
+        'boxGeometrySha256': _renderer?.model.data['boxGeometrySha256'],
         'canOpen': _renderer?.model.data['canOpen'] == true,
         'openingDurationMs': _renderer?.model.data['openingDurationMs'],
         'opening': widget.pose.opening,
@@ -210,7 +223,8 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
   @override
   void didUpdateWidget(SocketMediaRenderer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.format != widget.format ||
+    if (oldWidget.gameWatchScene?.identity != widget.gameWatchScene?.identity ||
+        oldWidget.format != widget.format ||
         oldWidget.unboxingScene?.style != widget.unboxingScene?.style ||
         oldWidget.unboxingScene?.hasBooklet !=
             widget.unboxingScene?.hasBooklet ||
@@ -255,20 +269,23 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     _error = null;
     frameRendered = false;
     _paintedPose = null;
+    _sceneSettledReported = false;
     _labelImage?.dispose();
     _labelImage = null;
     try {
       final renderer = await SocketMediaGpu.load(widget.format,
-          owned: widget.unboxingScene != null
-              ? await widget.unboxingScene!.load() ??
-                  (throw StateError(
-                      'Import the holder-enabled box and cartridge'))
-              : widget.console != null
-                  ? await widget.console!.load()
-                  : widget.cartridgeStyle != null &&
-                          widget.format == PhysicalMediaFormat.gba
-                      ? await GbaCartridgeModel.load(widget.cartridgeStyle!)
-                      : await widget.packaging?.load());
+          owned: widget.gameWatchScene != null
+              ? await widget.gameWatchScene!.load()
+              : widget.unboxingScene != null
+                  ? await widget.unboxingScene!.load() ??
+                      (throw StateError(
+                          'Import the holder-enabled box and cartridge'))
+                  : widget.console != null
+                      ? await widget.console!.load()
+                      : widget.cartridgeStyle != null &&
+                              widget.format == PhysicalMediaFormat.gba
+                          ? await GbaCartridgeModel.load(widget.cartridgeStyle!)
+                          : await widget.packaging?.load());
       if (!mounted || generation != _generation) return;
       _modelUs = _clock.elapsedMicroseconds;
       setState(() => _renderer = renderer);
@@ -331,6 +348,21 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
       final pending = _poseReady!;
       _poseReady = null;
       pending.complete({...snapshot, 'frameRendered': true});
+    }
+    if (widget.gameWatchScene != null &&
+        pose.unboxing == 1 &&
+        !_sceneSettledReported) {
+      _sceneSettledReported = true;
+      debugPrint('RShopGameWatchPairSettled ${jsonEncode({
+            'hardware': widget.console?.hardwareId,
+            'consoleGeometrySha256':
+                submitted.model.data['consoleGeometrySha256'],
+            'boxGeometrySha256': submitted.model.data['boxGeometrySha256'],
+            'sceneGeometrySha256': submitted.model.data['geometrySha256'],
+            'frameRendered': true,
+            'paintedProgress': pose.unboxing,
+            'paintedOpening': pose.opening,
+          })}');
     }
     if (frameRendered) return;
     setState(() {
@@ -479,6 +511,10 @@ class SocketMediaGpu {
               (model.data['maxOpenRadians'] as num).toDouble()) *
           pose.inspection;
     }
+    if (model.data['gameWatchUnboxing'] == true &&
+        surface['hardwarePart'] == 'box') {
+      return GameWatchUnboxingScene.boxOpening(model, pose.unboxing);
+    }
     return pose.opening;
   }
 
@@ -494,33 +530,7 @@ class SocketMediaGpu {
 
   static vm.Matrix4 openingTransform(
       Map<String, dynamic> surface, double opening) {
-    final transform = vm.Matrix4.identity();
-    for (final raw in surface['openingHinges'] as List? ?? const []) {
-      final hinge = raw as Map;
-      final keys = (hinge['keys'] as List).cast<List>();
-      final t = opening.clamp(0.0, 1.0);
-      var angle = (keys.last[1] as num).toDouble();
-      for (var i = 1; i < keys.length; i++) {
-        final a = keys[i - 1], b = keys[i];
-        if (t <= (b[0] as num)) {
-          final f = ((t - (a[0] as num)) / ((b[0] as num) - (a[0] as num)))
-              .clamp(0.0, 1.0);
-          angle =
-              (a[1] as num).toDouble() + ((b[1] as num) - (a[1] as num)) * f;
-          break;
-        }
-      }
-      final p = (hinge['pivot'] as List).cast<num>();
-      final a = (hinge['axis'] as List).cast<num>();
-      transform
-        ..translateByDouble(
-            p[0].toDouble(), p[1].toDouble(), p[2].toDouble(), 1)
-        ..rotate(vm.Vector3(a[0].toDouble(), a[1].toDouble(), a[2].toDouble()),
-            angle)
-        ..translateByDouble(
-            -p[0].toDouble(), -p[1].toDouble(), -p[2].toDouble(), 1);
-    }
-    return transform;
+    return SocketMediaModel.openingTransform(surface, opening);
   }
 
   /// Godot's source camera looks from -Z with a 180-degree Y basis. A selected
@@ -530,23 +540,14 @@ class SocketMediaGpu {
       SocketMediaModel model, SocketMediaPose pose) {
     // Turn around the console's original upright axis; pitch is the fixed
     // inspection-camera angle, not an axis tilted by every yaw increment.
+    if (model.data['gameWatchUnboxing'] == true) {
+      return vm.Matrix4.identity()
+        ..rotateX(pose.rx)
+        ..rotateY(pose.ry)
+        ..scaleByDouble(pose.scaleX, pose.scaleY, pose.scaleZ, 1);
+    }
     if (model.data['hardwareGeometry'] == true) {
-      var center = vm.Vector3.zero();
-      final centers = model.data['poseCenters'] as List?;
-      if (centers != null) {
-        for (var i = 1; i < centers.length; i++) {
-          final a = (centers[i - 1] as List).cast<num>();
-          final b = (centers[i] as List).cast<num>();
-          if (pose.opening <= b[0] || i == centers.length - 1) {
-            final f = ((pose.opening - a[0]) / (b[0] - a[0])).clamp(0.0, 1.0);
-            center = vm.Vector3(
-                a[1].toDouble() + (b[1] - a[1]) * f,
-                a[2].toDouble() + (b[2] - a[2]) * f,
-                a[3].toDouble() + (b[3] - a[3]) * f);
-            break;
-          }
-        }
-      }
+      final center = SocketMediaModel.poseCenter(model.data, pose.opening);
       return vm.Matrix4.identity()
         ..rotateX(pose.rx)
         ..rotateY(pose.ry)
@@ -667,6 +668,22 @@ class SocketMediaGpu {
 
   static double fittedUnits(SocketMediaModel model, Size size,
       {SocketMediaPose? pose}) {
+    if (model.data['gameWatchUnboxing'] == true) {
+      if (pose?.inspectedPart == 'console') {
+        return math.min(
+            size.width * .72 / (model.data['consoleSourceWidth'] as num),
+            size.height * .68 / (model.data['consoleHeight'] as num));
+      }
+      final opened = (model.data['boxOpeningMs'] as num) / 1000;
+      final unfoldEnd =
+          opened + 1.9 + (model.data['consoleOpeningMs'] as num) / 1000;
+      final settle = GameWatchUnboxingScene.phase(
+          GameWatchUnboxingScene.seconds(model, pose?.unboxing ?? 1),
+          unfoldEnd,
+          unfoldEnd + 1.8);
+      return math.min(
+          size.width * .72 / (4.8 - 2.2 * settle), size.height * .68 / 2);
+    }
     if (model.data['unboxingGeometry'] == true) {
       final overview =
           math.min(size.width / 6.4, size.height * .68 / model.height);
@@ -1044,7 +1061,9 @@ class SocketMediaGpu {
                     ? 1
                     : 0));
         for (final surface in ordered) {
-          if (!partVisible(surface['unboxingPart'] as String?, pose)) continue;
+          if (!partVisible(
+              (surface['hardwarePart'] ?? surface['unboxingPart']) as String?,
+              pose)) continue;
           final opening = surfaceOpening(model, surface, pose);
           if (opaqueOnly && transmitting(surface['material'])) continue;
           pass.setCullMode(surface['singleSided'] == true
@@ -1052,6 +1071,10 @@ class SocketMediaGpu {
               : gpu.CullMode.none);
           final isLabel = surface['role'] == 'label';
           final transform = base.clone();
+          if (model.data['gameWatchUnboxing'] == true) {
+            transform.multiply(GameWatchUnboxingScene.partTransform(
+                model, surface['hardwarePart'] as String, pose));
+          }
           if (model.data['unboxingGeometry'] == true) {
             transform.multiply(UnboxingScene.partTransform(
                 model,

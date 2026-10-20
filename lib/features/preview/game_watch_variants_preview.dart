@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/game_watch_hardware_info.dart';
+import '../../models/game_watch_unboxing_scene.dart';
 import 'package:flutter/material.dart';
 import '../../models/console_model.dart';
 import 'console_hardware_view.dart';
@@ -123,7 +124,57 @@ class GameWatchVariantsView extends StatefulWidget {
   State<GameWatchVariantsView> createState() => GameWatchVariantsViewState();
 }
 
-class GameWatchVariantsViewState extends State<GameWatchVariantsView> {
+class GameWatchVariantsViewState extends State<GameWatchVariantsView>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  late final AnimationController _sequence;
+  late List<GameWatchUnboxingScene?> _scenes;
+  late List<int> _durations;
+  bool _resumed = true;
+  int get _durationMs => _durations.fold(0, (sum, value) => sum + value);
+  bool get _reduced =>
+      widget.reducedMotion || MediaQuery.disableAnimationsOf(context);
+  double _progress(int index) {
+    if (_durations[index] == 0) return 1;
+    final prior = _durations.take(index).fold(0, (sum, value) => sum + value);
+    return ((_sequence.value * _durationMs - prior) / _durations[index])
+        .clamp(0.0, 1.0);
+  }
+
+  void _settleSequence() {
+    _sequence.stop();
+    _sequence.value = 1;
+  }
+
+  void _updateSequence() {
+    if (_reduced || _inspected != null || _durationMs == 0) {
+      _settleSequence();
+    } else if (_reported && _resumed && _sequence.value < 1) {
+      _sequence.forward();
+    } else if (!_resumed) {
+      _sequence.stop();
+    }
+  }
+
+  void _reportSequence() {
+    debugPrint('RShopGameWatchSequence ${jsonEncode({
+          'settled': _sequence.value == 1,
+          'running': _sequence.isAnimating,
+          'foreground': _resumed,
+          'reducedMotion': _reduced,
+          'durationMs': _durationMs,
+          'models': [
+            for (var i = 0; i < _keys.length; i++)
+              {
+                'hardware': widget.variants[i].model.hardwareId,
+                'box': widget.variants[i].box?.hardwareId,
+                'progress': _progress(i),
+                'frameRendered':
+                    _keys[i].currentState?.snapshot['frameRendered'],
+              }
+          ],
+        })}');
+  }
+
   late List<GlobalKey<ConsoleHardwareViewState>> _keys;
   final _ready = <int>{};
   int _generation = 0;
@@ -144,6 +195,7 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView> {
           ? _localInformation
           : widget.informationVisible);
   void _inspect(int? index) {
+    if (index != null) _settleSequence();
     if (widget.onInspect case final changed?) {
       changed(index);
     } else {
@@ -196,9 +248,26 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView> {
   }
 
   String _signature(List<GameWatchModelVariant> models) => models
-      .map((v) => '${v.model.directory.path}:${v.model.generation}')
+      .map((v) =>
+          '${v.model.directory.path}:${v.model.generation}:${v.box?.generation}')
       .join('|');
   void _reset() {
+    _sequence.stop();
+    _scenes = [
+      for (final variant in widget.variants)
+        variant.box == null
+            ? null
+            : GameWatchUnboxingScene(variant.model, variant.box!)
+    ];
+    _durations = [
+      for (var i = 0; i < widget.variants.length; i++)
+        _scenes[i]?.durationMs ??
+            (widget.variants[i].model.canOpen
+                ? widget.variants[i].model.openingDurationMs
+                : 0)
+    ];
+    _sequence.duration = Duration(milliseconds: math.max(1, _durationMs));
+    _sequence.value = widget.reducedMotion || _durationMs == 0 ? 1 : 0;
     _generation++;
     _localInspection = null;
     _localInformation = false;
@@ -210,6 +279,11 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView> {
   }
 
   Map<String, Object?> get snapshot => {
+        'sequenceSettled': _sequence.value == 1,
+        'sequenceRunning': _sequence.isAnimating,
+        'sequenceProgress': [
+          for (var i = 0; i < _keys.length; i++) _progress(i)
+        ],
         'frameRendered': _reported,
         'expectedModels': widget.variants.length,
         'readyModels': _ready.length,
@@ -246,19 +320,55 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView> {
               }
           ],
         })}');
+    _updateSequence();
+    _reportSequence();
     widget.onReady?.call();
   }
 
   @override
   void initState() {
     super.initState();
+    _sequence = AnimationController(vsync: this)
+      ..addListener(() {
+        if (mounted) setState(() {});
+      })
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          final generation = _generation;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && generation == _generation) _reportSequence();
+          });
+        }
+      });
+    WidgetsBinding.instance.addObserver(this);
     _reset();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _updateSequence();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _resumed = state == AppLifecycleState.resumed;
+    _updateSequence();
+    _reportSequence();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _sequence.dispose();
+    super.dispose();
   }
 
   @override
   void didUpdateWidget(GameWatchVariantsView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (_signature(oldWidget.variants) != _signature(widget.variants)) _reset();
+    _updateSequence();
     if (oldWidget.inspectedIndex != widget.inspectedIndex ||
         oldWidget.informationVisible != widget.informationVisible) {
       _announceInspection();
@@ -381,6 +491,17 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView> {
                                     child: ConsoleHardwareView(
                                         key: _keys[i],
                                         model: widget.variants[i].model,
+                                        unboxingScene: _scenes[i],
+                                        unboxingProgress: _progress(i),
+                                        sequenceOpening: _sequence.value < 1
+                                            ? (_scenes[i]?.handheldOpening(
+                                                    _progress(i)) ??
+                                                (widget.variants[i].model.canOpen
+                                                    ? _progress(i)
+                                                    : 0))
+                                            : null,
+                                        inspecting: inspected == i,
+                                        onInteraction: _settleSequence,
                                         title: _label(i),
                                         showTitle: false,
                                         turntable: false,

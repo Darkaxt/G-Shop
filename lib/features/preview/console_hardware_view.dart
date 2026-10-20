@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/console_model.dart';
+import '../../models/game_watch_unboxing_scene.dart';
 import '../../models/socket_media_model.dart';
 import '../../widgets/socket_media_renderer.dart';
 
@@ -19,6 +20,11 @@ class ConsoleHardwareView extends StatefulWidget {
   final double stagingYaw, stagingScale;
   final VoidCallback? onInspect;
   final VoidCallback? onReady;
+  final GameWatchUnboxingScene? unboxingScene;
+  final double unboxingProgress;
+  final double? sequenceOpening;
+  final bool inspecting;
+  final VoidCallback? onInteraction;
   const ConsoleHardwareView(
       {super.key,
       required this.model,
@@ -31,7 +37,12 @@ class ConsoleHardwareView extends StatefulWidget {
       this.onInspect,
       this.transparentBackground = false,
       this.reducedMotion = false,
-      this.onReady});
+      this.onReady,
+      this.unboxingScene,
+      this.unboxingProgress = 1,
+      this.sequenceOpening,
+      this.inspecting = false,
+      this.onInteraction});
   @override
   State<ConsoleHardwareView> createState() => ConsoleHardwareViewState();
 }
@@ -72,7 +83,9 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
         'reducedMotion': widget.reducedMotion,
         'interaction': 'gestures',
         'resumeAfterIdleMs': 5000,
-        'opening': _opening.value,
+        'opening': widget.sequenceOpening ?? _opening.value,
+        'unboxingProgress': widget.unboxingProgress,
+        'sequenceControlled': widget.sequenceOpening != null,
         'canOpen': widget.model.canOpen,
         'romSet': widget.model.romSet,
         if (widget.model.visualVariantId != null)
@@ -105,6 +118,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
     if (_hasFrame &&
         _resumed &&
         !widget.reducedMotion &&
+        widget.sequenceOpening == null &&
         (widget.informationRotation || (_pointers == 0 && _idle == null))) {
       if (!_rotation.isAnimating) _rotation.repeat();
     } else {
@@ -113,6 +127,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
   }
 
   void _touchDown(PointerDownEvent event) {
+    widget.onInteraction?.call();
     _idle?.cancel();
     _idle = null;
     if (_pointers++ == 0) {
@@ -260,12 +275,18 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
                           child: SocketMediaRenderer.console(
                             key: rendererKey,
                             model: widget.model,
+                            gameWatchScene: widget.unboxingScene,
                             identity:
                                 'console:${widget.systemId}:${widget.model.hardwareId}:${widget.generation}',
                             title: widget.title,
                             onReady: _ready,
                             pose: SocketMediaPose(
-                                opening: _opening.value,
+                                unboxing: widget.unboxingProgress,
+                                inspectedPart:
+                                    widget.inspecting ? 'console' : null,
+                                inspection: widget.inspecting ? 1 : 0,
+                                opening:
+                                    widget.sequenceOpening ?? _opening.value,
                                 rx: _pitch,
                                 ry: widget.stagingYaw +
                                     _yaw +

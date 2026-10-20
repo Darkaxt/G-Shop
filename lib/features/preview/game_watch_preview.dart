@@ -5,7 +5,8 @@ import '../../widgets/socket_media_renderer.dart';
 import '../../widgets/media_cover_fallback.dart';
 import 'console_hardware_view.dart';
 
-/// A ROM is the complete handheld. It never enters a cartridge/carton timeline.
+/// Exact single handheld/box resource view. The lower variant preview owns
+/// its separate handheld unboxing sequence; this is never a cartridge.
 class GameWatchPreview extends StatefulWidget {
   final String filename, title, identity;
   final bool reducedMotion, transparentBackground;
