@@ -5,6 +5,29 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-20 revision 121: coverage expansion batch **ACTIVE** inside sole ACTIVE
+S25. Internal advancement blockers: complete 32 supplied private imports and exact
+revision-aware aliases/variant groups, host/native acceptance, fresh collection
+census and verified normal 1.9.24 delivery. Resolve within this batch; no tracked
+deferral. Prior imports, ROMs and app data remain protected. Shared-ROM housing
+choices are explicit display policy, not uniquely proven by program CRC. CN-17
+Helmet is unsupplied and retains its honest missing-model fallback. No additional
+box/unboxing scope; wider S25 remains ACTIVE and S26 NOT STARTED.
+The integrated source/private import batch passes host acceptance: all supplied
+geometry/textures, five source-evaluated hood hinges, all explicit group/primary
+orders, true native-density triple bounds, aggregate readiness and existing
+single-card/Resources/Reduced Motion/lifecycle contracts. Converter regressions
+verify valid untextured meshes without UVs, required textured UV rejection and
+source transmission/IOR preservation. Analysis has no remaining issue in changed
+files. The actual 53 archive hashes remain unchanged. There are now display
+models for all 51 distinct labels (52/53 archives); CN-17 Helmet Rev 1 remains
+unprovided. Shared program CRCs are documented without claiming unique housing.
+Private evidence: `D:/Temp/rshop-s25-gw-coverage-20261020/reports/`.
+Remaining acceptance is signed Thor native inspection and normal verified 1.9.24
+delivery. All new data is staged/hash-verified on Thor; the existing live catalogue
+is retained until the candidate app is installed.
+
+
 2026-10-20 revision 120: hardware-variant display batch **COMPLETE** inside
 sole ACTIVE S25. One exact model remains in each library card and Resources;
 only the lower preview shows labelled same-game hardware editions. Explicit

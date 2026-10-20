@@ -140,7 +140,7 @@ void main() {
     for (final set in ['gnw_smbn', 'gnw_zelda', 'gnw_dkjr']) {
       final models = await ConsoleModel.findGameWatchVariants('$set.zip',
           modelsDirectory: Directory(privateRoot!));
-      expect(models.length, 2, reason: set);
+      expect(models.length, greaterThanOrEqualTo(2), reason: set);
       expect(models.first.model.romSet, set);
       for (final entry in models) {
         final loaded = await entry.model.load();
@@ -214,5 +214,70 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     replacement.first.onReady?.call();
     expect(ready, 2, reason: 'Disposed selection cannot complete again');
+  });
+  test('all private edition groups load exact primary first and valid textures',
+      () async {
+    final dir = Directory(privateRoot!);
+    final catalogue = jsonDecode(
+        await File('${dir.path}/handhelds/gameandwatch/variants.json')
+            .readAsString());
+    for (final group in catalogue['groups'] as List) {
+      for (final set in group['sets'] as List) {
+        final models = await ConsoleModel.findGameWatchVariants('$set.zip',
+            modelsDirectory: dir);
+        expect(models.first.model.romSet, set);
+        expect(models.length, (group['models'] as List).length);
+        for (final entry in models) {
+          final geometry = await entry.model.load();
+          expect(geometry.triangles, greaterThan(0));
+          for (final file in (geometry.data['textureFiles'] as Map).keys) {
+            await geometry.textureBundle!
+                .load('${SocketMediaModel.assetRoot}$file');
+          }
+        }
+      }
+    }
+  },
+      skip: privateRoot == null
+          ? 'Private owner imports are not bundled'
+          : false);
+  testWidgets('three editions fit Thor logical width and wait for all frames',
+      (tester) async {
+    tester.view.physicalSize = const Size(1240, 764);
+    tester.view.devicePixelRatio = 369 / 160;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final models = (await tester.runAsync(() async {
+      await model('variants/additional-edition', variant: 'additional-edition');
+      await index([
+        {'directory': 'gnw_zelda', 'label': 'New Wide Screen'},
+        {'directory': 'variants/zelda-2021', 'label': 'Panorama Screen'},
+        {'directory': 'variants/additional-edition', 'label': 'Special edition'}
+      ]);
+      return ConsoleModel.findGameWatchVariants('gnw_zelda.zip',
+          modelsDirectory: root);
+    }))!;
+    var ready = 0;
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: GameWatchVariantsView(
+                variants: models,
+                reducedMotion: true,
+                onReady: () => ready++))));
+    final views = tester
+        .widgetList<ConsoleHardwareView>(find.byType(ConsoleHardwareView))
+        .toList();
+    expect(views.length, 3);
+    var edge = 0.0;
+    for (var i = 0; i < 3; i++) {
+      final rect = tester.getRect(find.byType(ConsoleHardwareView).at(i));
+      expect(rect.left, greaterThanOrEqualTo(edge));
+      expect(rect.right, lessThanOrEqualTo(1240 / (369 / 160) + .001));
+      edge = rect.right;
+      views[i].onReady?.call();
+      expect(ready, i == 2 ? 1 : 0);
+    }
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
   });
 }

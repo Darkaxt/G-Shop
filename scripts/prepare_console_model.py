@@ -90,6 +90,15 @@ def main():
                 'ao_strength': mat.get('occlusionTexture', {}).get('strength', 1),
                 'roughness_texture_channel': 1, 'metallic_texture_channel': 2,
                 'ao_texture_channel': 0, 'emission': emission}}
+    # Preserve the source's optical glass contract for the existing transmission
+    # renderer. A blank Crystal window must not become an opaque LCD plate.
+    for mat in gltf['materials']:
+        extensions = mat.get('extensions', {})
+        properties = materials[mat['name']]['sourceProperties']
+        if 'KHR_materials_transmission' in extensions:
+            properties['transmission'] = extensions['KHR_materials_transmission'].get('transmissionFactor', 0)
+        if 'KHR_materials_ior' in extensions:
+            properties['ior'] = extensions['KHR_materials_ior'].get('ior', 1.5)
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=str(args.source))
     frame_origin = 0
@@ -165,22 +174,24 @@ def main():
             parent = parent.parent
         mesh = obj.data
         mesh.calc_loop_triangles()
-        uv = mesh.uv_layers.active.data
+        uv = mesh.uv_layers.active.data if mesh.uv_layers.active else None
         normal_matrix = obj.matrix_world.to_3x3().inverted().transposed()
         for index, mat in enumerate(mesh.materials):
             triangles = [t for t in mesh.loop_triangles if t.material_index == index]
             if not triangles: continue
+            material = materials[mat.name]
+            if uv is None and material['textures']:
+                raise ValueError(f'Textured mesh part has no UV coordinates: {obj.name}')
             offset, count = len(payload), 0
             for tri in triangles:
                 for vertex, loop in zip(tri.vertices, tri.loops):
                     p = (axis(obj.matrix_world @ mesh.vertices[vertex].co) - center) * scale
                     n = axis(normal_matrix @ mesh.vertices[vertex].normal).normalized()
-                    tex = uv[loop].uv
-                    payload.extend(struct.pack('<8f', *p, *n, tex.x, 1-tex.y))
+                    tex = uv[loop].uv if uv is not None else (0, 0)
+                    payload.extend(struct.pack('<8f', *p, *n, tex[0], 1-tex[1]))
                     count += 1
             indices = len(payload)
             for i in range(count): payload.extend(struct.pack('<I', i))
-            material = materials[mat.name]
             surfaces.append({'node': obj.name, 'name': mat.name, 'role': 'shell',
                 'physicalMaterial': 'glass' if any(material['sourceProperties']['emission']) else 'source',
                 'singleSided': not double_sided[mat.name], 'openingHinges': chain,

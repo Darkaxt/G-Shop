@@ -131,9 +131,10 @@ void main() {
     expect(ConsoleModel.gameWatchSet('gnw_smb.zip'), 'gnw_smb');
     expect(
         ConsoleModel.gameWatchSet('Super Mario Bros. (World).7z'), 'gnw_smbn');
-    expect(ConsoleModel.gameWatchSet('Snoopy Tennis (World).7z'), isNull);
-    expect(ConsoleModel.gameWatchSet('gnw_dkjrp.zip'), isNull);
-    expect(ConsoleModel.gameWatchSet('Fire (World) (Silver).7z'), isNull);
+    expect(
+        ConsoleModel.gameWatchSet('Snoopy Tennis (World).7z'), 'gnw_stennis');
+    expect(ConsoleModel.gameWatchSet('gnw_dkjrp.zip'), 'gnw_dkjrp');
+    expect(ConsoleModel.gameWatchSet('Fire (World) (Silver).7z'), 'gnw_fires');
   });
   test('handheld imports use exact MAME hardware sets, never title variants',
       () async {
@@ -143,15 +144,9 @@ void main() {
     expect(
         ConsoleModel.gameWatchSet('Fire (World) (Wide Screen).7z'), 'gnw_fire');
     for (final wrong in [
-      'gnw_popeye.zip',
-      'gnw_fires.zip',
-      'gnw_dkjrp.zip',
       'Donkey Kong.zip',
       'gnw_dkong (USA).zip',
       'gnw_dkong.zip.exe',
-      'Fire (World) (Silver).7z',
-      'Donkey Kong Jr. (World) (Panorama Screen).7z',
-      "Mario's Cement Factory (World) (Table Top).7z"
     ]) {
       expect(ConsoleModel.gameWatchSet(wrong), isNull);
     }
@@ -331,10 +326,21 @@ void main() {
       'gnw_sbuster',
       'gnw_squish',
       'gnw_snoopyp',
+      'gnw_popeyep',
+      'gnw_dkjrp',
+      'gnw_mbaway',
+      'gnw_mmousep',
+      'gnw_dkcirc',
     };
-    for (final set in ConsoleModel.gameWatchSets) {
+    // CN-17 is a known archive revision with no supplied exact housing.
+    expect(
+        await ConsoleModel.findGameWatch('gnw_helmet.zip',
+            modelsDirectory: Directory(handhelds!)),
+        isNull);
+    for (final set
+        in ConsoleModel.gameWatchSets.where((s) => s != 'gnw_helmet')) {
       final model = (await ConsoleModel.findGameWatch('$set.zip',
-          modelsDirectory: Directory(handhelds!)))!;
+          modelsDirectory: Directory(handhelds)))!;
       final geometry = await model.load();
       expect(model.canOpen, folding.contains(set), reason: set);
       expect(geometry.triangles, greaterThan(0), reason: set);

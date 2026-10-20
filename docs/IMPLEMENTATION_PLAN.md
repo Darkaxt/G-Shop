@@ -1,7 +1,14 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 120, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 121, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
+
+2026-10-20 coverage expansion batch: **ACTIVE**, within sole ACTIVE S25.
+Complete the 32-asset private import, CRC-bound aliases and explicit variant groups
+as one integrated change, preserving prior primary models and revision distinctions.
+Acceptance: full conversion/texture/hood contracts, all new native model families,
+three-edition lower fit plus single card/Resources, revision-aware real census;
+then normal 1.9.24 public/installed verification. No broader stage or box scope.
 
 2026-10-20 hardware-variant display batch: **COMPLETE**, within sole ACTIVE S25.
 Use explicit private visual-edition metadata and two additional supplied imports;

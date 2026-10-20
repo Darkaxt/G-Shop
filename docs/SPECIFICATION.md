@@ -1,6 +1,31 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 120, 2026-10-20.
+Authoritative specification, revision 121, 2026-10-20.
+
+
+Owner G&W coverage expansion, 2026-10-20 (already authorized continuation):
+review `gamewatch-coverage-expansion.zip`, preserve its source/credits, import all
+32 supplied handhelds privately and wire exact owned release aliases plus explicit
+visual-edition groups. Keep S25 the sole ACTIVE stage and prior imports/boxes,
+ROMs, launch bindings and app data unchanged. Use pinned MAME definitions and
+actual archive CRCs for identity: Judge green/purple revisions stay distinct;
+CN-07 Helmet must not be substituted for the unsupplied CN-17 revision. Shared
+Balloon Fight/Climber program dumps cannot identify their physical housing: use
+the MAME Crystal parent as an explicit primary display choice for the unqualified
+owned label, expose available same-game alternatives with labels, and retain the
+ambiguous hardware evidence in the private census. Do not claim those CRCs prove
+one unique housing. Combined Mickey Mouse/Circus uses its explicit MAME parent,
+with the reskin alongside. Preserve the earlier SMB primary choice. Report both
+revision-aware ROM-entry coverage and unsupplied physical codes separately.
+No new box/unboxing scope is added. Retain deliberately blank transmitting
+Crystal/reflective Panorama screens; do not fabricate gameplay artwork. Validate
+all supplied conversions/textures/provenance, five source-evaluated hood hinges,
+actual native affected model families and three-model labelled lower previews,
+exact primary single library/Resources, selection and Reduced Motion/lifecycle
+contracts. Finish one normal signed 1.9.24 release with independent public source,
+version/signature/payload and installed Thor identity checks. Catalogue extension
+must remain data-driven for visual-only editions. Missing unsupplied hardware is
+reported honestly, not fabricated; wider S25 completion remains separate.
 
 Owner G&W hardware-variant display, 2026-10-20 (already authorized and clarified):
 the main library grid keeps one exact-ROM handheld per card. Only the bottom
