@@ -12,6 +12,7 @@ import '../services/metadata/effective_overall_rating.dart';
 import 'installed_indicator.dart';
 import 'smart_cover_image.dart';
 import 'gba_box_tile.dart';
+import 'library_model_presentation.dart';
 import 'handwritten_media_sticker.dart';
 import '../features/preview/game_watch_preview.dart';
 
@@ -139,16 +140,21 @@ class BaseGameCard extends StatelessWidget {
             Expanded(child: Consumer(builder: (context, ref, _) {
               if (systemId == 'gameandwatch') {
                 return Stack(fit: StackFit.expand, children: [
-                  IgnorePointer(
-                      child: GameWatchPreview(
-                          key: ValueKey('handheld-grid-$filename'),
-                          filename: filename ?? '',
-                          title: displayName,
-                          identity: gameIdentity!,
-                          transparentBackground: true,
-                          reducedMotion: !isSelected ||
-                              reducedMotion ||
-                              MediaQuery.disableAnimationsOf(context))),
+                  LibraryModelPresentation(
+                      selected: isSelected,
+                      reducedMotion: reducedMotion,
+                      restYaw: -.2,
+                      builder: (context, pose) => IgnorePointer(
+                          child: GameWatchPreview(
+                              key: ValueKey('handheld-grid-$filename'),
+                              filename: filename ?? '',
+                              title: displayName,
+                              identity: gameIdentity!,
+                              transparentBackground: true,
+                              libraryPose: pose,
+                              reducedMotion: !isSelected ||
+                                  reducedMotion ||
+                                  MediaQuery.disableAnimationsOf(context)))),
                   if (isInstalled || isRemoteAvailable)
                     Positioned(
                         bottom: 8,

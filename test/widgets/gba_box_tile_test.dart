@@ -31,7 +31,7 @@ void main() {
           selected: true,
           reducedMotion: true),
     ))));
-    final halo = find.byKey(const ValueKey('gba-selection-halo'));
+    final halo = find.byKey(const ValueKey('library-model-selection-halo'));
     final size = tester.getSize(halo);
     final decoration =
         tester.widget<DecoratedBox>(halo).decoration as BoxDecoration;
@@ -79,19 +79,22 @@ void main() {
     expect(pose().ry, closeTo(0, .0001));
     await tester.pump(const Duration(seconds: 2));
     expect(pose().ry, closeTo(-limit, .0001));
-    expect(find.byKey(const ValueKey('gba-selection-halo')), findsOneWidget);
+    expect(find.byKey(const ValueKey('library-model-selection-halo')),
+        findsOneWidget);
     await tester.pumpWidget(tile(false));
     expectUpright();
     final still = pose().ry;
     await tester.pump(const Duration(milliseconds: 700));
     expect(pose().ry, still);
-    expect(find.byKey(const ValueKey('gba-selection-halo')), findsNothing);
+    expect(find.byKey(const ValueKey('library-model-selection-halo')),
+        findsNothing);
     await tester.pumpWidget(tile(true, reduced: true));
     expectUpright();
     final reduced = pose().ry;
     await tester.pump(const Duration(milliseconds: 700));
     expect(pose().ry, reduced);
-    expect(find.byKey(const ValueKey('gba-selection-halo')), findsOneWidget);
+    expect(find.byKey(const ValueKey('library-model-selection-halo')),
+        findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets('mounted GBA box paints its arriving exact score into the atlas',

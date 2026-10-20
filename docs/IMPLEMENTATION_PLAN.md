@@ -1,9 +1,15 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 117, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 118, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**.
+Current correction: unify enabled 3D library selection presentation (GBA and
+G&W) under the same upright +/-30-degree sweep and transparent-edge halo.
+Acceptance: selected/unselected and Reduced Motion host contracts, shared-path
+wiring and preserved touch behavior; targeted Thor G&W/GBA visual inspection;
+normal signed 1.9.21 publication and independent download/installed verification.
+The existing S25 is the sole ACTIVE stage. No next-console/model sweep is added.
 2026-10-20 requested-batch checkpoint: GBA special-housing closure and G&W
 integration are verified and delivered in normal public 1.9.20. All four folding
 variants, control registration, centred gestures, subdued motion, exact library

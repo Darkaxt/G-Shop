@@ -1,6 +1,19 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 117, 2026-10-20.
+Authoritative specification, revision 118, 2026-10-20.
+
+Owner library selection parity correction: every enabled 3D game-library model
+must use the same selection presentation as GBA, including Game & Watch. Share
+the eight-second front-facing yaw sweep from -30 to +30 degrees, upright pose,
+selected emphasis and soft radial halo fading to transparent before tile edges.
+Unselected cards remain still without the halo; Reduced Motion keeps the selected
+halo but disables ambient movement. Use one library presentation owner across
+the current carton and handheld paths rather than independent motion/glow logic.
+Do not change viewer touch/folding behavior or console-selector turntables.
+Verify selection changes and Reduced Motion on the affected host paths, then
+inspect G&W plus the unchanged GBA reference on Thor. Do not repeat ROM/model
+sweeps. Deliver the correction as normal signed release 1.9.21 with independent
+public-package and installed-package verification. This remains ACTIVE S25.
 
 Owner G&W corrections: register DK II and Mario Bros. raised controls with their
 original faceplate artwork. Turntable motion is exclusive to the console

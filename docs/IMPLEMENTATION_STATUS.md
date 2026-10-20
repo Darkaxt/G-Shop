@@ -5,6 +5,26 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-20 revision 118, ACTIVE S25: owner reports G&W selection lacks GBA's
+movement and glow and requires this for all enabled 3D library cards. Root cause:
+GbaBoxTile privately owns the +/-30-degree sweep/halo; G&W instead mounts the
+interactive preview's +/-0.14-radian wobble with no halo. Current internal
+advancement blocker is shared library presentation parity, resolved by one
+presentation owner used by both actual 3D paths, with focused selection/reduced-
+motion contracts and native G&W/GBA evidence. Final delivery is normal 1.9.21;
+viewer/hinge/model-content acceptance is unchanged and must not be re-swept.
+No tracked deferral or additional ACTIVE stage.
+The regression first failed with zero selected-halo widgets. Both active 3D
+library paths now use LibraryModelPresentation for the same upright eight-second
+/-30-degree yaw, selection scale and transparent-edge halo; the G&W library
+passes that pose directly to its renderer, without a second interactive-preview
+controller. Viewer/selector code is unchanged. Focused G&W/GBA card contracts,
+selection changes, both Reduced Motion inputs and existing viewer/navigation
+checks pass on host. Host GPU rendering is unavailable (Impeller), so native
+visual acceptance remains outstanding. Targeted analysis has no errors/warnings;
+one existing GBA braces-style info remains. Next: signed candidate, targeted
+Thor G&W/GBA comparison, then normal 1.9.21 release and delivery verification.
+
 2026-10-20 current G&W acceptance correction: the owner identified doubled D-pad
 and offset buttons on DK II and Mario Bros. Their supplied reconstruction
 faceplates already photograph the controls; separate raised controls are
