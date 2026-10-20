@@ -28,6 +28,25 @@ class PatchBuildStore {
   String? sharedIssue;
   PatchBuildStore(this.database, {this.sharedStore});
 
+  /// Read-only navigation check; opening the library must not publish builds.
+  Future<bool> hasForPlatform(String platform) async {
+    final local = await (await database).query('patch_builds',
+        columns: ['build_id'],
+        where: 'platform_id=?',
+        whereArgs: [platform],
+        limit: 1);
+    if (local.isNotEmpty) return true;
+    if (sharedStore == null) return false;
+    try {
+      final shared = await sharedStore!;
+      return shared != null && (await shared.patchRecipes(platform)).isNotEmpty;
+    } catch (_) {
+      // An unavailable shared store supplies no positive availability evidence;
+      // existing local history above remains accessible without publication.
+      return false;
+    }
+  }
+
   Future<void> publishReady(String buildId) async {
     if (sharedStore == null) return;
     final row = await get(buildId);

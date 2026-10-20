@@ -1,7 +1,12 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 121, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 122, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
+
+2026-10-20 revision 122 adds conditional category correction to this same batch:
+classifications and cached patch index/saved recipe availability govern the row;
+touch/controller share its dynamic membership and invalid selections reset.
+Host regressions and final signed Thor checks precede the one 1.9.24 release.
 
 2026-10-20 coverage expansion batch: **ACTIVE**, within sole ACTIVE S25.
 Complete the 32-asset private import, CRC-bound aliases and explicit variant groups

@@ -142,6 +142,33 @@ class DrivePatchCatalogue {
           artifact: await resolve(reference),
           cancellation: cancellation);
 
+  /// Navigation availability reads the published local snapshot only. It does
+  /// not download/parse an index, authenticate or start a catalogue refresh.
+  Future<bool> hasCachedIndex() async {
+    try {
+      final generation = await _generation();
+      final drive = config.drive!;
+      await runtime.catalogue.requireRelativeBinary(
+          sourceId: config.sourceId!,
+          accountId: drive.accountId,
+          rootFolderId: drive.rootFolderId,
+          parentId: config.path!,
+          segments: const ['Patches', 'index.json'],
+          generation: generation);
+      return true;
+    } on DriveCatalogueException catch (error) {
+      if ({
+        'mappingRequired',
+        'refreshRequired',
+        'ambiguousOrMissingDependency',
+        'unsupportedDependency'
+      }.contains(error.code)) {
+        return false;
+      }
+      rethrow;
+    }
+  }
+
   Future<List<IndexedPatchGame>> games(CancelToken cancellation) async {
     final generation = await _generation();
     final drive = config.drive!;

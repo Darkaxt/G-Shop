@@ -33,6 +33,10 @@ import '../../services/metadata/effective_overall_rating.dart';
 import '../../providers/shelf_providers.dart';
 import '../../services/config_bootstrap.dart';
 import '../../services/library_query.dart';
+import '../../services/drive/drive_patch_catalogue.dart';
+import '../../services/drive/drive_catalogue.dart';
+import '../../services/drive/drive_runtime.dart';
+import '../../services/patch_build_store.dart';
 import '../../services/source_resolver.dart';
 import '../../utils/friendly_error.dart';
 import '../../services/input_debouncer.dart';
@@ -85,6 +89,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   String? _selectedConsole;
   String? _manufacturer;
   String? _category;
+  Map<String, Set<String>> _collectionCategories = const {};
+  Set<String> _patchConsoles = const {};
+  List<String?> get _categories => [
+        null,
+        for (final category in ['commercial', 'hacks'])
+          if (_collectionCategories[_selectedConsole]?.contains(category) ==
+              true)
+            category,
+        if (_patchConsoles.contains(_selectedConsole)) 'patches',
+      ];
   SystemType? _systemType;
   final _brandFocus = FocusScopeNode(debugLabel: 'Library brands');
   final _typeFocus = FocusScopeNode(debugLabel: 'Library types');
@@ -597,6 +611,31 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     _shelves = ref.read(customShelvesProvider);
     final migratedFavorites = ref.read(favoriteGamesProvider).toSet();
 
+    await ref.read(cachedMetadataReadinessProvider.future);
+    if (!mounted) return;
+    final categories = await LibraryQuery(db.database).categories();
+    final config = await ref.read(bootstrappedConfigProvider.future);
+    if (!mounted) return;
+    final patchConsoles = <String>{};
+    final patchRuntime = DriveRuntime(catalogue: DriveCatalogue(db.database));
+    final builds = PatchBuildStore(db.database,
+        sharedStore: ref.read(sharedMetadataStoreProvider));
+    for (final system in SystemModel.supportedSystems
+        .where((s) => entries.any((e) => e.systemSlug == s.id))) {
+      final mapping = ConfigBootstrap.configForSystem(config, system);
+      if (mapping == null || mapping.targetFolder.isEmpty) continue;
+      var available = await builds.hasForPlatform(system.id);
+      for (final provider
+          in SourceResolver.providersFor(mapping, config.sources)
+              .where((p) => p.type == ProviderType.drive)) {
+        if (available) break;
+        available = await DrivePatchCatalogue(provider, runtime: patchRuntime)
+            .hasCachedIndex();
+      }
+      if (available) patchConsoles.add(system.id);
+    }
+    if (!mounted) return;
+
     // Load RA matches for all systems represented in the library
     final raMatches = <String, RaMatchResult>{};
     final storage = ref.read(storageServiceProvider);
@@ -613,6 +652,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
     setState(() {
       _allGames = entries;
+      _collectionCategories = categories;
+      _patchConsoles = patchConsoles;
       if (_selectedConsole != null &&
           !entries.any((g) => g.systemSlug == _selectedConsole)) {
         _selectedConsole = null;
@@ -682,6 +723,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       _selectedConsole = _consoleSummaries.firstOrNull?.slug;
       _restoreFilters();
     }
+    if (!_categories.contains(_category)) _category = null;
+    if (_categories.length <= 1) _categoryNavigation = false;
     if (!_queryingDiscovery && _currentIndex < _filteredGames.length) {
       final entry = _filteredGames[_currentIndex];
       _focusedKey = coverRatingKey(entry.systemSlug, entry.selectionKey);
@@ -1161,6 +1204,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   void _selectCategory(String? category) {
+    if (!_categories.contains(category)) return;
     if (category == 'patches') {
       unawaited(_openPatchLibrary());
       return;
@@ -1173,7 +1217,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   void _cycleCategory(int delta) {
-    const values = [null, 'commercial', 'hacks', 'patches'];
+    final values = _categories;
     _selectCategory(
         values[(values.indexOf(_category) + delta) % values.length]);
   }
@@ -1199,6 +1243,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           MaterialPageRoute<void>(
               builder: (_) => PatchLibraryScreen(
                   system: system,
+                  buildStore: PatchBuildStore(
+                      ref.read(libraryDbProvider).database,
+                      sharedStore: ref.read(sharedMetadataStoreProvider)),
                   targetFolder: mapping.targetFolder,
                   providers:
                       SourceResolver.providersFor(mapping, config.sources),
@@ -1260,7 +1307,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       } else if (direction == GridDirection.down) {
         setState(() {
           _consoleNavigation = false;
-          _categoryNavigation = _selectedConsole != null;
+          _categoryNavigation =
+              _selectedConsole != null && _categories.length > 1;
         });
       } else if (direction == GridDirection.up) {
         if (!_isDashboard) {
@@ -2154,24 +2202,23 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
               ),
               const SizedBox(height: 8),
               Row(children: [
-                if (_selectedConsole != null) ...[
+                if (_selectedConsole != null && _categories.length > 1) ...[
                   Expanded(
                       child: LibraryTabs(
                     key: const ValueKey('library-category-tabs'),
                     focused: _categoryNavigation,
-                    selectedTab: _category == null
-                        ? 0
-                        : _category == 'commercial'
-                            ? 1
-                            : 2,
-                    tabs: const [
-                      LibraryTab(label: 'All'),
-                      LibraryTab(label: 'Commercial'),
-                      LibraryTab(label: 'Hacks'),
-                      LibraryTab(label: 'Patches')
+                    selectedTab: _categories.indexOf(_category),
+                    tabs: [
+                      for (final category in _categories)
+                        LibraryTab(
+                            label: switch (category) {
+                          'commercial' => 'Commercial',
+                          'hacks' => 'Hacks',
+                          'patches' => 'Patches',
+                          _ => 'All',
+                        })
                     ],
-                    onTap: (index) => _selectCategory(
-                        [null, 'commercial', 'hacks', 'patches'][index]),
+                    onTap: (index) => _selectCategory(_categories[index]),
                   )),
                   const SizedBox(width: 12),
                 ],
@@ -2436,6 +2483,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   Widget _buildGrid(Responsive rs, double availableWidth, {double? rowHeight}) {
     final deviceMemory = ref.read(deviceMemoryProvider);
+    final media = ref.watch(mediaPresentationProvider);
     final optimalCacheWidth = _coverDecodeWidth(rs, availableWidth);
 
     return NotificationListener<ScrollNotification>(
@@ -2513,6 +2561,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                 selectedIndexNotifier: _selectedIndexNotifier,
                 index: index,
                 builder: (isSelected) => BaseGameCard(
+                  reducedMotion: media.reducedMotion,
                   systemId: entry.systemSlug,
                   gameIdentity: entry.selectionKey,
                   filename: entry.filename,

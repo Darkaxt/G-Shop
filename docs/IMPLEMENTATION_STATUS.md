@@ -5,6 +5,24 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-20 revision 122: coverage expansion and conditional category correction
+batch **ACTIVE** within sole ACTIVE S25. The category row and controller cycling
+are hard-coded; resolve with complete-console category and cached index/saved
+recipe availability, verify dynamic selection/navigation and native absence plus
+legitimate presence before the one final 1.9.24 release. This internal advancement
+blocker is implementable now; no tracked deferral or additional ACTIVE stage.
+The integrated correction passes focused real-screen checks for complete-console
+membership, hidden categories, controller cycling, invalid-selection reset,
+Installed/search stability and shifted Patches touch dispatch. Exact published
+cached indexes exclude absent, unpublished and ambiguous entries without network
+or payload reads; local/shared recipe availability is read-only and does not
+publish ready builds. The screen regression also found and repaired the omitted
+Reduced Motion card argument. Analysis has no error/warning; one pre-existing
+style info remains in the surrounding test. Native final-build checks remain
+required. A broader diagnostic run also hit the existing unrelated Top-25
+resource-snapshot expectation and obsolete version-six metadata fixture; focused
+acceptance does not claim that broader suite passed.
+
 2026-10-20 revision 121: coverage expansion batch **ACTIVE** inside sole ACTIVE
 S25. Internal advancement blockers: complete 32 supplied private imports and exact
 revision-aware aliases/variant groups, host/native acceptance, fresh collection

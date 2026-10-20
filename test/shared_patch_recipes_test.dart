@@ -87,11 +87,18 @@ void main() {
           }
         },
         state: 'ready');
+    expect(await ownerA.hasForPlatform('gba'), isTrue);
+    expect(await ownerA.hasForPlatform('gameandwatch'), isFalse);
+    expect(await sharedA.patchRecipes('gba'), isEmpty,
+        reason: 'Navigation availability never publishes ready builds');
     await ownerA.forGame('gba', '1379');
     final exported = (await sharedA.patchRecipes('gba')).single.encode();
     final ownerB =
         PatchBuildStore(Future.value(b), sharedStore: Future.value(sharedB));
     await ownerB.importRecipe(PortablePatchRecipe.decode(exported));
+    expect(await ownerB.hasForPlatform('gba'), isTrue,
+        reason: 'Shared recipes retain the patch entry without a local build');
+    expect(await b.query('patch_builds'), isEmpty);
     final restored = (await ownerB.forGame('gba', '1379')).single;
     expect(restored['state'], 'recipe');
     for (final key in [

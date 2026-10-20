@@ -1,7 +1,22 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 121, 2026-10-20.
+Authoritative specification, revision 122, 2026-10-20.
 
+
+Owner conditional category correction, 2026-10-20 (already authorized): within
+this same S25 batch, show Commercial/Hacks only when represented in the selected
+console's complete collection classifications, and Patches only for a configured
+console with a published cached patch index or saved build/recipe. Never infer
+availability from the currently filtered, searched, installed or favorite result.
+Use the same visible categories for touch, controller cycling and selected index;
+reset an unavailable selected category when switching consoles or refreshing data.
+No console blacklist or speculative patch tab. Verify absent tabs for a normal
+Game & Watch collection, present categories/indexed patches where available,
+search/filter stability, console changes and controller dispatch on host and Thor
+before the single normal 1.9.24 release. No new stage or wider scope is introduced.
+The real library card must receive the existing saved Reduced Motion preference;
+repair the missing argument found by this screen regression and verify that
+selected model motion stops without changing model identity or the saved setting.
 
 Owner G&W coverage expansion, 2026-10-20 (already authorized continuation):
 review `gamewatch-coverage-expansion.zip`, preserve its source/credits, import all

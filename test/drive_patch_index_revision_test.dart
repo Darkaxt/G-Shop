@@ -12,6 +12,7 @@ import 'package:retro_eshop/services/drive/drive_authorization.dart';
 import 'package:retro_eshop/services/drive/drive_catalogue.dart';
 import 'package:retro_eshop/services/drive/drive_media.dart';
 import 'package:retro_eshop/services/drive/drive_runtime.dart';
+import 'package:retro_eshop/services/drive/drive_patch_catalogue.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class _Driver implements DriveAuthorizationDriver {
@@ -139,6 +140,55 @@ void main() {
       rootFolderId: 'root-id',
       fileId: 'index',
       generation: 1);
+
+  test('patch navigation uses only an exact published cached index', () async {
+    final patches = DrivePatchCatalogue(config, runtime: runtime);
+    expect(await patches.hasCachedIndex(), isFalse);
+    final scope = DriveCatalogue.scopeKey('source', 'account', 'root-id');
+    final folder = DriveFile(
+        id: 'patches',
+        name: 'Patches',
+        mimeType: DriveFile.folderMime,
+        parents: ['folder']);
+    final index = DriveFile(
+        id: 'patch-index',
+        name: 'index.json',
+        mimeType: 'application/json',
+        parents: ['patches'],
+        canDownload: true,
+        sizeBytes: 42,
+        version: '1',
+        checksums: {'md5': 'a' * 32});
+    Future<void> put(DriveFile file, String path, int generation) =>
+        db.insert('drive_catalogue_entries', {
+          'scope': scope,
+          'generation': generation,
+          'file_id': file.id,
+          'parent_id': file.parents.single,
+          'display_path': path,
+          'is_folder': file.isFolder ? 1 : 0,
+          'record_json': jsonEncode(file.toJson())
+        }).then((_) {});
+    await put(folder, 'folder/Patches', 1);
+    await put(index, 'folder/Patches/index.json', 2);
+    expect(await patches.hasCachedIndex(), isFalse,
+        reason: 'An unpublished index is not visible');
+    await put(index, 'folder/Patches/index.json', 1);
+    expect(await patches.hasCachedIndex(), isTrue);
+    await db.insert('drive_catalogue_entries', {
+      'scope': scope,
+      'generation': 1,
+      'file_id': 'duplicate',
+      'parent_id': 'patches',
+      'display_path': 'folder/Patches/index.json',
+      'is_folder': 0,
+      'record_json': jsonEncode({...index.toJson(), 'id': 'duplicate'})
+    });
+    expect(await patches.hasCachedIndex(), isFalse,
+        reason: 'Ambiguous names do not expose a broken patch route');
+    expect(media.reads, 0);
+    expect(api.listings, 0);
+  });
 
   test('patch index reconciles version-only drift without a source rescan',
       () async {

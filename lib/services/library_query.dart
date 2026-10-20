@@ -447,6 +447,25 @@ class LibraryQuery {
     });
   }
 
+  /// Complete collection membership, independent of the current search/view.
+  Future<Map<String, Set<String>>> categories() async {
+    final db = await _database;
+    return db.transaction((txn) async {
+      await _refresh(txn, productionOverallScoreBases);
+      final rows = await txn.rawQuery('''SELECT DISTINCT e.platform_id, f.value
+        FROM library_query_facets f JOIN library_query_editions e
+          ON e.edition_id=f.edition_id
+        WHERE f.dimension='category' AND e.member=1''');
+      final result = <String, Set<String>>{};
+      for (final row in rows) {
+        result
+            .putIfAbsent(row['platform_id'] as String, () => {})
+            .add(row['value'] as String);
+      }
+      return result;
+    });
+  }
+
   Future<List<String>> genres({Set<String> platformIds = const {}}) async {
     final db = await _database;
     return db.transaction((txn) async {

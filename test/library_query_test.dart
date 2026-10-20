@@ -1829,6 +1829,8 @@ void main() {
         (await read(filter: LibraryQueryFilter(category: 'hacks', top: 1)))
             .items,
         isEmpty);
+    expect((await LibraryQuery(Future.value(db)).categories())['psx'],
+        {'commercial', 'hacks', 'homebrew', 'demo', 'unknown'});
     expect((await read()).items, hasLength(5),
         reason: 'All retains unknown, demo and homebrew');
     final edition = (await store.edition(unknown))!;

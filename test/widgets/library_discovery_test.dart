@@ -15,6 +15,11 @@ import 'package:retro_eshop/features/library/widgets/library_tabs.dart';
 import 'package:retro_eshop/features/library/widgets/library_dashboard.dart';
 import 'package:retro_eshop/features/game_list/widgets/filter_overlay.dart';
 import 'package:retro_eshop/models/config/app_config.dart';
+import 'package:retro_eshop/models/config/system_config.dart';
+import 'package:retro_eshop/services/patch_build_store.dart';
+import 'package:retro_eshop/services/input_debouncer.dart';
+import 'package:retro_eshop/features/library/patch_library_screen.dart';
+import '../portable_patch_recipe_test.dart' show portableFixture;
 import 'package:retro_eshop/models/config/provider_config.dart';
 import 'package:retro_eshop/models/custom_shelf.dart';
 import 'package:retro_eshop/models/library_identity.dart';
@@ -53,6 +58,11 @@ class _Database extends DatabaseService {
   _Database(this.db);
   @override
   Future<Database> get database async => db;
+}
+
+class _ImmediateInput extends InputDebouncer {
+  @override
+  bool canPerformAction() => true;
 }
 
 class _Config extends ConfigStorageService {
@@ -155,6 +165,183 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
   });
+  testWidgets('console categories are conditional, stable and share navigation',
+      (tester) async {
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    sqfliteFfiInit();
+    final db =
+        await databaseFactoryFfiNoIsolate.openDatabase(inMemoryDatabasePath);
+    addTearDown(db.close);
+    await LibrarySchema.install(db);
+    await MetadataRefreshJobs.install(db);
+    await PatchBuildSchema.install(db);
+    await db.execute(
+        'CREATE TABLE games(id INTEGER PRIMARY KEY, systemSlug TEXT, '
+        'displayName TEXT, filename TEXT, url TEXT, artifact_key TEXT, '
+        'remote_artifact TEXT, provider_config TEXT, is_folder INTEGER DEFAULT 0)');
+    await LibraryQuery.install(db);
+    final store = LibraryStore(Future.value(db));
+    final seeds = [
+      ('gameandwatch', 'Ball', 'official'),
+      ('gba', 'Original', 'official'),
+      ('psx', 'Modified', 'Hack'),
+      ('gbc', 'Homebrew', 'homebrew')
+    ];
+    for (var i = 0; i < seeds.length; i++) {
+      final (slug, title, tag) = seeds[i];
+      await db.insert('games', {
+        'id': i + 1,
+        'systemSlug': slug,
+        'displayName': title,
+        'filename': '$title.7z',
+        'url': ''
+      });
+      final id = (await db.transaction((txn) =>
+              LibraryStore.catalogueEditions(txn, cacheRowId: i + 1).toList()))
+          .single;
+      final edition = (await store.edition(id))!;
+      await store.putEdition(EditionIdentity.fromJson({
+        ...edition.toJson(),
+        'tags': [tag]
+      }));
+    }
+    final recipe = portableFixture();
+    await PatchBuildStore(Future.value(db)).begin(
+        buildId: 'saved-build',
+        recipe: recipe.recipe,
+        sourceGameId: recipe.sourceGameId,
+        gameTitle: recipe.gameTitle,
+        gameIndexPath: recipe.gameIndexPath.value,
+        providerSourceId: 'fixture',
+        title: recipe.title,
+        jobRoot: '/fixture/job',
+        targetRoot: '/fixture/roms',
+        filename: 'modified.gba');
+    SharedPreferences.setMockInitialValues({
+      'favorites_version': 1,
+      'secure_auth_migrated': true,
+      'physical_media_enabled': false,
+      'physical_media_reduced_motion': true
+    });
+    FlutterSecureStorage.setMockInitialValues({});
+    final storage = StorageService();
+    await storage.init();
+    const config = AppConfig(systems: [
+      SystemConfig(
+          id: 'gba', name: 'GBA', targetFolder: '/fixture/roms', providers: [])
+    ]);
+    final container = ProviderContainer(overrides: [
+      inputDebouncerProvider.overrideWith((_) => _ImmediateInput()),
+      libraryDbProvider.overrideWithValue(_Database(db)),
+      storageServiceProvider.overrideWithValue(storage),
+      bootstrappedConfigProvider.overrideWith((ref) async => config),
+      sharedMetadataStoreProvider.overrideWithValue(Future.value(null)),
+      installedFilesProvider.overrideWith((ref) async => InstalledFilesState()),
+      selectionContinuityProvider.overrideWith((ref) async {}),
+      cachedMetadataReadinessProvider
+          .overrideWith((ref) async => const AsyncData(0)),
+      deviceMemoryProvider.overrideWithValue(
+          const DeviceMemoryInfo(totalBytes: 0, tier: MemoryTier.standard)),
+      sourcesProvider
+          .overrideWith((ref) => SourcesNotifier(_Config(), db: _Database(db))),
+    ]);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(
+        container: container,
+        child: createTestApp(Builder(
+            builder: (context) => MediaQuery(
+                data: MediaQuery.of(context).copyWith(disableAnimations: true),
+                child: const LibraryScreen())))));
+    await tester.pumpAndSettle();
+    Future<void> console(String label) async {
+      final tabs = tester.widget<LibraryTabs>(
+          find.byKey(const ValueKey('library-console-tabs')));
+      final index = tabs.tabs.indexWhere((t) => t.label == label);
+      expect(index, greaterThan(0));
+      tabs.onTap!(index);
+      await tester.pumpAndSettle();
+    }
+
+    List<String> categories() => tester
+        .widget<LibraryTabs>(
+            find.byKey(const ValueKey('library-category-tabs')))
+        .tabs
+        .map((t) => t.label)
+        .toList();
+    await tester.tap(find.byKey(const ValueKey('console-summary-psx')));
+    await tester.pumpAndSettle();
+    expect(categories(), ['All', 'Hacks']);
+    await tester.tap(find.descendant(
+        of: find.byKey(const ValueKey('library-category-tabs')),
+        matching: find.text('HACKS')));
+    await tester.pumpAndSettle();
+    await console('GAMEANDWATCH');
+    expect(categories(), ['All', 'Commercial']);
+    expect(
+        tester
+            .widget<LibraryTabs>(
+                find.byKey(const ValueKey('library-category-tabs')))
+            .selectedTab,
+        0,
+        reason: 'An unavailable previous console category resets');
+    expect(find.byType(BaseGameCard), findsOneWidget);
+    expect(tester.widget<BaseGameCard>(find.byType(BaseGameCard)).reducedMotion,
+        isTrue,
+        reason: 'The real library card receives the saved preference');
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonRight1);
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<LibraryTabs>(
+                find.byKey(const ValueKey('library-category-tabs')))
+            .selectedTab,
+        1);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonRight1);
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<LibraryTabs>(
+                find.byKey(const ValueKey('library-category-tabs')))
+            .selectedTab,
+        0,
+        reason: 'Controller wraps over only visible categories');
+    await console('GBA');
+    expect(categories(), ['All', 'Commercial', 'Patches']);
+    await tester.tap(find.text('INSTALLED').first);
+    await tester.pumpAndSettle();
+    expect(find.byType(BaseGameCard), findsNothing);
+    expect(categories(), ['All', 'Commercial', 'Patches'],
+        reason: 'Empty status results do not hide complete-console categories');
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonY);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'no matching title');
+    await tester.pumpAndSettle();
+    expect(categories(), ['All', 'Commercial', 'Patches']);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonY);
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(
+        of: find.byKey(const ValueKey('library-category-tabs')),
+        matching: find.text('PATCHES')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PatchLibraryScreen), findsOneWidget,
+        reason: 'Dynamic index 2 opens Patches, not the omitted Hacks tab');
+    Navigator.of(tester.element(find.byType(PatchLibraryScreen))).pop();
+    await tester.pumpAndSettle();
+    await console('GBC');
+    expect(find.byKey(const ValueKey('library-category-tabs')), findsNothing,
+        reason:
+            'All retains homebrew without inventing Commercial/Hacks/Patches');
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('dual preview uses eight covers and retains gallery focus',
       (tester) async {
     tester.view.physicalSize = const Size(1920, 1080);
