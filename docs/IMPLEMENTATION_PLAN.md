@@ -16,6 +16,14 @@ and census precede implementation; finish all batch wiring before acceptance
 validation. No approval checkpoint or repeated ordinary GBA sweep. Wider S25
 and S26 status is unchanged; missing unsupplied hardware is reported, not invented.
 
+Revision 119 batch checkpoint: **COMPLETE**. Production host loading/contracts,
+signed Thor affected-handheld frames, three hinge families and all eight opening
+boxes pass. Exact placement preserves the earlier corrected control imports and
+retains rollback for the two replaced appearances. Normal public v1.9.22 is
+independently downloaded and verifies source, version, signature and content;
+Thor's installed package is identical. No batch blocker or tracked deferral
+remains. Wider S25 stays ACTIVE and S26 stays NOT STARTED.
+
 Current execution, 2026-10-19: **S25 ACTIVE**.
 Current correction: unify enabled 3D library selection presentation (GBA and
 G&W) under the same upright +/-30-degree sweep and transparent-edge halo.

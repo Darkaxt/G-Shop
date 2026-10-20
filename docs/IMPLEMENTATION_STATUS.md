@@ -5,17 +5,15 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-20 revision 119: G&W expansion batch **ACTIVE** within sole ACTIVE S25.
+2026-10-20 revision 119: G&W expansion batch **COMPLETE** within sole ACTIVE S25.
 Takeover is COMPLETE (private completion gate at E:/Codex/ContextTransfers/
 2026/2026-10-20-roms-manager/Records/completion-validation.json). Both new ZIPs
 have identical catalogues/mappings and byte-identical overlapping GLBs: 15 new
 handhelds, eight boxes and three corrections. Actual GLBs have no skins or
 required extensions; hinges use existing linear rigid Open/Close rotations.
-Current internal acceptance blockers: new exact aliases/private imports and Box
-resource wiring, signed-device verification, exact current-collection coverage
-report and final 1.9.22 delivery. Resolve through integrated implementation,
-focused host/import checks, affected native model/box checks and public/installed
-package verification. No tracked deferral; wider S25 is not declared complete.
+The batch's alias/import, Box wiring, native acceptance, private collection census
+and final delivery requirements are satisfied. No batch blocker or tracked
+deferral remains; wider S25 is not declared complete.
 The feature is now wired: exact new hardware/release mappings, independently
 bound Box imports, preserved default handheld view and shared resource controls.
 All 28 handheld imports and eight boxes pass production geometry/texture checks;
@@ -27,8 +25,30 @@ controller, library state/selection and GBA compatibility checks pass. Analysis
 has no errors/warnings; only eleven pre-existing ResourceGallery style infos.
 The exact revision-aware private census is retained outside Git at
 `D:/Temp/rshop-s25-gw-update-20261020/reports/collection-coverage.json`.
-Remaining batch acceptance: verified model placement, signed Thor visual/gesture
-checks and normal 1.9.22 publication/independent download/installed verification.
+All 150 changed/new files verify at Thor's actual model paths. Earlier corrected
+DK II/Mario imports are unchanged; exact Fire/SMB predecessors are retained in
+the named device model-history location for rollback. Signed source `a799e77`
+(run `39415118963`) has native frames for all fourteen newly matched handhelds
+and both appearance corrections. Eight matching boxes render their own artwork,
+open and rotate. Vertical Black Jack, horizontal Lifeboat and Panorama Snoopy
+close/reopen recordings pass visual review. All accepted recordings have complete
+exported evidence; encoded-size signals are compression changes, not observed
+flashes. Raw H.264 remux timing remains estimated. Snoopy's dark LCD matches the
+supplied reference render. Gallery controller/zoom/reset/Reduced Motion contracts
+pass on host; the existing secondary Presentation is not key-focusable, so this
+does not claim native secondary-controller acceptance or close that wider S25 gap.
+Normal public [v1.9.22](https://github.com/Darkaxt/R-Shop/releases/tag/v1.9.22)
+is published with APK, BUILDINFO and SHA256SUMS, targeting
+`a799e77d502cca38f401dc90ce17566611ac85f7`. Independent unauthenticated downloads
+verify 1.9.22/code 38, the existing production certificate and no private models.
+Public/candidate/installed Thor APK SHA-256 are identical:
+`41a10cba47c738cf3db40635154400c18d568db6e3b9f2537cece45155b1f07d`.
+All source ROM archive hashes remain unchanged. The native, census, transfer,
+rollback and delivery receipts remain in the private task evidence directory.
+Reviewed exact-work cleanup transaction `a777becddbd6f2db542f913daf71f15a`
+removed 369 expendable members (448,352,850 logical bytes), with no residuals.
+Original archives, private release imports, public APK, native evidence,
+reproduction scripts, device rollback and pre-existing test failures remain.
 
 2026-10-20 revision 118 correction: **COMPLETE**, while wider S25 remains
 **ACTIVE**. Shared selected/unselected presentation, both Reduced Motion inputs,

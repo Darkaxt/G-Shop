@@ -2,7 +2,7 @@
 
 Updated 2026-10-20. This records actual inspected assets, not candidate listings.
 
-## Game & Watch expansion — 2026-10-20, ACTIVE
+## Game & Watch expansion — 2026-10-20, COMPLETE bounded batch
 
 The supplied update and full archives have identical catalogues/mappings and
 byte-identical overlapping models. New imports comprise fifteen handhelds,
@@ -14,9 +14,18 @@ private; no GLB, texture or library inventory is added to public artifacts.
 Host production loading verifies all 28 mapped handheld imports and eight boxes,
 their mesh/texture receipts, exact identity/type separation, articulated pose
 centres and supplied hinge geometry. Resource/controller and library-selection
-contracts pass; this is not native GPU acceptance. New model/box native checks
-and final 1.9.22 delivery remain required. Private per-model conversion, CRC-bound
-collection census and forthcoming native evidence are under
+contracts pass. Signed `a799e77`/run `39415118963` adds actual native frames for
+fourteen newly matched handhelds and both housing corrections, plus eight
+matching boxes with opening and rotation captures. Vertical folding, horizontal
+folding and Panorama hood close/reopen films pass review; no physical-display
+timing claim is made from estimated raw-H.264 remux timestamps. The dark Snoopy
+LCD agrees with the supplied reference. Controller/zoom/reset/Reduced Motion
+contracts are host evidence; the secondary Presentation remains non-focusable
+for keys, preserving the existing wider controller-acceptance boundary.
+Normal public v1.9.22/code 38, exact tag/source, production signature and required
+assets are independently verified. Public, candidate and installed Thor APKs
+share SHA-256 `41a10cba47c738cf3db40635154400c18d568db6e3b9f2537cece45155b1f07d`.
+Private per-model conversion, CRC-bound collection census and native evidence are under
 `D:/Temp/rshop-s25-gw-update-20261020/reports/`. Wider S25 remains ACTIVE.
 
 S25 is **ACTIVE** for the owner's shared collector/gallery/model correction.
