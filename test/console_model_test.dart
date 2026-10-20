@@ -560,6 +560,9 @@ void main() {
     expect(scene['deviceCount'], 63);
     expect((scene['devices'] as List).toSet().length, 63);
     expect(scene['hiddenNodes'], ['Display_board']);
+    expect((geometry.data['bounds'][1] as num),
+        greaterThan((geometry.data['bounds'][2] as num) * 3),
+        reason: 'The collection must face the upright selector camera');
     expect(
         scene['devices'],
         containsAll([

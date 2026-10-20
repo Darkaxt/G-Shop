@@ -152,6 +152,18 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
     _hasFrame = true;
     _updateMotion();
     _reportInformationMotion();
+    // Keep the readiness/motion receipt within Android's log message boundary.
+    // The full snapshot still travels through the structured preview bridge.
+    debugPrint('RShopConsoleMotion ${jsonEncode({
+          'system': widget.systemId,
+          'geometrySha256': snapshot['geometrySha256'],
+          'generation': widget.generation,
+          'frameRendered': snapshot['frameRendered'],
+          'motion': snapshot['motion'],
+          'rotationRunning': _rotation.isAnimating,
+          'periodMs': _rotation.duration!.inMilliseconds,
+          'reducedMotion': widget.reducedMotion,
+        })}');
     debugPrint('RShopConsolePreview ${jsonEncode(snapshot)}');
     widget.onReady?.call();
   }

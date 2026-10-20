@@ -5,6 +5,15 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+Revision 131 native reconciliation: the signed 28137b1 candidate loads the
+collection on Thor, but its first capture exposes a flat orientation. Blender
+diagnostics prove the imported root is in quaternion mode, so the earlier Euler
+rotation was ignored. This is an internal selector acceptance blocker; the new
+real-import upright-bounds regression fails against v1. Correct the rotation
+mode, rebuild the private overview, then reverify the actual rotating lower
+screen. Android truncates the verbose readiness log, so a compact motion receipt
+now accompanies the existing full structured bridge snapshot. No release yet.
+
 2026-10-20 revision 131: S25 remains **ACTIVE**. The collection GLB was joined
 and verified but never installed under consoles/gameandwatch; the host therefore
 hid the secondary preview. The owner means this large rotating lower-screen scene,

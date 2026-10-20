@@ -146,6 +146,8 @@ def main():
         bpy.data.objects.remove(board, do_unlink=True)
         # The authored display is horizontal. Stand the complete arrangement up
         # as one unit so the existing upright turntable presents its faces.
+        # glTF imports use quaternion mode; an Euler assignment alone is ignored.
+        root.rotation_mode = 'XYZ'
         root.rotation_euler.rotate_axis('X', __import__('math').pi / 2)
         bpy.context.view_layer.update()
         # Close-up imports remain untouched. At overview scale each device is
