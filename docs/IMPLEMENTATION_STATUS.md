@@ -12,7 +12,7 @@ the supplied 290-object scene, both console bodies and 13 cartridge references
 pass production import loaders and texture receipts. Their private deployment to
 Thor is verified; all 1,203 pre-existing import hashes remain unchanged. Focused
 library/preview/lifecycle/launch checks and NES readiness/rating checks pass.
-The 9,831-archive census yields 433 same-region reference-box bindings and 1,256
+The 9,831-archive census yields 453 same-region reference-box bindings and 1,219
 archives with known NES shell references; neither proves an owned physical SKU.
 Signed native acceptance and final 1.10.1/code 42 delivery remain advancement
 blockers within ACTIVE S25. No external

@@ -2,6 +2,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:g_shop/models/nes_cartridge_model.dart';
 
 void main() {
+  test('compound regions work without assigning virtual compilation cartridges',
+      () {
+    expect(NesCartridgeModel.referencesFor('10-Yard Fight (USA, Europe).7z'),
+        ['nintendo-3-gray', 'nintendo-5-gray']);
+    expect(NesCartridgeModel.referencesFor('Super Mario Bros. (Japan, USA).7z'),
+        ['nintendo-3-gray', 'nintendo-5-gray']);
+    for (final tag in [
+      '3DS Virtual Console',
+      'Wii and Wii U Virtual Console',
+      'Retro-Bit Generations',
+      'Mega Man Legacy Collection',
+      'FamicomBox'
+    ]) {
+      expect(
+          NesCartridgeModel.referencesFor('Super Mario Bros. (USA) ($tag).7z'),
+          isEmpty);
+    }
+    expect(NesCartridgeModel.regionsForArchive('Fixture (En,Fr) (Rev 1).7z'),
+        isEmpty);
+  });
   test('late revisions and fixed Camerica finishes are not invented', () {
     expect(NesCartridgeModel.referencesFor('Mega Man 6 (USA).7z'),
         ['nintendo-3-gray']);

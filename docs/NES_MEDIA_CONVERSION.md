@@ -20,14 +20,14 @@ Conversion checks the sampled runtime articulation against the GLB, with maximum
 error below 0.0001. Production loaders also check mesh and texture checksums.
 All 623 editions are deployed, including printings not currently bound to a ROM.
 
-The owner's 9,831 NES archives yield 433 same-region reference-box bindings, 60
-with multiple available printings. 6,022 archives are excluded as tagged hacks,
-aftermarket, prototypes, demos or other non-retail forms; another 3,376 have no
+The owner's 9,831 NES archives yield 453 same-region reference-box bindings, 71
+with multiple available printings. 6,220 archives are excluded as tagged hacks,
+aftermarket, prototypes, demos or other non-retail forms; another 3,158 have no
 compatible reference binding. That last group includes Japanese/Famicom and other
-special releases, so it must not be described as 3,376 missing NES retail boxes.
+special releases, so it must not be described as 3,158 missing NES retail boxes.
 **No exact owned physical printing has been established from ROM identity.**
 
-1,256 archives have one or more known NES cartridge-family references. Styles
+1,219 archives have one or more known NES cartridge-family references. Styles
 include three/five-screw grey/gold Nintendo, black Tengen, gold/silver Camerica,
 blue/black Color Dreams family, square/clipped AVE, clear Active Enterprises and
 Aladdin adapter with a separate compact cartridge. PCB/components are illustrative;

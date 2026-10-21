@@ -41,6 +41,21 @@ def regions(edition):
     return sorted(found)
 
 
+def archive_regions(filename):
+    known={'USA','Europe','Japan','World','Australia','Canada','Asia','Hong Kong',
+        'Korea','China','Taiwan','Brazil','Russia','France','Germany','Spain',
+        'Italy','Netherlands','Sweden','Denmark','Finland','Norway','United Kingdom'}
+    for tag in re.findall(r'\(([^()]*)\)',filename):
+        parts={p.strip() for p in tag.split(',')}
+        if parts and parts<=known: return parts
+    return set()
+
+
+def is_retail_reference(filename):
+    return '[' not in filename and not re.search(
+        r'\((?:Aftermarket|Pirate|Proto[^)]*|Beta[^)]*|Demo[^)]*|[^)]*(?:Virtual Console|Switch|Collection|Archives|Retro-Bit|FamicomBox|Classic Mini|Classics Mini Mix|Disney Classic Games|QUByte Classics)[^)]*)\)',filename,re.I)
+
+
 def main():
     p=argparse.ArgumentParser(); p.add_argument('--source-catalogue',type=Path,required=True)
     p.add_argument('--rom-census',type=Path,required=True); p.add_argument('--imports',type=Path,required=True)
@@ -68,9 +83,9 @@ def main():
     roms=json.loads(a.rom_census.read_text(encoding='utf-8'))['entries']
     for rom in roms:
         filename=rom['filename']
-        if '[' in filename or re.search(r'\((?:Aftermarket|Pirate|Proto[^)]*|Beta[^)]*|Virtual Console|Demo[^)]*)\)',filename,re.I):
+        if not is_retail_reference(filename):
             excluded.append(filename); continue
-        region=set((rom.get('region') or 'Unknown').split(' / '))
+        region=archive_regions(filename)
         candidates=[]
         for e in by_title[title(filename)]:
             er=set(e['regions'])

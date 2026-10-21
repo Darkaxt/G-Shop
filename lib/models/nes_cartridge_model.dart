@@ -25,13 +25,11 @@ class NesCartridgeModel {
 
   static List<String> referencesFor(String filename) {
     if (filename.contains(RegExp(r'[/\\\[]')) ||
-        RegExp(r'\((?:Aftermarket|Pirate|Proto[^)]*|Beta[^)]*|Virtual Console|Demo[^)]*)\)',
+        RegExp(r'\((?:Aftermarket|Pirate|Proto[^)]*|Beta[^)]*|Demo[^)]*|[^)]*(?:Virtual Console|Switch|Collection|Archives|Retro-Bit|FamicomBox|Classic Mini|Classics Mini Mix|Disney Classic Games|QUByte Classics)[^)]*)\)',
                 caseSensitive: false)
             .hasMatch(filename)) return const [];
-    final region = GameMetadata.extractRegion(filename).name;
-    if (!region
-        .split(' / ')
-        .any({'USA', 'Europe', 'Australia', 'Canada'}.contains)) {
+    final region = regionsForArchive(filename);
+    if (!region.any({'USA', 'Europe', 'Australia', 'Canada'}.contains)) {
       return const []; // Famicom/bootleg shapes are not the 72-pin NES shell.
     }
     final title = GameMetadata.cleanTitle(filename)
@@ -254,6 +252,41 @@ class NesCartridgeModel {
       return const ['dreams-blue', 'dreams-black'];
     }
     return const [];
+  }
+
+  /// No-Intro compound regions are explicit alternatives. Language and revision
+  /// tags must never be interpreted as a region or a manufacturing edition.
+  static Set<String> regionsForArchive(String filename) {
+    const known = {
+      'USA',
+      'Europe',
+      'Japan',
+      'World',
+      'Australia',
+      'Canada',
+      'Asia',
+      'Hong Kong',
+      'Korea',
+      'China',
+      'Taiwan',
+      'Brazil',
+      'Russia',
+      'France',
+      'Germany',
+      'Spain',
+      'Italy',
+      'Netherlands',
+      'Sweden',
+      'Denmark',
+      'Finland',
+      'Norway',
+      'United Kingdom'
+    };
+    for (final match in RegExp(r'\(([^()]*)\)').allMatches(filename)) {
+      final parts = match.group(1)!.split(',').map((v) => v.trim()).toSet();
+      if (parts.isNotEmpty && parts.every(known.contains)) return parts;
+    }
+    return const {};
   }
 
   static Future<SocketMediaModel?> load(String style,
