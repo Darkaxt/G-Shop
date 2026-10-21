@@ -1031,8 +1031,8 @@ void main() {
     });
   });
 
-  group('Local-only mode', () {
-    test('empty providers triggers local-only path', () async {
+  group('Retired standalone mode', () {
+    test('empty providers cannot start a standalone library scan', () async {
       final db = FakeDatabaseService();
       final storage = FakeStorageService();
 
@@ -1045,8 +1045,9 @@ void main() {
       );
       await waitUntilLoaded(c);
 
-      expect(c.state.isLocalOnly, true);
-      // Non-existent folder → empty games
+      expect(c.state.isLocalOnly, false);
+      expect(c.state.error, isNotNull);
+      // No source means no standalone scan or fabricated catalogue.
       expect(c.state.allGames, isEmpty);
       c.dispose();
     });

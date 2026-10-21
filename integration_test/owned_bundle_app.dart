@@ -21,7 +21,6 @@ import 'package:g_shop/services/drive/drive_runtime.dart';
 import 'package:g_shop/services/drive/drive_media.dart';
 import 'package:g_shop/services/download_queue_manager.dart';
 import 'package:g_shop/services/installation_index.dart';
-import 'package:g_shop/services/native_smb_service.dart';
 import 'package:g_shop/services/owned_installation_removal.dart';
 import 'package:g_shop/services/owned_storage.dart';
 import 'package:g_shop/services/storage_service.dart';
@@ -195,7 +194,7 @@ Future<void> probe() async {
     require(await index.resolveArtifact(artifact, root) == null,
         'partial_bundle_marked_ready');
     final queue = DownloadQueueManager(
-        _QueueStorage(db, state['queue_json'] as String?), NativeSmbService(),
+        _QueueStorage(db, state['queue_json'] as String?),
         driveRuntime: runtime);
     final completion = Completer<DownloadItem>();
     queue.onItemCompleted = completion.complete;

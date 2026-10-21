@@ -1,7 +1,6 @@
 import '../models/config/provider_config.dart';
 import '../models/config/system_config.dart';
 import '../models/game_item.dart';
-import 'download_handle.dart';
 
 class SourceConnectionResult {
   final bool success;
@@ -21,8 +20,6 @@ abstract class SourceProvider {
   ProviderConfig get config;
 
   Future<List<GameItem>> fetchGames(SystemConfig system);
-
-  Future<DownloadHandle> resolveDownload(GameItem game);
 
   Future<SourceConnectionResult> testConnection();
 

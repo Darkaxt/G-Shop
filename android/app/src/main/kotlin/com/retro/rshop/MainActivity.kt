@@ -3,7 +3,6 @@ package com.retro.rshop
 import android.content.Context
 import android.content.ComponentName
 import android.content.pm.PackageManager
-import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -23,13 +22,10 @@ class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.darkaxt.gshop/zip"
     private val STORAGE_CHANNEL = "com.darkaxt.gshop/storage"
     private val PROGRESS_CHANNEL = "com.darkaxt.gshop/zip_progress"
-    private val SMB_CHANNEL = "com.darkaxt.gshop/smb"
-    private val SMB_PROGRESS_CHANNEL = "com.darkaxt.gshop/smb_progress"
     private val TAG = "MainActivity"
 
     private val extractorPool = Executors.newFixedThreadPool(2)
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val smbService = SmbService()
     private var ownedStorage: OwnedStorageService? = null
     private var romCacheChannel: MethodChannel? = null
     private var saveCapture: SaveCaptureService? = null
@@ -40,26 +36,10 @@ class MainActivity : FlutterActivity() {
     private var saveBackgroundChannel: MethodChannel? = null
 
     private var progressSink: EventChannel.EventSink? = null
-    private var smbProgressSink: EventChannel.EventSink? = null
-    private var multicastLock: WifiManager.MulticastLock? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "MainActivity onCreate")
-        // Acquire a WiFi multicast lock so mDNS / Bonjour discovery (used by
-        // NetworkDiscoveryService for SMB/RomM detection) can actually receive
-        // multicast packets on Android. Without this, Android silently drops
-        // them and the discovery stream stays empty.
-        try {
-            val wifi = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-            multicastLock = wifi?.createMulticastLock("rshop-mdns")?.apply {
-                setReferenceCounted(false)
-                acquire()
-            }
-            Log.d(TAG, "Multicast lock acquired: ${multicastLock?.isHeld}")
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to acquire multicast lock: $e")
-        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -180,77 +160,6 @@ class MainActivity : FlutterActivity() {
             }
         }
 
-        // SMB Progress EventChannel
-        EventChannel(flutterEngine.dartExecutor.binaryMessenger, SMB_PROGRESS_CHANNEL).setStreamHandler(
-            object : EventChannel.StreamHandler {
-                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-                    smbProgressSink = events
-                }
-                override fun onCancel(arguments: Any?) {
-                    smbProgressSink = null
-                }
-            }
-        )
-
-        // SMB MethodChannel
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SMB_CHANNEL).setMethodCallHandler { call, result ->
-            when (call.method) {
-                "testConnection" -> {
-                    val args = call.arguments as? Map<*, *>
-                    if (args == null) {
-                        result.error("INVALID_ARGS", "Arguments required", null)
-                        return@setMethodCallHandler
-                    }
-                    smbService.smbPool.execute {
-                        try {
-                            val response = smbService.testConnection(args)
-                            mainHandler.post { result.success(response) }
-                        } catch (e: Exception) {
-                            mainHandler.post { result.error("SMB_ERROR", e.message, null) }
-                        }
-                    }
-                }
-                "listFiles" -> {
-                    val args = call.arguments as? Map<*, *>
-                    if (args == null) {
-                        result.error("INVALID_ARGS", "Arguments required", null)
-                        return@setMethodCallHandler
-                    }
-                    smbService.smbPool.execute {
-                        try {
-                            val files = smbService.listFiles(args)
-                            mainHandler.post { result.success(files) }
-                        } catch (e: Exception) {
-                            mainHandler.post { result.error("SMB_ERROR", e.message, null) }
-                        }
-                    }
-                }
-                "startDownload" -> {
-                    val args = call.arguments as? Map<*, *>
-                    if (args == null) {
-                        result.error("INVALID_ARGS", "Arguments required", null)
-                        return@setMethodCallHandler
-                    }
-                    try {
-                        smbService.startDownload(args, smbProgressSink, mainHandler)
-                        result.success(null)
-                    } catch (e: Exception) {
-                        result.error("SMB_ERROR", e.message, null)
-                    }
-                }
-                "cancelDownload" -> {
-                    val downloadId = call.argument<String>("downloadId")
-                    if (downloadId == null) {
-                        result.error("INVALID_ARGS", "downloadId required", null)
-                        return@setMethodCallHandler
-                    }
-                    smbService.cancelDownload(downloadId)
-                    result.success(null)
-                }
-                else -> result.notImplemented()
-            }
-        }
-
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, STORAGE_CHANNEL).setMethodCallHandler { call, result ->
             if (call.method.startsWith("owned") || call.method == "localCopyInspect" || call.method == "launchOwnedDolphin" ||
                 call.method == "launchOwnedRetroArchGameGear" || call.method == "launchOwnedRetroArchN64" ||
@@ -354,12 +263,6 @@ class MainActivity : FlutterActivity() {
         if(owned!=null)owned.shutdown { RomCacheChannel.detach(romCacheChannel) }
         else RomCacheChannel.detach(romCacheChannel)
         extractorPool.shutdown()
-        smbService.shutdown()
-        try {
-            multicastLock?.takeIf { it.isHeld }?.release()
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to release multicast lock: $e")
-        }
         super.onDestroy()
         SaveBackgroundChannel.detach(saveBackgroundChannel)
     }

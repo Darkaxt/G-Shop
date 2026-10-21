@@ -113,7 +113,9 @@ void main() {
       () async {
     final queue = _Queue();
     final remote = local.copyWith(
-        providerConfig: web, url: 'https://example.invalid/game');
+        providerConfig: drive,
+        remoteArtifact: artifact(),
+        url: 'drive-artifact:game');
     final detail = controller(queue, [local, remote]);
     addTearDown(detail.dispose);
     await detail.checkInstallationStatus();
@@ -145,6 +147,7 @@ void main() {
       'Drive eligibility requires its exact artifact and downloadable capability',
       () async {
     for (final game in [
+      local.copyWith(providerConfig: web, url: 'https://example.invalid/game'),
       local.copyWith(providerConfig: drive),
       local.copyWith(
           providerConfig: drive, remoteArtifact: artifact(downloadable: false)),

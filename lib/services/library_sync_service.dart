@@ -17,6 +17,7 @@ import 'thumbnail_service.dart';
 import 'unified_game_service.dart';
 import 'drive/drive_runtime.dart';
 import 'migration/migration_maintenance.dart';
+import 'config_bootstrap.dart';
 
 enum LibrarySyncPhase {
   readingGames,
@@ -137,10 +138,15 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
   static bool isSyncingSystem(String systemId) =>
       _currentlySyncingSystemId == systemId;
 
-  LibrarySyncService() : super(const LibrarySyncState());
+  LibrarySyncService({UnifiedGameService? gameService})
+      : _providedGameService = gameService,
+        super(const LibrarySyncState());
+
+  final UnifiedGameService? _providedGameService;
 
   UnifiedGameService _gameService(Duration? timeout,
           {bool refreshDrive = true}) =>
+      _providedGameService ??
       UnifiedGameService(
         syncTimeout: timeout,
         shareDrivePreparation: true,
@@ -201,6 +207,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     Duration? syncTimeout,
     StorageService? storageService,
   }) async {
+    config = ConfigBootstrap.active(config);
     if (state.isSyncing || MigrationMaintenance.active) return;
     if (config.systems.isEmpty) return;
 
@@ -233,37 +240,28 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
       _currentlySyncingSystemId = systemConfig.id;
 
       try {
-        if (systemConfig.providers.isEmpty) {
-          // Local-only: scan filesystem
-          if (systemModel != null) {
-            final games =
-                await _scanLocal(systemModel, systemConfig.targetFolder);
-            await _saveGames(db, systemConfig.id, games,
-                forceDeleteOrphans: true);
-            perSystem[systemConfig.id] = games.length;
-            totalGames += games.length;
-          }
+        if (!systemConfig.providers.any((p) => p.type == ProviderType.drive))
+          throw StateError('Connect Google Drive to sync this console');
+
+        // Remote + local merge (same quality as discoverAll)
+        final remoteGames = await gameService.fetchGamesForSystem(systemConfig);
+        final List<GameItem> games;
+        if (systemModel != null) {
+          final localGames =
+              await _scanLocal(systemModel, systemConfig.targetFolder);
+          games = GameMergeHelper.merge(remoteGames, localGames, systemModel);
         } else {
-          // Remote + local merge (same quality as discoverAll)
-          final remoteGames =
-              await gameService.fetchGamesForSystem(systemConfig);
-          final List<GameItem> games;
-          if (systemModel != null) {
-            final localGames =
-                await _scanLocal(systemModel, systemConfig.targetFolder);
-            games = GameMergeHelper.merge(remoteGames, localGames, systemModel);
-          } else {
-            games = remoteGames;
-          }
-          await _saveGames(db, systemConfig.id, games,
-              deleteOrphans: true,
-              forceDeleteOrphans: systemConfig.providers
-                  .every((p) => p.type != ProviderType.drive),
-              authoritativeDriveSourceIds:
-                  UnifiedGameService.configuredDriveSourceIds(systemConfig));
-          perSystem[systemConfig.id] = games.length;
-          totalGames += games.length;
+          games = remoteGames;
         }
+        await _saveGames(db, systemConfig.id, games,
+            deleteOrphans: true,
+            forceDeleteOrphans: systemConfig.providers
+                .every((p) => p.type != ProviderType.drive),
+            authoritativeDriveSourceIds:
+                UnifiedGameService.configuredDriveSourceIds(systemConfig));
+        perSystem[systemConfig.id] = games.length;
+        totalGames += games.length;
+
         _lastSyncTimes[systemConfig.id] = DateTime.now();
         storageService?.setLastSyncTime(systemConfig.id, DateTime.now());
       } catch (e) {
@@ -325,6 +323,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     Set<String> forceSystemIds = const {},
     required StorageService storageService,
   }) async {
+    config = ConfigBootstrap.active(config);
     if (state.isSyncing || MigrationMaintenance.active) return;
     if (config.systems.isEmpty) return;
 
@@ -371,33 +370,25 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
       _currentlySyncingSystemId = systemConfig.id;
 
       try {
-        if (systemConfig.providers.isEmpty) {
-          if (systemModel != null) {
-            final games =
-                await _scanLocal(systemModel, systemConfig.targetFolder);
-            await _saveGames(db, systemConfig.id, games,
-                forceDeleteOrphans: true);
-            perSystem[systemConfig.id] = games.length;
-            totalGames += games.length;
-          }
+        if (!systemConfig.providers.any((p) => p.type == ProviderType.drive))
+          throw StateError('Connect Google Drive to sync this console');
+
+        final remoteGames = await gameService.fetchGamesForSystem(systemConfig);
+        final List<GameItem> games;
+        if (systemModel != null) {
+          final localGames =
+              await _scanLocal(systemModel, systemConfig.targetFolder);
+          games = GameMergeHelper.merge(remoteGames, localGames, systemModel);
         } else {
-          final remoteGames =
-              await gameService.fetchGamesForSystem(systemConfig);
-          final List<GameItem> games;
-          if (systemModel != null) {
-            final localGames =
-                await _scanLocal(systemModel, systemConfig.targetFolder);
-            games = GameMergeHelper.merge(remoteGames, localGames, systemModel);
-          } else {
-            games = remoteGames;
-          }
-          await _saveGames(db, systemConfig.id, games,
-              deleteOrphans: true,
-              authoritativeDriveSourceIds:
-                  UnifiedGameService.configuredDriveSourceIds(systemConfig));
-          perSystem[systemConfig.id] = games.length;
-          totalGames += games.length;
+          games = remoteGames;
         }
+        await _saveGames(db, systemConfig.id, games,
+            deleteOrphans: true,
+            authoritativeDriveSourceIds:
+                UnifiedGameService.configuredDriveSourceIds(systemConfig));
+        perSystem[systemConfig.id] = games.length;
+        totalGames += games.length;
+
         _lastSyncTimes[systemConfig.id] = DateTime.now();
         storageService.setLastSyncTime(systemConfig.id, DateTime.now());
       } catch (e) {
@@ -449,6 +440,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
   /// Discovers all games across ALL configured systems (including local-only).
   /// Used by the "Scan Library" feature in Settings.
   Future<void> discoverAll(AppConfig config, {Duration? syncTimeout}) async {
+    config = ConfigBootstrap.active(config);
     if (state.isSyncing || MigrationMaintenance.active) return;
     if (config.systems.isEmpty) return;
 
@@ -488,29 +480,22 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
 
         try {
           final List<GameItem> games;
-          if (systemConfig.providers.isEmpty) {
-            // Local-only: scan filesystem via isolate
-            games = await _scanLocal(
-              systemModel,
-              systemConfig.targetFolder,
-            );
-            await _saveGames(db, systemConfig.id, games,
-                forceDeleteOrphans: true);
-          } else {
-            // Remote + local merge
-            final remoteGames = await gameService.fetchGamesForSystem(
-              systemConfig,
-            );
-            final localGames = await _scanLocal(
-              systemModel,
-              systemConfig.targetFolder,
-            );
-            games = GameMergeHelper.merge(remoteGames, localGames, systemModel);
-            await _saveGames(db, systemConfig.id, games,
-                deleteOrphans: true,
-                authoritativeDriveSourceIds:
-                    UnifiedGameService.configuredDriveSourceIds(systemConfig));
-          }
+          if (!systemConfig.providers.any((p) => p.type == ProviderType.drive))
+            throw StateError('Connect Google Drive to sync this console');
+
+          // Remote + local merge
+          final remoteGames = await gameService.fetchGamesForSystem(
+            systemConfig,
+          );
+          final localGames = await _scanLocal(
+            systemModel,
+            systemConfig.targetFolder,
+          );
+          games = GameMergeHelper.merge(remoteGames, localGames, systemModel);
+          await _saveGames(db, systemConfig.id, games,
+              deleteOrphans: true,
+              authoritativeDriveSourceIds:
+                  UnifiedGameService.configuredDriveSourceIds(systemConfig));
 
           perSystem[systemConfig.id] = games.length;
           totalGames += games.length;
@@ -573,6 +558,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     Duration? syncTimeout,
     StorageService? storageService,
   }) async {
+    config = ConfigBootstrap.active(config);
     if (MigrationMaintenance.active) return;
     final systemConfig =
         config.systems.where((s) => s.id == systemId).firstOrNull;
@@ -668,29 +654,23 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     _currentlySyncingSystemId = systemConfig.id;
     try {
       final List<GameItem> games;
-      if (systemConfig.providers.isEmpty) {
-        if (systemModel != null) {
-          games = await _scanLocal(systemModel, systemConfig.targetFolder);
-        } else {
-          games = [];
-        }
-        await _saveGames(db, systemConfig.id, games, forceDeleteOrphans: true);
+      if (!systemConfig.providers.any((p) => p.type == ProviderType.drive))
+        throw StateError('Connect Google Drive to sync this console');
+
+      final remoteGames = await gameService.fetchGamesForSystem(systemConfig);
+      if (systemModel != null) {
+        final localGames =
+            await _scanLocal(systemModel, systemConfig.targetFolder);
+        games = GameMergeHelper.merge(remoteGames, localGames, systemModel);
       } else {
-        final remoteGames = await gameService.fetchGamesForSystem(systemConfig);
-        if (systemModel != null) {
-          final localGames =
-              await _scanLocal(systemModel, systemConfig.targetFolder);
-          games = GameMergeHelper.merge(remoteGames, localGames, systemModel);
-        } else {
-          games = remoteGames;
-        }
-        await _saveGames(db, systemConfig.id, games,
-            deleteOrphans: true,
-            forceDeleteOrphans: systemConfig.providers
-                .every((p) => p.type != ProviderType.drive),
-            authoritativeDriveSourceIds:
-                UnifiedGameService.configuredDriveSourceIds(systemConfig));
+        games = remoteGames;
       }
+      await _saveGames(db, systemConfig.id, games,
+          deleteOrphans: true,
+          forceDeleteOrphans:
+              systemConfig.providers.every((p) => p.type != ProviderType.drive),
+          authoritativeDriveSourceIds:
+              UnifiedGameService.configuredDriveSourceIds(systemConfig));
 
       final perSystem = Map<String, int>.of(state.gamesPerSystem);
       perSystem[systemConfig.id] = games.length;

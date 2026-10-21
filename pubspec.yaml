@@ -1,7 +1,7 @@
 name: g_shop
 description: "G-Shop — A retro game manager for Android with a console-style UI, controller support, and download queue."
 publish_to: 'none'
-version: 1.9.24+40
+version: 1.10.0+41
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -34,7 +34,6 @@ dependencies:
   cached_network_image: 3.4.1
   video_player: 2.14.1
   flutter_cache_manager: 3.4.1
-  ftpconnect: 2.0.10
   share_plus: 10.1.4
   flutter_foreground_task: 9.2.0
   image: 4.3.0
@@ -47,8 +46,6 @@ dependencies:
   package_info_plus: 8.3.1
   flutter_svg: 2.0.17
   archive: 3.6.1
-  mobile_scanner: 5.2.3
-  multicast_dns: 0.3.3
 
 
 dev_dependencies:

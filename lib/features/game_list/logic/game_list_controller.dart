@@ -217,20 +217,6 @@ class GameListController extends ChangeNotifier {
     }
 
     try {
-      // Local-only systems always scan filesystem (it IS the source of truth)
-      if (systemConfig.providers.isEmpty) {
-        final games = await RomManager.scanLocalGames(system, targetFolder);
-        _state = _state.copyWith(allGames: games, isLocalOnly: true);
-        _groupGames();
-        _restoreFilters();
-        _resolveInstalledStatus();
-        await _databaseService.saveGames(system.id, _state.allGames,
-            forceDeleteOrphans: true);
-        onGamesSaved?.call();
-        refreshDiscovery();
-        return;
-      }
-
       // Cache-first: show cached games immediately if available
       phase('cache-query');
       if (!forceRefresh && await _databaseService.hasCache(system.id)) {

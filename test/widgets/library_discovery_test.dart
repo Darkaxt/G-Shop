@@ -174,6 +174,8 @@ void main() {
     sqfliteFfiInit();
     final db =
         await databaseFactoryFfiNoIsolate.openDatabase(inMemoryDatabasePath);
+    DatabaseService.testDatabase = db;
+    addTearDown(DatabaseService.resetForTesting);
     addTearDown(db.close);
     await LibrarySchema.install(db);
     await MetadataRefreshJobs.install(db);
@@ -254,7 +256,8 @@ void main() {
         child: createTestApp(Builder(
             builder: (context) => MediaQuery(
                 data: MediaQuery.of(context).copyWith(disableAnimations: true),
-                child: const LibraryScreen())))));
+                // Category navigation does not verify the unavailable host GPU.
+                child: const TickerMode(enabled: false, child: LibraryScreen()))))));
     await tester.pumpAndSettle();
     Future<void> console(String label) async {
       final tabs = tester.widget<LibraryTabs>(
@@ -824,10 +827,10 @@ void defineLibraryDiscoveryChecks({
     ], overrides: [
       libraryDbProvider.overrideWithValue(_Database(db)),
       metadataControlsProvider.overrideWith((_) => controls),
-      // These existing preview assertions exercise the enabled/imported mode;
-      // the application's unimported default remains flat (S13).
-      mediaPresentationProvider.overrideWith(
-          (_) => MediaPresentationNotifier(storage, resourcesAvailable: true)),
+      // Native fixtures exercise imported 3D; host Skia uses the real flat mode.
+      mediaPresentationProvider.overrideWith((_) => MediaPresentationNotifier(
+          storage,
+          resourcesAvailable: factory != null)),
       storageServiceProvider.overrideWithValue(storage),
       bootstrappedConfigProvider.overrideWith((ref) async => AppConfig.empty),
       installedFilesProvider.overrideWith((ref) async => InstalledFilesState(
@@ -897,9 +900,9 @@ void defineLibraryDiscoveryChecks({
       void capture() {
         for (final card
             in tester.widgetList<BaseGameCard>(find.byType(BaseGameCard))) {
-          expect(card.isRemoteAvailable, card.displayName != 'Game 12',
-              reason: 'Library and shelf badges must use the entry source, '
-                  'not assume every cached game is downloadable');
+          expect(card.isRemoteAvailable, false,
+              reason: 'Retired Web fixtures remain browsable history without '
+                  'becoming executable download sources');
           expect(card.systemId, anyOf('psx', 'ps2'));
           expect(mediaFallbackAsset(card.systemId),
               endsWith('/systematic/${card.systemId}.png'));
@@ -921,7 +924,11 @@ void defineLibraryDiscoveryChecks({
                 card.cachedUrl == null ||
                 Uri.tryParse(card.cachedUrl!)?.scheme != 'file')
             .length;
-        expect(find.byType(MediaCoverFallback), findsNWidgets(fallbackCount),
+        expect(
+            find.descendant(
+                of: find.byType(BaseGameCard),
+                matching: find.byType(MediaCoverFallback)),
+            findsNWidgets(fallbackCount),
             reason:
                 'Offline Library and shelf cards retain physical-media art');
       }
@@ -953,7 +960,8 @@ void defineLibraryDiscoveryChecks({
     final summaries =
         tester.widgetList<LibraryConsoleCard>(find.byType(LibraryConsoleCard));
     expect(summaries.map((c) => c.summary.entries), [6, 6]);
-    expect(summaries.map((c) => c.summary.unknownSourceSizes), [6, 5]);
+    // Retired Web fixtures remain cached history, not downloadable sources.
+    expect(summaries.map((c) => c.summary.unknownSourceSizes), [0, 0]);
     expect(summaries.map((c) => c.summary.installed), [1, 1]);
     expect(summaries.map((c) => c.summary.favorites), [1, 1]);
     expect(
@@ -1044,11 +1052,19 @@ void defineLibraryDiscoveryChecks({
     await tester.pumpAndSettle();
     expect(cards().first, 'Game 02');
     expect(find.byKey(const ValueKey('library-media-preview')), findsOneWidget);
-    expect(find.byType(PhysicalMediaView), findsOneWidget,
-        reason: 'Only the selected game gets an animated media object');
-    expect(
-        tester.widget<PhysicalMediaView>(find.byType(PhysicalMediaView)).format,
-        PhysicalMediaFormat.disc);
+    final selectedMedia = factory == null
+        ? find.descendant(
+            of: find.byKey(const ValueKey('library-media-preview')),
+            matching: find.byType(MediaCoverFallback))
+        : find.byType(PhysicalMediaView);
+    expect(selectedMedia, findsOneWidget,
+        reason: 'Only the selected game gets a physical-media preview');
+    if (factory != null) {
+      expect(tester.widget<PhysicalMediaView>(selectedMedia).format,
+          PhysicalMediaFormat.disc);
+    } else {
+      expect(tester.widget<MediaCoverFallback>(selectedMedia).systemId, 'ps2');
+    }
     expect(find.byTooltip('Cover view'), findsNothing,
         reason:
             'Presentation controls belong in details, not over the preview');
@@ -1059,20 +1075,23 @@ void defineLibraryDiscoveryChecks({
     final previewHeight = tester
         .getSize(find.byKey(const ValueKey('library-media-preview')))
         .height;
-    expect(tester.getSize(find.byType(PhysicalMediaView)).height,
+    expect(tester.getSize(selectedMedia).height,
         greaterThanOrEqualTo(previewHeight * 0.5),
         reason: 'The selected object must retain half the Thor preview height');
     if (factory == null) {
       tester.view.physicalSize = const Size(1920, 1080);
       await tester.pumpAndSettle();
     }
-    await container.read(mediaPresentationProvider.notifier).toggleMedia();
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('library-media-preview')), findsOneWidget);
-    expect(find.byType(PhysicalMediaView), findsNothing,
-        reason: 'Disabling imported 3D media keeps the default flat preview');
-    await container.read(mediaPresentationProvider.notifier).toggleMedia();
-    await tester.pumpAndSettle();
+    if (factory != null) {
+      await container.read(mediaPresentationProvider.notifier).toggleMedia();
+      await tester.pumpAndSettle();
+      expect(
+          find.byKey(const ValueKey('library-media-preview')), findsOneWidget);
+      expect(find.byType(PhysicalMediaView), findsNothing,
+          reason: 'Disabling imported 3D media keeps the default flat preview');
+      await container.read(mediaPresentationProvider.notifier).toggleMedia();
+      await tester.pumpAndSettle();
+    }
     expect(metadataScopes.covers, ['ps2'],
         reason: 'Console browsing must not hash every console cover');
     expect(metadataScopes.ratings, ['ps2']);

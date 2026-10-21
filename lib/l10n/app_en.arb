@@ -9,7 +9,13 @@
   "saveBackup_problem": "Setup needs attention: {code}",
   "saveBackup_noDrive": "Add a Google Drive source first to select its connected account.",
   "saveBackup_preparing": "Preparing private backup area…",
-  "@saveBackup_problem": {"placeholders": {"code": {"type": "String"}}},
+  "@saveBackup_problem": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "metadata_credentials": "Account & API keys",
   "metadata_scraping": "Get game information",
   "metadata_latestGame": "Latest processed game",
@@ -78,7 +84,19 @@
   "metadata_olderJobs": "Older jobs",
   "metadata_newestJobs": "Newest jobs",
   "metadata_savedJobLabel": "Job {id} · {state} · {requested} lookups",
-  "@metadata_savedJobLabel": { "placeholders": { "id": {"type": "int"}, "state": {"type": "String"}, "requested": {"type": "int"} } },
+  "@metadata_savedJobLabel": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      },
+      "state": {
+        "type": "String"
+      },
+      "requested": {
+        "type": "int"
+      }
+    }
+  },
   "metadata_retryOutcomes": "Retry failed / unmatched",
   "metadata_jobQueued": "Queued",
   "metadata_jobRunning": "Running",
@@ -126,8 +144,26 @@
   "filter_unknown": "Unknown classification",
   "filter_homebrew": "Homebrew",
   "filter_demo": "Demo",
-  "@filter_coverage": {"placeholders": {"ranked": {"type": "int"}, "total": {"type": "int"}, "matches": {"type": "int"}}},
-  "@filter_topLimit": {"placeholders": {"limit": {"type": "int"}}},
+  "@filter_coverage": {
+    "placeholders": {
+      "ranked": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "matches": {
+        "type": "int"
+      }
+    }
+  },
+  "@filter_topLimit": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
   "metadata_staleScore": "Needs a fresh rating",
   "metadata_originalGame": "Original game",
   "metadata_projectScore": "Project score",
@@ -137,14 +173,35 @@
   "metadata_ratingOverlays": "Cover ratings",
   "metadata_ratingOverlaysSubtitle": "Show cached, source-labelled ratings on game covers",
   "metadata_scoreDetails": "{source}: {score}/100. Original scale: {raw} ({minimum}–{maximum}). {count} ratings. Retrieved {date}.",
-  "@metadata_scoreDetails": { "placeholders": { "source": {"type": "String"}, "score": {"type": "String"}, "raw": {"type": "String"}, "minimum": {"type": "String"}, "maximum": {"type": "String"}, "count": {"type": "String"}, "date": {"type": "String"} } },
+  "@metadata_scoreDetails": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      },
+      "score": {
+        "type": "String"
+      },
+      "raw": {
+        "type": "String"
+      },
+      "minimum": {
+        "type": "String"
+      },
+      "maximum": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "@@locale": "en",
-
   "appTitle": "G-Shop",
-
   "settings_language": "Language",
   "settings_languageSystem": "System default",
-
   "common_back": "Back",
   "common_close": "Close",
   "common_cancel": "Cancel",
@@ -168,10 +225,15 @@
   "common_move": "Move",
   "common_drop": "Drop",
   "common_grab": "Grab",
-
   "confirm_deleteTitle": "Delete ROM?",
   "confirm_deleteMessage": "Do you really want to delete this version of {gameTitle}?",
-  "@confirm_deleteMessage": { "placeholders": { "gameTitle": { "type": "String" } } },
+  "@confirm_deleteMessage": {
+    "placeholders": {
+      "gameTitle": {
+        "type": "String"
+      }
+    }
+  },
   "confirm_exitTitle": "Exit App?",
   "confirm_exitMessage": "Do you really want to exit Retro eShop?",
   "confirm_resetTitle": "Reset App?",
@@ -179,16 +241,20 @@
   "confirm_deleteButton": "DELETE",
   "confirm_exitButton": "EXIT",
   "confirm_resetButton": "RESET",
-  "confirm_gamepadHint": "\u2190 \u2192 Select   A Confirm   B Cancel",
-
+  "confirm_gamepadHint": "← → Select   A Confirm   B Cancel",
   "exit_title": "EXIT APPLICATION",
   "exit_message": "Are you sure you want to quit?",
   "exit_confirmButton": "EXIT",
   "exit_cancelButton": "STAY",
-
   "downloads_title": "Downloads",
   "downloads_activeCount": "{count} active",
-  "@downloads_activeCount": { "placeholders": { "count": { "type": "int" } } },
+  "@downloads_activeCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "downloads_noDownloads": "No downloads",
   "downloads_sectionDownloading": "Downloading",
   "downloads_sectionQueued": "Queued",
@@ -203,7 +269,6 @@
   "downloads_actionRemove": "Remove",
   "downloads_actionClear": "Clear",
   "downloads_clearDone": "Clear Done",
-
   "downloadStatus_downloading": "Downloading...",
   "downloadStatus_extracting": "Extracting...",
   "downloadStatus_installing": "Installing...",
@@ -215,30 +280,79 @@
   "downloadStatus_awaitingAuthorization": "Reconnect in Sources",
   "downloadStatus_verifying": "Verifying...",
   "downloadStatus_publishing": "Finishing installation...",
-
   "storage_free": "{size} free",
-  "@storage_free": { "placeholders": { "size": { "type": "String" } } },
+  "@storage_free": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "storage_veryLow": "Very low storage: {freeSpace}",
-  "@storage_veryLow": { "placeholders": { "freeSpace": { "type": "String" } } },
+  "@storage_veryLow": {
+    "placeholders": {
+      "freeSpace": {
+        "type": "String"
+      }
+    }
+  },
   "storage_gettingLow": "Storage getting low: {freeSpace}",
-  "@storage_gettingLow": { "placeholders": { "freeSpace": { "type": "String" } } },
-
+  "@storage_gettingLow": {
+    "placeholders": {
+      "freeSpace": {
+        "type": "String"
+      }
+    }
+  },
   "sync_progress": "Syncing {completed}/{total}",
-  "@sync_progress": { "placeholders": { "completed": { "type": "int" }, "total": { "type": "int" } } },
+  "@sync_progress": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "sync_singleSystemFailed": "{system} sync failed",
-  "@sync_singleSystemFailed": { "placeholders": { "system": { "type": "String" } } },
+  "@sync_singleSystemFailed": {
+    "placeholders": {
+      "system": {
+        "type": "String"
+      }
+    }
+  },
   "sync_multipleSystemsFailed": "{count} systems failed to sync",
-  "@sync_multipleSystemsFailed": { "placeholders": { "count": { "type": "int" } } },
+  "@sync_multipleSystemsFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sync_raProgress": "Achievements {completed}/{total}",
-  "@sync_raProgress": { "placeholders": { "completed": { "type": "int" }, "total": { "type": "int" } } },
+  "@sync_raProgress": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "sync_raFailed": "RA sync failed",
-
   "toast_addedToQueue": "Added to queue",
   "toast_configRecovered": "Config recovered from backup",
-
   "gameCard_variantCount": "{count, plural, =1{1 variant} other{{count} variants}}",
-  "@gameCard_variantCount": { "placeholders": { "count": { "type": "int" } } },
-
+  "@gameCard_variantCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gameDetail_achievements": "Achievements",
   "gameDetail_mastered": "MASTERED",
   "gameDetail_noAchievementsFound": "No achievements found",
@@ -281,7 +395,13 @@
   "gameDetail_showTitle": "Show Title",
   "gameDetail_showFilename": "Show Filename",
   "gameDetail_fromProvider": "from {provider}",
-  "@gameDetail_fromProvider": { "placeholders": { "provider": { "type": "String" } } },
+  "@gameDetail_fromProvider": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
   "gameDetail_addToShelf": "Add to Shelf",
   "gameDetail_removeFromShelf": "Remove from Shelf",
   "gameDetail_removeFromShelfTitle": "REMOVE FROM SHELF",
@@ -291,8 +411,13 @@
   "gameDetail_pressAManage": "Press A to manage",
   "gameDetail_pressADownload": "Press A to download",
   "gameDetail_errorPrefix": "Error: {error}",
-  "@gameDetail_errorPrefix": { "placeholders": { "error": { "type": "String" } } },
-
+  "@gameDetail_errorPrefix": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "settings_title": "SETTINGS",
   "settings_tabGeneral": "General",
   "settings_tabAudio": "Audio",
@@ -308,7 +433,7 @@
   "settings_sectionLibrary": "Library",
   "settings_sectionDisplay": "Display",
   "settings_mySources": "My Sources",
-  "settings_mySourcesSubtitle": "Add or manage RomM, SMB, FTP servers",
+  "settings_mySourcesSubtitle": "Manage your Google Drive collection",
   "settings_consoleSettings": "Console Settings",
   "settings_consoleSettingsSubtitle": "Folder paths, extraction, per-system options",
   "settings_retroAchievements": "RetroAchievements",
@@ -360,29 +485,69 @@
   "settings_deviceMemoryHigh": "HIGH",
   "settings_fetchingCovers": "Fetching covers...",
   "settings_coversResult": "Covers: {ok} ok, {failed} failed",
-  "@settings_coversResult": { "placeholders": { "ok": { "type": "int" }, "failed": { "type": "int" } } },
+  "@settings_coversResult": {
+    "placeholders": {
+      "ok": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
   "settings_coversLoaded": "{count} covers loaded!",
-  "@settings_coversLoaded": { "placeholders": { "count": { "type": "int" } } },
+  "@settings_coversLoaded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "settings_noErrorLog": "No error log available",
   "settings_configImported": "Config imported!",
   "settings_controllerXboxFull": "Xbox (A/B & X/Y swapped)",
-  "settings_controllerPlaystationFull": "PlayStation (\u2715 \u25CB \u25A1 \u25B3)",
+  "settings_controllerPlaystationFull": "PlayStation (✕ ○ □ △)",
   "settings_allCoversCached": "All covers cached",
   "settings_downloadCoverArt": "Download cover art for all games",
   "settings_coverCacheInfo": "{size} ({count} cached)",
-  "@settings_coverCacheInfo": { "placeholders": { "size": { "type": "String" }, "count": { "type": "int" } } },
+  "@settings_coverCacheInfo": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "settings_coversRemaining": "{count} remaining (~{size} MB)",
-  "@settings_coversRemaining": { "placeholders": { "count": { "type": "int" }, "size": { "type": "String" } } },
+  "@settings_coversRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "settings_coversProgress": "{completed} / {total} games",
-  "@settings_coversProgress": { "placeholders": { "completed": { "type": "int" }, "total": { "type": "int" } } },
-
+  "@settings_coversProgress": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "configMode_title": "CONSOLE SETTINGS",
   "configMode_globalTitle": "GLOBAL SETTINGS",
   "configMode_noFolderSet": "No folder set",
   "configMode_notConfigured": "Not configured",
   "configMode_export": "Export",
   "configMode_import": "Import",
-
   "systemDetail_sectionStorage": "Storage",
   "systemDetail_selectRomFolder": "Select ROM folder",
   "systemDetail_tapToChangeFolder": "Tap to change folder",
@@ -394,27 +559,15 @@
   "systemDetail_autoSyncEnabled": "Syncs automatically (respects cooldown)",
   "systemDetail_autoSyncDisabled": "Only syncs manually via Start menu",
   "systemDetail_sectionSources": "Sources",
-
   "sources_title": "SOURCES",
   "sources_refreshCatalogue": "Refresh catalogue",
   "sources_configureDrive": "Connect / configure",
   "sources_disconnectDrive": "Disconnect Google Drive (all Drive sources)",
   "sources_revokeDrive": "Revoke Google Drive access (all Drive sources)",
-  "sources_sourceTypeDriveHint": "Private read-only folder via native Google authorization",
-  "sources_sourceTypeSmbHint": "Windows / NAS network share",
-  "sources_sourceTypeFtpHint": "FTP/FTPS server",
   "sources_noSourcesConfigured": "No sources configured",
   "sources_noSourcesYet": "No sources yet",
-  "sources_noSourcesDescription": "Pair a RomM server to start downloading games. ",
   "sources_addSource": "Add source",
   "sources_whereDoGamesComeFrom": "Where do your games come from?",
-  "sources_sourceTypeRomm": "RomM Server",
-  "sources_sourceTypeRommHint": "Pair via QR or 8-digit code",
-  "sources_sourceTypeRommLegacy": "RomM Login (older servers)",
-  "sources_sourceTypeSmb": "SMB Share",
-  "sources_sourceTypeFtp": "FTP Server",
-  "sources_sourceTypeWeb": "Web Mirror",
-  "sources_sourceTypeWebHint": "HTTPS directory listing",
   "sources_expired": "EXPIRED",
   "sources_borrowed": "BORROWED",
   "sources_off": "OFF",
@@ -423,37 +576,9 @@
   "sources_editMappings": "Edit mappings",
   "sources_disable": "Disable",
   "sources_enable": "Enable",
-
-  "manualSource_defaultNameSmb": "My NAS",
-  "manualSource_defaultNameFtp": "My FTP",
-  "manualSource_defaultNameWeb": "Web Mirror",
-  "manualSource_defaultNameOther": "Source",
-  "manualSource_name": "Name",
-  "manualSource_url": "URL",
-  "manualSource_urlHint": "https://example.com/roms",
-  "manualSource_host": "Host",
-  "manualSource_hostHint": "nas.local or 192.168.1.10",
-  "manualSource_port": "Port",
-  "manualSource_share": "Share",
-  "manualSource_shareHint": "roms",
-  "manualSource_usernameOptional": "Username (optional)",
-  "manualSource_usernameHint": "leave blank for guest",
-  "manualSource_passwordOptional": "Password (optional)",
-  "manualSource_nameRequired": "Name is required",
-  "manualSource_urlRequired": "URL is required",
-  "manualSource_hostRequired": "Host is required",
-  "manualSource_shareRequired": "Share is required",
-  "manualSource_saveSource": "Save source",
-  "manualSource_smb": "SMB",
-  "manualSource_ftp": "FTP",
-  "manualSource_web": "Web",
-  "manualSource_searchingNetwork": "Searching network\u2026",
-  "manualSource_foundOnNetwork": "Found on your network",
-
   "sourceMappings_title": "System mappings",
   "sourceMappings_instruction": "Enter the remote folder for each system you want this source to serve. Leave empty to skip.",
   "sourceMappings_save": "Save mappings",
-
   "library_title": "LIBRARY",
   "library_tabAll": "All",
   "library_tabInstalled": "Installed",
@@ -473,7 +598,13 @@
   "library_removeFromShelf": "Remove from Shelf",
   "library_reorderGames": "Reorder Games",
   "library_noResults": "No results for \"{query}\"",
-  "@library_noResults": { "placeholders": { "query": { "type": "String" } } },
+  "@library_noResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
   "library_tryShorterSearch": "Try a shorter search term",
   "library_noInstalledGames": "No installed games",
   "library_downloadGamesToSee": "Download games to see them here",
@@ -483,7 +614,6 @@
   "library_addGamesViaEditor": "Add games via the shelf editor",
   "library_noGamesInLibrary": "No games in library",
   "library_gamesAfterSync": "Games will appear after sync completes",
-
   "shelfEdit_title": "EDIT SHELF",
   "shelfEdit_titleNew": "NEW SHELF",
   "shelfEdit_nameSection": "NAME",
@@ -496,102 +626,169 @@
   "shelfEdit_deleteShelf": "DELETE SHELF",
   "shelfEdit_anyText": "Any text",
   "shelfEdit_allSystems": "All systems",
-
   "shelfPicker_title": "ADD TO SHELF",
   "systemSelector_title": "SELECT SYSTEMS",
   "textInput_hint": "Enter text...",
   "textInput_ok": "OK",
-
   "gameListOverlay_hiddenGames": "HIDDEN GAMES",
   "gameListOverlay_addedGames": "ADDED GAMES",
   "gameListOverlay_restore": "Restore",
   "gameListOverlay_noGames": "No games",
   "gameListOverlay_clearAll": "Clear All",
-
   "home_allGames": "ALL GAMES",
   "home_library": "Library",
   "home_noConsoles": "No consoles configured",
   "home_pressStartForMenu": "Press Start for Menu",
   "home_settings": "Settings",
   "home_syncSystem": "Sync {system}",
-  "@home_syncSystem": { "placeholders": { "system": { "type": "String" } } },
+  "@home_syncSystem": {
+    "placeholders": {
+      "system": {
+        "type": "String"
+      }
+    }
+  },
   "home_syncAll": "Sync All",
   "home_lastSyncNever": "Never synced",
   "home_lastSyncJustNow": "Synced just now",
   "home_lastSyncMinutes": "Synced {minutes}min ago",
-  "@home_lastSyncMinutes": { "placeholders": { "minutes": { "type": "int" } } },
+  "@home_lastSyncMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "home_lastSyncHours": "Synced {hours}h ago",
-  "@home_lastSyncHours": { "placeholders": { "hours": { "type": "int" } } },
+  "@home_lastSyncHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
   "home_lastSyncDays": "Synced {days}d ago",
-  "@home_lastSyncDays": { "placeholders": { "days": { "type": "int" } } },
-
+  "@home_lastSyncDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "common_exit": "Exit",
-
   "gameList_gamesCount": "{count} Games",
-  "@gameList_gamesCount": { "placeholders": { "count": { "type": "int" } } },
+  "@gameList_gamesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gameList_offline": "Offline",
   "gameList_zoomIn": "Zoom In",
   "gameList_zoomOut": "Zoom Out",
   "gameList_filterActive": "Filter (active)",
   "gameList_filter": "Filter",
   "gameList_noGamesMatchSearch": "No games match '{query}'",
-  "@gameList_noGamesMatchSearch": { "placeholders": { "query": { "type": "String" } } },
+  "@gameList_noGamesMatchSearch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
   "gameList_tryShorterSearch": "Try a shorter search term",
   "gameList_noGamesMatchFilters": "No games match current filters",
   "gameList_changeFilters": "Change or reset filters in the menu",
   "gameList_noRomsFound": "No ROMs found in {folder}",
-  "@gameList_noRomsFound": { "placeholders": { "folder": { "type": "String" } } },
+  "@gameList_noRomsFound": {
+    "placeholders": {
+      "folder": {
+        "type": "String"
+      }
+    }
+  },
   "gameList_addRomFiles": "Add ROM files to this folder and refresh",
   "gameList_couldNotLoadGames": "Could not load games",
   "gameList_checkConnection": "Check your connection and try again",
   "gameList_errorLoadingGames": "Error loading games",
   "gameList_gamesAppearShortly": "Games will appear shortly",
-  "gameList_syncingLibrary": "Syncing library\u2026",
-  "gameList_localFilesOnly": "Local files only \u00B7 Add a provider to download more",
+  "gameList_syncingLibrary": "Syncing library…",
+  "gameList_localFilesOnly": "Local files only · Add a provider to download more",
   "gameList_pressMenuHint": "Press  +  for menu",
-
   "filter_activeCount": "{count} active",
-  "@filter_activeCount": { "placeholders": { "count": { "type": "int" } } },
-
+  "@filter_activeCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "shelfEdit_addFilter": "+ ADD FILTER",
   "shelfEdit_hiddenGamesCount": "Hidden Games ({count})",
-  "@shelfEdit_hiddenGamesCount": { "placeholders": { "count": { "type": "int" } } },
+  "@shelfEdit_hiddenGamesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "shelfEdit_addedGamesCount": "Added Games ({count})",
-  "@shelfEdit_addedGamesCount": { "placeholders": { "count": { "type": "int" } } },
-  "shelfEdit_textHint": "\u2190 Text  Sys \u2192",
-
+  "@shelfEdit_addedGamesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shelfEdit_textHint": "← Text  Sys →",
   "gameListOverlay_gameCount": "{count, plural, =1{1 game} other{{count} games}}",
-  "@gameListOverlay_gameCount": { "placeholders": { "count": { "type": "int" } } },
+  "@gameListOverlay_gameCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "gameListOverlay_actionHint": "A: {action}",
-  "@gameListOverlay_actionHint": { "placeholders": { "action": { "type": "String" } } },
-
+  "@gameListOverlay_actionHint": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "systemSelector_selectedCount": "{count} selected",
-  "@systemSelector_selectedCount": { "placeholders": { "count": { "type": "int" } } },
-
+  "@systemSelector_selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "filter_favoritesOnly": "Favorites Only",
   "filter_installedOnly": "Installed Only",
   "filter_regions": "REGIONS",
   "filter_languages": "LANGUAGES",
   "filter_title": "FILTER",
-
   "onboarding_welcomeTitle": "Welcome to G-Shop",
   "onboarding_welcomeSubtitle": "Where do your games come from?",
-  "onboarding_pairQrTitle": "Pair RomM via QR",
-  "onboarding_pairQrSubtitle": "Scan a code from your RomM server",
-  "onboarding_legacyLoginTitle": "RomM login (older servers)",
-  "onboarding_legacyLoginSubtitle": "Username + password for RomM < 4.8",
   "onboarding_addServerTitle": "Add my own server",
-  "onboarding_addServerSubtitle": "SMB, FTP or Web mirror \u2014 map systems manually",
-  "onboarding_localOnlyTitle": "Local games only",
   "onboarding_localOnlySubtitle": "ROMs already on this device",
-  "onboarding_working": "Working\u2026",
-  "onboarding_scanningFolders": "Scanning local ROM folders\u2026",
-  "onboarding_discoveringPlatforms": "Discovering platforms\u2026",
-  "onboarding_savingSource": "Saving source\u2026",
+  "onboarding_working": "Working…",
+  "onboarding_scanningFolders": "Scanning local ROM folders…",
+  "onboarding_discoveringPlatforms": "Discovering platforms…",
+  "onboarding_savingSource": "Saving source…",
   "onboarding_allSet": "You're all set",
-  "onboarding_noSystems": "No systems configured yet \u2014 you can add sources later from Settings.",
+  "onboarding_noSystems": "No systems configured yet — you can add sources later from Settings.",
   "onboarding_systemsReady": "{count, plural, =1{1 system ready to browse} other{{count} systems ready to browse}}",
-  "@onboarding_systemsReady": { "placeholders": { "count": { "type": "int" } } },
+  "@onboarding_systemsReady": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "onboarding_jumpIn": "Jump in",
   "onboarding_jumpInSubtitle": "Open the home screen and start syncing",
   "onboarding_retroachievements": "RetroAchievements",
@@ -601,18 +798,32 @@
   "onboarding_importConfig": "Import config",
   "onboarding_configImported": "Config imported!",
   "onboarding_exportFailed": "Export failed: {error}",
-  "@onboarding_exportFailed": { "placeholders": { "error": { "type": "String" } } },
+  "@onboarding_exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "onboarding_invalidConfig": "Invalid config: {error}",
-  "@onboarding_invalidConfig": { "placeholders": { "error": { "type": "String" } } },
+  "@onboarding_invalidConfig": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "onboarding_failedToSave": "Failed to save: {error}",
-  "@onboarding_failedToSave": { "placeholders": { "error": { "type": "String" } } },
+  "@onboarding_failedToSave": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "onboarding_selectFolderPrompt": "Pick the folder where ROMs should be saved",
   "onboarding_serverType": "Server type",
-
   "onboarding_hangOn": "Hang on, testing the connection...",
-  "onboarding_foundConsole": "I found this console on your RomM server! Confirm or pick a different one.",
-  "onboarding_pickPlatform": "Pick the matching platform from your RomM server.",
-  "onboarding_couldNotReach": "Couldn't reach your RomM server. Check the URL and try again.",
   "onboarding_connectionGood": "Connection looks good! You're all set to save this source.",
   "onboarding_couldNotConnect": "Hmm, couldn't connect. Double-check the address and credentials.",
   "onboarding_whatKindOfSource": "What kind of source is this? Pick the connection type.",
@@ -620,7 +831,6 @@
   "onboarding_localCollection": "This is a local collection. Add a source to download more, or just hit Done!",
   "onboarding_addMoreSources": "Now add at least one source so I know where to find the ROMs.",
   "onboarding_letsSetUp": "Let's set up your consoles! Select any system to get started.",
-
   "onboarding_romFolder": "ROM FOLDER",
   "onboarding_options": "OPTIONS",
   "onboarding_autoExtractZips": "Auto-extract zipped ROMs",
@@ -628,55 +838,9 @@
   "onboarding_autoSyncEnabled": "Syncs automatically (respects cooldown)",
   "onboarding_autoSyncDisabled": "Only syncs manually via Start menu",
   "onboarding_selectFolder": "Select folder...",
-
-  "providerForm_addSource": "Add Source",
-  "providerForm_editSource": "Edit Source",
-  "providerForm_url": "URL",
-  "providerForm_urlPlaceholder": "https://...",
-  "providerForm_path": "Path",
-  "providerForm_pathPlaceholder": "/roms/nes/ (optional)",
   "providerForm_username": "Username",
-  "providerForm_usernameOptional": "(optional)",
   "providerForm_password": "Password",
-  "providerForm_host": "Host",
-  "providerForm_hostPlaceholder": "192.168.1.100",
-  "providerForm_port": "Port",
-  "providerForm_share": "Share",
-  "providerForm_sharePlaceholder": "roms",
-  "providerForm_domain": "Domain",
-  "providerForm_domainOptional": "(optional)",
-  "providerForm_rommUrl": "URL",
-  "providerForm_rommUrlPlaceholder": "https://romm.example.com",
-  "providerForm_apiKey": "API Key",
-  "providerForm_apiKeyOptional": "(optional)",
-  "providerForm_httpBlocked": "HTTP to non-local servers is blocked. Use HTTPS, or enable after setup in Settings.",
-  "providerForm_httpWarning": "Credentials will be sent unencrypted over HTTP",
   "providerForm_testingConnection": "Testing connection...",
-  "providerForm_connectionSuccessful": "Connection successful!",
-  "providerForm_fetchingPlatforms": "Fetching platforms...",
-  "providerForm_noPlatformsFound": "No platforms found on this RomM server.",
-  "providerForm_platform": "PLATFORM",
-  "providerForm_pickPlatform": "Pick a platform...",
-  "providerForm_testAndSave": "Test & Save",
-  "providerForm_connectionFailed": "Connection failed",
-  "providerForm_hostMissing": "Host",
-  "providerForm_portMissing": "Port",
-  "providerForm_pathMissing": "Path",
-  "providerForm_shareMissing": "Share",
-  "providerForm_urlMissing": "URL",
-
-  "rommLogin_title": "Log in to RomM",
-  "rommLogin_name": "Name",
-  "rommLogin_nameDefault": "My RomM",
-  "rommLogin_serverUrl": "Server URL",
-  "rommLogin_username": "Username",
-  "rommLogin_usernameHint": "admin",
-  "rommLogin_password": "Password",
-  "rommLogin_passwordHint": "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
-  "rommLogin_nameRequired": "Name is required",
-  "rommLogin_serverUrlRequired": "Server URL is required",
-  "rommLogin_credentialsRequired": "Username or password required",
-
   "ra_title": "RetroAchievements",
   "ra_subtitle": "Track your retro gaming achievements. ",
   "ra_usernameLabel": "Username",
@@ -689,29 +853,6 @@
   "ra_disconnect": "Disconnect",
   "ra_syncNow": "Sync achievements now",
   "ra_skipForNow": "Skip for now",
-
-  "pairing_scanQrTitle": "Scan QR code",
-  "pairing_scanQrHint": "Hold the QR code inside the frame",
-  "pairing_enterManually": "Enter code manually",
-  "pairing_invalidQr": "QR code is not a valid RomM pairing link",
-  "pairing_manualTitle": "Manual pairing",
-  "pairing_manualInstructions": "Generate the code in your RomM web UI under ",
-  "pairing_serverUrl": "Server URL",
-  "pairing_pairingCode": "Pairing code",
-  "pairing_pairingCodeHint": "ABCD-1234",
-  "pairing_probingServer": "Probing server\u2026",
-  "pairing_serverNotReachable": "Server not reachable or not a RomM instance",
-  "pairing_serverUrlRequired": "Server URL and code are required",
-  "pairing_successTitle": "Pairing successful",
-  "pairing_server": "Server",
-  "pairing_token": "Token",
-  "pairing_userId": "User ID",
-  "pairing_expiry": "Expiry",
-  "pairing_neverExpires": "Never expires",
-  "pairing_alreadyExpired": "Already expired",
-  "pairing_permissions": "PERMISSIONS",
-  "pairing_addServer": "Add server",
-
   "gameCard_cloudAvailable": "Available to download",
   "library_dashboard": "Dashboard",
   "library_catalogueEntries": "Catalogue entries",
@@ -719,16 +860,40 @@
   "library_managedStorage": "Managed local files",
   "library_sizeUnknown": "Unknown",
   "library_unknownSizes": "{count} source sizes unknown",
-  "@library_unknownSizes": {"placeholders": {"count": {"type": "int"}}},
+  "@library_unknownSizes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "library_dashboardNote": "Cached catalogue entries, not unique games. Source sizes are not SD usage; managed local bytes exclude unmanaged files, saves and BIOS.",
   "service_notificationTitle": "G-Shop",
   "service_channelName": "Downloads",
   "service_channelDescription": "Shows progress while downloading games",
   "service_downloadComplete": "Downloads complete",
   "service_downloading": "Downloading: {details}",
-  "@service_downloading": { "placeholders": { "details": { "type": "String" } } },
+  "@service_downloading": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
   "service_activeCount": "{count} active",
-  "@service_activeCount": { "placeholders": { "count": { "type": "int" } } },
+  "@service_activeCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "service_queuedCount": "{count} queued",
-  "@service_queuedCount": { "placeholders": { "count": { "type": "int" } } }
+  "@service_queuedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

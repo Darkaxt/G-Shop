@@ -6,6 +6,7 @@ import 'package:g_shop/features/game_detail/widgets/variant_picker_overlay.dart'
 import 'package:g_shop/features/game_detail/widgets/version_card.dart';
 import 'package:g_shop/models/config/provider_config.dart';
 import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/library_identity.dart';
 import 'package:g_shop/models/system_model.dart';
 import 'package:g_shop/providers/app_providers.dart';
 import 'package:g_shop/services/feedback_service.dart';
@@ -23,9 +24,18 @@ void main() {
   final remote = GameItem(
       filename: 'Game (Europe).nes',
       displayName: 'Game',
-      url: 'https://example.invalid/game',
+      url: 'drive-artifact:fixture',
       providerConfig:
-          const ProviderConfig(type: ProviderType.web, priority: 0));
+          const ProviderConfig(type: ProviderType.drive, priority: 0),
+      remoteArtifact: RemoteArtifact(
+          id: RemoteArtifactId(
+              providerId: 'drive',
+              sourceId: 'fixture',
+              accountId: 'account',
+              providerFileId: 'game'),
+          displayPath: 'Game (Europe).nes',
+          displayName: 'Game (Europe).nes',
+          canDownload: true));
   for (final input in ['touch', 'controller']) {
     testWidgets('mixed picker rejects unavailable local selection via $input',
         (tester) async {

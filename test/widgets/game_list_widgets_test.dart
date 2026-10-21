@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'package:g_shop/features/game_list/widgets/game_grid.dart';
 import 'package:g_shop/features/game_list/widgets/game_list_header.dart';
 import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/services/storage_service.dart';
 import 'package:g_shop/services/disk_space_service.dart';
 import 'package:g_shop/widgets/base_game_card.dart';
 import '../helpers/pump_helpers.dart';
@@ -33,8 +37,7 @@ void main() {
         ]),
       ));
 
-      expect(
-          find.text('${_snes.manufacturer} · ${_snes.releaseYear}'),
+      expect(find.text('${_snes.manufacturer} · ${_snes.releaseYear}'),
           findsOneWidget);
     });
 
@@ -344,8 +347,7 @@ void main() {
       expect(find.byType(GridView), findsOneWidget);
     });
 
-    testWidgets('renders shimmer cells with placeholder bars',
-        (tester) async {
+    testWidgets('renders shimmer cells with placeholder bars', (tester) async {
       await tester.pumpWidget(createTestApp(
         const GameGridLoading(
           accentColor: Colors.purple,
@@ -374,13 +376,20 @@ void main() {
   // ─── GameGrid empty states ──────────────────────────────
 
   group('GameGrid empty states', () {
+    late StorageService preferences;
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      FlutterSecureStorage.setMockInitialValues({});
+      preferences = StorageService();
+      await preferences.init();
+    });
     Widget buildEmptyGrid({
       String searchQuery = '',
       bool hasActiveFilters = false,
       bool isLocalOnly = false,
       String targetFolder = '',
     }) {
-      return createTestApp(
+      return createTestAppWithProviders(
         GameGrid(
           system: _snes,
           filteredGroups: const [],
@@ -401,6 +410,7 @@ void main() {
           isLocalOnly: isLocalOnly,
           targetFolder: targetFolder,
         ),
+        overrides: [storageServiceProvider.overrideWithValue(preferences)],
       );
     }
 
@@ -415,14 +425,13 @@ void main() {
         (tester) async {
       await tester.pumpWidget(buildEmptyGrid(hasActiveFilters: true));
 
-      expect(
-          find.text('No games match current filters'), findsOneWidget);
+      expect(find.text('No games match current filters'), findsOneWidget);
       expect(find.byIcon(Icons.filter_list_off), findsOneWidget);
     });
 
     testWidgets('shows local empty state when isLocalOnly', (tester) async {
-      await tester
-          .pumpWidget(buildEmptyGrid(isLocalOnly: true, targetFolder: '/ROMs/SNES'));
+      await tester.pumpWidget(
+          buildEmptyGrid(isLocalOnly: true, targetFolder: '/ROMs/SNES'));
 
       expect(find.text('No ROMs found in /ROMs/SNES'), findsOneWidget);
       expect(find.byIcon(Icons.folder_open), findsOneWidget);

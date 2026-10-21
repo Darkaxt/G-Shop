@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:g_shop/models/patch_catalogue.dart';
+import 'package:g_shop/models/library_identity.dart';
 import 'package:g_shop/models/portable_patch_recipe.dart';
 import 'package:g_shop/services/drive/drive_patch_catalogue.dart';
 import 'package:g_shop/services/metadata/shared_metadata_store.dart';
@@ -23,10 +25,24 @@ void main() {
             version: 6,
             onCreate: (db, _) async {
               await db.execute('PRAGMA application_id = 1381190961');
-              await db
-                  .execute('CREATE TABLE records (record_json TEXT NOT NULL)');
-              await db.insert(
-                  'records', {'record_json': 'existing scraped metadata'});
+              await db.execute('''CREATE TABLE records (
+                edition_id TEXT NOT NULL, provider_id TEXT NOT NULL,
+                identity_key TEXT NOT NULL, generation INTEGER NOT NULL,
+                game_json TEXT NOT NULL, edition_json TEXT NOT NULL,
+                artifacts_json TEXT NOT NULL, record_json TEXT NOT NULL,
+                PRIMARY KEY (edition_id, provider_id))''');
+              await db.insert('records', {
+                'edition_id': 'existing',
+                'provider_id': 'igdb',
+                'identity_key': 'existing',
+                'generation': 1,
+                'game_json': jsonEncode(GameIdentity(
+                        id: 'existing', platformId: 'gba', title: 'Synthetic')
+                    .toJson()),
+                'edition_json': '{}',
+                'artifacts_json': '[]',
+                'record_json': 'existing scraped metadata',
+              });
             }));
     await old.close();
     final shared = await SharedMetadataStore.open(root,
@@ -39,7 +55,7 @@ void main() {
         .openDatabase(p.join(root.path, 'metadata.sqlite'));
     expect((await reopened.query('records')).single['record_json'],
         'existing scraped metadata');
-    expect(await reopened.getVersion(), 7);
+    expect(await reopened.getVersion(), 8);
     await reopened.close();
   });
 

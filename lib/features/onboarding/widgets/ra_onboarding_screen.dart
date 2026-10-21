@@ -11,7 +11,7 @@ import '../../../providers/ra_providers.dart';
 import '../../../widgets/console_hud.dart';
 
 /// Lightweight RetroAchievements setup screen used by both onboarding and
-/// settings. Matches the visual style of [RommLegacyLoginScreen] — dark
+/// settings. Uses the established console settings style — dark
 /// background, ConsoleFocusable fields, D-pad navigation. On successful
 /// connection test the credentials are saved immediately.
 ///

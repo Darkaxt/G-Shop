@@ -18,7 +18,6 @@ import 'package:g_shop/services/drive/drive_transfer_engine.dart';
 import 'package:g_shop/services/drive/drive_runtime.dart';
 import 'package:g_shop/services/download_queue_manager.dart';
 import 'package:g_shop/services/storage_service.dart';
-import 'package:g_shop/services/native_smb_service.dart';
 
 /// Real native bridge, separate debug UID, synthetic bytes only. No production
 /// bootstrap, provider access, user ROMs or recursive cleanup.
@@ -309,7 +308,7 @@ void main() {
           expectedIdentity: manifest.fileIdentity);
       expect(moved.matches(manifest.fileIdentity), isTrue);
       // Normal startup must recover even with no saved queue or account access.
-      final queue = DownloadQueueManager(_EmptyQueuePreferences(), NativeSmbService(),
+      final queue = DownloadQueueManager(_EmptyQueuePreferences(),
           driveRuntime: DriveRuntime(journal: TransferJournal(Future.value(db)), storage: storage));
       try {
         // No access to or changes of the user's saved queue preferences.

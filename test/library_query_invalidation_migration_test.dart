@@ -101,7 +101,7 @@ void defineQueryInvalidationMigrationCheck({
       DatabaseService.resetForTesting();
       for (var reopen = 0; reopen < 2; reopen++) {
         db = await DatabaseService().database;
-        expect(await db.getVersion(), 39);
+        expect(await db.getVersion(), 42);
         for (final entry in preserved.entries) {
           expect(await db.query(entry.key), entry.value, reason: entry.key);
         }

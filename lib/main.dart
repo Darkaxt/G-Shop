@@ -30,9 +30,6 @@ import 'services/audio_manager.dart';
 import 'services/database_service.dart';
 import 'services/migration/migration_service.dart';
 import 'services/download_foreground_service.dart';
-import 'services/download_service.dart';
-import 'services/native_smb_service.dart';
-import 'services/provider_factory.dart';
 import 'services/thumbnail_migration_service.dart';
 import 'services/thumbnail_service.dart';
 import 'utils/rom_share_helper.dart';
@@ -127,12 +124,8 @@ void main() {
     await ThumbnailService.init();
 
     // Clean orphaned temp files from interrupted downloads (fire-and-forget)
-    DownloadService.cleanOrphanedTempFiles();
     RomShareHelper.cleanShareTempFiles();
 
-    // Initialize native SMB service and wire into ProviderFactory
-    final nativeSmbService = NativeSmbService();
-    ProviderFactory.init(smbService: nativeSmbService);
 
     // Configure image cache based on device RAM
     final deviceMemory = await DeviceInfoService.getDeviceMemory();
@@ -164,7 +157,6 @@ void main() {
           hapticServiceProvider.overrideWithValue(hapticService),
           audioManagerProvider.overrideWithValue(audioManager),
           deviceMemoryProvider.overrideWithValue(deviceMemory),
-          nativeSmbServiceProvider.overrideWithValue(nativeSmbService),
         ],
         child: GShopApp(audioManager: audioManager),
       ),
@@ -211,69 +203,10 @@ class _GShopAppState extends ConsumerState<GShopApp> with WidgetsBindingObserver
         );
       }
 
-      // Proactive RomM health check: validates tokens AND discovers new
-      // platforms in a single call per source. Auto-creates SystemConfigs
-      // for any newly discovered consoles.
-      Future.delayed(const Duration(seconds: 2), () async {
-        if (!mounted) return;
-        final sourcesState = ref.read(sourcesProvider);
-        if (sourcesState.loading || sourcesState.sources.isEmpty) {
-          await ref.read(sourcesProvider.notifier).ready;
-          if (!mounted) return;
-        }
-        final sources = ref.read(sourcesProvider).sources;
-        final discovered = await ref
-            .read(sourceHealthProvider.notifier)
-            .checkAll(sources);
-
-        if (discovered.isEmpty || !mounted) return;
-
-        final notifier = ref.read(sourcesProvider.notifier);
-        final basePath = ref.read(storageServiceProvider).getRomPath()
-            ?? '/storage/emulated/0/ROMs';
-        var totalNew = 0;
-        final allNewIds = <String>[];
-        final allNewNames = <String>[];
-
-        for (final entry in discovered.entries) {
-          final sourceId = entry.key;
-          final platforms = entry.value;
-          final source = sources.firstWhere((s) => s.id == sourceId);
-
-          if (!mapEquals(source.knownPlatforms, platforms)) {
-            await notifier.updateKnownPlatforms(sourceId, platforms);
-          }
-
-          // Auto-create SystemConfigs for newly discovered consoles.
-          final updatedSource = source.copyWith(knownPlatforms: platforms);
-          final result = await notifier.ensureSystemsForSource(
-            updatedSource,
-            basePath: basePath,
-          );
-          if (result.names.isNotEmpty) {
-            totalNew += result.names.length;
-            allNewIds.addAll(result.ids);
-            allNewNames.addAll(result.names);
-          }
-        }
-
-        if (totalNew > 0 && mounted) {
-          ref.invalidate(bootstrappedConfigProvider);
-
-          // Queue a sync for the newly created systems so they populate
-          // immediately instead of requiring a manual "Sync All".
-          final freshConfig =
-              await ref.read(bootstrappedConfigProvider.future);
-          final syncService =
-              ref.read(librarySyncServiceProvider.notifier);
-          final timeout = Duration(
-              seconds: ref.read(syncTimeoutProvider));
-          for (final id in allNewIds) {
-            syncService.syncSystem(id, freshConfig, syncTimeout: timeout);
-          }
-        }
-      });
-
+      // Readiness is an event, independent of cached library browsing.
+      unawaited(ref.read(sourcesProvider.notifier).ready.then((_) async {
+        if (mounted) await ref.read(sourceHealthProvider.notifier).checkAll(ref.read(sourcesProvider).sources);
+      }));
 
       // Defer thumbnail migration to avoid DB contention at startup
       Future.delayed(const Duration(seconds: 3), () {
@@ -333,7 +266,7 @@ class _GShopAppState extends ConsumerState<GShopApp> with WidgetsBindingObserver
             } else {
               restoreMainFocus(ref);
             }
-            // Re-check RomM token health if stale (> 5min since last check).
+            // Re-check Drive source health if stale (> 5min since last check).
             final health = ref.read(sourceHealthProvider);
             if (health.isStale) {
               final sources = ref.read(sourcesProvider).sources;
@@ -357,7 +290,7 @@ class _GShopAppState extends ConsumerState<GShopApp> with WidgetsBindingObserver
     ref.watch(romWatcherProvider);
     ref.watch(metadataCloudProvider);
 
-    // Reactive: when sync finishes with auth errors, re-check RomM tokens.
+    // Reactive: when sync finishes with auth errors, re-check Drive access.
     ref.listen(librarySyncServiceProvider, (prev, next) {
       if (prev == null || prev.isSyncing || !next.hadFailures) return;
       if (next.isSyncing) return;

@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import '../test/widgets/source_menu_navigation_test.dart';
+import '../test/widgets/drive_only_setup_test.dart';
 
 class _NoNetwork extends HttpOverrides {
   int attempts = 0;
@@ -38,7 +38,7 @@ void main() {
     expect(offline.attempts, 0);
     binding.reportData!['http_client_attempts'] = offline.attempts;
   });
-  defineSourceMenuNavigationChecks(
+  defineDriveOnlySetupChecks(
       native: true,
       verified: (check) => binding.reportData![check] = true,
       checkpoint: (name, tester) async {

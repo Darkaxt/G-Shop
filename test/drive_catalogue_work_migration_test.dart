@@ -65,7 +65,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await DatabaseService().database;
-      expect(await db.getVersion(), 39);
+      expect(await db.getVersion(), 42);
       expect(
           await db.rawQuery(
               "SELECT name FROM sqlite_master WHERE type='index' AND name='drive_catalogue_pending_work'"),

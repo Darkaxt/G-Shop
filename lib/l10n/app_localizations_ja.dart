@@ -904,7 +904,7 @@ class LJa extends L {
   String get settings_mySources => 'マイソース';
 
   @override
-  String get settings_mySourcesSubtitle => 'RomM、SMB、FTPサーバーの追加・管理';
+  String get settings_mySourcesSubtitle => 'Google ドライブのコレクションを管理';
 
   @override
   String get settings_consoleSettings => 'コンソール設定';
@@ -1166,50 +1166,16 @@ class LJa extends L {
   String get sources_revokeDrive => 'Google Drive のアクセス権を取り消す（すべての Drive ソース）';
 
   @override
-  String get sources_sourceTypeDriveHint => 'Google のネイティブ認証による読み取り専用の非公開フォルダー';
-
-  @override
-  String get sources_sourceTypeSmbHint => 'Windows / NAS のネットワーク共有';
-
-  @override
-  String get sources_sourceTypeFtpHint => 'FTP/FTPS サーバー';
-
-  @override
   String get sources_noSourcesConfigured => 'ソースが設定されていません';
 
   @override
   String get sources_noSourcesYet => 'ソースがまだありません';
 
   @override
-  String get sources_noSourcesDescription =>
-      'RomMサーバーをペアリングしてゲームをダウンロードしましょう。 ';
-
-  @override
   String get sources_addSource => 'ソースを追加';
 
   @override
   String get sources_whereDoGamesComeFrom => 'ゲームの入手先は？';
-
-  @override
-  String get sources_sourceTypeRomm => 'RomMサーバー';
-
-  @override
-  String get sources_sourceTypeRommHint => 'QRまたは8桁コードでペアリング';
-
-  @override
-  String get sources_sourceTypeRommLegacy => 'RomMログイン（古いサーバー）';
-
-  @override
-  String get sources_sourceTypeSmb => 'SMB共有';
-
-  @override
-  String get sources_sourceTypeFtp => 'FTPサーバー';
-
-  @override
-  String get sources_sourceTypeWeb => 'Webミラー';
-
-  @override
-  String get sources_sourceTypeWebHint => 'HTTPSディレクトリリスティング';
 
   @override
   String get sources_expired => 'EXPIRED';
@@ -1234,81 +1200,6 @@ class LJa extends L {
 
   @override
   String get sources_enable => '有効化';
-
-  @override
-  String get manualSource_defaultNameSmb => 'マイNAS';
-
-  @override
-  String get manualSource_defaultNameFtp => 'マイFTP';
-
-  @override
-  String get manualSource_defaultNameWeb => 'Webミラー';
-
-  @override
-  String get manualSource_defaultNameOther => 'ソース';
-
-  @override
-  String get manualSource_name => '名前';
-
-  @override
-  String get manualSource_url => 'URL';
-
-  @override
-  String get manualSource_urlHint => 'https://example.com/roms';
-
-  @override
-  String get manualSource_host => 'Host';
-
-  @override
-  String get manualSource_hostHint => 'nas.local または 192.168.1.10';
-
-  @override
-  String get manualSource_port => 'Port';
-
-  @override
-  String get manualSource_share => '共有';
-
-  @override
-  String get manualSource_shareHint => 'roms';
-
-  @override
-  String get manualSource_usernameOptional => 'ユーザー名（任意）';
-
-  @override
-  String get manualSource_usernameHint => 'ゲストの場合は空白';
-
-  @override
-  String get manualSource_passwordOptional => 'パスワード（任意）';
-
-  @override
-  String get manualSource_nameRequired => '名前は必須です';
-
-  @override
-  String get manualSource_urlRequired => 'URLは必須です';
-
-  @override
-  String get manualSource_hostRequired => 'Hostは必須です';
-
-  @override
-  String get manualSource_shareRequired => '共有は必須です';
-
-  @override
-  String get manualSource_saveSource => 'ソースを保存';
-
-  @override
-  String get manualSource_smb => 'SMB';
-
-  @override
-  String get manualSource_ftp => 'FTP';
-
-  @override
-  String get manualSource_web => 'Web';
-
-  @override
-  String get manualSource_searchingNetwork => 'ネットワークを検索中…';
-
-  @override
-  String get manualSource_foundOnNetwork => 'ネットワーク上で見つかりました';
 
   @override
   String get sourceMappings_title => 'システムマッピング';
@@ -1643,25 +1534,7 @@ class LJa extends L {
   String get onboarding_welcomeSubtitle => 'ゲームの入手先は？';
 
   @override
-  String get onboarding_pairQrTitle => 'QRでRomMをペアリング';
-
-  @override
-  String get onboarding_pairQrSubtitle => 'RomMサーバーのコードをスキャン';
-
-  @override
-  String get onboarding_legacyLoginTitle => 'RomMログイン（古いサーバー）';
-
-  @override
-  String get onboarding_legacyLoginSubtitle => 'RomM < 4.8用のユーザー名+パスワード';
-
-  @override
   String get onboarding_addServerTitle => 'サーバーを追加';
-
-  @override
-  String get onboarding_addServerSubtitle => 'SMB、FTP、Webミラー — システムを手動マッピング';
-
-  @override
-  String get onboarding_localOnlyTitle => 'ローカルゲームのみ';
 
   @override
   String get onboarding_localOnlySubtitle => 'このデバイス上のROM';
@@ -1744,17 +1617,6 @@ class LJa extends L {
   String get onboarding_hangOn => 'ちょっと待ってね、接続テスト中...';
 
   @override
-  String get onboarding_foundConsole =>
-      'RomMサーバーでこのコンソールを見つけました！確認するか、別のものを選んでください。';
-
-  @override
-  String get onboarding_pickPlatform => 'RomMサーバーから対応するプラットフォームを選んでください。';
-
-  @override
-  String get onboarding_couldNotReach =>
-      'RomMサーバーに接続できませんでした。URLを確認してリトライしてください。';
-
-  @override
   String get onboarding_connectionGood => '接続 OK！このソースを保存できます。';
 
   @override
@@ -1798,143 +1660,13 @@ class LJa extends L {
   String get onboarding_selectFolder => 'フォルダを選択...';
 
   @override
-  String get providerForm_addSource => 'ソースを追加';
-
-  @override
-  String get providerForm_editSource => 'ソースを編集';
-
-  @override
-  String get providerForm_url => 'URL';
-
-  @override
-  String get providerForm_urlPlaceholder => 'https://...';
-
-  @override
-  String get providerForm_path => 'パス';
-
-  @override
-  String get providerForm_pathPlaceholder => '/roms/nes/（任意）';
-
-  @override
   String get providerForm_username => 'ユーザー名';
-
-  @override
-  String get providerForm_usernameOptional => '（任意）';
 
   @override
   String get providerForm_password => 'パスワード';
 
   @override
-  String get providerForm_host => 'Host';
-
-  @override
-  String get providerForm_hostPlaceholder => '192.168.1.100';
-
-  @override
-  String get providerForm_port => 'Port';
-
-  @override
-  String get providerForm_share => '共有';
-
-  @override
-  String get providerForm_sharePlaceholder => 'roms';
-
-  @override
-  String get providerForm_domain => 'ドメイン';
-
-  @override
-  String get providerForm_domainOptional => '（任意）';
-
-  @override
-  String get providerForm_rommUrl => 'URL';
-
-  @override
-  String get providerForm_rommUrlPlaceholder => 'https://romm.example.com';
-
-  @override
-  String get providerForm_apiKey => 'API Key';
-
-  @override
-  String get providerForm_apiKeyOptional => '（任意）';
-
-  @override
-  String get providerForm_httpBlocked =>
-      'ローカル以外のサーバーへのHTTPはブロックされます。HTTPSを使うか、設定で後から有効化してください。';
-
-  @override
-  String get providerForm_httpWarning => '認証情報がHTTPで暗号化なしに送信されます';
-
-  @override
   String get providerForm_testingConnection => '接続テスト中...';
-
-  @override
-  String get providerForm_connectionSuccessful => '接続成功！';
-
-  @override
-  String get providerForm_fetchingPlatforms => 'プラットフォームを取得中...';
-
-  @override
-  String get providerForm_noPlatformsFound => 'このRomMサーバーにプラットフォームが見つかりません。';
-
-  @override
-  String get providerForm_platform => 'プラットフォーム';
-
-  @override
-  String get providerForm_pickPlatform => 'プラットフォームを選択...';
-
-  @override
-  String get providerForm_testAndSave => 'テストして保存';
-
-  @override
-  String get providerForm_connectionFailed => '接続失敗';
-
-  @override
-  String get providerForm_hostMissing => 'Host';
-
-  @override
-  String get providerForm_portMissing => 'Port';
-
-  @override
-  String get providerForm_pathMissing => 'パス';
-
-  @override
-  String get providerForm_shareMissing => '共有';
-
-  @override
-  String get providerForm_urlMissing => 'URL';
-
-  @override
-  String get rommLogin_title => 'RomMにログイン';
-
-  @override
-  String get rommLogin_name => '名前';
-
-  @override
-  String get rommLogin_nameDefault => 'マイRomM';
-
-  @override
-  String get rommLogin_serverUrl => 'サーバー URL';
-
-  @override
-  String get rommLogin_username => 'ユーザー名';
-
-  @override
-  String get rommLogin_usernameHint => 'admin';
-
-  @override
-  String get rommLogin_password => 'パスワード';
-
-  @override
-  String get rommLogin_passwordHint => '••••••••';
-
-  @override
-  String get rommLogin_nameRequired => '名前は必須です';
-
-  @override
-  String get rommLogin_serverUrlRequired => 'サーバーURLは必須です';
-
-  @override
-  String get rommLogin_credentialsRequired => 'ユーザー名またはパスワードが必要です';
 
   @override
   String get ra_title => 'RetroAchievements';
@@ -1971,69 +1703,6 @@ class LJa extends L {
 
   @override
   String get ra_skipForNow => '今はスキップ';
-
-  @override
-  String get pairing_scanQrTitle => 'QRコードをスキャン';
-
-  @override
-  String get pairing_scanQrHint => 'QRコードをフレーム内にかざしてください';
-
-  @override
-  String get pairing_enterManually => 'コードを手動入力';
-
-  @override
-  String get pairing_invalidQr => '有効なRomMペアリングリンクではありません';
-
-  @override
-  String get pairing_manualTitle => '手動ペアリング';
-
-  @override
-  String get pairing_manualInstructions => 'RomMのWeb UIの以下でコードを生成してください: ';
-
-  @override
-  String get pairing_serverUrl => 'サーバー URL';
-
-  @override
-  String get pairing_pairingCode => 'ペアリングコード';
-
-  @override
-  String get pairing_pairingCodeHint => 'ABCD-1234';
-
-  @override
-  String get pairing_probingServer => 'サーバーを確認中…';
-
-  @override
-  String get pairing_serverNotReachable => 'サーバーに到達できないか、RomMインスタンスではありません';
-
-  @override
-  String get pairing_serverUrlRequired => 'サーバーURLとコードが必要です';
-
-  @override
-  String get pairing_successTitle => 'ペアリング成功';
-
-  @override
-  String get pairing_server => 'サーバー';
-
-  @override
-  String get pairing_token => 'トークン';
-
-  @override
-  String get pairing_userId => 'ユーザー ID';
-
-  @override
-  String get pairing_expiry => '有効期限';
-
-  @override
-  String get pairing_neverExpires => '無期限';
-
-  @override
-  String get pairing_alreadyExpired => '期限切れ';
-
-  @override
-  String get pairing_permissions => 'パーミッション';
-
-  @override
-  String get pairing_addServer => 'サーバーを追加';
 
   @override
   String get gameCard_cloudAvailable => 'ダウンロード可能';

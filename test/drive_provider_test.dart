@@ -269,14 +269,14 @@ void main() {
         2);
   });
 
-  test('Drive cannot bypass forthcoming verified transfer with ordinary HTTP',
+  test('Drive exposes an opaque exact artifact, never a generic download URL',
       () async {
-    final provider = DriveProvider(config, runtime: runtime);
-    final game = (await provider.fetchGames(system)).first;
-    await expectLater(
-        provider.resolveDownload(game),
-        throwsA(isA<DriveCatalogueException>()
-            .having((e) => e.code, 'blocker', 'verifiedTransferNotAvailable')));
+    final game =
+        (await DriveProvider(config, runtime: runtime).fetchGames(system))
+            .first;
+    expect(game.url, startsWith('drive-artifact:'));
+    expect(game.hasDownloadSource, isTrue);
+    expect(game.remoteArtifact?.id.providerId, 'drive');
   });
 
   test(

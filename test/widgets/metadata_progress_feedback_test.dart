@@ -176,7 +176,7 @@ void main() {
     expect(feedback, findsOneWidget);
     await tester.ensureVisible(feedback);
     await tester.pumpAndSettle();
-    expect(find.text('Game 1'), findsNWidgets(2));
+    expect(find.text('Game 1'), findsOneWidget);
     expect(find.text('Candidate title'), findsOneWidget);
     expect(find.text('Already fetched synopsis'), findsOneWidget);
     expect(find.text('Description francaise'), findsNothing);
@@ -190,7 +190,7 @@ void main() {
         reason: 'candidate descriptions are preview-only, not publication');
     await tester.runAsync(() => controls.refresh(cacheRowId: 2));
     await tester.pumpAndSettle();
-    expect(find.text('Game 2'), findsNWidgets(2));
+    expect(find.text('Game 2'), findsOneWidget);
     expect(find.text('Game 1'), findsNothing);
     expect(find.text('Already fetched synopsis'), findsOneWidget);
     expect(provider.calls, hasLength(2));

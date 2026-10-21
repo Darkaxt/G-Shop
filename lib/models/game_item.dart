@@ -46,7 +46,7 @@ class GameItem {
     if (provider.type == ProviderType.drive) {
       return remoteArtifact != null && remoteArtifact!.canDownload != false;
     }
-    return remoteArtifact == null;
+    return false;
   }
 
   /// Exact file identity is independent of title, location and current version.

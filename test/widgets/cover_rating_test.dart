@@ -171,8 +171,8 @@ void main() {
           width: compact ? 100 : 240,
           screen: compact ? const Size(640, 360) : const Size(1280, 720)));
       expect(tester.takeException(), isNull);
-      // Missing artwork has a handwritten media label as well as the footer.
-      expect(find.textContaining('A long game title'), findsNWidgets(2));
+      // The disc label is painted around its hub; the footer owns the Text node.
+      expect(find.textContaining('A long game title'), findsOneWidget);
       expect(find.text('PSX'), findsOneWidget);
       expect(find.byIcon(Icons.favorite), findsOneWidget);
       expect(find.text('99'), findsOneWidget);

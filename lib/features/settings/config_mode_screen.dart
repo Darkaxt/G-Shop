@@ -1,25 +1,19 @@
 import 'dart:convert';
-
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/input/input.dart';
-import '../../core/responsive/responsive.dart';
-import '../../l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/util/color_contrast.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/widgets/console_focusable.dart';
 import '../../core/widgets/screen_layout.dart';
 import '../../models/config/system_config.dart';
-import '../../models/system_model.dart';
 import '../../providers/app_providers.dart';
-import '../../utils/friendly_error.dart';
 import '../../providers/game_providers.dart';
 import '../../providers/library_providers.dart';
 import '../../widgets/console_hud.dart';
-import '../../widgets/console_notification.dart';
-import '../onboarding/onboarding_controller.dart';
-import 'widgets/system_detail_view.dart';
 
+/// Drive console options; never adds a standalone filesystem collection.
 class ConfigModeScreen extends ConsumerStatefulWidget {
   const ConfigModeScreen({super.key});
   @override
@@ -28,358 +22,192 @@ class ConfigModeScreen extends ConsumerStatefulWidget {
 
 class _ConfigModeScreenState extends ConsumerState<ConfigModeScreen>
     with ConsoleScreenMixin {
-  bool _initialized = false;
-  final FocusNode _firstListNode = FocusNode();
-  final FocusNode _firstDetailNode = FocusNode();
-
   @override
   String get routeId => 'config_mode';
-
+  String? _error;
   @override
   Map<Type, Action<Intent>> get screenActions => {
-        ToggleOverlayIntent: CallbackAction<ToggleOverlayIntent>(onInvoke: (_) {
-          if (!ref.read(onboardingControllerProvider).hasConsoleSelected) {
-            _exportConfig();
-          }
-          return null;
-        }),
+        BackIntent: BackAction(context, ref),
         FavoriteIntent: CallbackAction<FavoriteIntent>(onInvoke: (_) {
-          if (!ref.read(onboardingControllerProvider).hasConsoleSelected) {
-            _importConfig();
-          }
+          _importConfig();
           return null;
         }),
-        BackIntent: CallbackAction<BackIntent>(onInvoke: (_) {
-          _handleBack();
+        ToggleOverlayIntent: CallbackAction<ToggleOverlayIntent>(onInvoke: (_) {
+          _exportConfig();
           return null;
         }),
       };
 
-  @override
-  void dispose() {
-    _firstListNode.dispose();
-    _firstDetailNode.dispose();
-    super.dispose();
-  }
-
-  void _initFromConfig() {
-    if (_initialized) return;
-    _initialized = true;
-    final configAsync = ref.read(bootstrappedConfigProvider);
-    if (configAsync case AsyncData(value: final config)) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ref
-              .read(onboardingControllerProvider.notifier)
-              .loadFromConfig(config);
-          // Focus the first system card after config is loaded and the
-          // list has been built.
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && _firstListNode.canRequestFocus) {
-              _firstListNode.requestFocus();
-            }
-          });
-        }
-      });
-    }
-  }
-
-  void _handleBack() {
-    final state = ref.read(onboardingControllerProvider);
-    if (state.hasConsoleSelected) {
-      final controller = ref.read(onboardingControllerProvider.notifier);
-      if (state.consoleSubState?.isComplete == true) {
-        controller.saveConsoleConfig();
-      } else {
-        controller.deselectConsole();
-      }
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _firstListNode.requestFocus();
-      });
-    } else {
-      _saveAndGoBack();
-    }
-  }
-
-  Future<void> _saveAndGoBack() async {
-    final controller = ref.read(onboardingControllerProvider.notifier);
-    final config = await controller.buildFinalConfig();
-    final jsonString =
-        const JsonEncoder.withIndent('  ').convert(config.toJson());
-    await ref.read(configStorageServiceProvider).saveConfig(jsonString);
-    ref.invalidate(bootstrappedConfigProvider);
-    if (!mounted) return;
-    Navigator.pop(context);
-  }
-
   Future<void> _exportConfig() async {
     try {
-      final controller = ref.read(onboardingControllerProvider.notifier);
-      await controller.exportConfig();
-    } catch (e) {
-      if (!mounted) return;
-      showErrorNotification(context, ref,
-          message: 'Export failed: ${getUserFriendlyError(e)}');
+      final storage = ref.read(configStorageServiceProvider);
+      final config = await storage.loadConfig();
+      if (config == null) throw StateError('Configuration unavailable');
+      await storage.exportConfig(config);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Could not export configuration');
     }
   }
 
   Future<void> _importConfig() async {
-    final result = await importConfigFile(ref);
-    if (!mounted) return;
-    if (result.cancelled) return;
-    if (result.error != null) {
-      showErrorNotification(context, ref,
-          message: 'Invalid config: ${result.error}');
-    } else {
-      ref
-          .read(onboardingControllerProvider.notifier)
-          .loadFromConfig(result.config!);
-      ref.read(sourcesProvider.notifier).replaceAll(result.config!.sources);
+    try {
+      final result = await importConfigFile(ref);
+      if (!mounted || result.cancelled) return;
+      if (result.error != null) {
+        setState(() => _error = result.error);
+        return;
+      }
+      await ref
+          .read(sourcesProvider.notifier)
+          .replaceAll(result.config!.sources);
+      if (!mounted) return;
+      ref.invalidate(bootstrappedConfigProvider);
       ref.invalidate(gamesProvider);
       ref.read(gameDbChangedProvider.notifier).state++;
-      final count = result.config!.systems
-          .expand((s) => s.providers)
-          .where((p) => p.needsAuth)
-          .length;
-      showSuccessNotification(
-        context,
-        ref,
-        message: count > 0
-            ? 'Config imported — $count provider${count > 1 ? 's' : ''} need credentials'
-            : L.of(context).settings_configImported,
-      );
+      setState(() => _error = null);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Could not import configuration');
     }
   }
 
-  void _selectSystem(String id) {
-    ref.read(onboardingControllerProvider.notifier).selectConsole(id);
-    ref.read(feedbackServiceProvider).tick();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _firstDetailNode.requestFocus();
-    });
+  Future<void> _save(SystemConfig edited) async {
+    try {
+      final storage = ref.read(configStorageServiceProvider);
+      final raw = await storage.loadConfig();
+      if (raw == null) return;
+      // Preserve original source bindings and retired recovery data verbatim.
+      final original = raw.systemById(edited.id);
+      if (original == null) return;
+      final next = original.copyWith(
+          targetFolder: edited.targetFolder,
+          autoExtract: edited.autoExtract,
+          autoSync: edited.autoSync);
+      await storage.saveConfig(jsonEncode(raw.copyWith(systems: [
+        for (final s in raw.systems) s.id == edited.id ? next : s
+      ]).toJson()));
+      ref.invalidate(bootstrappedConfigProvider);
+      if (mounted) setState(() => _error = null);
+    } catch (_) {
+      if (mounted)
+        setState(() => _error =
+            'Could not save console options. Previous settings are retained.');
+    }
+  }
+
+  Future<void> _edit(SystemConfig system) async {
+    final action = await showDialog<String>(
+        context: context,
+        builder: (dialog) => AlertDialog(
+            backgroundColor: AppTheme.backgroundColor,
+            title: Text(system.name),
+            content: Column(mainAxisSize: MainAxisSize.min, children: [
+              for (final entry in {
+                'folder': 'Download destination',
+                'extract': 'Auto-extract: ${system.autoExtract ? 'On' : 'Off'}',
+                'sync': 'Auto-sync: ${system.autoSync ? 'On' : 'Off'}'
+              }.entries)
+                ConsoleFocusable(
+                    autofocus: entry.key == 'folder',
+                    onSelect: () => Navigator.pop(dialog, entry.key),
+                    child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: SizedBox(
+                            width: 320,
+                            child: Text(entry.value,
+                                style: const TextStyle(color: Colors.white))))),
+            ])));
+    if (!mounted || action == null) return;
+    if (action == 'folder') {
+      final folder = await FilePicker.platform.getDirectoryPath(
+          dialogTitle: 'Choose ${system.name} download destination');
+      if (mounted && folder != null)
+        await _save(system.copyWith(targetFolder: folder));
+    } else {
+      await _save(system.copyWith(
+          autoExtract: action == 'extract' ? !system.autoExtract : null,
+          autoSync: action == 'sync' ? !system.autoSync : null));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final l = L.of(context);
-    final state = ref.watch(onboardingControllerProvider);
-    final rs = context.rs;
-
-    if (ref.watch(bootstrappedConfigProvider) case AsyncData()) {
-      _initFromConfig();
-    }
-
-    final topPadding = rs.safeAreaTop + (rs.isSmall ? 56 : 72);
-
-    return buildWithActions(
-      PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) _handleBack();
-        },
-        child: ScreenLayout(
-          accentColor: AppTheme.primaryColor,
-          body: Stack(
-            children: [
-              Column(
-                children: [
-                  SizedBox(height: topPadding),
-                  Expanded(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      child: state.hasConsoleSelected
-                          ? SystemDetailView(
-                              key:
-                                  ValueKey('detail_${state.selectedConsoleId}'),
-                              firstFocusNode: _firstDetailNode,
-                            )
-                          : _SystemList(
-                              key: const ValueKey('system_list'),
-                              systems: state.configuredSystems,
-                              firstFocusNode: _firstListNode,
-                              onSelect: _selectSystem,
-                            ),
-                    ),
-                  ),
-                ],
-              ),
-              _buildHeader(rs, state, l),
-              ConsoleHud(
-                b: HudAction(l.common_back, onTap: _handleBack),
-                start: state.hasConsoleSelected
-                    ? null
-                    : HudAction(l.configMode_export, onTap: _exportConfig),
-                select: state.hasConsoleSelected
-                    ? null
-                    : HudAction(l.configMode_import, onTap: _importConfig),
-              ),
-            ],
-          ),
-        ),
-      ),
-      localFocusScope: true,
-    );
-  }
-
-  Widget _buildHeader(Responsive rs, OnboardingState state, L l) {
-    final system = state.selectedSystem;
-    final title =
-        system != null ? system.name.toUpperCase() : l.configMode_title;
-
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.headerGradient,
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: rs.isSmall ? 16.0 : 24.0,
-              vertical: rs.isSmall ? 8.0 : 12.0,
-            ),
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: rs.isSmall ? 18 : 22,
-                fontWeight: FontWeight.w900,
-                color:
-                    system != null ? system.accentColor.forText : Colors.white,
-                letterSpacing: 4,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SystemList extends ConsumerWidget {
-  final Map<String, SystemConfig> systems;
-  final FocusNode firstFocusNode;
-  final ValueChanged<String> onSelect;
-
-  const _SystemList({
-    super.key,
-    required this.systems,
-    required this.firstFocusNode,
-    required this.onSelect,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = L.of(context);
-    final rs = context.rs;
-    final allSystems = SystemModel.supportedSystems;
-    // Show configured systems first, then unconfigured ones.
-    final configured =
-        allSystems.where((s) => systems.containsKey(s.id)).toList();
-    final unconfigured =
-        allSystems.where((s) => !systems.containsKey(s.id)).toList();
-    final sorted = [...configured, ...unconfigured];
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
-        child: FocusTraversalGroup(
-          child: ListView.separated(
-            padding: EdgeInsets.symmetric(
-              horizontal: rs.spacing.lg,
-              vertical: rs.spacing.md,
-            ),
-            itemCount: sorted.length,
-            separatorBuilder: (_, __) => SizedBox(height: rs.spacing.sm),
-            itemBuilder: (context, index) {
-              final system = sorted[index];
-              final config = systems[system.id];
-              final isConfigured = config != null;
-              final accent = system.accentColor;
-
-              return ConsoleFocusable(
-                focusNode: index == 0 ? firstFocusNode : null,
-                onSelect: () => onSelect(system.id),
-                borderRadius: 12,
-                focusScale: 1.0,
-                focusBorderColor: accent,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1C1C1C),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isConfigured
-                          ? accent.withValues(alpha: 0.3)
-                          : Colors.white12,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: accent.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          isConfigured
-                              ? Icons.sports_esports
-                              : Icons.sports_esports_outlined,
-                          color: accent.forIcon,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              system.name,
-                              style: TextStyle(
-                                color: isConfigured
-                                    ? Colors.white
-                                    : Colors.white54,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              isConfigured
-                                  ? config.targetFolder.isEmpty
-                                      ? l.configMode_noFolderSet
-                                      : config.targetFolder
-                                  : l.configMode_notConfigured,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Colors.grey.shade500,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (isConfigured)
-                        Icon(Icons.check_circle,
-                            color: accent.forIcon, size: 18),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.chevron_right, color: Colors.white30),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    );
+    final config = ref.watch(bootstrappedConfigProvider);
+    return buildWithActions(ScreenLayout(
+        body: Stack(children: [
+      Center(
+          child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 32, 24, 80),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('CONSOLE OPTIONS',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 3)),
+                        const SizedBox(height: 24),
+                        if (_error != null)
+                          Text(_error!,
+                              style: const TextStyle(color: Colors.redAccent)),
+                        Expanded(
+                            child: config.when(
+                                loading: () => const Center(
+                                    child: CircularProgressIndicator()),
+                                error: (_, __) => const Text(
+                                    'Could not load console settings'),
+                                data: (value) => value.systems.isEmpty
+                                    ? const Center(
+                                        child: Text(
+                                            'Connect Google Drive and map its console folders in My Sources.',
+                                            style: TextStyle(
+                                                color: Colors.white70)))
+                                    : ListView.builder(
+                                        itemCount: value.systems.length,
+                                        itemBuilder: (context, index) {
+                                          final s = value.systems[index];
+                                          return ConsoleFocusable(
+                                              autofocus: index == 0,
+                                              onSelect: () => _edit(s),
+                                              child: Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      vertical: 20,
+                                                      horizontal: 16),
+                                                  child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(s.name,
+                                                            style:
+                                                                const TextStyle(
+                                                                    color: Colors
+                                                                        .white,
+                                                                    fontSize:
+                                                                        20)),
+                                                        const SizedBox(
+                                                            height: 8),
+                                                        Text(s.targetFolder,
+                                                            maxLines: 2,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                            style: const TextStyle(
+                                                                color: Colors
+                                                                    .white60))
+                                                      ])));
+                                        }))),
+                      ])))),
+      ConsoleHud(
+          select: HudAction(L.of(context).onboarding_importConfig,
+              onTap: _importConfig),
+          start: HudAction(L.of(context).onboarding_exportConfig,
+              onTap: _exportConfig),
+          b: HudAction(L.of(context).common_back,
+              onTap: () => Navigator.maybePop(context))),
+    ])));
   }
 }

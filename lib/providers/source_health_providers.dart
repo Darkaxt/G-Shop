@@ -2,9 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/config/source.dart';
 import '../models/config/provider_config.dart';
-import '../models/system_model.dart';
-import '../services/romm_api_service.dart';
-import '../services/romm_platform_matcher.dart';
 import '../services/providers/drive_provider.dart';
 import '../services/source_provider.dart';
 
@@ -29,8 +26,7 @@ class SourceHealthState {
 
   bool get isStale {
     if (lastCheckAt == null) return true;
-    return DateTime.now().difference(lastCheckAt!) >
-        const Duration(minutes: 5);
+    return DateTime.now().difference(lastCheckAt!) > const Duration(minutes: 5);
   }
 
   SourceHealthState copyWith({
@@ -81,8 +77,7 @@ class SourceHealthNotifier extends StateNotifier<SourceHealthState> {
     ).testConnection();
   }
 
-  /// Check enabled RomM and Drive sources. RomM uses `fetchPlatforms`
-  /// so it validates the token and discovers platforms in one request. Drive
+  /// Check enabled Drive sources without an interactive account picker. Drive
   /// performs a non-interactive read of its configured root and never opens an
   /// account picker or contributes numeric auto-map platform IDs.
   ///
@@ -90,49 +85,29 @@ class SourceHealthNotifier extends StateNotifier<SourceHealthState> {
   /// responded successfully, so callers can update knownPlatforms and
   /// auto-create missing SystemConfigs.
   Future<Map<String, Map<String, int>>> checkAll(List<Source> sources) async {
-    final checkableSources = sources
-        .where((s) =>
-            s.enabled &&
-            ((s.type == SourceType.romm && s.url != null) ||
-                s.type == SourceType.drive))
-        .toList();
-
+    final checkableSources =
+        sources.where((s) => s.enabled && s.type == SourceType.drive).toList();
     if (checkableSources.isEmpty) return const {};
-
-    final checking = Map<String, SourceHealth>.from(state.statuses);
-    for (final s in checkableSources) {
-      checking[s.id] = SourceHealth.checking;
-    }
-    state = state.copyWith(statuses: checking);
-
-    final api = RommApiService();
-    final allSystemIds = SystemModel.supportedSystems.map((s) => s.id);
-
-    final results = await Future.wait(
-      checkableSources.map((s) async {
-        try {
-          if (s.type == SourceType.drive) {
-            final checked = await _driveHealthCheck(s);
-            return MapEntry(
-              s.id,
-              checked.success
-                  ? const SourceHealthResult.valid(null)
-                  : SourceHealthResult.invalid(
-                      checked.error ?? 'Google Drive connection unavailable',
-                    ),
-            );
-          }
-          final platforms =
-              await api.fetchPlatforms(s.url!, auth: s.auth);
-          final known = RommPlatformMatcher.buildKnownPlatforms(
-              allSystemIds, platforms);
-          return MapEntry(s.id, SourceHealthResult.valid(known));
-        } catch (e) {
-          debugPrint('SourceHealthCheck: ${s.name} failed: $e');
-          return MapEntry(s.id, SourceHealthResult.invalid(e.toString()));
-        }
-      }),
-    );
+    state = state.copyWith(statuses: {
+      ...state.statuses,
+      for (final source in checkableSources) source.id: SourceHealth.checking
+    });
+    final results = await Future.wait(checkableSources.map((source) async {
+      try {
+        final checked = await _driveHealthCheck(source);
+        return MapEntry(
+            source.id,
+            checked.success
+                ? const SourceHealthResult.valid(null)
+                : SourceHealthResult.invalid(
+                    checked.error ?? 'Google Drive connection unavailable'));
+      } catch (_) {
+        return MapEntry(
+            source.id,
+            const SourceHealthResult.invalid(
+                'Google Drive connection unavailable'));
+      }
+    }));
 
     final newStatuses = Map<String, SourceHealth>.from(state.statuses);
     final newErrors = Map<String, String>.from(state.errors);

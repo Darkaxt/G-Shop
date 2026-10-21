@@ -11,8 +11,6 @@ import '../services/crash_log_service.dart';
 import '../services/device_info_service.dart';
 import '../services/config_storage_service.dart';
 import '../services/disk_space_service.dart';
-import '../services/native_smb_service.dart';
-import '../services/romm_pairing_service.dart';
 import '../services/sources_notifier.dart';
 import '../models/game_item.dart';
 import '../models/sound_settings.dart';
@@ -30,14 +28,6 @@ export '../core/input/input_providers.dart'
         FocusStateEntry,
         searchRequestedProvider,
         confirmRequestedProvider;
-
-final nativeSmbServiceProvider = Provider<NativeSmbService>((ref) {
-  return NativeSmbService();
-});
-
-final rommPairingServiceProvider = Provider<RommPairingService>((ref) {
-  return RommPairingService();
-});
 
 final sourcesProvider =
     StateNotifierProvider<SourcesNotifier, SourcesState>((ref) {

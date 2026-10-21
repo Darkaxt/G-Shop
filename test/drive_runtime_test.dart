@@ -23,7 +23,6 @@ import 'package:g_shop/services/owned_storage.dart';
 import 'package:g_shop/services/transfer_journal.dart';
 import 'package:g_shop/services/download_queue_manager.dart';
 import 'package:g_shop/services/storage_service.dart';
-import 'package:g_shop/services/native_smb_service.dart';
 import 'package:g_shop/services/installation_index.dart';
 import 'package:g_shop/services/owned_installation_removal.dart';
 import 'package:g_shop/models/config/app_config.dart';
@@ -48,6 +47,7 @@ class _Driver implements DriveAuthorizationDriver {
     if (issue != null) throw DriveAuthorizationException(issue);
     return 'account';
   }
+
   @override
   Future<String?> authorize(String accountId, List<String> scopes,
       {required bool interactive}) async {
@@ -98,13 +98,15 @@ class _HeldObservationJournal extends TransferJournal {
   final bool fail;
   _HeldObservationJournal(super.database, {this.fail = false});
   @override
-  Future<void> saveByteObservation(DriveLocalCloudObservation observation) async {
+  Future<void> saveByteObservation(
+      DriveLocalCloudObservation observation) async {
     entered.complete();
     await release.future;
     if (fail) throw StateError('Synthetic journal failure');
     await super.saveByteObservation(observation);
   }
 }
+
 const _transferConfig = ProviderConfig(
     type: ProviderType.drive,
     priority: 1,
@@ -115,19 +117,20 @@ const _transferConfig = ProviderConfig(
         rootFolderId: 'folder',
         serverClientId: 'public-client'));
 
-RemoteArtifact _artifact({int size = 5, String name = 'fixture.chd'}) => RemoteArtifact(
-    id: RemoteArtifactId(
-        providerId: 'drive',
-        sourceId: 'source',
-        accountId: 'account',
-        providerFileId: 'file'),
-    parentId: 'folder',
-    displayName: name,
-    displayPath: name,
-    sizeBytes: size,
-    version: '1',
-    providerChecksums: const {'md5': _md5},
-    canDownload: true);
+RemoteArtifact _artifact({int size = 5, String name = 'fixture.chd'}) =>
+    RemoteArtifact(
+        id: RemoteArtifactId(
+            providerId: 'drive',
+            sourceId: 'source',
+            accountId: 'account',
+            providerFileId: 'file'),
+        parentId: 'folder',
+        displayName: name,
+        displayPath: name,
+        sizeBytes: size,
+        version: '1',
+        providerChecksums: const {'md5': _md5},
+        canDownload: true);
 
 class _Transport implements HttpClientAdapter {
   final int size;
@@ -135,7 +138,7 @@ class _Transport implements HttpClientAdapter {
   String version = '1';
   String fileParent = 'folder';
   int? rejectedStatus;
-  bool offline=false;
+  bool offline = false;
   final extraFolders = <String, Map<String, Object?>>{};
   Future<ResponseBody> Function(RequestOptions, Future<void>?)? mediaResponse;
   _Transport({this.size = 5, this.name = 'fixture.chd'});
@@ -146,8 +149,13 @@ class _Transport implements HttpClientAdapter {
       Stream<Uint8List>? requestStream, Future<void>? cancelFuture) async {
     requests.add(options);
     if (closed) throw StateError('Transport already closed');
-    if(offline)throw DioException(requestOptions:options,type:DioExceptionType.connectionError);
-    if(rejectedStatus!=null)return ResponseBody.fromString('{"error":{"message":"Synthetic source rejection"}}',rejectedStatus!);
+    if (offline)
+      throw DioException(
+          requestOptions: options, type: DioExceptionType.connectionError);
+    if (rejectedStatus != null)
+      return ResponseBody.fromString(
+          '{"error":{"message":"Synthetic source rejection"}}',
+          rejectedStatus!);
     if (options.queryParameters['alt'] == 'media') {
       if (mediaResponse != null) return mediaResponse!(options, cancelFuture);
       return ResponseBody(
@@ -195,9 +203,8 @@ class _Transport implements HttpClientAdapter {
         ? {
             'files': [file]
           }
-        : extraFolders[options.path.split('/').last] ?? (options.path.endsWith('/folder')
-            ? folder
-            : file);
+        : extraFolders[options.path.split('/').last] ??
+            (options.path.endsWith('/folder') ? folder : file);
     return ResponseBody.fromString(jsonEncode(response), 200, headers: {
       'content-type': ['application/json']
     });
@@ -277,13 +284,15 @@ class _NativeStorage {
     calls.add(call.method);
     final args = Map<String, dynamic>.from(call.arguments as Map);
     switch (call.method) {
-      case 'ownedCacheIdle': return cacheIdle;
+      case 'ownedCacheIdle':
+        return cacheIdle;
       case 'localCopyInspect':
         if (rootArchiveFailure != null && args['destinationRoot'] == '/roms') {
           if (rootArchiveFailure == 'not_found') return null;
           throw PlatformException(code: rootArchiveFailure!);
         }
-        if (nestedArchiveAbsent && args['destinationRoot'] != '/roms') return null;
+        if (nestedArchiveAbsent && args['destinationRoot'] != '/roms')
+          return null;
         expect(args['destinationRoot'], archiveRoot);
         expect(args['relativePath'], archiveName);
         return archiveObservation['localIdentity'];
@@ -343,7 +352,8 @@ class _NativeStorage {
       case 'ownedValidateDsSevenZip':
       case 'ownedValidateDsZip':
         expect(sessionOpen, isTrue);
-        if (invalidArchive) throw PlatformException(code: 'unsupported_archive');
+        if (invalidArchive)
+          throw PlatformException(code: 'unsupported_archive');
         return null;
       case 'ownedPublish':
         if (copyOnly) throw PlatformException(code: 'unsupported');
@@ -562,33 +572,61 @@ class _TransferFixture {
           authorization: auth, accountId: account, httpClientAdapter: media));
 }
 
-Future<RomCacheRuntime> _cacheFixture(_TransferFixture fixture, DriveRuntime runtime) async {
+Future<RomCacheRuntime> _cacheFixture(
+    _TransferFixture fixture, DriveRuntime runtime) async {
   final db = fixture.db;
   await LibrarySchema.install(db);
   await MetadataRefreshJobs.install(db);
-  await db.execute('''CREATE TABLE games(id INTEGER PRIMARY KEY, systemSlug TEXT,
+  await db
+      .execute('''CREATE TABLE games(id INTEGER PRIMARY KEY, systemSlug TEXT,
     displayName TEXT, filename TEXT, artifact_key TEXT, remote_artifact TEXT,
     is_folder INTEGER DEFAULT 0)''');
   await LibraryQuery.install(db);
-  await db.insert('games',{'id':1,'systemSlug':'psx','displayName':'Fixture',
-    'filename':'fixture.chd','artifact_key':_artifact().id.key,
-    'remote_artifact':jsonEncode(_artifact().toJson())});
-  final edition = (await db.transaction((txn)=>
-      LibraryStore.catalogueEditions(txn,cacheRowId:1).toList())).single;
+  await db.insert('games', {
+    'id': 1,
+    'systemSlug': 'psx',
+    'displayName': 'Fixture',
+    'filename': 'fixture.chd',
+    'artifact_key': _artifact().id.key,
+    'remote_artifact': jsonEncode(_artifact().toJson())
+  });
+  final edition = (await db.transaction(
+          (txn) => LibraryStore.catalogueEditions(txn, cacheRowId: 1).toList()))
+      .single;
   final library = LibraryStore(Future.value(db));
   final game = (await library.game((await library.edition(edition))!.gameId))!;
-  await library.putGame(GameIdentity.fromJson({...game.toJson(),'matchStatus':'manuallyMatched'}));
-  final config = AppConfig(systems:[SystemConfig(id:'psx',name:'PlayStation',
-      targetFolder:'/roms',providers:const [],
-      manualMappings:const [SystemSourceMapping(sourceId:'source',remotePath:'folder')])],
-      sources:[Source(id:'source',name:'Drive',type:SourceType.drive,
-          drive:_transferConfig.drive)]);
+  await library.putGame(GameIdentity.fromJson(
+      {...game.toJson(), 'matchStatus': 'manuallyMatched'}));
+  final config = AppConfig(systems: [
+    SystemConfig(
+        id: 'psx',
+        name: 'PlayStation',
+        targetFolder: '/roms',
+        providers: const [],
+        manualMappings: const [
+          SystemSourceMapping(sourceId: 'source', remotePath: 'folder')
+        ])
+  ], sources: [
+    Source(
+        id: 'source',
+        name: 'Drive',
+        type: SourceType.drive,
+        drive: _transferConfig.drive)
+  ]);
   final origin = DateTime.now().millisecondsSinceEpoch;
-  final cache = RomCacheRuntime(store:RomCacheStore(Future.value(db)),
-      configuration:() async => config,drive:runtime,
-      storage:OwnedStorage(channel:fixture.native.channel),
-      clockSample:() async { final wall = DateTime.now().millisecondsSinceEpoch;
-        return {'wallMillis':wall,'elapsedMillis':wall-origin,'bootCount':1}; });
+  final cache = RomCacheRuntime(
+      store: RomCacheStore(Future.value(db)),
+      configuration: () async => config,
+      drive: runtime,
+      storage: OwnedStorage(channel: fixture.native.channel),
+      clockSample: () async {
+        final wall = DateTime.now().millisecondsSinceEpoch;
+        return {
+          'wallMillis': wall,
+          'elapsedMillis': wall - origin,
+          'bootCount': 1
+        };
+      });
   addTearDown(cache.dispose);
   return cache;
 }
@@ -666,174 +704,260 @@ Future<({DriveRuntime runtime, TransferRecord record})> _pendingStage(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(sqfliteFfiInit);
-  test('startup Drive hint reads one root without refreshing the catalogue', () async {
+  test('startup Drive hint reads one root without refreshing the catalogue',
+      () async {
     final fixture = await _TransferFixture.create(reserve: false);
     final root = {
-      'id': 'folder', 'name': 'Library', 'mimeType': DriveFile.folderMime,
-      'parents': <String>[], 'version': '1',
+      'id': 'folder',
+      'name': 'Library',
+      'mimeType': DriveFile.folderMime,
+      'parents': <String>[],
+      'version': '1',
       'modifiedTime': '2026-10-01T12:00:00Z',
     };
-    await fixture.db.update('drive_catalogue_entries', {'record_json': jsonEncode(root)},
+    await fixture.db.update(
+        'drive_catalogue_entries', {'record_json': jsonEncode(root)},
         where: 'file_id=?', whereArgs: ['folder']);
     final runtime = fixture.runtime();
-    final source = Source(id: 'source', name: 'Library', type: SourceType.drive,
+    final source = Source(
+        id: 'source',
+        name: 'Library',
+        type: SourceType.drive,
         drive: _transferConfig.drive);
     fixture.metadata.extraFolders['folder'] = root;
     expect(await runtime.sourceFolderChanged(source), isFalse);
-    fixture.metadata.extraFolders['folder'] = {...root,
-        'modifiedTime': '2026-10-17T12:00:00Z'};
+    fixture.metadata.extraFolders['folder'] = {
+      ...root,
+      'modifiedTime': '2026-10-17T12:00:00Z'
+    };
     expect(await runtime.sourceFolderChanged(source), isTrue);
     fixture.metadata.offline = true;
     expect(await runtime.sourceFolderChanged(source), isFalse);
     expect(fixture.metadata.requests, hasLength(3));
-    expect(fixture.metadata.requests.every((r) =>
-        r.method == 'GET' && r.path == 'files/folder'), isTrue);
+    expect(
+        fixture.metadata.requests
+            .every((r) => r.method == 'GET' && r.path == 'files/folder'),
+        isTrue);
     expect(fixture.media.requests, isEmpty);
-    expect((await fixture.db.query('drive_catalogue_state')).single['active'], 1);
-    expect((await fixture.db.query('drive_catalogue_state')).single['pending'], isNull);
+    expect(
+        (await fixture.db.query('drive_catalogue_state')).single['active'], 1);
+    expect((await fixture.db.query('drive_catalogue_state')).single['pending'],
+        isNull);
   });
-  test('cache rotation proves current cloud bytes then uses durable owned removal', () async {
+  test(
+      'cache rotation proves current cloud bytes then uses durable owned removal',
+      () async {
     final fixture = await _TransferFixture.create();
     final drive = fixture.runtime();
-    await (await drive.startTransfer(config:_transferConfig,transferId:'transfer')).result;
-    final cache = await _cacheFixture(fixture,drive);
-    await cache.store.savePolicy(RomCachePolicy(enabled:true,defaults:RomCacheLimits(maxGames:0)));
+    await (await drive.startTransfer(
+            config: _transferConfig, transferId: 'transfer'))
+        .result;
+    final cache = await _cacheFixture(fixture, drive);
+    await cache.store.savePolicy(
+        RomCachePolicy(enabled: true, defaults: RomCacheLimits(maxGames: 0)));
     final before = await cache.snapshot();
-    expect(before.plan.victims,hasLength(1));
-    expect(before.games.single.entry.block,isNull);
+    expect(before.plan.victims, hasLength(1));
+    expect(before.games.single.entry.block, isNull);
     await cache.reconcile();
-    expect(cache.issue,isNull);
-    expect(cache.removedGames,1);
-    expect(fixture.native.published,isFalse);
-    expect(fixture.native.quarantinePresent,isFalse);
-    expect(fixture.media.requests,hasLength(2)); // download, then fresh proof
-    expect(await fixture.db.query('games'),hasLength(1));
-    expect((await fixture.db.query('rom_cache_decisions')).single['outcome'],'removed');
+    expect(cache.issue, isNull);
+    expect(cache.removedGames, 1);
+    expect(fixture.native.published, isFalse);
+    expect(fixture.native.quarantinePresent, isFalse);
+    expect(fixture.media.requests, hasLength(2)); // download, then fresh proof
+    expect(await fixture.db.query('games'), hasLength(1));
+    expect((await fixture.db.query('rom_cache_decisions')).single['outcome'],
+        'removed');
   });
-  for (final failure in ['in_use','changed_cloud','truncated_cloud','offline','revoked','missing_cloud','changed_local']) {
-    test('cache rotation preserves local and cloud records on $failure', () async {
+  for (final failure in [
+    'in_use',
+    'changed_cloud',
+    'truncated_cloud',
+    'offline',
+    'revoked',
+    'missing_cloud',
+    'changed_local'
+  ]) {
+    test('cache rotation preserves local and cloud records on $failure',
+        () async {
       final fixture = await _TransferFixture.create();
       final drive = fixture.runtime();
-      await (await drive.startTransfer(config:_transferConfig,transferId:'transfer')).result;
-      final cache = await _cacheFixture(fixture,drive);
-      await cache.store.savePolicy(RomCachePolicy(enabled:true,defaults:RomCacheLimits(maxGames:0)));
-      if (failure=='in_use') fixture.native.cacheIdle=false;
-      if (failure=='changed_cloud') fixture.metadata.version='2';
-      if (failure=='offline')fixture.metadata.offline=true;
-      if (failure=='revoked')fixture.metadata.rejectedStatus=403;
-      if (failure=='missing_cloud')fixture.metadata.rejectedStatus=404;
-      if (failure=='changed_local')fixture.native.targetChanged=true;
-      if (failure=='truncated_cloud') {
-        fixture.media.mediaResponse = (_,__) async =>
-            ResponseBody(Stream.value(Uint8List.fromList([1,2])),200,headers:{'content-length':['2']});
+      await (await drive.startTransfer(
+              config: _transferConfig, transferId: 'transfer'))
+          .result;
+      final cache = await _cacheFixture(fixture, drive);
+      await cache.store.savePolicy(
+          RomCachePolicy(enabled: true, defaults: RomCacheLimits(maxGames: 0)));
+      if (failure == 'in_use') fixture.native.cacheIdle = false;
+      if (failure == 'changed_cloud') fixture.metadata.version = '2';
+      if (failure == 'offline') fixture.metadata.offline = true;
+      if (failure == 'revoked') fixture.metadata.rejectedStatus = 403;
+      if (failure == 'missing_cloud') fixture.metadata.rejectedStatus = 404;
+      if (failure == 'changed_local') fixture.native.targetChanged = true;
+      if (failure == 'truncated_cloud') {
+        fixture.media.mediaResponse = (_, __) async => ResponseBody(
+                Stream.value(Uint8List.fromList([1, 2])), 200,
+                headers: {
+                  'content-length': ['2']
+                });
       }
       await cache.reconcile();
-      expect(cache.removedGames,0);
-      expect(cache.issue,isNotNull);
-      expect(fixture.native.published,isTrue);
-      expect(fixture.native.calls,isNot(contains('ownedQuarantine')));
-      expect(await fixture.db.query('installed_artifacts'),hasLength(1));
-      expect((await fixture.db.query('rom_cache_decisions')).single['outcome'],'blocked');
+      expect(cache.removedGames, 0);
+      expect(cache.issue, isNotNull);
+      expect(fixture.native.published, isTrue);
+      expect(fixture.native.calls, isNot(contains('ownedQuarantine')));
+      expect(await fixture.db.query('installed_artifacts'), hasLength(1));
+      expect((await fixture.db.query('rom_cache_decisions')).single['outcome'],
+          'blocked');
     });
   }
   for (final cloudChanged in [false, true]) {
-    test('cache restart rechecks cloud before continuing quarantine: changed=$cloudChanged', () async {
+    test(
+        'cache restart rechecks cloud before continuing quarantine: changed=$cloudChanged',
+        () async {
       final fixture = await _TransferFixture.create();
       final drive = fixture.runtime();
-      final transfer = await (await drive.startTransfer(config:_transferConfig,transferId:'transfer')).result;
-      final installed = (await fixture.journal.installationForTarget(destinationRoot:'/roms',relativePath:'fixture.chd'))!;
-      final cache = await _cacheFixture(fixture,drive);
-      await cache.store.savePolicy(RomCachePolicy(enabled:true,defaults:RomCacheLimits(maxGames:0)));
-      final removal = await fixture.journal.beginRemoval(transfer,installed,id:'cache-removal-restart',
-          quarantinePath:'/owned/cache-removal-restart.partial',policyDriven:true);
-      await OwnedStorage(channel:fixture.native.channel).quarantine(destinationRoot:installed.destinationRoot,
-          relativePath:installed.relativePath,stagePath:removal.quarantinePath,expectedIdentity:installed.fileIdentity);
-      expect((await drive.recoverPendingRemovals()).removed,0);
-      if(cloudChanged)fixture.metadata.version='2';
+      final transfer = await (await drive.startTransfer(
+              config: _transferConfig, transferId: 'transfer'))
+          .result;
+      final installed = (await fixture.journal.installationForTarget(
+          destinationRoot: '/roms', relativePath: 'fixture.chd'))!;
+      final cache = await _cacheFixture(fixture, drive);
+      await cache.store.savePolicy(
+          RomCachePolicy(enabled: true, defaults: RomCacheLimits(maxGames: 0)));
+      final removal = await fixture.journal.beginRemoval(transfer, installed,
+          id: 'cache-removal-restart',
+          quarantinePath: '/owned/cache-removal-restart.partial',
+          policyDriven: true);
+      await OwnedStorage(channel: fixture.native.channel).quarantine(
+          destinationRoot: installed.destinationRoot,
+          relativePath: installed.relativePath,
+          stagePath: removal.quarantinePath,
+          expectedIdentity: installed.fileIdentity);
+      expect((await drive.recoverPendingRemovals()).removed, 0);
+      if (cloudChanged) fixture.metadata.version = '2';
       await cache.reconcile();
-      if(!cloudChanged)expect(cache.issue,isNull);
-      expect(fixture.native.quarantinePresent,cloudChanged);
-      expect((await fixture.journal.removal(removal.id))!.phase,
-          cloudChanged ? OwnedRemovalPhase.intent : OwnedRemovalPhase.completed);
-      expect(await fixture.db.query('games'),hasLength(1));
-      if(!cloudChanged)expect(fixture.media.requests,hasLength(2));
+      if (!cloudChanged) expect(cache.issue, isNull);
+      expect(fixture.native.quarantinePresent, cloudChanged);
+      expect(
+          (await fixture.journal.removal(removal.id))!.phase,
+          cloudChanged
+              ? OwnedRemovalPhase.intent
+              : OwnedRemovalPhase.completed);
+      expect(await fixture.db.query('games'), hasLength(1));
+      if (!cloudChanged) expect(fixture.media.requests, hasLength(2));
     });
   }
-  test('pin change cancels and joins cloud proof before saving protection', () async {
-    final fixture=await _TransferFixture.create();
-    final drive=fixture.runtime();
-    await (await drive.startTransfer(config:_transferConfig,transferId:'transfer')).result;
-    final cache=await _cacheFixture(fixture,drive);
-    await cache.store.savePolicy(RomCachePolicy(enabled:true,defaults:RomCacheLimits(maxGames:0)));
-    final key=(await cache.snapshot()).games.single.entry.id;
-    final entered=Completer<void>(),cancelled=Completer<void>(),drain=Completer<void>();
-    fixture.media.mediaResponse=(request,cancellation) async {
-      entered.complete();await cancellation;cancelled.complete();await drain.future;
-      throw DioException(requestOptions:request,type:DioExceptionType.cancel);
+  test('pin change cancels and joins cloud proof before saving protection',
+      () async {
+    final fixture = await _TransferFixture.create();
+    final drive = fixture.runtime();
+    await (await drive.startTransfer(
+            config: _transferConfig, transferId: 'transfer'))
+        .result;
+    final cache = await _cacheFixture(fixture, drive);
+    await cache.store.savePolicy(
+        RomCachePolicy(enabled: true, defaults: RomCacheLimits(maxGames: 0)));
+    final key = (await cache.snapshot()).games.single.entry.id;
+    final entered = Completer<void>(),
+        cancelled = Completer<void>(),
+        drain = Completer<void>();
+    fixture.media.mediaResponse = (request, cancellation) async {
+      entered.complete();
+      await cancellation;
+      cancelled.complete();
+      await drain.future;
+      throw DioException(
+          requestOptions: request, type: DioExceptionType.cancel);
     };
-    final pass=cache.reconcile();await entered.future;
-    final edit=cache.setPinned(key,true);await cancelled.future;
-    expect(await cache.store.isPinned(key),isFalse);
-    expect(cache.busy,isTrue);expect(fixture.native.calls,isNot(contains('ownedQuarantine')));
-    drain.complete();await edit;await pass;
-    expect(await cache.store.isPinned(key),isTrue);
-    expect(fixture.native.published,isTrue);expect(cache.busy,isFalse);
-    expect((await cache.snapshot()).plan.protectedGames,1);
+    final pass = cache.reconcile();
+    await entered.future;
+    final edit = cache.setPinned(key, true);
+    await cancelled.future;
+    expect(await cache.store.isPinned(key), isFalse);
+    expect(cache.busy, isTrue);
+    expect(fixture.native.calls, isNot(contains('ownedQuarantine')));
+    drain.complete();
+    await edit;
+    await pass;
+    expect(await cache.store.isPinned(key), isTrue);
+    expect(fixture.native.published, isTrue);
+    expect(cache.busy, isFalse);
+    expect((await cache.snapshot()).plan.protectedGames, 1);
   });
-  test('explicit adoption compares current bytes and commits a reusable owner', () async {
+  test('explicit adoption compares current bytes and commits a reusable owner',
+      () async {
     final fixture = await _TransferFixture.create(reserve: false);
-    fixture.native.bytes.addAll([1,2,3,4,5]);
+    fixture.native.bytes.addAll([1, 2, 3, 4, 5]);
     fixture.native.published = true;
     final runtime = fixture.runtime();
     final installed = await runtime.adoptLocalCloudBytes(
-        config: _transferConfig, artifact: _artifact(), destinationRoot: '/roms',
-        relativePath: 'fixture.chd', supportedExtensions: {'.chd'},
+        config: _transferConfig,
+        artifact: _artifact(),
+        destinationRoot: '/roms',
+        relativePath: 'fixture.chd',
+        supportedExtensions: {'.chd'},
         cancellation: CancelToken());
     final record = (await fixture.journal.transfer(installed.transferId))!;
     expect(record.lifecycle, TransferLifecycle.completed);
     expect(record.publication!.method.name, 'adopt');
     expect(record.stageIdentity, isNull);
     expect(record.stageRetired, isTrue);
-    expect(fixture.native.bytes, [1,2,3,4,5]);
+    expect(fixture.native.bytes, [1, 2, 3, 4, 5]);
     expect(fixture.native.sessionOpen, isFalse);
     expect(fixture.native.stagePresent, isFalse);
     expect(fixture.media.requests, hasLength(1));
     expect(await fixture.db.query('owned_removals'), isEmpty);
-    expect(await InstallationIndex(fixture.journal,
-        storage: OwnedStorage(channel: fixture.native.channel))
-        .resolveArtifact(_artifact(), '/roms'), p.normalize(p.absolute('/roms/fixture.chd')));
+    expect(
+        await InstallationIndex(fixture.journal,
+                storage: OwnedStorage(channel: fixture.native.channel))
+            .resolveArtifact(_artifact(), '/roms'),
+        p.normalize(p.absolute('/roms/fixture.chd')));
     // Existing durable owned removal, not an alternate migration delete engine.
     await OwnedInstallationRemoval(fixture.journal,
-        storage: OwnedStorage(channel: fixture.native.channel)).remove(installed);
+            storage: OwnedStorage(channel: fixture.native.channel))
+        .remove(installed);
     expect(fixture.native.published, isFalse);
     expect(fixture.native.quarantinePresent, isFalse);
     expect(await fixture.db.query('installed_artifacts'), isEmpty);
   });
-  test('an existing transfer owner prevents adoption without file changes', () async {
+  test('an existing transfer owner prevents adoption without file changes',
+      () async {
     final fixture = await _TransferFixture.create();
-    fixture.native.bytes.addAll([1,2,3,4,5]);
+    fixture.native.bytes.addAll([1, 2, 3, 4, 5]);
     fixture.native.published = true;
-    await expectLater(fixture.runtime().adoptLocalCloudBytes(
-        config: _transferConfig, artifact: _artifact(), destinationRoot: '/roms',
-        relativePath: 'fixture.chd', supportedExtensions: {'.chd'},
-        cancellation: CancelToken()), throwsStateError);
+    await expectLater(
+        fixture.runtime().adoptLocalCloudBytes(
+            config: _transferConfig,
+            artifact: _artifact(),
+            destinationRoot: '/roms',
+            relativePath: 'fixture.chd',
+            supportedExtensions: {'.chd'},
+            cancellation: CancelToken()),
+        throwsStateError);
     expect(await fixture.db.query('transfer_records'), hasLength(1));
     expect(await fixture.db.query('installed_artifacts'), isEmpty);
-    expect(fixture.native.bytes, [1,2,3,4,5]);
+    expect(fixture.native.bytes, [1, 2, 3, 4, 5]);
     expect(fixture.native.published, isTrue);
     expect(fixture.media.requests, isEmpty);
   });
   for (final change in ['cancel', 'namespace', 'cloud']) {
-    test('adoption rejects $change after closed comparison without claiming ownership', () async {
+    test(
+        'adoption rejects $change after closed comparison without claiming ownership',
+        () async {
       late _HeldObservationJournal held;
-      final fixture = await _TransferFixture.create(reserve: false,
+      final fixture = await _TransferFixture.create(
+          reserve: false,
           createJournal: (db) => held = _HeldObservationJournal(db));
-      fixture.native.bytes.addAll([1,2,3,4,5]);
+      fixture.native.bytes.addAll([1, 2, 3, 4, 5]);
       fixture.native.published = true;
       final token = CancelToken();
       final adoption = fixture.runtime().adoptLocalCloudBytes(
-          config: _transferConfig, artifact: _artifact(), destinationRoot: '/roms',
-          relativePath: 'fixture.chd', supportedExtensions: {'.chd'}, cancellation: token);
+          config: _transferConfig,
+          artifact: _artifact(),
+          destinationRoot: '/roms',
+          relativePath: 'fixture.chd',
+          supportedExtensions: {'.chd'},
+          cancellation: token);
       final failed = expectLater(adoption, throwsA(anything));
       await held.entered.future;
       expect(fixture.native.sessionOpen, isFalse);
@@ -846,23 +970,41 @@ void main() {
       expect(await fixture.db.query('transfer_records'), isEmpty);
       expect(fixture.native.stagePresent, isFalse);
       expect(fixture.native.published, isTrue);
-      expect(fixture.native.bytes, [1,2,3,4,5]);
+      expect(fixture.native.bytes, [1, 2, 3, 4, 5]);
     });
   }
-  test('explicit Game Gear mapping admits a ZIP without admitting other archive layouts', () {
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.gg'}), isTrue);
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.z64', '.n64', '.v64'}), isTrue);
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.z64', '.n64', '.v64'}), isTrue);
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.z64'}), isFalse);
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.gg'}), isFalse);
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.rar', {'.gg'}), isFalse);
+  test(
+      'explicit Game Gear mapping admits a ZIP without admitting other archive layouts',
+      () {
+    expect(
+        DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.gg'}), isTrue);
+    expect(
+        DriveRuntime.supportsStandaloneAdoption(
+            'Game.zip', {'.z64', '.n64', '.v64'}),
+        isTrue);
+    expect(
+        DriveRuntime.supportsStandaloneAdoption(
+            'Game.7z', {'.z64', '.n64', '.v64'}),
+        isTrue);
+    expect(
+        DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.z64'}), isFalse);
+    expect(
+        DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.gg'}), isFalse);
+    expect(
+        DriveRuntime.supportsStandaloneAdoption('Game.rar', {'.gg'}), isFalse);
   });
   test('DS archive adoption requires the explicit single-console mapping', () {
     for (final extension in ['zip', '7z']) {
-      expect(DriveRuntime.supportsStandaloneAdoption('Game.$extension', {'.nds'}), isTrue);
-      expect(DriveRuntime.supportsStandaloneAdoption('Game.$extension', {'.nds', '.gba'}), isFalse);
+      expect(
+          DriveRuntime.supportsStandaloneAdoption('Game.$extension', {'.nds'}),
+          isTrue);
+      expect(
+          DriveRuntime.supportsStandaloneAdoption(
+              'Game.$extension', {'.nds', '.gba'}),
+          isFalse);
     }
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.rar', {'.nds'}), isFalse);
+    expect(
+        DriveRuntime.supportsStandaloneAdoption('Game.rar', {'.nds'}), isFalse);
   });
 
   for (final (platform, member, extensions) in [
@@ -871,55 +1013,84 @@ void main() {
     ('sg1000', 'sg', {'.sg', '.sc'}),
   ]) {
     test('$platform Sega ZIP mapping is explicit and console-bound', () {
-      expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', extensions), isTrue);
-      expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', extensions), isFalse);
-      expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', {...extensions, '.gg'}), isFalse);
-      expect(TransferRecord.supportsArchiveMapping('Game.zip', platform), isTrue);
-      expect(TransferRecord.supportsArchiveMapping('Game.7z', platform), isFalse);
+      expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', extensions),
+          isTrue);
+      expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', extensions),
+          isFalse);
+      expect(
+          DriveRuntime.supportsStandaloneAdoption(
+              'Game.zip', {...extensions, '.gg'}),
+          isFalse);
+      expect(
+          TransferRecord.supportsArchiveMapping('Game.zip', platform), isTrue);
+      expect(
+          TransferRecord.supportsArchiveMapping('Game.7z', platform), isFalse);
     });
-    test('$platform local Sega ZIP metadata preserves raw identity without a download', () async {
-      final fixture = await _TransferFixture.create(name: 'fixture.zip', reserve: false);
+    test(
+        '$platform local Sega ZIP metadata preserves raw identity without a download',
+        () async {
+      final fixture =
+          await _TransferFixture.create(name: 'fixture.zip', reserve: false);
       fixture.native.archivePlatform = platform;
       fixture.native.archiveObservation['raw'] = {
-        ...((fixture.native.archiveObservation['raw'] as Map).cast<String, Object?>()),
+        ...((fixture.native.archiveObservation['raw'] as Map)
+            .cast<String, Object?>()),
         'filename': 'fixture.$member',
       };
       final raw = await fixture.runtime().readMetadataArchive(
-          config: _transferConfig, artifact: _artifact(name: 'fixture.zip'),
-          platformId: platform, destinationRoot: '/roms', cancellation: CancelToken());
+          config: _transferConfig,
+          artifact: _artifact(name: 'fixture.zip'),
+          platformId: platform,
+          destinationRoot: '/roms',
+          cancellation: CancelToken());
       expect(raw, isNotNull);
       expect(raw!.filename, 'fixture.$member');
       expect(raw.sha1, 'c' * 40);
-      expect(fixture.native.calls, ['localCopyInspect', 'ownedReadArchiveIdentifier']);
-      expect(await fixture.db.query('migration_byte_observations'), hasLength(1));
+      expect(fixture.native.calls,
+          ['localCopyInspect', 'ownedReadArchiveIdentifier']);
+      expect(
+          await fixture.db.query('migration_byte_observations'), hasLength(1));
       expect(await fixture.db.query('installed_artifacts'), isEmpty);
       expect(await fixture.db.query('transfer_records'), isEmpty);
       expect(fixture.media.requests, isEmpty);
       expect(fixture.native.stagePresent, isFalse);
     });
-    test('$platform local Sega ZIP metadata rejects another console member', () async {
-      final fixture = await _TransferFixture.create(name: 'fixture.zip', reserve: false);
+    test('$platform local Sega ZIP metadata rejects another console member',
+        () async {
+      final fixture =
+          await _TransferFixture.create(name: 'fixture.zip', reserve: false);
       fixture.native.archivePlatform = platform;
-      await expectLater(fixture.runtime().readMetadataArchive(
-          config: _transferConfig, artifact: _artifact(name: 'fixture.zip'),
-          platformId: platform, destinationRoot: '/roms', cancellation: CancelToken()),
-          throwsA(isA<DriveTransferException>().having((e) => e.issue, 'issue', DriveTransferIssue.invalidResponse)));
+      await expectLater(
+          fixture.runtime().readMetadataArchive(
+              config: _transferConfig,
+              artifact: _artifact(name: 'fixture.zip'),
+              platformId: platform,
+              destinationRoot: '/roms',
+              cancellation: CancelToken()),
+          throwsA(isA<DriveTransferException>().having(
+              (e) => e.issue, 'issue', DriveTransferIssue.invalidResponse)));
       expect(await fixture.db.query('migration_byte_observations'), isEmpty);
       expect(fixture.media.requests, isEmpty);
     });
   }
 
   for (final invalid in [false, true]) {
-    test('Game Gear ZIP adoption ${invalid ? 'rejects invalid layout' : 'preserves exact bytes and validates handoff'}', () async {
-      final fixture = await _TransferFixture.create(reserve: false, name: 'fixture.zip');
+    test(
+        'Game Gear ZIP adoption ${invalid ? 'rejects invalid layout' : 'preserves exact bytes and validates handoff'}',
+        () async {
+      final fixture =
+          await _TransferFixture.create(reserve: false, name: 'fixture.zip');
       fixture.native.bytes.addAll([1, 2, 3, 4, 5]);
       fixture.native.published = true;
       fixture.native.invalidArchive = invalid;
       final runtime = fixture.runtime();
       final adoption = runtime.adoptLocalCloudBytes(
-          config: _transferConfig, artifact: _artifact(name: 'fixture.zip'),
-          destinationRoot: '/roms', relativePath: 'fixture.zip',
-          supportedExtensions: {'.gg'}, cancellation: CancelToken());
+          config: _transferConfig,
+          artifact: _artifact(name: 'fixture.zip'),
+          destinationRoot: '/roms',
+          relativePath: 'fixture.zip',
+          supportedExtensions: {'.gg'},
+          cancellation: CancelToken());
       if (invalid) {
         await expectLater(adoption, throwsA(isA<OwnedStorageException>()));
         expect(await fixture.db.query('installed_artifacts'), isEmpty);
@@ -930,7 +1101,9 @@ void main() {
         expect(record.archivePlatformId, 'gamegear');
         expect(installed.relativePath, 'fixture.zip');
         await runtime.requireInstalledTransfer(record);
-        expect(fixture.native.calls.where((c) => c == 'ownedValidateGameGearZip'), hasLength(2));
+        expect(
+            fixture.native.calls.where((c) => c == 'ownedValidateGameGearZip'),
+            hasLength(2));
       }
       expect(fixture.native.bytes, [1, 2, 3, 4, 5]);
       expect(fixture.native.published, isTrue);
@@ -938,85 +1111,156 @@ void main() {
     });
   }
 
-  test('normal Game Gear ZIP queue persists explicit intent before verified publication', () async {
-    final fixture = await _TransferFixture.create(reserve: false, name: 'fixture.zip');
+  test(
+      'normal Game Gear ZIP queue persists explicit intent before verified publication',
+      () async {
+    final fixture =
+        await _TransferFixture.create(reserve: false, name: 'fixture.zip');
     final runtime = fixture.runtime();
-    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(), driveRuntime: runtime);
-    const system = SystemModel(id: 'gamegear', name: 'Game Gear', manufacturer: 'Sega', releaseYear: 1990, romExtensions: ['.gg']);
+    final queue = DownloadQueueManager(_QueueStorage(), driveRuntime: runtime);
+    const system = SystemModel(
+        id: 'gamegear',
+        name: 'Game Gear',
+        manufacturer: 'Sega',
+        releaseYear: 1990,
+        romExtensions: ['.gg']);
     final terminal = _queueTerminal(queue);
-    queue.addToQueue(GameItem(filename: 'fixture.zip', displayName: 'Fixture',
-        url: 'drive-artifact:synthetic', providerConfig: _transferConfig,
-        remoteArtifact: _artifact(name: 'fixture.zip')), system, '/roms');
+    queue.addToQueue(
+        GameItem(
+            filename: 'fixture.zip',
+            displayName: 'Fixture',
+            url: 'drive-artifact:synthetic',
+            providerConfig: _transferConfig,
+            remoteArtifact: _artifact(name: 'fixture.zip')),
+        system,
+        '/roms');
     final item = await terminal;
     expect(item.status, DownloadStatus.completed, reason: item.error);
     final record = (await fixture.journal.transfer(item.transferId!))!;
     expect(record.archivePlatformId, 'gamegear');
     expect(record.relativePath, 'fixture.zip');
-    expect(fixture.native.calls.indexOf('ownedValidateGameGearZip'), lessThan(fixture.native.calls.indexOf('ownedPublish')));
+    expect(fixture.native.calls.indexOf('ownedValidateGameGearZip'),
+        lessThan(fixture.native.calls.indexOf('ownedPublish')));
     expect(await fixture.db.query('installed_artifacts'), hasLength(1));
     await queue.close();
     queue.dispose();
     fixture.driver.finishSignOut.complete();
     await runtime.disconnect();
   });
-  for (final platform in ['gb', 'gbc', 'gba', 'nes', 'snes', 'megadrive', 'mastersystem', 'sg1000']) {
-   for (final invalid in [false, true]) {
-    final extension = const {'megadrive', 'mastersystem', 'sg1000'}.contains(platform) ? 'zip' : '7z';
-    test('normal $platform $extension queue ${invalid ? 'rejects invalid layout before publication' : 'publishes immutable mapping and revalidates offline'}', () async {
-      final method = extension == 'zip' ? 'ownedValidateSegaZip' : platform == 'gb' ? 'ownedValidateGameBoySevenZip' :
-          platform == 'gbc' ? 'ownedValidateGameBoyColorSevenZip' :
-          platform == 'nes' ? 'ownedValidateNesSevenZip' :
-          platform == 'snes' ? 'ownedValidateSnesSevenZip' : 'ownedValidateGameBoyAdvanceSevenZip';
-      final fixture = await _TransferFixture.create(reserve: false, name: 'fixture.$extension');
-      fixture.native.invalidArchive = invalid;
-      final runtime = fixture.runtime();
-      final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(), driveRuntime: runtime);
-      final gb = SystemModel.supportedSystems.singleWhere((s) => s.id == platform);
-      final terminal = _queueTerminal(queue);
-      queue.addToQueue(GameItem(filename: 'fixture.$extension', displayName: 'Fixture',
-          url: 'drive-artifact:synthetic', providerConfig: _transferConfig,
-          remoteArtifact: _artifact(name: 'fixture.$extension')), gb, '/roms');
-      final item = await terminal;
-      expect(item.status, invalid ? DownloadStatus.error : DownloadStatus.completed, reason: item.error);
-      final record = (await fixture.journal.transfer(item.transferId!))!;
-      expect(record.archivePlatformId, platform);
-      expect(TransferRecord.fromJson(record.toJson()).archivePlatformId, platform);
-      expect(record.relativePath, 'fixture.$extension');
-      if (invalid) {
-        expect(fixture.native.calls, isNot(contains('ownedPublish')));
-        expect(await fixture.db.query('installed_artifacts'), isEmpty);
-      } else {
-        await runtime.requireInstalledTransfer(record);
-        expect(fixture.native.calls.where((m) => m == method), hasLength(2));
-        expect(fixture.native.calls.indexOf(method), lessThan(fixture.native.calls.indexOf('ownedPublish')));
-        fixture.native.invalidArchive = true;
-        await expectLater(runtime.requireInstalledTransfer(record), throwsA(isA<OwnedStorageException>()));
-      }
-      expect(fixture.native.calls, isNot(contains('ownedValidateN64SevenZip')));
-      expect(fixture.native.sessionOpen, isFalse);
-      await queue.close(); queue.dispose();
-      fixture.driver.finishSignOut.complete(); await runtime.disconnect();
-    });
-   }
+  for (final platform in [
+    'gb',
+    'gbc',
+    'gba',
+    'nes',
+    'snes',
+    'megadrive',
+    'mastersystem',
+    'sg1000'
+  ]) {
+    for (final invalid in [false, true]) {
+      final extension =
+          const {'megadrive', 'mastersystem', 'sg1000'}.contains(platform)
+              ? 'zip'
+              : '7z';
+      test(
+          'normal $platform $extension queue ${invalid ? 'rejects invalid layout before publication' : 'publishes immutable mapping and revalidates offline'}',
+          () async {
+        final method = extension == 'zip'
+            ? 'ownedValidateSegaZip'
+            : platform == 'gb'
+                ? 'ownedValidateGameBoySevenZip'
+                : platform == 'gbc'
+                    ? 'ownedValidateGameBoyColorSevenZip'
+                    : platform == 'nes'
+                        ? 'ownedValidateNesSevenZip'
+                        : platform == 'snes'
+                            ? 'ownedValidateSnesSevenZip'
+                            : 'ownedValidateGameBoyAdvanceSevenZip';
+        final fixture = await _TransferFixture.create(
+            reserve: false, name: 'fixture.$extension');
+        fixture.native.invalidArchive = invalid;
+        final runtime = fixture.runtime();
+        final queue =
+            DownloadQueueManager(_QueueStorage(), driveRuntime: runtime);
+        final gb =
+            SystemModel.supportedSystems.singleWhere((s) => s.id == platform);
+        final terminal = _queueTerminal(queue);
+        queue.addToQueue(
+            GameItem(
+                filename: 'fixture.$extension',
+                displayName: 'Fixture',
+                url: 'drive-artifact:synthetic',
+                providerConfig: _transferConfig,
+                remoteArtifact: _artifact(name: 'fixture.$extension')),
+            gb,
+            '/roms');
+        final item = await terminal;
+        expect(item.status,
+            invalid ? DownloadStatus.error : DownloadStatus.completed,
+            reason: item.error);
+        final record = (await fixture.journal.transfer(item.transferId!))!;
+        expect(record.archivePlatformId, platform);
+        expect(TransferRecord.fromJson(record.toJson()).archivePlatformId,
+            platform);
+        expect(record.relativePath, 'fixture.$extension');
+        if (invalid) {
+          expect(fixture.native.calls, isNot(contains('ownedPublish')));
+          expect(await fixture.db.query('installed_artifacts'), isEmpty);
+        } else {
+          await runtime.requireInstalledTransfer(record);
+          expect(fixture.native.calls.where((m) => m == method), hasLength(2));
+          expect(fixture.native.calls.indexOf(method),
+              lessThan(fixture.native.calls.indexOf('ownedPublish')));
+          fixture.native.invalidArchive = true;
+          await expectLater(runtime.requireInstalledTransfer(record),
+              throwsA(isA<OwnedStorageException>()));
+        }
+        expect(
+            fixture.native.calls, isNot(contains('ownedValidateN64SevenZip')));
+        expect(fixture.native.sessionOpen, isFalse);
+        await queue.close();
+        queue.dispose();
+        fixture.driver.finishSignOut.complete();
+        await runtime.disconnect();
+      });
+    }
   }
-  test('handheld archive mapping requires a single exact console and 7z format', () {
+  test('handheld archive mapping requires a single exact console and 7z format',
+      () {
     expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.gb'}), isTrue);
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.gbc'}), isTrue);
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.gba'}), isTrue);
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.nes'}), isTrue);
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.nes'}), isFalse);
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.nes', '.sfc'}), isFalse);
+    expect(
+        DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.gbc'}), isTrue);
+    expect(
+        DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.gba'}), isTrue);
+    expect(
+        DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.nes'}), isTrue);
+    expect(
+        DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.nes'}), isFalse);
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.nes', '.sfc'}),
+        isFalse);
     expect(TransferRecord.supportsArchiveMapping('Game.7z', 'nes'), isTrue);
     expect(TransferRecord.supportsArchiveMapping('Game.zip', 'nes'), isFalse);
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.sfc', '.smc'}), isTrue);
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.sfc', '.smc', '.pcm'}), isFalse);
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.sfc', '.smc'}), isFalse);
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.sfc', '.smc'}),
+        isTrue);
+    expect(
+        DriveRuntime.supportsStandaloneAdoption(
+            'Game.7z', {'.sfc', '.smc', '.pcm'}),
+        isFalse);
+    expect(
+        DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.sfc', '.smc'}),
+        isFalse);
     expect(TransferRecord.supportsArchiveMapping('Game.7z', 'snes'), isTrue);
     expect(TransferRecord.supportsArchiveMapping('Game.zip', 'snes'), isFalse);
-    for (final extensions in [{'.gb', '.gbc'}, {'.gbc', '.gba'}, {'.7z'}]) {
-      expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', extensions), isFalse);
+    for (final extensions in [
+      {'.gb', '.gbc'},
+      {'.gbc', '.gba'},
+      {'.7z'}
+    ]) {
+      expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', extensions),
+          isFalse);
     }
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.gb'}), isFalse);
+    expect(
+        DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.gb'}), isFalse);
     expect(TransferRecord.supportsArchiveMapping('Game.7z', null), isFalse);
   });
   for (final (platform, method) in [
@@ -1029,83 +1273,139 @@ void main() {
     ('sg1000', 'ownedValidateSegaZip'),
   ]) {
     final extension = method == 'ownedValidateSegaZip' ? 'zip' : '7z';
-    test('$platform $extension adoption retains its exact mapping and revalidates before reuse', () async {
-      final fixture = await _TransferFixture.create(reserve: false, name: 'fixture.$extension');
+    test(
+        '$platform $extension adoption retains its exact mapping and revalidates before reuse',
+        () async {
+      final fixture = await _TransferFixture.create(
+          reserve: false, name: 'fixture.$extension');
       fixture.native.bytes.addAll([1, 2, 3, 4, 5]);
       fixture.native.published = true;
       final runtime = fixture.runtime();
-      final installed = await runtime.adoptLocalCloudBytes(config: _transferConfig,
-          artifact: _artifact(name: 'fixture.$extension'), destinationRoot: '/roms', relativePath: 'fixture.$extension',
+      final installed = await runtime.adoptLocalCloudBytes(
+          config: _transferConfig,
+          artifact: _artifact(name: 'fixture.$extension'),
+          destinationRoot: '/roms',
+          relativePath: 'fixture.$extension',
           supportedExtensions: method == 'ownedValidateSegaZip'
-              ? SystemModel.supportedSystems.singleWhere((s) => s.id == platform).romExtensions.toSet()
-              : platform == 'snes' ? {'.sfc', '.smc'} : {'.$platform'}, cancellation: CancelToken());
+              ? SystemModel.supportedSystems
+                  .singleWhere((s) => s.id == platform)
+                  .romExtensions
+                  .toSet()
+              : platform == 'snes'
+                  ? {'.sfc', '.smc'}
+                  : {'.$platform'},
+          cancellation: CancelToken());
       final record = (await fixture.journal.transfer(installed.transferId))!;
       expect(record.archivePlatformId, platform);
       await runtime.requireInstalledTransfer(record);
       expect(fixture.native.calls.where((m) => m == method), hasLength(2));
       fixture.native.invalidArchive = true;
-      await expectLater(runtime.requireInstalledTransfer(record), throwsA(isA<OwnedStorageException>()));
+      await expectLater(runtime.requireInstalledTransfer(record),
+          throwsA(isA<OwnedStorageException>()));
       expect(fixture.native.bytes, [1, 2, 3, 4, 5]);
       expect(fixture.native.calls, isNot(contains('ownedPublish')));
       expect(fixture.native.sessionOpen, isFalse);
     });
   }
   for (final platform in ['n64', 'nds']) {
-  for (final extension in ['7z', 'zip']) {
-    test('normal $platform $extension queue publishes typed bytes and revalidates offline', () async {
-      final name = 'fixture.$extension';
-      final fixture = await _TransferFixture.create(reserve: false, name: name);
-      final runtime = fixture.runtime();
-      final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(), driveRuntime: runtime);
-      final console = SystemModel.supportedSystems.singleWhere((s) => s.id == platform);
-      final terminal = _queueTerminal(queue);
-      queue.addToQueue(GameItem(filename: name, displayName: 'Fixture',
-          url: 'drive-artifact:synthetic', providerConfig: _transferConfig,
-          remoteArtifact: _artifact(name: name)), console, '/roms');
-      final item = await terminal;
-      expect(item.status, DownloadStatus.completed, reason: item.error);
-      final record = (await fixture.journal.transfer(item.transferId!))!;
-      expect(record.archivePlatformId, platform);
-      expect(record.relativePath, name);
-      await runtime.requireInstalledTransfer(record);
-      final method = platform == 'nds'
-          ? (extension == '7z' ? 'ownedValidateDsSevenZip' : 'ownedValidateDsZip')
-          : (extension == '7z' ? 'ownedValidateN64SevenZip' : 'ownedValidateN64Zip');
-      expect(fixture.native.calls.where((m) => m == method), hasLength(2));
-      expect(fixture.native.calls.indexOf(method), lessThan(fixture.native.calls.indexOf('ownedPublish')));
-      expect(fixture.native.calls, isNot(contains('ownedValidateGameGearZip')));
-      fixture.native.invalidArchive = true;
-      await expectLater(runtime.requireInstalledTransfer(record), throwsA(isA<OwnedStorageException>()));
-      expect(fixture.native.sessionOpen, isFalse);
-      await queue.close(); queue.dispose();
-      fixture.driver.finishSignOut.complete(); await runtime.disconnect();
-    });
-    test('$platform $extension adoption validates without downloading or mutating local bytes', () async {
-      final name = 'fixture.$extension';
-      final fixture = await _TransferFixture.create(reserve: false, name: name);
-      fixture.native.bytes.addAll([1, 2, 3, 4, 5]); fixture.native.published = true;
-      final runtime = fixture.runtime();
-      final installed = await runtime.adoptLocalCloudBytes(config: _transferConfig,
-          artifact: _artifact(name: name), destinationRoot: '/roms', relativePath: name,
-          supportedExtensions: platform == 'nds' ? {'.nds'} : {'.z64', '.n64', '.v64'}, cancellation: CancelToken());
-      final record = (await fixture.journal.transfer(installed.transferId))!;
-      expect(record.archivePlatformId, platform);
-      await runtime.requireInstalledTransfer(record);
-      expect(fixture.native.bytes, [1, 2, 3, 4, 5]);
-      expect(fixture.native.calls, isNot(contains('ownedPublish')));
-      expect(fixture.native.sessionOpen, isFalse);
-    });
-  }
+    for (final extension in ['7z', 'zip']) {
+      test(
+          'normal $platform $extension queue publishes typed bytes and revalidates offline',
+          () async {
+        final name = 'fixture.$extension';
+        final fixture =
+            await _TransferFixture.create(reserve: false, name: name);
+        final runtime = fixture.runtime();
+        final queue =
+            DownloadQueueManager(_QueueStorage(), driveRuntime: runtime);
+        final console =
+            SystemModel.supportedSystems.singleWhere((s) => s.id == platform);
+        final terminal = _queueTerminal(queue);
+        queue.addToQueue(
+            GameItem(
+                filename: name,
+                displayName: 'Fixture',
+                url: 'drive-artifact:synthetic',
+                providerConfig: _transferConfig,
+                remoteArtifact: _artifact(name: name)),
+            console,
+            '/roms');
+        final item = await terminal;
+        expect(item.status, DownloadStatus.completed, reason: item.error);
+        final record = (await fixture.journal.transfer(item.transferId!))!;
+        expect(record.archivePlatformId, platform);
+        expect(record.relativePath, name);
+        await runtime.requireInstalledTransfer(record);
+        final method = platform == 'nds'
+            ? (extension == '7z'
+                ? 'ownedValidateDsSevenZip'
+                : 'ownedValidateDsZip')
+            : (extension == '7z'
+                ? 'ownedValidateN64SevenZip'
+                : 'ownedValidateN64Zip');
+        expect(fixture.native.calls.where((m) => m == method), hasLength(2));
+        expect(fixture.native.calls.indexOf(method),
+            lessThan(fixture.native.calls.indexOf('ownedPublish')));
+        expect(
+            fixture.native.calls, isNot(contains('ownedValidateGameGearZip')));
+        fixture.native.invalidArchive = true;
+        await expectLater(runtime.requireInstalledTransfer(record),
+            throwsA(isA<OwnedStorageException>()));
+        expect(fixture.native.sessionOpen, isFalse);
+        await queue.close();
+        queue.dispose();
+        fixture.driver.finishSignOut.complete();
+        await runtime.disconnect();
+      });
+      test(
+          '$platform $extension adoption validates without downloading or mutating local bytes',
+          () async {
+        final name = 'fixture.$extension';
+        final fixture =
+            await _TransferFixture.create(reserve: false, name: name);
+        fixture.native.bytes.addAll([1, 2, 3, 4, 5]);
+        fixture.native.published = true;
+        final runtime = fixture.runtime();
+        final installed = await runtime.adoptLocalCloudBytes(
+            config: _transferConfig,
+            artifact: _artifact(name: name),
+            destinationRoot: '/roms',
+            relativePath: name,
+            supportedExtensions:
+                platform == 'nds' ? {'.nds'} : {'.z64', '.n64', '.v64'},
+            cancellation: CancelToken());
+        final record = (await fixture.journal.transfer(installed.transferId))!;
+        expect(record.archivePlatformId, platform);
+        await runtime.requireInstalledTransfer(record);
+        expect(fixture.native.bytes, [1, 2, 3, 4, 5]);
+        expect(fixture.native.calls, isNot(contains('ownedPublish')));
+        expect(fixture.native.sessionOpen, isFalse);
+      });
+    }
   }
 
-  test('standalone adoption rejects unsupported archives and dependency manifests before IO', () async {
-    for (final name in ['fixture.7z', 'fixture.cue', 'fixture.m3u', 'fixture.gdi', 'fixture.unknown']) {
+  test(
+      'standalone adoption rejects unsupported archives and dependency manifests before IO',
+      () async {
+    for (final name in [
+      'fixture.7z',
+      'fixture.cue',
+      'fixture.m3u',
+      'fixture.gdi',
+      'fixture.unknown'
+    ]) {
       final fixture = await _TransferFixture.create(reserve: false);
-      final artifact = RemoteArtifact.fromJson({..._artifact().toJson(), 'displayName': name});
-      await expectLater(fixture.runtime().adoptLocalCloudBytes(
-          config: _transferConfig, artifact: artifact, destinationRoot: '/roms',
-          relativePath: name, supportedExtensions: {'.chd', '.7z', '.cue', '.m3u', '.gdi'},
-          cancellation: CancelToken()), throwsA(anything));
+      final artifact = RemoteArtifact.fromJson(
+          {..._artifact().toJson(), 'displayName': name});
+      await expectLater(
+          fixture.runtime().adoptLocalCloudBytes(
+              config: _transferConfig,
+              artifact: artifact,
+              destinationRoot: '/roms',
+              relativePath: name,
+              supportedExtensions: {'.chd', '.7z', '.cue', '.m3u', '.gdi'},
+              cancellation: CancelToken()),
+          throwsA(anything));
       expect(fixture.native.calls, isEmpty);
       expect(fixture.media.requests, isEmpty);
       expect(await fixture.db.query('installed_artifacts'), isEmpty);
@@ -1131,13 +1431,20 @@ void main() {
     expect(fixture.media.requests, hasLength(1));
     expect(fixture.native.sessionOpen, isFalse);
     expect(fixture.native.stagePresent, isFalse);
-    expect(fixture.native.calls.where((c) => !{
-      'ownedPrepare', 'ownedInspect', 'ownedOpen', 'ownedRead',
-      'ownedCheckpoint', 'ownedClose'
-    }.contains(c)), isEmpty);
+    expect(
+        fixture.native.calls.where((c) => !{
+              'ownedPrepare',
+              'ownedInspect',
+              'ownedOpen',
+              'ownedRead',
+              'ownedCheckpoint',
+              'ownedClose'
+            }.contains(c)),
+        isEmpty);
     expect(await fixture.db.query('transfer_records'), isEmpty);
     expect(await fixture.db.query('installed_artifacts'), isEmpty);
-    final saved = (await fixture.db.query('migration_byte_observations')).single;
+    final saved =
+        (await fixture.db.query('migration_byte_observations')).single;
     final evidence = jsonDecode(saved['record_json'] as String) as Map;
     expect(evidence['artifact']['version'], '1');
     expect(evidence['checksums']['sha256'], result.checksums['sha256']);
@@ -1145,23 +1452,36 @@ void main() {
     // A new runtime over the existing durable journal performs only a local read.
     final reopened = fixture.runtime();
     final prior = await reopened.savedLocalCloudObservation(
-        artifact: _artifact(), destinationRoot: '/roms', relativePath: 'fixture.chd');
+        artifact: _artifact(),
+        destinationRoot: '/roms',
+        relativePath: 'fixture.chd');
     expect(prior?.observedAt, result.observedAt);
     expect(fixture.media.requests, hasLength(1));
   });
   for (final fail in [false, true]) {
-    test('byte observation waits for closed reads and durable journal: failure=$fail', () async {
+    test(
+        'byte observation waits for closed reads and durable journal: failure=$fail',
+        () async {
       late _HeldObservationJournal held;
-      final fixture = await _TransferFixture.create(reserve: false,
-          createJournal: (db) => held = _HeldObservationJournal(db, fail: fail));
-      fixture.native.bytes.addAll([1,2,3,4,5]);
+      final fixture = await _TransferFixture.create(
+          reserve: false,
+          createJournal: (db) =>
+              held = _HeldObservationJournal(db, fail: fail));
+      fixture.native.bytes.addAll([1, 2, 3, 4, 5]);
       fixture.native.published = true;
       final token = CancelToken();
-      final review = fixture.runtime().verifyLocalCloudBytes(config: _transferConfig,
-          artifact: _artifact(), destinationRoot: '/roms', relativePath: 'fixture.chd',
+      final review = fixture.runtime().verifyLocalCloudBytes(
+          config: _transferConfig,
+          artifact: _artifact(),
+          destinationRoot: '/roms',
+          relativePath: 'fixture.chd',
           cancellation: token);
-      final failed = expectLater(review, fail ? throwsStateError :
-          throwsA(isA<DriveTransferException>().having((e) => e.issue, 'issue', DriveTransferIssue.cancelled)));
+      final failed = expectLater(
+          review,
+          fail
+              ? throwsStateError
+              : throwsA(isA<DriveTransferException>().having(
+                  (e) => e.issue, 'issue', DriveTransferIssue.cancelled)));
       await held.entered.future;
       expect(fixture.native.sessionOpen, isFalse);
       expect(await fixture.db.query('migration_byte_observations'), isEmpty);
@@ -1170,32 +1490,53 @@ void main() {
       await failed;
       // A cancellation cannot undo an atomic past-observation commit or claim
       // a current success. Neither outcome grants transfer/removal ownership.
-      expect(await fixture.db.query('migration_byte_observations'), hasLength(fail ? 0 : 1));
+      expect(await fixture.db.query('migration_byte_observations'),
+          hasLength(fail ? 0 : 1));
       expect(await fixture.db.query('installed_artifacts'), isEmpty);
       expect(await fixture.db.query('owned_removals'), isEmpty);
     });
   }
-  for (final corruption in ['local', 'cloud', 'version', 'namespace', 'overwrite']) {
-    test('recovery review rejects $corruption change and drains native reads', () async {
+  for (final corruption in [
+    'local',
+    'cloud',
+    'version',
+    'namespace',
+    'overwrite'
+  ]) {
+    test('recovery review rejects $corruption change and drains native reads',
+        () async {
       final fixture = await _TransferFixture.create(reserve: false);
-      fixture.native.bytes.addAll(corruption == 'local' ? [5,4,3,2,1] : [1,2,3,4,5]);
+      fixture.native.bytes
+          .addAll(corruption == 'local' ? [5, 4, 3, 2, 1] : [1, 2, 3, 4, 5]);
       fixture.native.published = true;
       fixture.media.mediaResponse = (_, __) async {
         if (corruption == 'version') fixture.metadata.version = '2';
         if (corruption == 'namespace') fixture.native.targetChanged = true;
         // Same inode, size and timestamp: only a second byte pass catches this.
         if (corruption == 'overwrite') fixture.native.bytes[0] = 9;
-        return ResponseBody(Stream.value(Uint8List.fromList(
-            corruption == 'cloud' ? [5,4,3,2,1] : [1,2,3,4,5])), 200,
-            headers: {'content-length': ['5']});
+        return ResponseBody(
+            Stream.value(Uint8List.fromList(
+                corruption == 'cloud' ? [5, 4, 3, 2, 1] : [1, 2, 3, 4, 5])),
+            200,
+            headers: {
+              'content-length': ['5']
+            });
       };
-      await expectLater(fixture.runtime().verifyLocalCloudBytes(
-          config: _transferConfig, artifact: _artifact(), destinationRoot: '/roms',
-          relativePath: 'fixture.chd', cancellation: CancelToken()),
+      await expectLater(
+          fixture.runtime().verifyLocalCloudBytes(
+              config: _transferConfig,
+              artifact: _artifact(),
+              destinationRoot: '/roms',
+              relativePath: 'fixture.chd',
+              cancellation: CancelToken()),
           corruption == 'namespace'
-              ? throwsA(isA<OwnedStorageException>().having((e) => e.code, 'code', 'changed'))
-              : throwsA(isA<DriveTransferException>().having((e) => e.issue, 'issue',
-                  corruption == 'version' ? DriveTransferIssue.sourceChanged
+              ? throwsA(isA<OwnedStorageException>()
+                  .having((e) => e.code, 'code', 'changed'))
+              : throwsA(isA<DriveTransferException>().having(
+                  (e) => e.issue,
+                  'issue',
+                  corruption == 'version'
+                      ? DriveTransferIssue.sourceChanged
                       : DriveTransferIssue.checksumMismatch)));
       expect(fixture.native.sessionOpen, isFalse);
       expect(fixture.native.stagePresent, isFalse);
@@ -1203,39 +1544,58 @@ void main() {
       expect(await fixture.db.query('migration_byte_observations'), isEmpty);
     });
   }
-  test('missing local file makes no cloud request and creates no stage', () async {
+  test('missing local file makes no cloud request and creates no stage',
+      () async {
     final fixture = await _TransferFixture.create(reserve: false);
-    await expectLater(fixture.runtime().verifyLocalCloudBytes(config: _transferConfig,
-        artifact: _artifact(), destinationRoot: '/roms', relativePath: 'fixture.chd',
-        cancellation: CancelToken()),
-        throwsA(isA<OwnedStorageException>().having((e) => e.code, 'code', 'not_found')));
+    await expectLater(
+        fixture.runtime().verifyLocalCloudBytes(
+            config: _transferConfig,
+            artifact: _artifact(),
+            destinationRoot: '/roms',
+            relativePath: 'fixture.chd',
+            cancellation: CancelToken()),
+        throwsA(isA<OwnedStorageException>()
+            .having((e) => e.code, 'code', 'not_found')));
     expect(fixture.media.requests, isEmpty);
     expect(fixture.metadata.requests, isEmpty);
     expect(fixture.native.stagePresent, isFalse);
     expect(await fixture.db.query('transfer_records'), isEmpty);
     expect(await fixture.db.query('migration_byte_observations'), isEmpty);
   });
-  test('disconnect joins recovery cancellation before native/transport teardown', () async {
+  test(
+      'disconnect joins recovery cancellation before native/transport teardown',
+      () async {
     final fixture = await _TransferFixture.create(reserve: false);
-    fixture.native.bytes.addAll([1,2,3,4,5]);
+    fixture.native.bytes.addAll([1, 2, 3, 4, 5]);
     fixture.native.published = true;
-    final entered = Completer<void>(), cancelled = Completer<void>(), drain = Completer<void>();
+    final entered = Completer<void>(),
+        cancelled = Completer<void>(),
+        drain = Completer<void>();
     fixture.media.mediaResponse = (options, cancellation) async {
       entered.complete();
       await cancellation;
       cancelled.complete();
       await drain.future;
-      throw DioException(requestOptions: options, type: DioExceptionType.cancel);
+      throw DioException(
+          requestOptions: options, type: DioExceptionType.cancel);
     };
     final runtime = fixture.runtime();
-    final review = runtime.verifyLocalCloudBytes(config: _transferConfig,
-        artifact: _artifact(), destinationRoot: '/roms', relativePath: 'fixture.chd',
+    final review = runtime.verifyLocalCloudBytes(
+        config: _transferConfig,
+        artifact: _artifact(),
+        destinationRoot: '/roms',
+        relativePath: 'fixture.chd',
         cancellation: CancelToken());
     final failed = expectLater(review, throwsA(isA<DriveTransferException>()));
     await entered.future;
-    await expectLater(runtime.verifyLocalCloudBytes(config: _transferConfig,
-        artifact: _artifact(), destinationRoot: '/roms', relativePath: 'fixture.chd',
-        cancellation: CancelToken()), throwsA(isA<DriveTransferException>()));
+    await expectLater(
+        runtime.verifyLocalCloudBytes(
+            config: _transferConfig,
+            artifact: _artifact(),
+            destinationRoot: '/roms',
+            relativePath: 'fixture.chd',
+            cancellation: CancelToken()),
+        throwsA(isA<DriveTransferException>()));
     final disconnect = runtime.disconnect();
     await cancelled.future;
     expect(fixture.native.sessionOpen, isTrue);
@@ -1263,7 +1623,8 @@ void main() {
     expect(raw.md5, 'b' * 32);
     expect(raw.sizeBytes, 8192);
     expect(fixture.media.requests, isEmpty);
-    expect(fixture.native.calls, ['localCopyInspect', 'ownedReadArchiveIdentifier']);
+    expect(fixture.native.calls,
+        ['localCopyInspect', 'ownedReadArchiveIdentifier']);
     expect(fixture.metadata.requests.where((r) => r.path.endsWith('/file')),
         hasLength(2));
     expect(await fixture.db.query('transfer_records'), isEmpty);
@@ -1298,72 +1659,117 @@ void main() {
     expect(await fixture.db.query('installed_artifacts'), isEmpty);
     expect(fixture.native.stagePresent, isFalse);
   });
-  for (final scenario in ['nested', 'absent', 'unsafe', 'mismatch', 'changed', 'root', 'blocked', 'shadowMismatch']) {
+  for (final scenario in [
+    'nested',
+    'absent',
+    'unsafe',
+    'mismatch',
+    'changed',
+    'root',
+    'blocked',
+    'shadowMismatch'
+  ]) {
     test('metadata archive mapped nested path: $scenario', () async {
-      final fixture = await _TransferFixture.create(name: 'fixture.7z', reserve: false);
+      final fixture =
+          await _TransferFixture.create(name: 'fixture.7z', reserve: false);
       final name = scenario == 'unsafe' ? '../Japan' : 'Japan';
       final folders = <String, Map<String, Object?>>{
         'console': {
-          'id': 'console', 'name': 'Console',
-          'mimeType': 'application/vnd.google-apps.folder', 'parents': ['folder'],
+          'id': 'console',
+          'name': 'Console',
+          'mimeType': 'application/vnd.google-apps.folder',
+          'parents': ['folder'],
         },
         'nested': {
-          'id': 'nested', 'name': name,
-          'mimeType': 'application/vnd.google-apps.folder', 'parents': ['console'],
+          'id': 'nested',
+          'name': name,
+          'mimeType': 'application/vnd.google-apps.folder',
+          'parents': ['console'],
         },
       };
       final scope = DriveCatalogue.scopeKey('source', 'account', 'folder');
       for (final folder in folders.entries) {
         await fixture.db.insert('drive_catalogue_entries', {
-          'scope': scope, 'generation': 1, 'file_id': folder.key,
+          'scope': scope,
+          'generation': 1,
+          'file_id': folder.key,
           'parent_id': (folder.value['parents'] as List).single,
-          'display_path': 'ignored-display-path', 'is_folder': 1,
+          'display_path': 'ignored-display-path',
+          'is_folder': 1,
           'record_json': jsonEncode(folder.value),
         });
       }
       final fileRow = (await fixture.db.query('drive_catalogue_entries',
-          where: 'scope=? AND generation=1 AND file_id=?', whereArgs: [scope, 'file'])).single;
-      final file = jsonDecode(fileRow['record_json'] as String) as Map<String, dynamic>;
+              where: 'scope=? AND generation=1 AND file_id=?',
+              whereArgs: [scope, 'file']))
+          .single;
+      final file =
+          jsonDecode(fileRow['record_json'] as String) as Map<String, dynamic>;
       file['parents'] = ['nested'];
       await fixture.db.update('drive_catalogue_entries',
           {'parent_id': 'nested', 'record_json': jsonEncode(file)},
-          where: 'scope=? AND generation=1 AND file_id=?', whereArgs: [scope, 'file']);
+          where: 'scope=? AND generation=1 AND file_id=?',
+          whereArgs: [scope, 'file']);
       fixture.metadata.extraFolders.addAll(folders);
       fixture.metadata.fileParent = 'nested';
-      fixture.native.rootArchiveFailure = scenario == 'blocked' ? 'access_denied'
-          : {'root', 'shadowMismatch'}.contains(scenario) ? null : 'not_found';
+      fixture.native.rootArchiveFailure = scenario == 'blocked'
+          ? 'access_denied'
+          : {'root', 'shadowMismatch'}.contains(scenario)
+              ? null
+              : 'not_found';
       fixture.native.archiveRoot = {'root', 'shadowMismatch'}.contains(scenario)
-          ? '/roms' : '/roms/Japan';
+          ? '/roms'
+          : '/roms/Japan';
       fixture.native.nestedArchiveAbsent = scenario == 'absent';
       if ({'mismatch', 'shadowMismatch'}.contains(scenario)) {
         fixture.native.archiveObservation['container'] = {
-          'sizeBytes': 5, 'md5': 'a' * 32, 'sha256': 'd' * 64,
+          'sizeBytes': 5,
+          'md5': 'a' * 32,
+          'sha256': 'd' * 64,
         };
       }
       if (scenario == 'changed') {
-        fixture.native.onArchiveRead = () async { fixture.metadata.version = '2'; };
+        fixture.native.onArchiveRead = () async {
+          fixture.metadata.version = '2';
+        };
       }
-      final selected = ProviderConfig.fromJson({..._transferConfig.toJson(), 'path': 'console'});
+      final selected = ProviderConfig.fromJson(
+          {..._transferConfig.toJson(), 'path': 'console'});
       final artifact = RemoteArtifact.fromJson({
         ..._artifact(name: 'fixture.7z').toJson(), 'parentId': 'nested',
         // Never derive a local path from an untrusted display path.
         'displayPath': '../../outside/fixture.7z',
       });
-      final read = fixture.runtime().readMetadataArchive(config: selected,
-          artifact: artifact, platformId: 'n64', destinationRoot: '/roms',
+      final read = fixture.runtime().readMetadataArchive(
+          config: selected,
+          artifact: artifact,
+          platformId: 'n64',
+          destinationRoot: '/roms',
           cancellation: CancelToken());
       if (scenario == 'changed') {
-        await expectLater(read, throwsA(isA<DriveTransferException>().having(
-            (e) => e.issue, 'issue', DriveTransferIssue.sourceChanged)));
+        await expectLater(
+            read,
+            throwsA(isA<DriveTransferException>().having(
+                (e) => e.issue, 'issue', DriveTransferIssue.sourceChanged)));
       } else {
-        expect(await read, {'nested', 'root'}.contains(scenario) ? isNotNull : isNull);
+        expect(await read,
+            {'nested', 'root'}.contains(scenario) ? isNotNull : isNull);
       }
-      expect(fixture.native.calls, switch (scenario) {
-        'unsafe' || 'blocked' => ['localCopyInspect'],
-        'absent' => ['localCopyInspect', 'localCopyInspect'],
-        'root' || 'shadowMismatch' => ['localCopyInspect', 'ownedReadArchiveIdentifier'],
-        _ => ['localCopyInspect', 'localCopyInspect', 'ownedReadArchiveIdentifier'],
-      });
+      expect(
+          fixture.native.calls,
+          switch (scenario) {
+            'unsafe' || 'blocked' => ['localCopyInspect'],
+            'absent' => ['localCopyInspect', 'localCopyInspect'],
+            'root' || 'shadowMismatch' => [
+                'localCopyInspect',
+                'ownedReadArchiveIdentifier'
+              ],
+            _ => [
+                'localCopyInspect',
+                'localCopyInspect',
+                'ownedReadArchiveIdentifier'
+              ],
+          });
       if ({'unsafe', 'blocked', 'absent'}.contains(scenario)) {
         expect(fixture.metadata.requests, isEmpty);
       }
@@ -1372,11 +1778,17 @@ void main() {
       expect(await fixture.db.query('installed_artifacts'), isEmpty);
       expect(await fixture.db.query('transfer_target_owners'), isEmpty);
       expect(fixture.native.stagePresent, isFalse);
-      expect(await fixture.journal.latestByteObservation(artifactId: artifact.id,
-          destinationRoot: '/roms/Japan', relativePath: 'fixture.7z'),
+      expect(
+          await fixture.journal.latestByteObservation(
+              artifactId: artifact.id,
+              destinationRoot: '/roms/Japan',
+              relativePath: 'fixture.7z'),
           scenario == 'nested' ? isNotNull : isNull);
-      expect(await fixture.journal.latestByteObservation(artifactId: artifact.id,
-          destinationRoot: '/roms', relativePath: 'fixture.7z'),
+      expect(
+          await fixture.journal.latestByteObservation(
+              artifactId: artifact.id,
+              destinationRoot: '/roms',
+              relativePath: 'fixture.7z'),
           scenario == 'root' ? isNotNull : isNull);
     });
   }
@@ -1459,7 +1871,8 @@ void main() {
       expect(raw!.filename, member);
       expect(raw.sha1, 'c' * 40);
       expect(raw.md5, 'b' * 32);
-      expect(fixture.native.calls, ['localCopyInspect', 'ownedReadArchiveIdentifier']);
+      expect(fixture.native.calls,
+          ['localCopyInspect', 'ownedReadArchiveIdentifier']);
       expect(fixture.metadata.requests.where((r) => r.path.endsWith('/file')),
           hasLength(2));
       expect(fixture.media.requests, isEmpty);
@@ -1824,8 +2237,7 @@ void main() {
     final fixture = await _TransferFixture.create(reserve: false);
     final runtime = fixture.runtime();
     final storage = _QueueStorage();
-    final queue = DownloadQueueManager(storage, NativeSmbService(),
-        driveRuntime: runtime);
+    final queue = DownloadQueueManager(storage, driveRuntime: runtime);
     final complete = _queueTerminal(queue);
     final hooks = <DownloadItem>[];
     queue.onItemCompleted = hooks.add;
@@ -1851,8 +2263,7 @@ void main() {
         reserve: false, retirementAckFailure: true);
     fixture.native.copyOnly = true;
     final runtime = fixture.runtime();
-    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
-        driveRuntime: runtime);
+    final queue = DownloadQueueManager(_QueueStorage(), driveRuntime: runtime);
     final hooks = <DownloadItem>[];
     queue.onItemCompleted = hooks.add;
     try {
@@ -1907,8 +2318,7 @@ void main() {
     fixture.native.retirementFailure = null;
     final recoveryRuntime = fixture.runtime();
     final storage = _QueueStorage();
-    final queue = DownloadQueueManager(storage, NativeSmbService(),
-        driveRuntime: recoveryRuntime);
+    final queue = DownloadQueueManager(storage, driveRuntime: recoveryRuntime);
     final hooks = <DownloadItem>[];
     queue.onItemCompleted = hooks.add;
     try {
@@ -1964,8 +2374,8 @@ void main() {
         relativePath: 'fixture.chd',
         stagePath: removal.quarantinePath,
         expectedIdentity: manifest.fileIdentity);
-    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
-        driveRuntime: fixture.runtime());
+    final queue =
+        DownloadQueueManager(_QueueStorage(), driveRuntime: fixture.runtime());
     final journal = fixture.journal as _RecoveryJournal;
     final grants = fixture.driver.grants;
     final metadataRequests = fixture.metadata.requests.length;
@@ -2013,8 +2423,8 @@ void main() {
         quarantinePath: '/owned/removal-shutdown.partial');
     final release = Completer<void>();
     fixture.native.finishQuarantineRetirement = release.future;
-    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
-        driveRuntime: fixture.runtime());
+    final queue =
+        DownloadQueueManager(_QueueStorage(), driveRuntime: fixture.runtime());
     try {
       queue.restoreQueue([_system]);
       await fixture.native.quarantineRetirementStarted.future;
@@ -2048,8 +2458,8 @@ void main() {
     final release = Completer<void>();
     fixture.native.onRetirementStarted = entered.complete;
     fixture.native.finishRetirement = release.future;
-    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
-        driveRuntime: seeded.runtime);
+    final queue =
+        DownloadQueueManager(_QueueStorage(), driveRuntime: seeded.runtime);
     try {
       queue.restoreQueue([_system]);
       await entered.future;
@@ -2078,8 +2488,8 @@ void main() {
     final fixture =
         await _TransferFixture.create(createJournal: _RecoveryJournal.new);
     final seeded = await _pendingStage(fixture);
-    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
-        driveRuntime: seeded.runtime);
+    final queue =
+        DownloadQueueManager(_QueueStorage(), driveRuntime: seeded.runtime);
     try {
       final before = fixture.native.calls
           .where((call) => call == 'ownedRetireStage')
@@ -2168,8 +2578,7 @@ void main() {
       () async {
     final fixture = await _TransferFixture.create(reserve: false);
     final runtime = fixture.runtime();
-    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
-        driveRuntime: runtime);
+    final queue = DownloadQueueManager(_QueueStorage(), driveRuntime: runtime);
     Future<void>? pause;
     queue.addListener(() {
       if (queue.state.activeCount == 1 && pause == null) {
@@ -2188,8 +2597,7 @@ void main() {
       () async {
     final fixture = await _TransferFixture.create(reserve: false);
     final runtime = fixture.runtime();
-    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
-        driveRuntime: runtime);
+    final queue = DownloadQueueManager(_QueueStorage(), driveRuntime: runtime);
     final terminal = _queueTerminal(queue);
     final observerErrors = <Object>[];
     queue.onItemCompleted =
@@ -2212,8 +2620,7 @@ void main() {
       () async {
     final fixture = await _TransferFixture.create(reserve: false);
     final runtime = fixture.runtime();
-    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
-        driveRuntime: runtime);
+    final queue = DownloadQueueManager(_QueueStorage(), driveRuntime: runtime);
     final hook = Completer<DownloadItem>();
     queue.onItemCompleted = hook.complete;
     queue.addListener(() {
@@ -2235,8 +2642,8 @@ void main() {
       () async {
     final fixture = await _TransferFixture.create(reserve: false);
     final storage = _QueueStorage()..failWrites = true;
-    final queue = DownloadQueueManager(storage, NativeSmbService(),
-        driveRuntime: fixture.runtime());
+    final queue =
+        DownloadQueueManager(storage, driveRuntime: fixture.runtime());
     final terminal = _queueTerminal(queue);
     queue.addToQueue(_game(), _system, '/roms');
     expect((await terminal).status, DownloadStatus.error);
@@ -2251,8 +2658,8 @@ void main() {
       () async {
     final fixture = await _TransferFixture.create(reserve: false);
     fixture.driver.authenticationIssue = DriveAuthorizationIssue.unavailable;
-    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
-        driveRuntime: fixture.runtime());
+    final queue =
+        DownloadQueueManager(_QueueStorage(), driveRuntime: fixture.runtime());
     final terminal = _queueTerminal(queue);
     queue.addToQueue(_game(), _system, '/roms');
     final result = await terminal;
@@ -2297,8 +2704,8 @@ void main() {
               receivedBytes: 5)
           .toJson(),
     ]);
-    final queue = DownloadQueueManager(storage, NativeSmbService(),
-        driveRuntime: fixture.runtime());
+    final queue =
+        DownloadQueueManager(storage, driveRuntime: fixture.runtime());
     queue.restoreQueue([_system]);
     expect(queue.state.queue.map((i) => i.status), [
       DownloadStatus.paused,
@@ -2315,29 +2722,75 @@ void main() {
   });
 
   test(
-      'mixed-source queued reorder is persisted without starting or moving the active attempt',
+      'retired queue rows retain partial paths and completed history without network access',
+      () async {
+    final fixture = await _TransferFixture.create(reserve: false);
+    final storage = _QueueStorage();
+    const retired = GameItem(
+        filename: 'old.chd',
+        displayName: 'Old',
+        url: 'https://example.invalid/old.chd',
+        providerConfig: ProviderConfig(type: ProviderType.web, priority: 0));
+    storage.savedQueue = jsonEncode([
+      DownloadItem(
+              id: 'partial',
+              game: retired,
+              system: _system,
+              targetFolder: '/preserved/roms',
+              status: DownloadStatus.downloading,
+              tempFilePath: '/preserved/stage.tmp',
+              receivedBytes: 3)
+          .toJson(),
+      DownloadItem(
+              id: 'complete',
+              game: retired,
+              system: _system,
+              targetFolder: '/preserved/roms',
+              status: DownloadStatus.completed,
+              receivedBytes: 5)
+          .toJson(),
+    ]);
+    final queue =
+        DownloadQueueManager(storage, driveRuntime: fixture.runtime());
+    queue.restoreQueue([_system]);
+    expect(queue.state.queue.first.status, DownloadStatus.error);
+    expect(queue.state.queue.first.tempFilePath, '/preserved/stage.tmp');
+    expect(queue.state.queue.first.receivedBytes, 3);
+    expect(queue.state.queue.last.status, DownloadStatus.completed);
+    await queue.close();
+    expect(fixture.media.requests, isEmpty);
+    expect(fixture.native.calls, isEmpty);
+    queue.dispose();
+  });
+
+  test(
+      'Drive queued reorder is persisted without starting or moving the active attempt',
       () async {
     final fixture = await _TransferFixture.create(reserve: false);
     final finishWrite = Completer<void>();
     fixture.native.finishWrite = finishWrite.future;
     final runtime = fixture.runtime();
     final storage = _QueueStorage();
-    final queue = DownloadQueueManager(storage, NativeSmbService(),
-        driveRuntime: runtime);
+    final queue = DownloadQueueManager(storage, driveRuntime: runtime);
     final terminal = _queueTerminal(queue);
     final active = queue.addToQueue(_game(), _system, '/roms');
     await Future.any([fixture.native.writeStarted.future, terminal]);
     expect(fixture.native.writeStarted.isCompleted, isTrue);
-    GameItem web(String name) => GameItem(
+    GameItem queued(String name) => GameItem(
         filename: '$name.chd',
         displayName: name,
-        url: 'https://example.invalid/$name.chd',
-        providerConfig: const ProviderConfig(
-            type: ProviderType.web,
-            priority: 1,
-            url: 'https://example.invalid'));
-    final older = queue.addToQueue(web('older'), _system, '/roms');
-    final newer = queue.addToQueue(web('newer'), _system, '/roms');
+        url: 'drive-artifact:$name',
+        providerConfig: _transferConfig,
+        remoteArtifact: RemoteArtifact(
+            id: RemoteArtifactId(
+                providerId: 'drive',
+                sourceId: _transferConfig.sourceId!,
+                accountId: _transferConfig.drive!.accountId,
+                providerFileId: name),
+            displayPath: '/$name.chd',
+            displayName: '$name.chd'));
+    final older = queue.addToQueue(queued('older'), _system, '/roms');
+    final newer = queue.addToQueue(queued('newer'), _system, '/roms');
     expect(queue.state.queuedItems.map((i) => i.id), [newer, older]);
     queue.moveQueued(older, 0);
     expect(queue.state.queuedItems.map((i) => i.id), [older, newer]);
@@ -2360,8 +2813,7 @@ void main() {
       () async {
     final fixture = await _TransferFixture.create(reserve: false);
     final runtime = fixture.runtime();
-    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
-        driveRuntime: runtime);
+    final queue = DownloadQueueManager(_QueueStorage(), driveRuntime: runtime);
     final first = _queueTerminal(queue);
     final id = queue.addToQueue(_game(), _system, '/roms');
     expect((await first).status, DownloadStatus.completed);
@@ -2386,8 +2838,7 @@ void main() {
     fixture.native.finishWrite = finishWrite.future;
     final runtime = fixture.runtime();
     final storage = _QueueStorage();
-    final queue = DownloadQueueManager(storage, NativeSmbService(),
-        driveRuntime: runtime);
+    final queue = DownloadQueueManager(storage, driveRuntime: runtime);
     final earlyTerminal = _queueTerminal(queue);
     final id = queue.addToQueue(_game(), _system, '/roms');
     await Future.any([fixture.native.writeStarted.future, earlyTerminal]);

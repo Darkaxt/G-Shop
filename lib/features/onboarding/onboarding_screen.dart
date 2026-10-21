@@ -94,7 +94,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           .read(onboardingControllerProvider.notifier)
           .loadFromConfig(result.config!);
       // Refresh sources so the notifier picks up any imported sources.
-      ref.read(sourcesProvider.notifier).replaceAll(result.config!.sources);
+      await ref.read(sourcesProvider.notifier).replaceAll(result.config!.sources);
+      if (!mounted) return;
       showSuccessNotification(context, ref,
           message: L.of(context).onboarding_configImported);
     }
@@ -194,10 +195,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     switch (state.currentStep) {
       case OnboardingStep.welcome:
         return const WelcomeChooserStep();
-      case OnboardingStep.consoleSetup:
-        // consoleSetup is only reachable via config_mode_screen's
-        // loadFromConfig(), not from the onboarding flow itself.
-        return const SizedBox.shrink();
       case OnboardingStep.complete:
         return _CompleteStep(
           configuredCount: state.configuredCount,

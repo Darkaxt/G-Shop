@@ -1,1738 +1,304 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../core/input/input.dart';
-import '../../core/responsive/responsive.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/widgets/console_focusable.dart';
 import '../../core/widgets/screen_layout.dart';
-import '../../l10n/app_localizations.dart';
-import '../../models/config/provider_config.dart';
 import '../../models/config/source.dart';
-import '../../models/system_model.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/game_providers.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/source_health_providers.dart';
-import '../../services/romm_api_service.dart';
-import '../../services/romm_pairing_service.dart';
-import '../../services/romm_platform_matcher.dart';
-import '../../services/sources_notifier.dart';
 import '../../services/drive/drive_runtime.dart';
 import '../../services/drive/drive_api.dart';
 import '../../services/drive/drive_authorization.dart';
 import '../../services/drive/drive_catalogue.dart';
 import '../../widgets/console_hud.dart';
-import '../../widgets/console_notification.dart';
-import '../onboarding/widgets/romm_legacy_login_screen.dart';
-import '../pairing/qr_pairing_screen.dart';
-import '../sources/manual_source_add_screen.dart';
-import '../sources/drive_source_mappings_screen.dart';
 import '../sources/drive_source_setup_screen.dart';
-import '../sources/source_mappings_screen.dart';
+import '../sources/drive_source_mappings_screen.dart';
 
-/// Verwaltungs-Screen für alle gepairten / konfigurierten [Source]s.
-///
-/// Listet jede Source als fokussierbare Karte. [Y] öffnet den
-/// QR-Pairing-Flow um eine neue Source hinzuzufügen, [A] auf einer
-/// Karte öffnet einen Action-Overlay (Enable/Disable, Remove). Empty-
-/// State zeigt einen Hinweis sobald nichts konfiguriert ist.
-///
-/// Focus management:
-/// - FocusNodes sind in `_focusNodes` per `source.id` gepinned, damit
-///   sie ListView-Rebuilds (z.B. beim setState nach addSource)
-///   überleben und der Cursor nicht zurückspringt.
-/// - Source-Liste lebt in einer FocusTraversalGroup mit Reading-Order-
-///   Policy (Top→Bottom).
-/// - Action-Overlay nutzt OverlayFocusScope mit OverlayPriority.dialog,
-///   um die Screen-Actions korrekt zu pausieren während die Aktionen
-///   sichtbar sind.
 class SourcesScreen extends ConsumerStatefulWidget {
   const SourcesScreen({super.key});
-
   @override
   ConsumerState<SourcesScreen> createState() => _SourcesScreenState();
 }
 
 class _SourcesScreenState extends ConsumerState<SourcesScreen>
     with ConsoleScreenMixin {
-  final FocusNode _addEmptyFocus = FocusNode(debugLabel: 'sources_add_empty');
-  final Map<String, FocusNode> _cardFocusNodes = {};
-  final ScrollController _scrollController = ScrollController();
-
-  Source? _activeActionsSource;
-  bool _showTypePicker = false;
-
-  /// True once we've successfully moved focus off of the screen-level
-  /// Focus stub created by [ConsoleScreenMixin.buildWithActions]. Until
-  /// that happens, the gamepad input bypasses our cards entirely (the
-  /// stub eats the key event before it reaches ConsoleFocusable).
-  bool _initialFocusClaimed = false;
-
   @override
   String get routeId => 'sources_screen';
+  final _addFocus = FocusNode();
+  final _cards = <String, FocusNode>{};
+  bool _busy = false;
+  String? _error;
+  @override
+  void dispose() {
+    _addFocus.dispose();
+    for (final n in _cards.values) {
+      n.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Map<Type, Action<Intent>> get screenActions => {
         BackIntent: BackAction(context, ref),
         SearchIntent: SearchAction(ref, onSearch: _addSource),
-        // Custom navigation: only step between source cards on up/down,
-        // swallow everything else so the global focus traversal can't
-        // leak focus into the screen-level Focus stub or the HUD when
-        // there is nothing to move to.
-        NavigateIntent: NavigateAction(ref, onNavigate: _onNavigate),
       };
-
-  @override
-  Map<ShortcutActivator, Intent>? get additionalShortcuts => {
-        const SingleActivator(LogicalKeyboardKey.gameButtonY,
-            includeRepeats: false): const SearchIntent(),
-      };
-
-  @override
-  void dispose() {
-    _addEmptyFocus.dispose();
-    for (final node in _cardFocusNodes.values) {
-      node.dispose();
-    }
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  /// Pulls focus from the mixin's screen-level Focus stub onto either
-  /// the first source card or the empty-state add button. Idempotent:
-  /// once focus has landed on a real interactive widget the flag stays
-  /// flipped and subsequent state changes won't yank focus around.
-  void _ensureInteractiveFocus(SourcesState state) {
-    if (_initialFocusClaimed || _activeActionsSource != null) return;
-    if (state.loading) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _initialFocusClaimed) return;
-      if (state.sources.isNotEmpty) {
-        final firstId = state.sources.first.id;
-        final node = _cardFocusNodes[firstId];
-        if (node != null && node.canRequestFocus) {
-          node.requestFocus();
-          _initialFocusClaimed = true;
-        }
-      } else if (_addEmptyFocus.canRequestFocus) {
-        _addEmptyFocus.requestFocus();
-        _initialFocusClaimed = true;
-      }
-    });
-  }
-
-  /// Returns the focus node for [sourceId], creating it on first access.
-  /// Stable across rebuilds so the visible focus indicator doesn't jump
-  /// when the list mutates.
-  FocusNode _focusFor(String sourceId) {
-    return _cardFocusNodes.putIfAbsent(
-      sourceId,
-      () => FocusNode(debugLabel: 'source_card_$sourceId'),
-    );
-  }
-
-  /// Drops focus nodes for sources that are no longer in the list. Call
-  /// after every state read so the map doesn't grow unbounded across
-  /// add/remove cycles.
-  void _gcFocusNodes(List<Source> currentSources) {
-    final liveIds = currentSources.map((s) => s.id).toSet();
-    final stale = _cardFocusNodes.keys
-        .where((id) => !liveIds.contains(id))
-        .toList();
-    for (final id in stale) {
-      _cardFocusNodes.remove(id)?.dispose();
-    }
-  }
-
-  void _goBack() {
-    ref.read(feedbackServiceProvider).cancel();
-    Navigator.of(context).pop();
-  }
-
-  /// Handles vertical navigation between source cards. Returns `true`
-  /// for every up/down event (even when there's nothing to move to)
-  /// so the dispatcher considers the intent handled and the global
-  /// focus traversal does not get a second shot at moving focus
-  /// somewhere unrelated. Left/right are no-ops on this screen.
-  bool _onNavigate(NavigateIntent intent) {
-    if (intent.direction == GridDirection.left ||
-        intent.direction == GridDirection.right) {
-      return true; // swallow
-    }
-    final sources = ref.read(sourcesProvider).sources;
-    if (sources.isEmpty) return true;
-
-    // Find which card currently has focus.
-    String? focusedId;
-    for (final entry in _cardFocusNodes.entries) {
-      if (entry.value.hasFocus) {
-        focusedId = entry.key;
-        break;
-      }
-    }
-    final currentIndex =
-        focusedId == null ? -1 : sources.indexWhere((s) => s.id == focusedId);
-
-    // Nothing focused yet → land on first card.
-    if (currentIndex < 0) {
-      _cardFocusNodes[sources.first.id]?.requestFocus();
-      ref.read(feedbackServiceProvider).tick();
-      return true;
-    }
-
-    final delta =
-        intent.direction == GridDirection.down ? 1 : -1;
-    final nextIndex = currentIndex + delta;
-    if (nextIndex < 0 || nextIndex >= sources.length) {
-      // At the edge — swallow without moving so the global traversal
-      // can't claim a sibling outside the list.
-      return true;
-    }
-
-    _cardFocusNodes[sources[nextIndex].id]?.requestFocus();
-    ref.read(feedbackServiceProvider).tick();
-    return true;
-  }
-
-  void _addSource() {
-    // NB: do NOT call canPerformAction() here — SearchAction.invoke
-    // already consumed the debounce slot, calling it again immediately
-    // would always fail and silently swallow the Y press.
-    ref.read(feedbackServiceProvider).tick();
-    setState(() => _showTypePicker = true);
-  }
-
-  void _closeTypePicker() {
-    if (!_showTypePicker) return;
-    setState(() => _showTypePicker = false);
-  }
-
-  Future<void> _onTypePicked(_TypeOption option) async {
-    setState(() => _showTypePicker = false);
-    if (option.type == SourceType.romm && !option.isLegacy) {
-      await _addRommSource();
-    } else if (option.type == SourceType.romm && option.isLegacy) {
-      await _addRommLegacy();
-    } else if (option.type == SourceType.drive) {
-      await _addDriveSource();
-    } else {
-      await _addManualSource(option.type);
-    }
-  }
-
-  Future<void> _addDriveSource() async {
-    final source = await Navigator.of(context).push<Source?>(
-      MaterialPageRoute(builder: (_) => const DriveSourceSetupScreen()),
-    );
-    if (!mounted || source == null) return;
-    await _refreshDriveSource(source, closeActions: false);
-    if (!mounted) return;
+  void _changed() {
     ref.invalidate(bootstrappedConfigProvider);
     ref.invalidate(gamesProvider);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _focusFor(source.id).requestFocus();
-      _initialFocusClaimed = true;
+    ref.read(gameDbChangedProvider.notifier).state++;
+  }
+
+  Future<void> _run(Future<void> Function() work) async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
     });
-  }
-
-  Future<void> _configureDriveSource(Source source) async {
-    setState(() => _activeActionsSource = null);
-    final updated = await Navigator.of(context).push<Source?>(
-      MaterialPageRoute(
-        builder: (_) => DriveSourceSetupScreen(
-          initialSource: source,
-          onSave: (value) =>
-              ref.read(sourcesProvider.notifier).updateSource(value),
-        ),
-      ),
-    );
-    if (!mounted || updated == null) return;
-    await _refreshDriveSource(updated, closeActions: false);
-  }
-
-  Future<void> _refreshDriveSource(
-    Source source, {
-    bool closeActions = true,
-  }) async {
-    if (closeActions && mounted) {
-      setState(() => _activeActionsSource = null);
-    }
     try {
+      await work();
+      if (mounted) _changed();
+    } catch (error) {
+      if (mounted)
+        setState(() => _error = error is DriveApiException ||
+                error is DriveAuthorizationException ||
+                error is DriveCatalogueException
+            ? error.toString()
+            : 'Google Drive operation could not finish. Your files are unchanged.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _addSource() async {
+    if (_busy) return;
+    final source = await Navigator.of(context).push<Source>(
+        MaterialPageRoute(builder: (_) => const DriveSourceSetupScreen()));
+    if (!mounted || source == null) return;
+    _changed(); // Setup committed even if the following remote refresh fails.
+    await _run(() async {
       await DriveRuntime.instance.refreshSource(source);
-      if (!mounted) return;
-      final unsupported = await DriveRuntime.instance.unsupportedCounts(source);
-      if (!mounted) return;
       ref.read(sourceHealthProvider.notifier).markValid(source.id);
-      ref.invalidate(gamesProvider);
-      ref.read(gameDbChangedProvider.notifier).state++;
-      showSuccessNotification(
-        context,
-        ref,
-        message: unsupported.isEmpty
-            ? 'Refreshed ${source.name}'
-            : 'Refreshed ${source.name} — ${_unsupportedSummary(unsupported)} excluded; no targets followed',
-      );
-    } catch (error) {
-      if (!mounted) return;
-      showErrorNotification(
-        context,
-        ref,
-        message: _safeDriveError(error),
-      );
-    }
-  }
-
-  Future<void> _disconnectDrive({required bool revoke}) async {
-    if (mounted) setState(() => _activeActionsSource = null);
-    try {
-      await DriveRuntime.instance.disconnect(revoke: revoke);
-      if (!mounted) return;
-      final driveSourceIds = ref
-          .read(sourcesProvider)
-          .sources
-          .where((source) => source.type == SourceType.drive)
-          .map((source) => source.id);
-      ref.read(sourceHealthProvider.notifier).markUnknown(driveSourceIds);
-      showSuccessNotification(
-        context,
-        ref,
-        message: revoke
-            ? 'Revoked Google Drive access for this app'
-            : 'Disconnected Google Drive for all Drive sources',
-      );
-    } catch (error) {
-      if (!mounted) return;
-      showErrorNotification(
-        context,
-        ref,
-        message: _safeDriveError(error),
-      );
-    }
-  }
-
-  String _safeDriveError(Object error) {
-    if (error is DriveApiException ||
-        error is DriveAuthorizationException ||
-        error is DriveCatalogueException) {
-      return error.toString();
-    }
-    return 'Google Drive connection unavailable';
-  }
-
-  String _unsupportedSummary(Map<String, int> counts) {
-    final entries = counts.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-    return entries.map((entry) => '${entry.value} ${entry.key}').join(', ');
-  }
-
-  Future<void> _addManualSource(SourceType type) async {
-    final result = await Navigator.of(context).push<Source?>(
-      MaterialPageRoute(builder: (_) => ManualSourceAddScreen(type: type)),
-    );
-    if (!mounted || result == null) return;
-    ref.invalidate(bootstrappedConfigProvider);
-    ref.invalidate(gamesProvider);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _focusFor(result.id).requestFocus();
-      _initialFocusClaimed = true;
-    });
-    showSuccessNotification(
-      context,
-      ref,
-      message: 'Added ${result.name} — map systems from its actions menu',
-    );
-  }
-
-  Future<void> _addRommSource() async {
-    final result = await Navigator.of(context).push<RommPairResult?>(
-      MaterialPageRoute(builder: (_) => const QrPairingScreen()),
-    );
-    if (!mounted || result == null) return;
-
-    final source = buildSourceFromPairResult(result);
-
-    Map<String, int> knownPlatforms = const {};
-    String? discoveryError;
-    try {
-      final api = RommApiService();
-      final platforms =
-          await api.fetchPlatforms(result.serverUrl, auth: source.auth);
-      final allSystemIds = SystemModel.supportedSystems.map((s) => s.id);
-      knownPlatforms =
-          RommPlatformMatcher.buildKnownPlatforms(allSystemIds, platforms);
-    } catch (e) {
-      debugPrint('SourcesScreen: platform discovery failed: $e');
-      discoveryError = e.toString();
-    }
-
-    final notifier = ref.read(sourcesProvider.notifier);
-    final addedSource = source.copyWith(knownPlatforms: knownPlatforms);
-    await notifier.addSource(addedSource);
-
-    // Auto-create SystemConfigs for platforms the user doesn't have yet.
-    final basePath = ref.read(storageServiceProvider).getRomPath()
-        ?? '/storage/emulated/0/ROMs';
-    final newConsoles = await notifier.ensureSystemsForSource(
-      addedSource,
-      basePath: basePath,
-    );
-
-    ref.invalidate(bootstrappedConfigProvider);
-    ref.invalidate(gamesProvider);
-    ref.read(gameDbChangedProvider.notifier).state++;
-
-    if (!mounted) return;
-
-    // Move focus onto the freshly added card so the user can immediately
-    // act on it without re-grabbing the controller.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _focusFor(addedSource.id).requestFocus();
-      _initialFocusClaimed = true;
-    });
-
-    final String message;
-    if (discoveryError != null) {
-      message = 'Added ${source.name}, but platform discovery failed';
-    } else if (newConsoles.names.isNotEmpty) {
-      message = 'Added ${source.name} — '
-          '${newConsoles.names.length} new console${newConsoles.names.length == 1 ? '' : 's'}: '
-          '${newConsoles.names.join(', ')}';
-    } else {
-      message = 'Added ${source.name} '
-          '(${knownPlatforms.length} '
-          '${knownPlatforms.length == 1 ? "platform" : "platforms"})';
-    }
-
-    showSuccessNotification(context, ref, message: message);
-  }
-
-  Future<void> _addRommLegacy() async {
-    final source = await Navigator.of(context).push<Source?>(
-      MaterialPageRoute(builder: (_) => const RommLegacyLoginScreen()),
-    );
-    if (!mounted || source == null) return;
-
-    final notifier = ref.read(sourcesProvider.notifier);
-    await notifier.addSource(source);
-
-    final basePath = ref.read(storageServiceProvider).getRomPath()
-        ?? '/storage/emulated/0/ROMs';
-    final newConsoles = await notifier.ensureSystemsForSource(
-      source,
-      basePath: basePath,
-    );
-
-    ref.invalidate(bootstrappedConfigProvider);
-    ref.invalidate(gamesProvider);
-    ref.read(gameDbChangedProvider.notifier).state++;
-
-    if (!mounted) return;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _focusFor(source.id).requestFocus();
-      _initialFocusClaimed = true;
-    });
-
-    final String message;
-    if (newConsoles.names.isNotEmpty) {
-      message = 'Added ${source.name} — '
-          '${newConsoles.names.length} new console${newConsoles.names.length == 1 ? '' : 's'}: '
-          '${newConsoles.names.join(', ')}';
-    } else {
-      message = 'Added ${source.name} '
-          '(${source.knownPlatforms.length} '
-          '${source.knownPlatforms.length == 1 ? "platform" : "platforms"})';
-    }
-
-    showSuccessNotification(context, ref, message: message);
-  }
-
-  void _openSourceActions(Source source) {
-    ref.read(feedbackServiceProvider).tick();
-    setState(() => _activeActionsSource = source);
-  }
-
-  void _closeSourceActions() {
-    if (_activeActionsSource == null) return;
-    final source = _activeActionsSource!;
-    setState(() => _activeActionsSource = null);
-    // Restore focus on the card the dialog opened from.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final node = _cardFocusNodes[source.id];
-      if (node != null && node.canRequestFocus) node.requestFocus();
     });
   }
 
-  Future<void> _toggleSourceEnabled(Source source) async {
-    final notifier = ref.read(sourcesProvider.notifier);
-    await notifier.setEnabled(source.id, !source.enabled);
-    ref.invalidate(bootstrappedConfigProvider);
-    ref.invalidate(gamesProvider);
-    ref.read(gameDbChangedProvider.notifier).state++;
-    if (mounted) _closeSourceActions();
+  Future<void> _configure(Source source) async {
+    final updated = await Navigator.of(context).push<Source>(MaterialPageRoute(
+        builder: (_) => DriveSourceSetupScreen(
+            initialSource: source,
+            onSave: (value) =>
+                ref.read(sourcesProvider.notifier).updateSource(value))));
+    if (!mounted || updated == null) return;
+    _changed(); // Publish the saved binding before attempting remote refresh.
+    await _run(() => DriveRuntime.instance.refreshSource(updated));
   }
 
-  /// Re-pair flow: closes the action overlay, opens the QR scanner, and on
-  /// success calls [SourcesNotifier.refreshTokenFromPair] which preserves
-  /// the existing source's id, name, and per-system mappings while
-  /// swapping in the fresh bearer token + expiry. Used by the user when a
-  /// borrowed token is about to expire (or already has).
-  Future<void> _repairSource(Source source) async {
-    setState(() => _activeActionsSource = null);
-
-    final result = await Navigator.of(context).push<RommPairResult?>(
-      MaterialPageRoute(builder: (_) => const QrPairingScreen()),
-    );
-    if (!mounted || result == null) return;
-
-    // Re-discover the platform map against the (possibly new) URL so the
-    // existing knownPlatforms cache stays in sync after re-pair.
-    Map<String, int>? platforms;
-    try {
-      final api = RommApiService();
-      final fetched = await api.fetchPlatforms(
-        result.serverUrl,
-        auth: AuthConfig(clientToken: result.token),
-      );
-      final allSystemIds = SystemModel.supportedSystems.map((s) => s.id);
-      platforms =
-          RommPlatformMatcher.buildKnownPlatforms(allSystemIds, fetched);
-    } catch (e) {
-      debugPrint('SourcesScreen: re-pair platform discovery failed: $e');
-    }
-
-    final notifier = ref.read(sourcesProvider.notifier);
-    try {
-      await notifier.refreshTokenFromPair(
-        source.id,
-        result,
-        knownPlatforms: platforms,
-      );
-      ref.invalidate(bootstrappedConfigProvider);
-      ref.invalidate(gamesProvider);
-      ref.read(gameDbChangedProvider.notifier).state++;
-    } catch (e) {
-      debugPrint('SourcesScreen: refreshTokenFromPair failed: $e');
-      if (mounted) {
-        showErrorNotification(context, ref,
-            message: 'Re-pair failed: $e');
-      }
-      return;
-    }
-
-    if (!mounted) return;
-    // Restore focus to the (still-existing) card.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _focusFor(source.id).requestFocus();
-    });
-    showSuccessNotification(
-      context,
-      ref,
-      message: 'Re-paired ${source.name}',
-    );
+  Future<void> _mappings(Source source) async {
+    final saved = await Navigator.of(context).push<bool>(MaterialPageRoute(
+        builder: (_) => DriveSourceMappingsScreen(source: source)));
+    if (mounted && saved == true) _changed();
   }
 
-  /// Edit per-system path mappings for a manual source. Closes the
-  /// action overlay, opens the mapping editor, and on save invalidates
-  /// the game/config providers so the new mappings take effect.
-  Future<void> _editMappings(Source source) async {
-    setState(() => _activeActionsSource = null);
-    final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => source.type == SourceType.drive
-            ? DriveSourceMappingsScreen(source: source)
-            : SourceMappingsScreen(source: source),
-      ),
-    );
-    if (!mounted) return;
-    if (saved == true) {
-      ref.invalidate(bootstrappedConfigProvider);
-      ref.invalidate(gamesProvider);
-      ref.read(gameDbChangedProvider.notifier).state++;
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _focusFor(source.id).requestFocus();
-    });
-  }
-
-  Future<void> _removeSource(Source source) async {
-    final notifier = ref.read(sourcesProvider.notifier);
-    await notifier.removeSource(source.id);
-    ref.invalidate(bootstrappedConfigProvider);
-    ref.invalidate(gamesProvider);
-    ref.read(gameDbChangedProvider.notifier).state++;
-    if (mounted) {
-      // Skip the focus-restore-on-deleted-card path.
-      setState(() => _activeActionsSource = null);
+  Future<void> _actions(Source source) async {
+    if (_busy) return;
+    final l = L.of(context);
+    final action = await showDialog<String>(
+        context: context,
+        builder: (dialog) => AlertDialog(
+            backgroundColor: AppTheme.backgroundColor,
+            title: Text(source.name),
+            content: SingleChildScrollView(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+              for (final entry in {
+                'refresh': l.sources_refreshCatalogue,
+                'map': l.sources_editMappings,
+                'configure': l.sources_configureDrive,
+                'toggle': source.enabled ? l.sources_disable : l.sources_enable,
+                'disconnect': l.sources_disconnectDrive,
+                'revoke': l.sources_revokeDrive,
+                'remove': l.common_remove,
+              }.entries)
+                ConsoleFocusable(
+                    autofocus: entry.key == 'refresh',
+                    onSelect: () => Navigator.pop(dialog, entry.key),
+                    child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 16, horizontal: 12),
+                        child: SizedBox(
+                            width: 320,
+                            child: Text(entry.value,
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 18))))),
+            ]))));
+    if (!mounted || action == null) return;
+    switch (action) {
+      case 'map':
+        await _mappings(source);
+      case 'configure':
+        await _configure(source);
+      case 'refresh':
+        await _run(() async {
+          await DriveRuntime.instance.refreshSource(source);
+          ref.read(sourceHealthProvider.notifier).markValid(source.id);
+        });
+      case 'toggle':
+        await _run(() => ref
+            .read(sourcesProvider.notifier)
+            .setEnabled(source.id, !source.enabled));
+      case 'remove':
+        await _run(
+            () => ref.read(sourcesProvider.notifier).removeSource(source.id));
+      case 'disconnect':
+      case 'revoke':
+        await _run(() async {
+          await DriveRuntime.instance.disconnect(revoke: action == 'revoke');
+          ref
+              .read(sourceHealthProvider.notifier)
+              .markUnknown(ref.read(sourcesProvider).sources.map((s) => s.id));
+        });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final rs = context.rs;
     final state = ref.watch(sourcesProvider);
-    _gcFocusNodes(state.sources);
-    _ensureInteractiveFocus(state);
-
-    return buildWithActions(
-      ScreenLayout(
-        body: Stack(
-          children: [
-            Column(
-              children: [
-                _Header(rs: rs, count: state.sources.length),
-                Expanded(
-                  child: state.loading
-                      ? const Center(child: CircularProgressIndicator())
-                      : state.sources.isEmpty
-                          ? _EmptyState(
-                              rs: rs,
-                              focusNode: _addEmptyFocus,
-                              onAdd: _addSource,
-                            )
-                          : _SourceList(
-                              sources: state.sources,
-                              focusForId: _focusFor,
-                              onTap: _openSourceActions,
-                              scrollController: _scrollController,
-                              rs: rs,
-                            ),
-                ),
-              ],
-            ),
-            ConsoleHud(
-              b: HudAction(L.of(context).common_back, onTap: _goBack),
-              y: HudAction(L.of(context).sources_addSource, onTap: _addSource),
-            ),
-            if (_activeActionsSource != null)
-              _SourceActionsOverlay(
-                source: _activeActionsSource!,
-                onClose: _closeSourceActions,
-                onToggleEnabled: () =>
-                    _toggleSourceEnabled(_activeActionsSource!),
-                onRemove: () => _removeSource(_activeActionsSource!),
-                onRepair: () => _repairSource(_activeActionsSource!),
-                onEditMappings: () =>
-                    _editMappings(_activeActionsSource!),
-                onRefreshDrive: () =>
-                    _refreshDriveSource(_activeActionsSource!),
-                onConfigureDrive: () =>
-                    _configureDriveSource(_activeActionsSource!),
-                onDisconnectDrive: () =>
-                    _disconnectDrive(revoke: false),
-                onRevokeDrive: () =>
-                    _disconnectDrive(revoke: true),
-              ),
-            if (_showTypePicker)
-              _SourceTypePickerOverlay(
-                onClose: _closeTypePicker,
-                onPick: _onTypePicked,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({required this.rs, required this.count});
-  final Responsive rs;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        rs.spacing.lg,
-        rs.safeAreaTop + rs.spacing.md,
-        rs.spacing.lg,
-        rs.spacing.md,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            L.of(context).sources_title,
-            style: TextStyle(
-              fontSize: rs.isSmall ? 22 : 28,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              letterSpacing: 4,
-            ),
-          ),
-          SizedBox(height: rs.spacing.xs),
-          Text(
-            count == 0
-                ? L.of(context).sources_noSourcesConfigured
-                : '$count source${count == 1 ? "" : "s"} · [Y] add new',
-            style: TextStyle(
-              fontSize: rs.isSmall ? 10 : 12,
-              color: Colors.grey.shade500,
-              letterSpacing: 1,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({
-    required this.rs,
-    required this.focusNode,
-    required this.onAdd,
-  });
-  final Responsive rs;
-  final FocusNode focusNode;
-  final VoidCallback onAdd;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.cloud_off_outlined,
-              size: rs.isSmall ? 56 : 72,
-              color: Colors.white24,
-            ),
-            SizedBox(height: rs.spacing.lg),
-            Text(
-              L.of(context).sources_noSourcesYet,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: rs.isSmall ? 16 : 20,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: rs.spacing.sm),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: rs.spacing.lg),
-              child: Text(
-                L.of(context).sources_noSourcesDescription,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey.shade500,
-                  fontSize: rs.isSmall ? 11 : 13,
-                ),
-              ),
-            ),
-            SizedBox(height: rs.spacing.lg),
-            ConsoleFocusable(
-              focusNode: focusNode,
-              autofocus: true,
-              onSelect: onAdd,
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: rs.spacing.lg,
-                  vertical: rs.spacing.md,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.primaryColor, width: 2),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.add, color: AppTheme.primaryColor),
-                    const SizedBox(width: 8),
-                    Text(
-                      L.of(context).sources_addSource,
-                      style: const TextStyle(
-                        color: AppTheme.primaryColor,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SourceList extends ConsumerWidget {
-  const _SourceList({
-    required this.sources,
-    required this.focusForId,
-    required this.onTap,
-    required this.scrollController,
-    required this.rs,
-  });
-
-  final List<Source> sources;
-  final FocusNode Function(String sourceId) focusForId;
-  final void Function(Source source) onTap;
-  final ScrollController scrollController;
-  final Responsive rs;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Tally per-source manual mapping counts so the card can show
-    // "N mappings" for SMB/FTP/Web (where knownPlatforms is always 0).
-    final cfg = ref.watch(bootstrappedConfigProvider).valueOrNull;
-    final mappingCounts = <String, int>{};
-    if (cfg != null) {
-      for (final s in cfg.systems) {
-        for (final m in s.manualMappings) {
-          mappingCounts[m.sourceId] = (mappingCounts[m.sourceId] ?? 0) + 1;
-        }
-      }
-    }
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
-        child: FocusTraversalGroup(
-          policy: ReadingOrderTraversalPolicy(),
-          child: ListView.separated(
-            controller: scrollController,
-            padding: EdgeInsets.symmetric(
-              horizontal: rs.spacing.lg,
-              vertical: rs.spacing.md,
-            ),
-            itemCount: sources.length,
-            separatorBuilder: (_, __) => SizedBox(height: rs.spacing.md),
-            itemBuilder: (context, index) {
-              final source = sources[index];
-              return _SourceCard(
-                key: ValueKey('source_card_${source.id}'),
-                source: source,
-                focusNode: focusForId(source.id),
-                autofocus: index == 0,
-                onTap: () => onTap(source),
-                rs: rs,
-                mappingCount: mappingCounts[source.id] ?? 0,
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SourceCard extends ConsumerWidget {
-  const _SourceCard({
-    super.key,
-    required this.source,
-    required this.focusNode,
-    required this.autofocus,
-    required this.onTap,
-    required this.rs,
-    this.mappingCount = 0,
-  });
-
-  final Source source;
-  final FocusNode focusNode;
-  final bool autofocus;
-  final VoidCallback onTap;
-  final Responsive rs;
-  final int mappingCount;
-
-  Color get _accent {
-    if (source.borrowed) return Colors.lightBlueAccent;
-    switch (source.type) {
-      case SourceType.romm:
-        return Colors.greenAccent;
-      case SourceType.smb:
-        return Colors.amberAccent;
-      case SourceType.ftp:
-        return Colors.purpleAccent;
-      case SourceType.web:
-        return Colors.tealAccent;
-      case SourceType.local:
-        return Colors.white70;
-      case SourceType.drive:
-        return Colors.blueAccent;
-    }
-  }
-
-  IconData get _icon {
-    switch (source.type) {
-      case SourceType.romm:
-        return source.borrowed ? Icons.share : Icons.dns_outlined;
-      case SourceType.smb:
-        return Icons.folder_shared;
-      case SourceType.ftp:
-        return Icons.cloud_queue;
-      case SourceType.web:
-        return Icons.public;
-      case SourceType.local:
-        return Icons.sd_card;
-      case SourceType.drive:
-        return Icons.add_to_drive;
-    }
-  }
-
-  String? _expiryLabel(BuildContext context) {
-    final exp = source.tokenExpiresAt;
-    if (exp == null) return null;
-    final delta = exp.difference(DateTime.now());
-    if (delta.isNegative) return L.of(context).sources_expired;
-    if (delta.inDays >= 2) return 'Expires in ${delta.inDays}d';
-    if (delta.inHours >= 2) return 'Expires in ${delta.inHours}h';
-    return 'Expires in ${delta.inMinutes}m';
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // RomM auto-discovers platforms; everything else lives off manual
-    // mappings, so the same "N entries" badge means different things
-    // depending on the source type.
-    final isAutoMapped = source.autoMap;
-    final entryCount =
-        isAutoMapped ? source.knownPlatforms.length : mappingCount;
-    final entryNoun = isAutoMapped ? 'platform' : 'mapping';
-    final expiry = _expiryLabel(context);
-    final expiryUrgent = expiry != null &&
-        source.tokenExpiresAt != null &&
-        source.tokenExpiresAt!.difference(DateTime.now()).inDays < 7;
-
-    // Token health from proactive background check.
-    final healthState = ref.watch(sourceHealthProvider);
-    final health = healthState.statusFor(source.id);
-    final healthError = healthState.errorFor(source.id);
-
-    return ConsoleFocusable(
-      focusNode: focusNode,
-      autofocus: autofocus,
-      onSelect: onTap,
-      borderRadius: 12,
-      child: Container(
-        padding: EdgeInsets.all(rs.spacing.md),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1C1C1C),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: source.enabled
-                ? _accent.withValues(alpha: 0.4)
-                : Colors.white12,
-            width: 2,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: _accent.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(_icon, color: _accent, size: 22),
-            ),
-            SizedBox(width: rs.spacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          source.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: source.enabled
-                                ? Colors.white
-                                : Colors.white54,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      if (source.borrowed) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color:
-                                Colors.lightBlueAccent.withValues(alpha: 0.18),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                              color: Colors.lightBlueAccent
-                                  .withValues(alpha: 0.5),
-                            ),
-                          ),
-                          child: Text(
-                            L.of(context).sources_borrowed,
+    final config = ref.watch(bootstrappedConfigProvider).valueOrNull;
+    return buildWithActions(ScreenLayout(
+        body: Stack(children: [
+      Center(
+          child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 32, 24, 80),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('GOOGLE DRIVE',
                             style: TextStyle(
-                              color: Colors.lightBlueAccent,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                        ),
-                      ],
-                      if (!source.enabled) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white12,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            L.of(context).sources_off,
-                            style: TextStyle(
-                              color: Colors.white54,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${source.type.name.toUpperCase()} · ${source.hostLabel}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontSize: 11,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.games,
-                          size: 11, color: Colors.grey.shade500),
-                      const SizedBox(width: 3),
-                      Text(
-                        entryCount == 0
-                            ? (isAutoMapped
-                                ? L.of(context).sources_noPlatforms
-                                : 'No mappings — [A] to add')
-                            : '$entryCount '
-                                '${entryCount == 1 ? entryNoun : "${entryNoun}s"}',
-                        style: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 11,
-                        ),
-                      ),
-                      if (health == SourceHealth.invalid) ...[
-                        const SizedBox(width: 10),
-                        const Icon(Icons.error_outline,
-                            size: 11, color: Colors.redAccent),
-                        const SizedBox(width: 3),
-                        Flexible(
-                          child: Text(
-                            healthError ?? 'Token invalid — re-pair',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.redAccent,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ] else if (health == SourceHealth.checking) ...[
-                        const SizedBox(width: 10),
-                        const SizedBox(
-                          width: 10,
-                          height: 10,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.5,
-                            color: Colors.white38,
-                          ),
-                        ),
-                      ] else if (expiry != null) ...[
-                        const SizedBox(width: 10),
-                        Icon(
-                          Icons.schedule,
-                          size: 11,
-                          color: expiryUrgent
-                              ? Colors.orangeAccent
-                              : Colors.grey.shade500,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          expiry,
-                          style: TextStyle(
-                            color: expiryUrgent
-                                ? Colors.orangeAccent
-                                : Colors.grey.shade500,
-                            fontSize: 11,
-                            fontWeight: expiryUrgent
-                                ? FontWeight.w700
-                                : FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: Colors.white30),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Modal-style overlay for source actions. Lives inside the screen's
-/// own Stack (not a separate route) so the existing focus tree, gamepad
-/// shortcuts and ConsoleScreenMixin keep working without dialog-routing
-/// gymnastics. Uses [OverlayFocusScope] so the parent screen's actions
-/// are correctly suppressed while the overlay is visible.
-class _SourceActionsOverlay extends ConsumerStatefulWidget {
-  const _SourceActionsOverlay({
-    required this.source,
-    required this.onClose,
-    required this.onToggleEnabled,
-    required this.onRemove,
-    required this.onRepair,
-    required this.onEditMappings,
-    required this.onRefreshDrive,
-    required this.onConfigureDrive,
-    required this.onDisconnectDrive,
-    required this.onRevokeDrive,
-  });
-
-  final Source source;
-  final VoidCallback onClose;
-  final VoidCallback onToggleEnabled;
-  final VoidCallback onRemove;
-  final VoidCallback onRepair;
-  final VoidCallback onEditMappings;
-  final VoidCallback onRefreshDrive;
-  final VoidCallback onConfigureDrive;
-  final VoidCallback onDisconnectDrive;
-  final VoidCallback onRevokeDrive;
-
-  @override
-  ConsumerState<_SourceActionsOverlay> createState() =>
-      _SourceActionsOverlayState();
-}
-
-class _SourceActionsOverlayState extends ConsumerState<_SourceActionsOverlay> {
-  final FocusNode _scopeFocus = FocusNode(debugLabel: 'source_actions_overlay');
-  int _selectedIndex = 0;
-
-  final List<GlobalKey> _actionKeys = List.generate(8, (_) => GlobalKey());
-
-  void _selectIndex(int index) {
-    setState(() => _selectedIndex = index);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final selected = _actionKeys[_selectedIndex].currentContext;
-      if (selected != null) Scrollable.ensureVisible(selected);
-    });
-  }
-
-  /// Build the ordered list of actions for the current source. Re-pair is
-  /// only offered for RomM sources because the QR/code flow is RomM-only.
-  List<_OverlayAction> _actions(BuildContext context) {
-    final src = widget.source;
-    final l = L.of(context);
-    return [
-      if (src.type == SourceType.romm)
-        _OverlayAction(
-          icon: Icons.qr_code_2,
-          label: l.sources_rePair,
-          onActivate: widget.onRepair,
-        ),
-      if (src.type != SourceType.romm)
-        _OverlayAction(
-          icon: Icons.tune,
-          label: l.sources_editMappings,
-          onActivate: widget.onEditMappings,
-        ),
-      if (src.type == SourceType.drive)
-        _OverlayAction(
-          icon: Icons.refresh,
-          label: l.sources_refreshCatalogue,
-          onActivate: widget.onRefreshDrive,
-        ),
-      if (src.type == SourceType.drive)
-        _OverlayAction(
-          icon: Icons.settings_outlined,
-          label: l.sources_configureDrive,
-          onActivate: widget.onConfigureDrive,
-        ),
-      if (src.type == SourceType.drive)
-        _OverlayAction(
-          icon: Icons.logout,
-          label: l.sources_disconnectDrive,
-          onActivate: widget.onDisconnectDrive,
-        ),
-      if (src.type == SourceType.drive)
-        _OverlayAction(
-          icon: Icons.link_off,
-          label: l.sources_revokeDrive,
-          destructive: true,
-          onActivate: widget.onRevokeDrive,
-        ),
-      _OverlayAction(
-        icon: src.enabled ? Icons.toggle_off : Icons.toggle_on,
-        label: src.enabled ? l.sources_disable : l.sources_enable,
-        onActivate: widget.onToggleEnabled,
-      ),
-      _OverlayAction(
-        icon: Icons.delete_outline,
-        label: l.common_remove,
-        destructive: true,
-        onActivate: widget.onRemove,
-      ),
-      _OverlayAction(
-        icon: Icons.close,
-        label: l.common_cancel,
-        cancelStyle: true,
-        onActivate: widget.onClose,
-      ),
-    ];
-  }
-
-  @override
-  void dispose() {
-    _scopeFocus.dispose();
-    super.dispose();
-  }
-
-  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
-      return KeyEventResult.ignored;
-    }
-    final key = event.logicalKey;
-
-    final count = _actions(context).length;
-    if (key == LogicalKeyboardKey.arrowUp) {
-      _selectIndex((_selectedIndex - 1 + count) % count);
-      ref.read(feedbackServiceProvider).tick();
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.arrowDown) {
-      _selectIndex((_selectedIndex + 1) % count);
-      ref.read(feedbackServiceProvider).tick();
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.gameButtonA ||
-        key == LogicalKeyboardKey.enter ||
-        key == LogicalKeyboardKey.select) {
-      _activate();
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.gameButtonB ||
-        key == LogicalKeyboardKey.escape ||
-        key == LogicalKeyboardKey.goBack) {
-      ref.read(feedbackServiceProvider).cancel();
-      widget.onClose();
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
-  }
-
-  void _activate([int? index]) {
-    if (index != null) _selectIndex(index);
-    final action = _actions(context)[_selectedIndex];
-    if (action.cancelStyle) {
-      ref.read(feedbackServiceProvider).cancel();
-    } else {
-      ref.read(feedbackServiceProvider).confirm();
-    }
-    action.onActivate();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final src = widget.source;
-    final actions = _actions(context);
-    return OverlayFocusScope(
-      priority: OverlayPriority.dialog,
-      isVisible: true,
-      onClose: widget.onClose,
-      child: Focus(
-        focusNode: _scopeFocus,
-        autofocus: true,
-        onKeyEvent: _onKeyEvent,
-        child: Container(
-          color: Colors.black.withValues(alpha: 0.75),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Center(
-              child: Material(
-                type: MaterialType.transparency,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1C1C1C),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            src.name,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            src.hostLabel,
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 12,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          for (int i = 0; i < actions.length; i++) ...[
-                            if (i > 0) const SizedBox(height: 8),
-                            KeyedSubtree(
-                              key: _actionKeys[i],
-                              child: _OverlayButton(
-                                key: ValueKey('source-action-$i'),
-                                icon: actions[i].icon,
-                                label: actions[i].label,
-                                selected: _selectedIndex == i,
-                                destructive: actions[i].destructive,
-                                subdued: actions[i].cancelStyle,
-                                onTap: () => _activate(i),
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 12),
-                          Center(
-                            child: Text(
-                              '↑↓ ${L.of(context).common_navigate} · [A] ${L.of(context).common_select} · [B] ${L.of(context).common_back}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white30,
-                                fontSize: 10,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _OverlayAction {
-  const _OverlayAction({
-    required this.icon,
-    required this.label,
-    required this.onActivate,
-    this.destructive = false,
-    this.cancelStyle = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onActivate;
-  final bool destructive;
-  final bool cancelStyle;
-}
-
-class _OverlayButton extends StatelessWidget {
-  const _OverlayButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.destructive = false,
-    this.subdued = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final bool destructive;
-  final bool subdued;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = destructive
-        ? Colors.redAccent
-        : subdued
-            ? Colors.white70
-            : AppTheme.primaryColor;
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: InkWell(
-        canRequestFocus: false,
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: selected ? 0.25 : 0.10),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: selected ? color : color.withValues(alpha: 0.3),
-              width: selected ? 2 : 1,
-            ),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.35),
-                      blurRadius: 12,
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: color, size: 18),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Modal that asks the user which kind of source they want to add. RomM
-/// hands off to the QR/code pairing flow; the other types open the
-/// generic [ManualSourceAddScreen]. Local folders are intentionally not
-/// offered here — they live on each system as `targetFolder` already, so
-/// a "local source" entry would just duplicate state.
-class _SourceTypePickerOverlay extends ConsumerStatefulWidget {
-  const _SourceTypePickerOverlay({
-    required this.onClose,
-    required this.onPick,
-  });
-
-  final VoidCallback onClose;
-  final void Function(_TypeOption option) onPick;
-
-  @override
-  ConsumerState<_SourceTypePickerOverlay> createState() =>
-      _SourceTypePickerOverlayState();
-}
-
-class _SourceTypePickerOverlayState
-    extends ConsumerState<_SourceTypePickerOverlay> {
-  final FocusNode _scopeFocus = FocusNode(debugLabel: 'source_type_picker');
-  int _selectedIndex = 0;
-  List<_TypeOption> _options = const [];
-  final List<GlobalKey> _optionKeys = List.generate(6, (_) => GlobalKey());
-
-  void _selectIndex(int index) {
-    setState(() => _selectedIndex = index);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final selected = _optionKeys[_selectedIndex].currentContext;
-      if (selected != null) Scrollable.ensureVisible(selected);
-    });
-  }
-
-  void _pick(int index) {
-    ref.read(feedbackServiceProvider).confirm();
-    widget.onPick(_options[index]);
-  }
-
-  static List<_TypeOption> _buildOptions(L l) => [
-        _TypeOption(
-          type: SourceType.romm,
-          icon: Icons.qr_code_2,
-          label: l.sources_sourceTypeRomm,
-          hint: l.sources_sourceTypeRommHint,
-        ),
-        _TypeOption(
-          type: SourceType.romm,
-          icon: Icons.password,
-          label: l.sources_sourceTypeRommLegacy,
-          hint: l.onboarding_legacyLoginSubtitle,
-          isLegacy: true,
-        ),
-        _TypeOption(
-          type: SourceType.drive,
-          icon: Icons.add_to_drive,
-          label: 'Google Drive',
-          hint: l.sources_sourceTypeDriveHint,
-        ),
-        _TypeOption(
-          type: SourceType.smb,
-          icon: Icons.folder_shared,
-          label: l.sources_sourceTypeSmb,
-          hint: l.sources_sourceTypeSmbHint,
-        ),
-        _TypeOption(
-          type: SourceType.ftp,
-          icon: Icons.cloud_queue,
-          label: l.sources_sourceTypeFtp,
-          hint: l.sources_sourceTypeFtpHint,
-        ),
-        _TypeOption(
-          type: SourceType.web,
-          icon: Icons.public,
-          label: l.sources_sourceTypeWeb,
-          hint: l.sources_sourceTypeWebHint,
-        ),
-      ];
-
-  @override
-  void dispose() {
-    _scopeFocus.dispose();
-    super.dispose();
-  }
-
-  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
-      return KeyEventResult.ignored;
-    }
-    final key = event.logicalKey;
-    if (key == LogicalKeyboardKey.arrowUp) {
-      _selectIndex((_selectedIndex - 1 + _options.length) % _options.length);
-      ref.read(feedbackServiceProvider).tick();
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.arrowDown) {
-      _selectIndex((_selectedIndex + 1) % _options.length);
-      ref.read(feedbackServiceProvider).tick();
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.gameButtonA ||
-        key == LogicalKeyboardKey.enter ||
-        key == LogicalKeyboardKey.select) {
-      _pick(_selectedIndex);
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.gameButtonB ||
-        key == LogicalKeyboardKey.escape ||
-        key == LogicalKeyboardKey.goBack) {
-      ref.read(feedbackServiceProvider).cancel();
-      widget.onClose();
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = L.of(context);
-    _options = _buildOptions(l);
-    return OverlayFocusScope(
-      priority: OverlayPriority.dialog,
-      isVisible: true,
-      onClose: widget.onClose,
-      child: Focus(
-        focusNode: _scopeFocus,
-        autofocus: true,
-        onKeyEvent: _onKeyEvent,
-        child: Container(
-          color: Colors.black.withValues(alpha: 0.78),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Center(
-              child: Material(
-                type: MaterialType.transparency,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 460),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1C1C1C),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l.sources_addSource,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            l.sources_whereDoGamesComeFrom,
-                            style: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          for (int i = 0; i < _options.length; i++) ...[
-                            if (i > 0) const SizedBox(height: 8),
-                            KeyedSubtree(
-                              key: _optionKeys[i],
-                              child: _TypeOptionTile(
-                                key: ValueKey('source-type-$i'),
-                                option: _options[i],
-                                selected: _selectedIndex == i,
-                                onTap: () => _pick(i),
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 14),
-                          Center(
-                            child: Text(
-                              '↑↓ ${l.common_navigate} · [A] ${l.common_select} · [B] ${l.common_back}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white30,
-                                fontSize: 10,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TypeOption {
-  const _TypeOption({
-    required this.type,
-    required this.icon,
-    required this.label,
-    required this.hint,
-    this.isLegacy = false,
-  });
-  final SourceType type;
-  final IconData icon;
-  final String label;
-  final String hint;
-  final bool isLegacy;
-}
-
-class _TypeOptionTile extends StatelessWidget {
-  const _TypeOptionTile(
-      {super.key,
-      required this.option,
-      required this.selected,
-      required this.onTap});
-  final _TypeOption option;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = AppTheme.primaryColor;
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: InkWell(
-        canRequestFocus: false,
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: selected ? 0.22 : 0.08),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: selected ? color : color.withValues(alpha: 0.3),
-              width: selected ? 2 : 1,
-            ),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                        color: color.withValues(alpha: 0.35), blurRadius: 12)
-                  ]
-                : null,
-          ),
-          child: Row(
-            children: [
-              Icon(option.icon, color: color, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      option.label,
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      option.hint,
-                      style: TextStyle(
-                        color: Colors.grey.shade500,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 28,
+                                letterSpacing: 4)),
+                        const SizedBox(height: 8),
+                        const Text(
+                            'Your private collection · Download when you want to play',
+                            style: TextStyle(color: Colors.white60)),
+                        const SizedBox(height: 24),
+                        if (_busy) const LinearProgressIndicator(),
+                        if (_error != null || state.error != null)
+                          Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Text(
+                                  _error ?? 'Could not load source settings',
+                                  style: const TextStyle(
+                                      color: Colors.redAccent))),
+                        Expanded(
+                            child: state.loading
+                                ? const Center(
+                                    child: CircularProgressIndicator())
+                                : state.sources.isEmpty
+                                    ? Center(
+                                        child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                            const Icon(Icons.cloud_outlined,
+                                                color: Colors.white38,
+                                                size: 64),
+                                            const SizedBox(height: 16),
+                                            const Text(
+                                                'Connect Google Drive to browse your collection',
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 20)),
+                                            const SizedBox(height: 24),
+                                            ConsoleFocusable(
+                                                focusNode: _addFocus,
+                                                autofocus: true,
+                                                onSelect: _addSource,
+                                                child: const Padding(
+                                                    padding: EdgeInsets.all(20),
+                                                    child: Text(
+                                                        'Connect Google Drive',
+                                                        style: TextStyle(
+                                                            color: AppTheme
+                                                                .primaryColor,
+                                                            fontSize: 18)))),
+                                          ]))
+                                    : ListView.separated(
+                                        itemCount: state.sources.length,
+                                        separatorBuilder: (_, __) =>
+                                            const SizedBox(height: 16),
+                                        itemBuilder: (context, index) {
+                                          final source = state.sources[index];
+                                          final count = config?.systems
+                                                  .where((s) => s.manualMappings
+                                                      .any((m) =>
+                                                          m.sourceId ==
+                                                          source.id))
+                                                  .length ??
+                                              0;
+                                          return ConsoleFocusable(
+                                              key: ValueKey(
+                                                  'source_card_${source.id}'),
+                                              focusNode: _cards.putIfAbsent(
+                                                  source.id, () => FocusNode()),
+                                              autofocus: index == 0,
+                                              onSelect: () => _actions(source),
+                                              child: Container(
+                                                  padding:
+                                                      const EdgeInsets.all(24),
+                                                  decoration: BoxDecoration(
+                                                      color: Colors.white
+                                                          .withValues(
+                                                              alpha: .04),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
+                                                      border: Border.all(
+                                                          color: source.enabled
+                                                              ? AppTheme
+                                                                  .primaryColor
+                                                              : Colors
+                                                                  .white24)),
+                                                  child: Row(children: [
+                                                    const Icon(
+                                                        Icons.cloud_outlined,
+                                                        color: AppTheme
+                                                            .primaryColor),
+                                                    const SizedBox(width: 16),
+                                                    Expanded(
+                                                        child: Column(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                          Text(source.name,
+                                                              style: const TextStyle(
+                                                                  color: Colors
+                                                                      .white,
+                                                                  fontSize:
+                                                                      20)),
+                                                          const SizedBox(
+                                                              height: 8),
+                                                          Text(
+                                                              '${source.enabled ? 'Enabled' : 'Disabled'} · $count console folders',
+                                                              style: const TextStyle(
+                                                                  color: Colors
+                                                                      .white60))
+                                                        ])),
+                                                    const Icon(
+                                                        Icons.chevron_right,
+                                                        color: Colors.white54)
+                                                  ])));
+                                        })),
+                      ])))),
+      ConsoleHud(
+          b: HudAction('Back', onTap: () => Navigator.maybePop(context)),
+          y: HudAction('Connect Drive', onTap: _addSource)),
+    ])));
   }
 }

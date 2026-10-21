@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:g_shop/models/config/app_config.dart';
+import 'package:g_shop/models/config/drive_source_config.dart';
+import 'package:g_shop/services/unified_game_service.dart';
 import 'package:g_shop/models/config/system_config.dart';
 import 'package:g_shop/models/config/provider_config.dart';
 import 'package:g_shop/models/game_item.dart';
@@ -65,9 +68,11 @@ void main() {
             )
           ''');
           await db.execute('CREATE INDEX idx_systemSlug ON games (systemSlug)');
-          await db.execute('CREATE INDEX idx_displayName ON games (displayName)');
+          await db
+              .execute('CREATE INDEX idx_displayName ON games (displayName)');
           await db.execute('CREATE INDEX idx_filename ON games (filename)');
-          await db.execute('CREATE UNIQUE INDEX idx_games_system_filename ON games (systemSlug, filename)');
+          await db.execute(
+              'CREATE UNIQUE INDEX idx_games_system_filename ON games (systemSlug, filename)');
           await db.execute('''
             CREATE TABLE game_metadata (
               filename TEXT NOT NULL,
@@ -115,19 +120,39 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({});
     final storage = StorageService();
     await storage.init();
-    final sync = LibrarySyncService();
+    final entered = Completer<void>(), release = Completer<void>();
+    final sync = LibrarySyncService(gameService:
+        UnifiedGameService(fetchProviderGames: (provider, system) async {
+      if (system.id == 'nes') {
+        entered.complete();
+        await release.future;
+      }
+      return [];
+    }));
     addTearDown(sync.dispose);
     final config = AppConfig(systems: [
       for (final id in ['nes', 'snes'])
         SystemConfig(
             id: id,
             name: id,
-            targetFolder: 'D:/Temp/rshop-thor-deploy-20261015/empty-$id',
-            providers: const []),
+            targetFolder: 'D:/Temp/gshop-s26-20261021/work/empty-$id',
+            providers: const [
+              ProviderConfig(
+                  type: ProviderType.drive,
+                  priority: 0,
+                  sourceId: 'drive',
+                  path: 'mapped',
+                  drive: DriveSourceConfig(
+                      accountId: 'account',
+                      rootFolderId: 'root',
+                      serverClientId: 'client'))
+            ]),
     ]);
     final first = sync.syncSystem('nes', config, storageService: storage);
+    await entered.future;
     await sync.syncSystem('snes', config, storageService: storage);
     expect(sync.state.totalSystems, 2);
+    release.complete();
     await first;
     expect(sync.state.failedSystems, isEmpty);
     expect(sync.state.completedSystems, 2);
@@ -211,7 +236,8 @@ void main() {
     expect(await db.query('library_query_cache_dirty'), isEmpty);
   });
 
-  test('exact local discovery can be enriched and refreshed by its cloud source',
+  test(
+      'exact local discovery can be enriched and refreshed by its cloud source',
       () async {
     final local = exactGame('cloud-file');
     await service.saveGames('nes', [local]);
@@ -223,10 +249,11 @@ void main() {
     expect((await service.getGames('nes')).single.hasDownloadSource, isTrue);
     expect((await db.query('games')).single['id'], id);
     await service.saveGames('nes', [local]);
-    await service.saveGames(
-        'nes', [exactGame('cloud-file', name: 'Latest.nes').copyWith(
-          providerConfig: cloud.providerConfig,
-        )]);
+    await service.saveGames('nes', [
+      exactGame('cloud-file', name: 'Latest.nes').copyWith(
+        providerConfig: cloud.providerConfig,
+      )
+    ]);
     final games = await service.getGames('nes');
     expect(games, hasLength(1));
     expect(games.single.filename, 'Latest.nes');
@@ -239,8 +266,11 @@ void main() {
     await LibrarySchema.install(db);
     await MetadataRefreshJobs.install(db);
     await LibraryQuery.install(db);
-    const local = GameItem(filename: 'Local (USA).nes', displayName: 'Local',
-        url: '', cachedCoverUrl: 'https://example.invalid/cover',
+    const local = GameItem(
+        filename: 'Local (USA).nes',
+        displayName: 'Local',
+        url: '',
+        cachedCoverUrl: 'https://example.invalid/cover',
         hasThumbnail: true);
     final remote = exactGame('cloud-file');
     await service.saveGames('nes', [local, remote]);
@@ -253,7 +283,8 @@ void main() {
 
     // The same snapshot is written by normal startup/console sync. Missing
     // incoming cover/thumbnail data still preserves the existing values.
-    await service.saveGames('nes', [local.copyWith(hasThumbnail: false), remote]);
+    await service
+        .saveGames('nes', [local.copyWith(hasThumbnail: false), remote]);
     await service.saveGames('nes', await service.getGames('nes'),
         deleteOrphans: true, authoritativeDriveSourceIds: {'source'});
     expect(await db.query('games', orderBy: 'id'), cachedRows);
@@ -263,13 +294,17 @@ void main() {
 
     // A real exact-identity rename remains an invalidation, and orphan removal
     // retains the normal explicit source-authority checks.
-    await service.saveGames('nes', [local, exactGame('cloud-file', name: 'Renamed.nes')]);
-    final remoteId = cachedRows.singleWhere((r) => r['artifact_key'] != null)['id'];
-    expect(await db.query('library_query_cache_dirty'), [{'cache_row_id': remoteId}]);
+    await service.saveGames(
+        'nes', [local, exactGame('cloud-file', name: 'Renamed.nes')]);
+    final remoteId =
+        cachedRows.singleWhere((r) => r['artifact_key'] != null)['id'];
+    expect(await db.query('library_query_cache_dirty'), [
+      {'cache_row_id': remoteId}
+    ]);
     expect(await db.query('library_query_dirty'), hasLength(1));
     expect((await query.page(filter: LibraryQueryFilter())).collectionGames, 2);
-    await service.saveGames('nes', [local], deleteOrphans: true,
-        authoritativeDriveSourceIds: {'source'});
+    await service.saveGames('nes', [local],
+        deleteOrphans: true, authoritativeDriveSourceIds: {'source'});
     expect((await query.page(filter: LibraryQueryFilter())).collectionGames, 1);
   });
 
@@ -303,31 +338,46 @@ void main() {
     expect((await db.query('game_metadata')).single['rating'], 99);
   });
 
-  test('explicit successful Drive snapshot removes a large catalogue down to zero', () async {
-    await service.saveGames('nes', List.generate(100, (i) => exactGame('file-$i')));
-    await service.saveGames('nes', [], deleteOrphans: true,
-        authoritativeDriveSourceIds: {'source'});
+  test(
+      'explicit successful Drive snapshot removes a large catalogue down to zero',
+      () async {
+    await service.saveGames(
+        'nes', List.generate(100, (i) => exactGame('file-$i')));
+    await service.saveGames('nes', [],
+        deleteOrphans: true, authoritativeDriveSourceIds: {'source'});
     expect(await service.getGames('nes'), isEmpty);
   });
 
-  test('exact IDs alone do not grant complete snapshot deletion authority', () async {
+  test('exact IDs alone do not grant complete snapshot deletion authority',
+      () async {
     for (final count in [3, 100]) {
-      await service.saveGames('nes', List.generate(count, (i) => exactGame('file-$i')));
+      await service.saveGames(
+          'nes', List.generate(count, (i) => exactGame('file-$i')));
       await service.saveGames('nes', [], deleteOrphans: true);
       expect(await service.getGames('nes'), hasLength(count));
     }
   });
 
-  test('Drive authority bypass preserves legacy and other exact source orphans', () async {
+  test('Drive authority bypass preserves legacy and other exact source orphans',
+      () async {
     final base = exactGame('other-file');
     GameItem otherArtifact(String providerId, String sourceId) => base.copyWith(
-      remoteArtifact: RemoteArtifact.fromJson({
-        ...base.remoteArtifact!.toJson(),
-        'id': {...base.remoteArtifact!.id.toJson(), 'providerId': providerId, 'sourceId': sourceId},
-      }),
-    );
+          remoteArtifact: RemoteArtifact.fromJson({
+            ...base.remoteArtifact!.toJson(),
+            'id': {
+              ...base.remoteArtifact!.id.toJson(),
+              'providerId': providerId,
+              'sourceId': sourceId
+            },
+          }),
+        );
     final untouched = [
-      ...List.generate(10, (i) => GameItem(filename: 'legacy-$i.nes', displayName: 'Legacy $i', url: 'https://example.test/$i')),
+      ...List.generate(
+          10,
+          (i) => GameItem(
+              filename: 'legacy-$i.nes',
+              displayName: 'Legacy $i',
+              url: 'https://example.test/$i')),
       otherArtifact('drive', 'other-source'),
       otherArtifact('other-provider', 'source'),
     ];
@@ -335,44 +385,73 @@ void main() {
       ...List.generate(100, (i) => exactGame('file-$i')),
       ...untouched,
     ]);
-    await service.saveGames('nes', [], deleteOrphans: true,
-        authoritativeDriveSourceIds: {'source'});
+    await service.saveGames('nes', [],
+        deleteOrphans: true, authoritativeDriveSourceIds: {'source'});
     final remaining = await service.getGames('nes');
-    expect(remaining.map((g) => g.identityKey).toSet(), untouched.map((g) => g.identityKey).toSet());
+    expect(remaining.map((g) => g.identityKey).toSet(),
+        untouched.map((g) => g.identityKey).toSet());
   });
 
-  test('exact cache preserves duplicate filenames, rename and orphan isolation', () async {
+  test('exact cache preserves duplicate filenames, rename and orphan isolation',
+      () async {
     final first = exactGame('a');
     final second = exactGame('b');
     final otherAccount = exactGame('a', account: 'account-b');
-    const legacy = GameItem(filename: 'Game.nes', displayName: 'Legacy', url: 'https://example.test/game');
+    const legacy = GameItem(
+        filename: 'Game.nes',
+        displayName: 'Legacy',
+        url: 'https://example.test/game');
     await service.saveGames('nes', [first, second, otherAccount, legacy]);
     final before = await db.query('games');
-    final firstId = before.firstWhere((row) => row['artifact_key'] == first.remoteArtifact!.id.key)['id'];
-    await service.saveGames('nes', [exactGame('a', name: 'Renamed.nes'), otherAccount, legacy], forceDeleteOrphans: true);
+    final firstId = before.firstWhere(
+        (row) => row['artifact_key'] == first.remoteArtifact!.id.key)['id'];
+    await service.saveGames(
+        'nes', [exactGame('a', name: 'Renamed.nes'), otherAccount, legacy],
+        forceDeleteOrphans: true);
     final after = await service.getGames('nes');
     expect(after, hasLength(3));
     expect(after.where((g) => g.remoteArtifact == null).single.url, legacy.url);
-    final row = (await db.query('games')).firstWhere((row) => row['artifact_key'] == first.remoteArtifact!.id.key);
+    final row = (await db.query('games')).firstWhere(
+        (row) => row['artifact_key'] == first.remoteArtifact!.id.key);
     expect(row['id'], firstId);
     expect(row['filename'], 'Renamed.nes');
-    expect(after.where((g) => g.remoteArtifact?.id == otherAccount.remoteArtifact!.id), hasLength(1));
+    expect(
+        after.where(
+            (g) => g.remoteArtifact?.id == otherAccount.remoteArtifact!.id),
+        hasLength(1));
   });
 
   group('Schema', () {
     test('games table exists with all columns', () async {
       final info = await db.rawQuery('PRAGMA table_info(games)');
       final columns = info.map((r) => r['name'] as String).toSet();
-      expect(columns, containsAll([
-        'id', 'systemSlug', 'filename', 'displayName', 'url',
-        'region', 'cover_url', 'provider_config', 'thumb_hash', 'has_thumbnail',
-      ]));
+      expect(
+          columns,
+          containsAll([
+            'id',
+            'systemSlug',
+            'filename',
+            'displayName',
+            'url',
+            'region',
+            'cover_url',
+            'provider_config',
+            'thumb_hash',
+            'has_thumbnail',
+          ]));
     });
 
     test('indices exist', () async {
       final indices = await db.rawQuery('PRAGMA index_list(games)');
       final names = indices.map((r) => r['name'] as String).toSet();
-      expect(names, containsAll(['idx_systemSlug', 'idx_displayName', 'idx_filename', 'idx_games_system_filename']));
+      expect(
+          names,
+          containsAll([
+            'idx_systemSlug',
+            'idx_displayName',
+            'idx_filename',
+            'idx_games_system_filename'
+          ]));
     });
   });
 
@@ -406,7 +485,8 @@ void main() {
       ];
       await service.saveGames('snes', games);
       final loaded = await service.getGames('snes');
-      expect(loaded.first.cachedCoverUrl, 'http://covers.example.com/mario.png');
+      expect(
+          loaded.first.cachedCoverUrl, 'http://covers.example.com/mario.png');
     });
 
     test('ProviderConfig (web) JSON round-trip', () async {
@@ -478,7 +558,8 @@ void main() {
       expect(loaded, isEmpty);
     });
 
-    test('save with deleteOrphans replaces previous for same systemSlug', () async {
+    test('save with deleteOrphans replaces previous for same systemSlug',
+        () async {
       final batch1 = [
         const GameItem(filename: 'A.zip', displayName: 'A', url: 'http://a'),
         const GameItem(filename: 'B.zip', displayName: 'B', url: 'http://b'),
@@ -495,7 +576,8 @@ void main() {
       expect(loaded.first.filename, 'C.zip');
     });
 
-    test('save without deleteOrphans keeps existing games (additive)', () async {
+    test('save without deleteOrphans keeps existing games (additive)',
+        () async {
       final batch1 = [
         const GameItem(filename: 'A.zip', displayName: 'A', url: 'http://a'),
         const GameItem(filename: 'B.zip', displayName: 'B', url: 'http://b'),
@@ -664,9 +746,13 @@ void main() {
       ]);
 
       // Re-save with only A and deleteOrphans — B and C should be removed
-      await service.saveGames('snes', [
-        const GameItem(filename: 'A.zip', displayName: 'A', url: 'http://a'),
-      ], deleteOrphans: true);
+      await service.saveGames(
+          'snes',
+          [
+            const GameItem(
+                filename: 'A.zip', displayName: 'A', url: 'http://a'),
+          ],
+          deleteOrphans: true);
 
       final loaded = await service.getGames('snes');
       expect(loaded.length, 1);
@@ -725,9 +811,13 @@ void main() {
       ]);
 
       // Update only snes with orphan deletion
-      await service.saveGames('snes', [
-        const GameItem(filename: 'C.zip', displayName: 'C', url: 'http://c'),
-      ], deleteOrphans: true);
+      await service.saveGames(
+          'snes',
+          [
+            const GameItem(
+                filename: 'C.zip', displayName: 'C', url: 'http://c'),
+          ],
+          deleteOrphans: true);
 
       final snes = await service.getGames('snes');
       final gba = await service.getGames('gba');
@@ -773,11 +863,16 @@ void main() {
   group('getAllGames', () {
     setUp(() async {
       await service.saveGames('snes', [
-        const GameItem(filename: 'Zelda (USA).zip', displayName: 'Zelda', url: 'http://z'),
-        const GameItem(filename: 'Mario (USA).zip', displayName: 'Mario', url: 'http://m'),
+        const GameItem(
+            filename: 'Zelda (USA).zip', displayName: 'Zelda', url: 'http://z'),
+        const GameItem(
+            filename: 'Mario (USA).zip', displayName: 'Mario', url: 'http://m'),
       ]);
       await service.saveGames('gba', [
-        const GameItem(filename: 'Pokemon (USA).zip', displayName: 'Pokemon', url: 'http://p'),
+        const GameItem(
+            filename: 'Pokemon (USA).zip',
+            displayName: 'Pokemon',
+            url: 'http://p'),
       ]);
     });
 
@@ -795,8 +890,12 @@ void main() {
     test('searchQuery with special chars (%, _) escaped', () async {
       // Save a game with special chars in name
       await service.saveGames('nes', [
-        const GameItem(filename: '100%.zip', displayName: '100% Complete', url: 'http://100'),
-        const GameItem(filename: 'a_b.zip', displayName: 'a_b Game', url: 'http://ab'),
+        const GameItem(
+            filename: '100%.zip',
+            displayName: '100% Complete',
+            url: 'http://100'),
+        const GameItem(
+            filename: 'a_b.zip', displayName: 'a_b Game', url: 'http://ab'),
       ]);
 
       // % should not act as wildcard
@@ -1094,7 +1193,8 @@ void main() {
   group('cascade deletes', () {
     test('deleteGame removes game_metadata and ra_matches', () async {
       await service.saveGames('snes', [
-        const GameItem(filename: 'Mario.sfc', displayName: 'Mario', url: 'http://a'),
+        const GameItem(
+            filename: 'Mario.sfc', displayName: 'Mario', url: 'http://a'),
       ]);
       final now = DateTime.now().millisecondsSinceEpoch;
       await db.insert('game_metadata', {
@@ -1125,29 +1225,42 @@ void main() {
       expect(matches, isEmpty);
     });
 
-    test('saveGames with deleteOrphans cascades to game_metadata and ra_matches', () async {
+    test(
+        'saveGames with deleteOrphans cascades to game_metadata and ra_matches',
+        () async {
       await service.saveGames('snes', [
         const GameItem(filename: 'A.sfc', displayName: 'A', url: 'http://a'),
         const GameItem(filename: 'B.sfc', displayName: 'B', url: 'http://b'),
       ]);
       final now = DateTime.now().millisecondsSinceEpoch;
       await db.insert('game_metadata', {
-        'filename': 'A.sfc', 'system_slug': 'snes',
-        'summary': 'Game A', 'last_updated': now,
+        'filename': 'A.sfc',
+        'system_slug': 'snes',
+        'summary': 'Game A',
+        'last_updated': now,
       });
       await db.insert('game_metadata', {
-        'filename': 'B.sfc', 'system_slug': 'snes',
-        'summary': 'Game B', 'last_updated': now,
+        'filename': 'B.sfc',
+        'system_slug': 'snes',
+        'summary': 'Game B',
+        'last_updated': now,
       });
       await db.insert('ra_matches', {
-        'game_filename': 'B.sfc', 'system_slug': 'snes',
-        'match_type': 'nameMatch', 'is_mastered': 0, 'last_updated': now,
+        'game_filename': 'B.sfc',
+        'system_slug': 'snes',
+        'match_type': 'nameMatch',
+        'is_mastered': 0,
+        'last_updated': now,
       });
 
       // Re-save keeping only A — B should be orphaned and cascaded
-      await service.saveGames('snes', [
-        const GameItem(filename: 'A.sfc', displayName: 'A', url: 'http://a'),
-      ], deleteOrphans: true);
+      await service.saveGames(
+          'snes',
+          [
+            const GameItem(
+                filename: 'A.sfc', displayName: 'A', url: 'http://a'),
+          ],
+          deleteOrphans: true);
 
       final games = await service.getGames('snes');
       expect(games.length, 1);
@@ -1179,12 +1292,16 @@ void main() {
       ]);
       final now = DateTime.now().millisecondsSinceEpoch;
       await db.insert('game_metadata', {
-        'filename': 'A.sfc', 'system_slug': 'snes',
-        'summary': 'SNES version', 'last_updated': now,
+        'filename': 'A.sfc',
+        'system_slug': 'snes',
+        'summary': 'SNES version',
+        'last_updated': now,
       });
       await db.insert('game_metadata', {
-        'filename': 'A.sfc', 'system_slug': 'gba',
-        'summary': 'GBA version', 'last_updated': now,
+        'filename': 'A.sfc',
+        'system_slug': 'gba',
+        'summary': 'GBA version',
+        'last_updated': now,
       });
 
       await service.deleteGame('snes', 'A.sfc');

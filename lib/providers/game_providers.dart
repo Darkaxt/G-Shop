@@ -12,6 +12,7 @@ import '../models/game_item.dart';
 import '../models/game_metadata_info.dart';
 import '../models/system_model.dart';
 import '../services/config_parser.dart';
+import '../services/config_bootstrap.dart';
 import '../services/database_service.dart';
 import '../services/library_store.dart';
 import '../services/metadata/metadata_artwork_cache.dart';
@@ -32,7 +33,7 @@ final bootstrappedConfigProvider = FutureProvider<AppConfig>((ref) async {
   if (result.wasRecovered) {
     ref.read(configRecoveredProvider.notifier).state = true;
   }
-  if (result.config != null) return result.config!;
+  if (result.config != null) return ConfigBootstrap.active(result.config!);
   return AppConfig.empty;
 });
 

@@ -1,7 +1,7 @@
 # G-Shop update and compatibility boundaries
 
-Authority: SPECIFICATION.md revision 132, GSHOP-01 through GSHOP-05.
-Status: S26 BLOCKED on the essential supported-source answer; independent branding preparation has focused host evidence. No G-Shop release is claimed.
+Authority: SPECIFICATION.md revision 133, GSHOP-01 through GSHOP-05.
+Status: S26 ACTIVE. Drive-only source setup and preserved-data host acceptance are reconciled; native update and final release acceptance remain outstanding.
 
 The maintained Dart package and application symbols use `g_shop` / `GShop`.
 Localized app text, notifications, launcher and splash artwork use G-Shop.
@@ -26,12 +26,19 @@ Some old identifiers intentionally remain the installed data/protocol identity:
 | Background notifications | Existing notification channel ID remains stable so Android user preferences survive. Its displayed title uses G-Shop. |
 
 Upstream names, licensing, attribution, dated reports and historical source
-receipts retain their factual names. The established GitHub fork is to be renamed
-at final delivery, preserving repository history, releases and visibility; existing
-links must redirect and the new release must be independently retrieved.
+receipts retain their factual names. The established GitHub fork is now Darkaxt/G-Shop, with its identity, history,
+releases and visibility verified unchanged. The old address resolves to the new
+repository. The final release must still be independently retrieved. The local
+checkout folder stays stable for managed project and active-consumer references.
 
-The precise SMB/FTP/Web retention boundary is pending the owner's answer to the
-S26 source question. RomM/standalone-local removal and final integrated/native
-acceptance must not be replaced by a cosmetic rename or an assumed answer.
+The owner selected Google Drive only on 2026-10-21. RomM, SMB, FTP, Web and
+standalone local-library setup/discovery are removed, along with executable
+adapters, pairing routes and obsolete plugin dependencies. Their stored config
+and provenance remain decodable and inert. The active view includes only Drive
+sources and mapped consoles; edits preserve retired definitions and paths.
+
 Downloaded/offline games, saves, metadata, imported resources and companion play
-remain protected regardless of that answer. S23 acquisition is outside this work.
+remain protected. Drive console mappings and download destinations remain editable.
+Restored unfinished legacy queue entries report the retired source without
+starting network access or deleting their partial files; completed history remains.
+S23 acquisition is outside this work.

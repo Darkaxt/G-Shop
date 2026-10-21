@@ -278,13 +278,15 @@ void main() {
 
     testWidgets('renders Display section header', (tester) async {
       await tester.pumpWidget(buildTab());
+      await tester.scrollUntilVisible(find.text('DISPLAY'), 250,
+          scrollable: find.byType(Scrollable).first);
       expect(find.text('DISPLAY'), findsOneWidget);
     });
 
     testWidgets('renders My Sources navigation tile', (tester) async {
       await tester.pumpWidget(buildTab());
       expect(find.text('My Sources'), findsOneWidget);
-      expect(find.text('Add or manage RomM, SMB, FTP servers'), findsOneWidget);
+      expect(find.text('Manage your Google Drive collection'), findsOneWidget);
     });
 
     testWidgets('renders Console Settings navigation tile', (tester) async {

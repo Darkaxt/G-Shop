@@ -14,7 +14,7 @@ Production package: `com.darkaxt.rshop` · APK: `app-release.apk` · Android 7.0
 
 ## What changes from the original?
 
-The original R-Shop provides the controller-first foundation. G-Shop retains its attribution and Android update/signing identity while developing a Drive-backed product. Historical source comparisons below describe the upstream baseline; the supported-source transition is tracked in S26, not claimed delivered by this source snapshot.
+The original R-Shop provides the controller-first foundation. G-Shop retains its attribution and Android update/signing identity with Google Drive as the sole collection source in the S26 implementation. Existing downloads, offline play, saves and imports remain supported; legacy source settings stay readable for recovery. Historical source comparisons below describe the upstream baseline. The current public version is shown above; S26 native and final release acceptance are still in progress.
 
 | Area | Original workflow | Added in this fork |
 | --- | --- | --- |

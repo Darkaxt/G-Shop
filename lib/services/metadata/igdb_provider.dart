@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import '../../models/scraped_metadata.dart';
-import '../romm_platform_matcher.dart';
+import 'igdb_platforms.dart';
 import 'metadata_credentials.dart';
 import 'metadata_provider.dart';
 export 'metadata_credentials.dart' show IgdbCredentials;
@@ -61,7 +61,7 @@ class IgdbMetadataProvider implements MetadataProvider {
     if (cancelToken?.isCancelled == true) {
       return _result(MetadataLookupStatus.cancelled);
     }
-    final platform = RommPlatformMatcher.igdbPlatformIdFor(request.platformId);
+    final platform = IgdbPlatforms.idFor(request.platformId);
     if (platform == null) {
       return _result(MetadataLookupStatus.unsupportedPlatform);
     }

@@ -511,6 +511,7 @@ void main() {
       final edition = (await store.edition(id))!;
       final game = (await store.game(edition.gameId))!;
       final providerId = game.providerIds['screenscraper']!;
+      final mediaRegion = edition.regions.contains('Europe') ? 'eu' : 'us';
       await store.putMetadata(MetadataRecord(
           gameId: game.id,
           editionId: id,
@@ -526,12 +527,12 @@ void main() {
           media: [
             MetadataMedia(
                 type: 'box-2D',
-                region: 'us',
+                region: mediaRegion,
                 providerReference: ScreenScraperMediaReference(
                     providerGameId: providerId,
                     providerPlatformId: 12,
                     mediaType: 'box-2D',
-                    region: 'us'))
+                    region: mediaRegion))
           ]));
     }
     final job = await MetadataRefreshJobs(Future.value(db))

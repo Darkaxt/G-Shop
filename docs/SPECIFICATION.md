@@ -1,6 +1,15 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 132, 2026-10-21.
+Authoritative specification, revision 133, 2026-10-21.
+
+Owner source decision, 2026-10-21: Google Drive only. GSHOP-02 now explicitly
+removes RomM, SMB, FTP, Web and standalone local-library setup/discovery as active
+collection modes. Preserve downloads, offline play, saves, imported resources and
+all retained integrations. Existing legacy configuration/provenance stays readable
+for migration/recovery, without executable legacy network adapters or setup routes.
+Drive mapping/destination configuration remains available. This resolves the prior
+external scope blocker; S26 resumes as the sole ACTIVE stage. Complete all S26
+criteria and deliver one normal verified release; no additional approval gate.
 
 S26 implementation contract, 2026-10-21 (already authorized): the G&W gate
 is delivered in normal v1.9.24. S26 is the next authorized implementation stage;
@@ -12,13 +21,12 @@ are parked only under the owner's sequencing instruction and must resume afterwa
   repository to G-Shop. Retain upstream attribution, license text and historical
   evidence; do not rewrite facts or remove credit. Keep the existing design and
   controller/two-screen behavior. Replace the R monogram with an authored G mark.
-- GSHOP-02: remove the original collection integration and standalone local-only
-  setup as requested. The existing source model also contains SMB/FTP/Web; their
-  retention/removal boundary is being clarified with the owner. Do not remove
-  those integrations based on an assumed answer. Downloads, offline play, owned
-  file recovery, saves, metadata, companion launch, imported 3D models, patches
-  and established external integrations remain supported. No S23 acquisition
-  implementation is opened.
+- GSHOP-02: Google Drive is the only active collection source. Remove RomM,
+  SMB, FTP, Web and standalone local-library setup/discovery, including their
+  executable adapters and pairing/discovery paths. Preserve legacy config decoding
+  and provenance for recovery, without reactivating removed integrations. Keep
+  downloads, offline play, owned file recovery, saves, metadata, companions,
+  imported models and patches. No S23 acquisition implementation is opened.
 - GSHOP-03: preserve the production application ID, signer, UID, secure-storage
   namespace, database names/schema contents, configured paths, exact source/game
   identities, persisted protocol/ownership markers and scheduled Android service
@@ -39,8 +47,7 @@ are parked only under the owner's sequencing instruction and must resume afterwa
   Publish one normal final release after all S26 acceptance passes, using the
   existing signing/release channel and renamed repository, then independently
   retrieve/version/signature/hash/source verify it against the installed package.
-  No partial rebrand release. A pending scope answer blocks source-removal and
-  final delivery acceptance, not independent authorized preparation.
+  No partial rebrand release. The source boundary is now resolved by the owner.
 
 Owner selector clarification, 2026-10-20: the Game & Watch selection must show
 the supplied multi-console collection as a large rotating 3D scene on the

@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:g_shop/features/game_detail/game_detail_controller.dart';
 import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/config/drive_source_config.dart';
 import 'package:g_shop/models/config/system_config.dart';
 import 'package:g_shop/models/download_item.dart';
 import 'package:g_shop/models/game_item.dart';
@@ -62,12 +63,15 @@ class _ReviewedRemoval extends _NoLegacyRomAccess {
   Future<void>? finishPreview;
   _ReviewedRemoval(this.manifest);
   @override
-  Future<InstalledArtifact> previewOwnedRemoval(GameItem game, String root) async {
+  Future<InstalledArtifact> previewOwnedRemoval(
+      GameItem game, String root) async {
     await finishPreview;
     return manifest;
   }
+
   @override
-  Future<void> removeReviewedInstallation(InstalledArtifact installation) async {
+  Future<void> removeReviewedInstallation(
+      InstalledArtifact installation) async {
     expect(installation, same(manifest));
     removed++;
   }
@@ -87,16 +91,31 @@ void main() {
     await db.close();
   });
   final system = SystemModel.supportedSystems.firstWhere((s) => s.id == 'nes');
-  test('detail removal requires exact reviewed paths and clears consent on cancel', () async {
+  test(
+      'detail removal requires exact reviewed paths and clears consent on cancel',
+      () async {
     final game = exactGame('file');
-    final manifest = InstalledArtifact(id: 'installed', transferId: 'transfer',
-        artifact: game.remoteArtifact!, destinationRoot: '/roms', relativePath: 'Game.nes',
-        sizeBytes: 42, verifiedChecksums: {'sha256': '0' * 64},
-        fileIdentity: NativeFileIdentity(volumeId: '1', fileId: '2', sizeBytes: 42,
+    final manifest = InstalledArtifact(
+        id: 'installed',
+        transferId: 'transfer',
+        artifact: game.remoteArtifact!,
+        destinationRoot: '/roms',
+        relativePath: 'Game.nes',
+        sizeBytes: 42,
+        verifiedChecksums: {'sha256': '0' * 64},
+        fileIdentity: NativeFileIdentity(
+            volumeId: '1',
+            fileId: '2',
+            sizeBytes: 42,
             modifiedAt: DateTime.utc(2026)));
     final roms = _ReviewedRemoval(manifest);
-    final controller = GameDetailController(game: game, variants: [game], system: system,
-        targetFolder: '/roms', romManager: roms, queueManager: _UnusedQueue());
+    final controller = GameDetailController(
+        game: game,
+        variants: [game],
+        system: system,
+        targetFolder: '/roms',
+        romManager: roms,
+        queueManager: _UnusedQueue());
     await controller.checkInstallationStatus();
     await controller.showDeleteDialog();
     expect(controller.removalPreview, '/roms/Game.nes\n42 B');
@@ -112,16 +131,28 @@ void main() {
   for (final action in ['cancel', 'variant', 'dispose']) {
     test('late removal preview cannot reopen after $action', () async {
       final game = exactGame('file');
-      final manifest = InstalledArtifact(id: 'installed', transferId: 'transfer',
-          artifact: game.remoteArtifact!, destinationRoot: '/roms', relativePath: 'Game.nes',
-          sizeBytes: 42, verifiedChecksums: {'sha256': '0' * 64},
-          fileIdentity: NativeFileIdentity(volumeId: '1', fileId: '2', sizeBytes: 42,
+      final manifest = InstalledArtifact(
+          id: 'installed',
+          transferId: 'transfer',
+          artifact: game.remoteArtifact!,
+          destinationRoot: '/roms',
+          relativePath: 'Game.nes',
+          sizeBytes: 42,
+          verifiedChecksums: {'sha256': '0' * 64},
+          fileIdentity: NativeFileIdentity(
+              volumeId: '1',
+              fileId: '2',
+              sizeBytes: 42,
               modifiedAt: DateTime.utc(2026)));
       final release = Completer<void>();
       final roms = _ReviewedRemoval(manifest)..finishPreview = release.future;
-      final controller = GameDetailController(game: game,
-          variants: [game, exactGame('other')], system: system,
-          targetFolder: '/roms', romManager: roms, queueManager: _UnusedQueue());
+      final controller = GameDetailController(
+          game: game,
+          variants: [game, exactGame('other')],
+          system: system,
+          targetFolder: '/roms',
+          romManager: roms,
+          queueManager: _UnusedQueue());
       await controller.checkInstallationStatus();
       final preview = controller.showDeleteDialog();
       if (action == 'cancel') controller.cancelDialog();
@@ -203,22 +234,42 @@ void main() {
     expect(games, hasLength(4));
   });
 
-  test('an installed exact artifact is not hidden by a legacy archive target', () {
+  test('an installed exact artifact is not hidden by a legacy archive target',
+      () {
     final installed = exactGame('installed');
-    final remote = const GameItem(filename: 'Game.zip', displayName: 'Game', url: 'https://example.test/Game.zip');
+    final remote = const GameItem(
+        filename: 'Game.zip',
+        displayName: 'Game',
+        url: 'https://example.test/Game.zip');
     final games = GameMergeHelper.merge([remote], [installed], system);
     expect(games, hasLength(2));
-    expect(games.any((game) => game.identityKey == installed.identityKey), true);
-    expect(GameMergeHelper.merge([installed], [installed], system), hasLength(1));
+    expect(
+        games.any((game) => game.identityKey == installed.identityKey), true);
+    expect(
+        GameMergeHelper.merge([installed], [installed], system), hasLength(1));
   });
 
   test(
       'real unified merge retains exact artifacts without filename alternatives',
       () async {
     const first = ProviderConfig(
-        type: ProviderType.web, priority: 0, url: 'https://example.test/a');
+        type: ProviderType.drive,
+        priority: 0,
+        sourceId: 'source',
+        path: 'one',
+        drive: DriveSourceConfig(
+            accountId: 'account-a',
+            rootFolderId: 'root',
+            serverClientId: 'client'));
     const second = ProviderConfig(
-        type: ProviderType.ftp, priority: 1, host: 'example.test');
+        type: ProviderType.drive,
+        priority: 1,
+        sourceId: 'source',
+        path: 'two',
+        drive: DriveSourceConfig(
+            accountId: 'account-a',
+            rootFolderId: 'root',
+            serverClientId: 'client'));
     final service = UnifiedGameService(
         fetchProviderGames: (provider, system) async =>
             provider == first ? [exactGame('a')] : [exactGame('b')]);

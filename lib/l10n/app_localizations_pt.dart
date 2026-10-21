@@ -925,8 +925,7 @@ class LPt extends L {
   String get settings_mySources => 'Minhas Fontes';
 
   @override
-  String get settings_mySourcesSubtitle =>
-      'Adicionar ou gerenciar servidores RomM, SMB, FTP';
+  String get settings_mySourcesSubtitle => 'Gerir a coleção do Google Drive';
 
   @override
   String get settings_consoleSettings => 'Config. de Consoles';
@@ -1203,52 +1202,16 @@ class LPt extends L {
       'Revogar acesso ao Google Drive (todas as fontes Drive)';
 
   @override
-  String get sources_sourceTypeDriveHint =>
-      'Pasta privada só de leitura com autorização nativa do Google';
-
-  @override
-  String get sources_sourceTypeSmbHint => 'Partilha de rede Windows / NAS';
-
-  @override
-  String get sources_sourceTypeFtpHint => 'Servidor FTP/FTPS';
-
-  @override
   String get sources_noSourcesConfigured => 'Nenhuma fonte configurada';
 
   @override
   String get sources_noSourcesYet => 'Nenhuma fonte ainda';
 
   @override
-  String get sources_noSourcesDescription =>
-      'Pareie um servidor RomM pra começar a baixar jogos. ';
-
-  @override
   String get sources_addSource => 'Adicionar fonte';
 
   @override
   String get sources_whereDoGamesComeFrom => 'De onde vêm seus jogos?';
-
-  @override
-  String get sources_sourceTypeRomm => 'Servidor RomM';
-
-  @override
-  String get sources_sourceTypeRommHint =>
-      'Pareie via QR ou código de 8 dígitos';
-
-  @override
-  String get sources_sourceTypeRommLegacy => 'RomM Login (servidores antigos)';
-
-  @override
-  String get sources_sourceTypeSmb => 'Compartilhamento SMB';
-
-  @override
-  String get sources_sourceTypeFtp => 'Servidor FTP';
-
-  @override
-  String get sources_sourceTypeWeb => 'Mirror Web';
-
-  @override
-  String get sources_sourceTypeWebHint => 'Listagem de diretório HTTPS';
 
   @override
   String get sources_expired => 'EXPIRADO';
@@ -1273,81 +1236,6 @@ class LPt extends L {
 
   @override
   String get sources_enable => 'Habilitar';
-
-  @override
-  String get manualSource_defaultNameSmb => 'Meu NAS';
-
-  @override
-  String get manualSource_defaultNameFtp => 'Meu FTP';
-
-  @override
-  String get manualSource_defaultNameWeb => 'Mirror Web';
-
-  @override
-  String get manualSource_defaultNameOther => 'Fonte';
-
-  @override
-  String get manualSource_name => 'Nome';
-
-  @override
-  String get manualSource_url => 'URL';
-
-  @override
-  String get manualSource_urlHint => 'https://exemplo.com/roms';
-
-  @override
-  String get manualSource_host => 'Host';
-
-  @override
-  String get manualSource_hostHint => 'nas.local ou 192.168.1.10';
-
-  @override
-  String get manualSource_port => 'Port';
-
-  @override
-  String get manualSource_share => 'Compartilhamento';
-
-  @override
-  String get manualSource_shareHint => 'roms';
-
-  @override
-  String get manualSource_usernameOptional => 'Usuário (opcional)';
-
-  @override
-  String get manualSource_usernameHint => 'deixe em branco pra convidado';
-
-  @override
-  String get manualSource_passwordOptional => 'Senha (opcional)';
-
-  @override
-  String get manualSource_nameRequired => 'Nome é obrigatório';
-
-  @override
-  String get manualSource_urlRequired => 'URL é obrigatória';
-
-  @override
-  String get manualSource_hostRequired => 'Host é obrigatório';
-
-  @override
-  String get manualSource_shareRequired => 'Compartilhamento é obrigatório';
-
-  @override
-  String get manualSource_saveSource => 'Salvar fonte';
-
-  @override
-  String get manualSource_smb => 'SMB';
-
-  @override
-  String get manualSource_ftp => 'FTP';
-
-  @override
-  String get manualSource_web => 'Web';
-
-  @override
-  String get manualSource_searchingNetwork => 'Buscando na rede…';
-
-  @override
-  String get manualSource_foundOnNetwork => 'Encontrado na sua rede';
 
   @override
   String get sourceMappings_title => 'Mapeamento de sistemas';
@@ -1689,27 +1577,7 @@ class LPt extends L {
   String get onboarding_welcomeSubtitle => 'De onde vêm seus jogos?';
 
   @override
-  String get onboarding_pairQrTitle => 'Parear RomM via QR';
-
-  @override
-  String get onboarding_pairQrSubtitle =>
-      'Escaneie um código do seu servidor RomM';
-
-  @override
-  String get onboarding_legacyLoginTitle => 'RomM login (servidores antigos)';
-
-  @override
-  String get onboarding_legacyLoginSubtitle => 'Usuário + senha pra RomM < 4.8';
-
-  @override
   String get onboarding_addServerTitle => 'Adicionar meu servidor';
-
-  @override
-  String get onboarding_addServerSubtitle =>
-      'SMB, FTP ou mirror Web — mapeie sistemas manualmente';
-
-  @override
-  String get onboarding_localOnlyTitle => 'Só jogos locais';
 
   @override
   String get onboarding_localOnlySubtitle => 'ROMs já estão neste dispositivo';
@@ -1797,18 +1665,6 @@ class LPt extends L {
   String get onboarding_hangOn => 'Um momento, testando a conexão...';
 
   @override
-  String get onboarding_foundConsole =>
-      'Achei esse console no seu servidor RomM! Confirme ou escolha outro.';
-
-  @override
-  String get onboarding_pickPlatform =>
-      'Escolha a plataforma correspondente no seu servidor RomM.';
-
-  @override
-  String get onboarding_couldNotReach =>
-      'Não consegui alcançar seu servidor RomM. Verifique a URL e tente de novo.';
-
-  @override
   String get onboarding_connectionGood =>
       'Conexão tá boa! Tudo pronto pra salvar essa fonte.';
 
@@ -1860,145 +1716,13 @@ class LPt extends L {
   String get onboarding_selectFolder => 'Selecionar pasta...';
 
   @override
-  String get providerForm_addSource => 'Adicionar Fonte';
-
-  @override
-  String get providerForm_editSource => 'Editar Fonte';
-
-  @override
-  String get providerForm_url => 'URL';
-
-  @override
-  String get providerForm_urlPlaceholder => 'https://...';
-
-  @override
-  String get providerForm_path => 'Caminho';
-
-  @override
-  String get providerForm_pathPlaceholder => '/roms/nes/ (opcional)';
-
-  @override
   String get providerForm_username => 'Usuário';
-
-  @override
-  String get providerForm_usernameOptional => '(opcional)';
 
   @override
   String get providerForm_password => 'Senha';
 
   @override
-  String get providerForm_host => 'Host';
-
-  @override
-  String get providerForm_hostPlaceholder => '192.168.1.100';
-
-  @override
-  String get providerForm_port => 'Port';
-
-  @override
-  String get providerForm_share => 'Compartilhamento';
-
-  @override
-  String get providerForm_sharePlaceholder => 'roms';
-
-  @override
-  String get providerForm_domain => 'Domínio';
-
-  @override
-  String get providerForm_domainOptional => '(opcional)';
-
-  @override
-  String get providerForm_rommUrl => 'URL';
-
-  @override
-  String get providerForm_rommUrlPlaceholder => 'https://romm.exemplo.com';
-
-  @override
-  String get providerForm_apiKey => 'API Key';
-
-  @override
-  String get providerForm_apiKeyOptional => '(opcional)';
-
-  @override
-  String get providerForm_httpBlocked =>
-      'HTTP pra servidores não-locais é bloqueado. Use HTTPS, ou habilite depois em Configurações.';
-
-  @override
-  String get providerForm_httpWarning =>
-      'Credenciais serão enviadas sem criptografia via HTTP';
-
-  @override
   String get providerForm_testingConnection => 'Testando conexão...';
-
-  @override
-  String get providerForm_connectionSuccessful => 'Conexão bem-sucedida!';
-
-  @override
-  String get providerForm_fetchingPlatforms => 'Buscando plataformas...';
-
-  @override
-  String get providerForm_noPlatformsFound =>
-      'Nenhuma plataforma encontrada neste servidor RomM.';
-
-  @override
-  String get providerForm_platform => 'PLATAFORMA';
-
-  @override
-  String get providerForm_pickPlatform => 'Escolha uma plataforma...';
-
-  @override
-  String get providerForm_testAndSave => 'Testar e Salvar';
-
-  @override
-  String get providerForm_connectionFailed => 'Falha na conexão';
-
-  @override
-  String get providerForm_hostMissing => 'Host';
-
-  @override
-  String get providerForm_portMissing => 'Port';
-
-  @override
-  String get providerForm_pathMissing => 'Caminho';
-
-  @override
-  String get providerForm_shareMissing => 'Compartilhamento';
-
-  @override
-  String get providerForm_urlMissing => 'URL';
-
-  @override
-  String get rommLogin_title => 'Login no RomM';
-
-  @override
-  String get rommLogin_name => 'Nome';
-
-  @override
-  String get rommLogin_nameDefault => 'Meu RomM';
-
-  @override
-  String get rommLogin_serverUrl => 'URL do Servidor';
-
-  @override
-  String get rommLogin_username => 'Usuário';
-
-  @override
-  String get rommLogin_usernameHint => 'admin';
-
-  @override
-  String get rommLogin_password => 'Senha';
-
-  @override
-  String get rommLogin_passwordHint => '••••••••';
-
-  @override
-  String get rommLogin_nameRequired => 'Nome é obrigatório';
-
-  @override
-  String get rommLogin_serverUrlRequired => 'URL do servidor é obrigatória';
-
-  @override
-  String get rommLogin_credentialsRequired => 'Usuário ou senha obrigatórios';
 
   @override
   String get ra_title => 'RetroAchievements';
@@ -2035,73 +1759,6 @@ class LPt extends L {
 
   @override
   String get ra_skipForNow => 'Pular por enquanto';
-
-  @override
-  String get pairing_scanQrTitle => 'Escanear código QR';
-
-  @override
-  String get pairing_scanQrHint => 'Segure o código QR dentro da moldura';
-
-  @override
-  String get pairing_enterManually => 'Digitar código manualmente';
-
-  @override
-  String get pairing_invalidQr =>
-      'Código QR não é um link de pareamento RomM válido';
-
-  @override
-  String get pairing_manualTitle => 'Pareamento manual';
-
-  @override
-  String get pairing_manualInstructions =>
-      'Gere o código na interface web do RomM em ';
-
-  @override
-  String get pairing_serverUrl => 'URL do Servidor';
-
-  @override
-  String get pairing_pairingCode => 'Código de pareamento';
-
-  @override
-  String get pairing_pairingCodeHint => 'ABCD-1234';
-
-  @override
-  String get pairing_probingServer => 'Verificando servidor…';
-
-  @override
-  String get pairing_serverNotReachable =>
-      'Servidor não acessível ou não é uma instância RomM';
-
-  @override
-  String get pairing_serverUrlRequired =>
-      'URL do servidor e código são obrigatórios';
-
-  @override
-  String get pairing_successTitle => 'Pareamento bem-sucedido';
-
-  @override
-  String get pairing_server => 'Servidor';
-
-  @override
-  String get pairing_token => 'Token';
-
-  @override
-  String get pairing_userId => 'ID do Usuário';
-
-  @override
-  String get pairing_expiry => 'Validade';
-
-  @override
-  String get pairing_neverExpires => 'Nunca expira';
-
-  @override
-  String get pairing_alreadyExpired => 'Já expirou';
-
-  @override
-  String get pairing_permissions => 'PERMISSÕES';
-
-  @override
-  String get pairing_addServer => 'Adicionar servidor';
 
   @override
   String get gameCard_cloudAvailable => 'Disponível para download';

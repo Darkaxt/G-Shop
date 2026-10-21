@@ -9,7 +9,7 @@ class AuthConfig {
   final String? domain;
 
   /// RomM 4.8+ Client API Token (Bearer). When present, takes precedence
-  /// over [apiKey] and [user]/[pass] in [RommProvider].
+  /// over [apiKey] and [user]/[pass] in preserved legacy authentication data.
   final String? clientToken;
 
   /// Server-side id of the client token, used for revoke and status polling.

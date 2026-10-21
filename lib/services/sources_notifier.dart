@@ -11,7 +11,6 @@ import '../models/config/provider_config.dart';
 import '../models/system_model.dart';
 import 'config_storage_service.dart';
 import 'database_service.dart';
-import 'romm_pairing_service.dart';
 import 'source_resolver.dart';
 
 /// Snapshot exposed by [SourcesNotifier]. Loading and error states are
@@ -97,10 +96,9 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
       if (_cachedConfig.systems.isNotEmpty) {
         final rebuilt = _cachedConfig.systems.map((s) {
           final unmanaged = s.providers
-              .where((p) => !p.managedBySource)
+              .where((p) => p.type != ProviderType.drive || !p.managedBySource)
               .toList(growable: false);
-          final managed =
-              SourceResolver.providersFor(s, _cachedConfig.sources);
+          final managed = SourceResolver.providersFor(s, _cachedConfig.sources);
           if (unmanaged.isEmpty && managed.isEmpty) return s;
           final combined = [...unmanaged, ...managed]
             ..sort((a, b) => a.priority.compareTo(b.priority));
@@ -110,7 +108,8 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
       }
 
       state = SourcesState(
-        sources: List<Source>.unmodifiable(_cachedConfig.sources),
+        sources: List<Source>.unmodifiable(
+            _cachedConfig.sources.where((s) => s.type == SourceType.drive)),
         loading: false,
       );
     } catch (e) {
@@ -124,64 +123,14 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
   /// Adds a new source. If a source with the same id already exists this
   /// is a no-op (use [updateSource] instead).
   Future<void> addSource(Source source) async {
+    _requireDrive(source);
+    if (_cachedConfig.sourceById(source.id)?.type != null &&
+        _cachedConfig.sourceById(source.id)?.type != SourceType.drive) {
+      throw StateError('Source identity belongs to preserved recovery data');
+    }
     if (state.sources.any((s) => s.id == source.id)) return;
     final next = [...state.sources, source];
     await _writeAndPublish(next);
-  }
-
-  /// Creates [SystemConfig] entries for any platforms in [source.knownPlatforms]
-  /// that don't already have a config. Returns `(ids, names)` of newly
-  /// created systems so callers can queue syncs and notify the user.
-  ///
-  /// Uses [basePath] to build `<basePath>/<systemId>` as the target folder
-  /// for each new system (same convention as onboarding).
-  Future<({List<String> ids, List<String> names})> ensureSystemsForSource(
-    Source source, {
-    required String basePath,
-  }) async {
-    if (source.knownPlatforms.isEmpty) {
-      return (ids: const <String>[], names: const <String>[]);
-    }
-
-    AppConfig latest;
-    try {
-      latest = (await _storage.loadConfig()) ?? _cachedConfig;
-    } catch (e) {
-      debugPrint('SourcesNotifier: re-read failed: $e');
-      latest = _cachedConfig;
-    }
-
-    final existingIds = latest.systems.map((s) => s.id).toSet();
-    final newSystems = <SystemConfig>[];
-    final newIds = <String>[];
-    final newNames = <String>[];
-
-    for (final systemId in source.knownPlatforms.keys) {
-      if (existingIds.contains(systemId)) continue;
-      final model = SystemModel.supportedSystems
-          .where((s) => s.id == systemId)
-          .firstOrNull;
-      if (model == null) continue;
-      newSystems.add(SystemConfig(
-        id: systemId,
-        name: model.name,
-        targetFolder: '$basePath/$systemId',
-        providers: const [],
-        autoExtract: model.isZipped,
-      ));
-      newIds.add(systemId);
-      newNames.add(model.name);
-    }
-
-    if (newSystems.isEmpty) {
-      return (ids: const <String>[], names: const <String>[]);
-    }
-
-    // Use _writeAndPublish with the extra systems so SourceResolver
-    // builds provider lists for them in the same atomic write.
-    await _writeAndPublish(state.sources, addSystems: newSystems);
-
-    return (ids: newIds, names: newNames);
   }
 
   /// Adds a new manual source together with the per-system path mappings
@@ -196,10 +145,11 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
   /// systems with the entries in [mappingsBySystemId]. Empty paths drop
   /// the mapping. Used by the manual-source mapping editor.
   Future<void> setMappingsForSource(
-    String sourceId,
-    Map<String, String> mappingsBySystemId,
-    {String? targetBasePath}
-  ) async {
+      String sourceId, Map<String, String> mappingsBySystemId,
+      {String? targetBasePath}) async {
+    final source = state.sources.where((s) => s.id == sourceId).firstOrNull;
+    if (source == null) throw StateError('Unknown Google Drive source');
+    _requireDrive(source);
     final cleaned = <String, String>{
       for (final e in mappingsBySystemId.entries)
         if (e.value.trim().isNotEmpty) e.key: e.value.trim(),
@@ -232,6 +182,11 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
     Source source,
     Map<String, String> mappingsBySystemId,
   ) async {
+    _requireDrive(source);
+    if (_cachedConfig.sourceById(source.id)?.type != null &&
+        _cachedConfig.sourceById(source.id)?.type != SourceType.drive) {
+      throw StateError('Source identity belongs to preserved recovery data');
+    }
     if (state.sources.any((s) => s.id == source.id)) return;
     final next = [...state.sources, source];
     final cleaned = <String, String>{
@@ -247,6 +202,7 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
   /// Replaces the source with the same id. Throws [StateError] if the id
   /// is unknown.
   Future<void> updateSource(Source source) async {
+    _requireDrive(source);
     final idx = state.sources.indexWhere((s) => s.id == source.id);
     if (idx < 0) {
       throw StateError('Cannot update unknown source: ${source.id}');
@@ -296,51 +252,11 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
     }
   }
 
-  /// Caches the platform map a RomM source advertises (slug → numeric
-  /// platform id). Called after a successful sync.
-  Future<void> updateKnownPlatforms(
-    String id,
-    Map<String, int> platforms,
-  ) async {
-    final src = state.sources.firstWhere(
-      (s) => s.id == id,
-      orElse: () => throw StateError('Unknown source: $id'),
-    );
-    if (mapEquals(src.knownPlatforms, platforms)) return;
-    await updateSource(src.copyWith(knownPlatforms: platforms));
-  }
-
-  /// Refreshes an existing source's bearer token + expiry from a fresh
-  /// [RommPairResult]. Preserves id, name, manualMappings, priority,
-  /// autoMap, enabled, borrowed flag, and (unless [knownPlatforms] is
-  /// passed) the previously discovered platform map. Used by the
-  /// "Re-pair" action when a borrowed token is about to expire.
-  Future<void> refreshTokenFromPair(
-    String id,
-    RommPairResult result, {
-    Map<String, int>? knownPlatforms,
-  }) async {
-    final src = state.sources.firstWhere(
-      (s) => s.id == id,
-      orElse: () => throw StateError('Unknown source: $id'),
-    );
-    final updated = src.copyWith(
-      url: result.serverUrl,
-      auth: AuthConfig(
-        clientToken: result.token,
-        clientTokenId: result.tokenId,
-        clientTokenExpiresAt: result.expiresAt,
-      ),
-      tokenExpiresAt: result.expiresAt,
-      knownPlatforms: knownPlatforms ?? src.knownPlatforms,
-    );
-    await updateSource(updated);
-  }
-
   /// Bulk replace — used by config import flows. Skips the diff and
   /// just persists the new list verbatim.
   Future<void> replaceAll(List<Source> next) async {
-    await _writeAndPublish(next);
+    await _writeAndPublish(
+        next.where((s) => s.type == SourceType.drive).toList());
   }
 
   /// Persists [next] as the new sources list.
@@ -367,6 +283,12 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
       debugPrint('SourcesNotifier: re-read failed, using cache: $e');
       latest = _cachedConfig;
     }
+
+    // Retired definitions stay inert and recoverable while Drive is edited.
+    next = [
+      ...latest.sources.where((s) => s.type != SourceType.drive),
+      ...next.where((s) => s.type == SourceType.drive)
+    ];
 
     // Add any new systems (from ensureSystemsForSource) that don't
     // already exist in the config. Must happen before the SourceResolver
@@ -431,8 +353,9 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
     // local folders, manually configured providers) survive untouched —
     // they were not put there by us so we have no business removing them.
     final rebuiltSystems = latest.systems.map((s) {
-      final unmanaged =
-          s.providers.where((p) => !p.managedBySource).toList(growable: false);
+      final unmanaged = s.providers
+          .where((p) => p.type != ProviderType.drive || !p.managedBySource)
+          .toList(growable: false);
       final managed = SourceResolver.providersFor(s, next);
       // NB: do NOT early-return when both lists are empty — that would
       // leave the system's old providers in place after a disable, which
@@ -452,7 +375,8 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
       await _storage.saveConfig(jsonEncode(updated.toJson()));
       _cachedConfig = updated;
       state = SourcesState(
-        sources: List<Source>.unmodifiable(next),
+        sources: List<Source>.unmodifiable(
+            next.where((s) => s.type == SourceType.drive)),
         loading: false,
       );
     } catch (e) {
@@ -473,7 +397,7 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
     final newSystems = config.systems.map((s) {
       var systemChanged = false;
       final newProviders = s.providers.map((p) {
-        if (p.managedBySource) return p;
+        if (p.type != ProviderType.drive || p.managedBySource) return p;
         for (final source in config.sources) {
           if (_providerMatchesSource(p, source)) {
             systemChanged = true;
@@ -493,22 +417,17 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
   }
 
   static bool _providerMatchesSource(ProviderConfig p, Source s) {
-    // Reuse SourceResolver's matching rules.
-    switch (s.type) {
-      case SourceType.romm:
-      case SourceType.web:
-        return s.url != null && s.url == p.url;
-      case SourceType.smb:
-        return s.host == p.host && s.share == p.share && s.port == p.port;
-      case SourceType.ftp:
-        return s.host == p.host && s.port == p.port;
-      case SourceType.local:
-        return false;
-      case SourceType.drive:
-        return p.type == ProviderType.drive &&
-            p.sourceId == s.id &&
-            p.drive?.accountId == s.drive?.accountId &&
-            p.drive?.rootFolderId == s.drive?.rootFolderId;
+    return s.type == SourceType.drive &&
+        p.type == ProviderType.drive &&
+        p.sourceId == s.id &&
+        p.drive?.accountId == s.drive?.accountId &&
+        p.drive?.rootFolderId == s.drive?.rootFolderId;
+  }
+
+  static void _requireDrive(Source source) {
+    if (source.type != SourceType.drive) {
+      throw UnsupportedError(
+          'G-Shop supports Google Drive collection sources only');
     }
   }
 

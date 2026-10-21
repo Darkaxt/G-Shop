@@ -21,7 +21,7 @@ class GameMergeHelper {
     };
     final otherSources = {
       for (final game in games)
-        if (game.remoteArtifact == null && game.hasDownloadSource)
+        if (game.remoteArtifact == null && game.providerConfig != null)
           game.filename,
     };
     return {
@@ -39,13 +39,13 @@ class GameMergeHelper {
     final visible = <String, GameItem>{};
     for (final game in games) {
       if (game.remoteArtifact == null &&
-          !game.hasDownloadSource &&
+          game.providerConfig == null &&
           aliases.containsKey(game.filename)) {
         continue;
       }
       final previous = visible[game.identityKey];
       if (previous == null ||
-          (!previous.hasDownloadSource && game.hasDownloadSource)) {
+          (previous.providerConfig == null && game.providerConfig != null)) {
         visible[game.identityKey] = game;
       }
     }

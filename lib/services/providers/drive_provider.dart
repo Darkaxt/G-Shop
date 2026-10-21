@@ -4,7 +4,6 @@ import '../../models/config/provider_config.dart';
 import '../../models/config/system_config.dart';
 import '../../models/game_item.dart';
 import '../../models/system_model.dart';
-import '../download_handle.dart';
 import '../drive/drive_authorization.dart';
 import '../drive/drive_catalogue.dart';
 import '../drive/drive_runtime.dart';
@@ -121,13 +120,6 @@ class DriveProvider implements SourceProvider {
       return false;
     });
     return result;
-  }
-
-  @override
-  Future<DownloadHandle> resolveDownload(GameItem game) async {
-    // S3 must provide a verified artifact handle and durable installation lane.
-    // Returning an ordinary HTTP handle here would bypass version/hash checks.
-    throw const DriveCatalogueException('verifiedTransferNotAvailable');
   }
 
   @override

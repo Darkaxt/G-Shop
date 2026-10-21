@@ -18,7 +18,6 @@ final downloadQueueManagerProvider =
     ChangeNotifierProvider<DownloadQueueManager>((ref) {
   final qm = DownloadQueueManager(
     ref.read(storageServiceProvider),
-    ref.read(nativeSmbServiceProvider),
   );
 
   // Wire up post-download hooks: refresh game counts + RA hash verification.

@@ -5,7 +5,48 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-S26 current checkpoint, 2026-10-21: **BLOCKED** on the external supported-source
+2026-10-21 owner decision: **S26 ACTIVE**, sole active stage; Drive only.
+The source-boundary blocker is resolved. GSHOP-02 requires complete removal of
+all non-Drive acquisition/setup modes while preserving legacy recovery data,
+downloads/offline operation and retained integrations. Current advancement blockers:
+full integrated/native acceptance and one normal 1.10.0/code 41 final release with
+independent public/installed verification. Drive-only setup/runtime removal is
+integrated and host acceptance is reconciled. No tracked deferral.
+Wider S25 stays parked under owner sequencing.
+
+Host verification: the full suite census completed, including the unchanged
+large catalogue, artwork and durable metadata recovery checks. Its failures were
+traced and rechecked with focused runs against the current implementation:
+Drive-only source policy/setup, preserved legacy bindings/queue paths, controller
+import/export, deduplication provenance, migrations, cached metadata/cover readers,
+conditional categories and download eligibility. The original failing census and
+cancelled diagnostic run are not described as wholly green. Final focused evidence:
+drive-only-reconciled-host-final.log, drive-only-library-host-final.log (all callers
+except the separately repaired category fixture), and drive-only-categories-final.log
+in D:/Temp/gshop-s26-20261021/reports/. Passing unchanged census checks remain
+applicable; no second resource stress run is claimed. Analysis has zero Dart
+errors, three existing protected-rendering warnings and 179 style infos (exit 1).
+
+Fixture repairs preserve real contracts: legacy migrations now assert the current
+unchanged schema; the v6 shared metadata fixture uses its actual records schema;
+retired Web entries remain cached without downloadable-size claims. The reviewed
+cover golden now matches the already-existing curved disc-label capture, whose
+bytes equal the pre-task failure image. The four pre-existing failure PNGs are
+unchanged. Offline cover tests use their existing explicit public font cache.
+Host Library tests use supported flat previews, with enabled 3D assertions retained
+in the native fixture; host Skia cannot validate Flutter GPU pixels. Signed Thor
+model/rendering acceptance remains required before GSHOP-05 can pass.
+
+Repository rename is verified: Darkaxt/G-Shop retains GitHub repository ID
+1361824141, public visibility, AverageConsumer/R-Shop parent, existing releases
+and the active production signing workflow. The old API address redirects and
+origin now points to G-Shop. The local checkout folder remains stable so managed
+project references and active consumers keep resolving.
+
+Historical source-question checkpoint below is superseded by the owner decision;
+it records the former impediment, not the current execution state.
+
+Historical S26 preparation checkpoint, before the source answer: **BLOCKED** on the external supported-source
 boundary question (GSHOP-02): should Google Drive be the sole collection source,
 or should SMB/FTP/Web remain alongside it? The earlier objective names the
 original server/local-only modes but does not distinguish those independent
@@ -27,7 +68,7 @@ infos (exit 1), not a clean-analysis claim. Native compilation/device acceptance
 and full S26 release gates remain unsatisfied. Compatibility details are in
 S26_COMPATIBILITY.md; private logs are in D:/Temp/gshop-s26-20261021/reports/.
 
-No implementation stage is ACTIVE while this essential answer is pending.
+At that historical checkpoint, no implementation stage was ACTIVE while the answer was pending.
 Wider S25 remains BLOCKED under the owner's sequencing hold. Its missing criteria
 are retained; neither the G&W delivery nor this preparation completes wider S25.
 

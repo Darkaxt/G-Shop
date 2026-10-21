@@ -1777,7 +1777,7 @@ abstract class L {
   /// No description provided for @settings_mySourcesSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Add or manage RomM, SMB, FTP servers'**
+  /// **'Manage your Google Drive collection'**
   String get settings_mySourcesSubtitle;
 
   /// No description provided for @settings_consoleSettings.
@@ -2278,24 +2278,6 @@ abstract class L {
   /// **'Revoke Google Drive access (all Drive sources)'**
   String get sources_revokeDrive;
 
-  /// No description provided for @sources_sourceTypeDriveHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Private read-only folder via native Google authorization'**
-  String get sources_sourceTypeDriveHint;
-
-  /// No description provided for @sources_sourceTypeSmbHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Windows / NAS network share'**
-  String get sources_sourceTypeSmbHint;
-
-  /// No description provided for @sources_sourceTypeFtpHint.
-  ///
-  /// In en, this message translates to:
-  /// **'FTP/FTPS server'**
-  String get sources_sourceTypeFtpHint;
-
   /// No description provided for @sources_noSourcesConfigured.
   ///
   /// In en, this message translates to:
@@ -2308,12 +2290,6 @@ abstract class L {
   /// **'No sources yet'**
   String get sources_noSourcesYet;
 
-  /// No description provided for @sources_noSourcesDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Pair a RomM server to start downloading games. '**
-  String get sources_noSourcesDescription;
-
   /// No description provided for @sources_addSource.
   ///
   /// In en, this message translates to:
@@ -2325,48 +2301,6 @@ abstract class L {
   /// In en, this message translates to:
   /// **'Where do your games come from?'**
   String get sources_whereDoGamesComeFrom;
-
-  /// No description provided for @sources_sourceTypeRomm.
-  ///
-  /// In en, this message translates to:
-  /// **'RomM Server'**
-  String get sources_sourceTypeRomm;
-
-  /// No description provided for @sources_sourceTypeRommHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Pair via QR or 8-digit code'**
-  String get sources_sourceTypeRommHint;
-
-  /// No description provided for @sources_sourceTypeRommLegacy.
-  ///
-  /// In en, this message translates to:
-  /// **'RomM Login (older servers)'**
-  String get sources_sourceTypeRommLegacy;
-
-  /// No description provided for @sources_sourceTypeSmb.
-  ///
-  /// In en, this message translates to:
-  /// **'SMB Share'**
-  String get sources_sourceTypeSmb;
-
-  /// No description provided for @sources_sourceTypeFtp.
-  ///
-  /// In en, this message translates to:
-  /// **'FTP Server'**
-  String get sources_sourceTypeFtp;
-
-  /// No description provided for @sources_sourceTypeWeb.
-  ///
-  /// In en, this message translates to:
-  /// **'Web Mirror'**
-  String get sources_sourceTypeWeb;
-
-  /// No description provided for @sources_sourceTypeWebHint.
-  ///
-  /// In en, this message translates to:
-  /// **'HTTPS directory listing'**
-  String get sources_sourceTypeWebHint;
 
   /// No description provided for @sources_expired.
   ///
@@ -2415,156 +2349,6 @@ abstract class L {
   /// In en, this message translates to:
   /// **'Enable'**
   String get sources_enable;
-
-  /// No description provided for @manualSource_defaultNameSmb.
-  ///
-  /// In en, this message translates to:
-  /// **'My NAS'**
-  String get manualSource_defaultNameSmb;
-
-  /// No description provided for @manualSource_defaultNameFtp.
-  ///
-  /// In en, this message translates to:
-  /// **'My FTP'**
-  String get manualSource_defaultNameFtp;
-
-  /// No description provided for @manualSource_defaultNameWeb.
-  ///
-  /// In en, this message translates to:
-  /// **'Web Mirror'**
-  String get manualSource_defaultNameWeb;
-
-  /// No description provided for @manualSource_defaultNameOther.
-  ///
-  /// In en, this message translates to:
-  /// **'Source'**
-  String get manualSource_defaultNameOther;
-
-  /// No description provided for @manualSource_name.
-  ///
-  /// In en, this message translates to:
-  /// **'Name'**
-  String get manualSource_name;
-
-  /// No description provided for @manualSource_url.
-  ///
-  /// In en, this message translates to:
-  /// **'URL'**
-  String get manualSource_url;
-
-  /// No description provided for @manualSource_urlHint.
-  ///
-  /// In en, this message translates to:
-  /// **'https://example.com/roms'**
-  String get manualSource_urlHint;
-
-  /// No description provided for @manualSource_host.
-  ///
-  /// In en, this message translates to:
-  /// **'Host'**
-  String get manualSource_host;
-
-  /// No description provided for @manualSource_hostHint.
-  ///
-  /// In en, this message translates to:
-  /// **'nas.local or 192.168.1.10'**
-  String get manualSource_hostHint;
-
-  /// No description provided for @manualSource_port.
-  ///
-  /// In en, this message translates to:
-  /// **'Port'**
-  String get manualSource_port;
-
-  /// No description provided for @manualSource_share.
-  ///
-  /// In en, this message translates to:
-  /// **'Share'**
-  String get manualSource_share;
-
-  /// No description provided for @manualSource_shareHint.
-  ///
-  /// In en, this message translates to:
-  /// **'roms'**
-  String get manualSource_shareHint;
-
-  /// No description provided for @manualSource_usernameOptional.
-  ///
-  /// In en, this message translates to:
-  /// **'Username (optional)'**
-  String get manualSource_usernameOptional;
-
-  /// No description provided for @manualSource_usernameHint.
-  ///
-  /// In en, this message translates to:
-  /// **'leave blank for guest'**
-  String get manualSource_usernameHint;
-
-  /// No description provided for @manualSource_passwordOptional.
-  ///
-  /// In en, this message translates to:
-  /// **'Password (optional)'**
-  String get manualSource_passwordOptional;
-
-  /// No description provided for @manualSource_nameRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Name is required'**
-  String get manualSource_nameRequired;
-
-  /// No description provided for @manualSource_urlRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'URL is required'**
-  String get manualSource_urlRequired;
-
-  /// No description provided for @manualSource_hostRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Host is required'**
-  String get manualSource_hostRequired;
-
-  /// No description provided for @manualSource_shareRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Share is required'**
-  String get manualSource_shareRequired;
-
-  /// No description provided for @manualSource_saveSource.
-  ///
-  /// In en, this message translates to:
-  /// **'Save source'**
-  String get manualSource_saveSource;
-
-  /// No description provided for @manualSource_smb.
-  ///
-  /// In en, this message translates to:
-  /// **'SMB'**
-  String get manualSource_smb;
-
-  /// No description provided for @manualSource_ftp.
-  ///
-  /// In en, this message translates to:
-  /// **'FTP'**
-  String get manualSource_ftp;
-
-  /// No description provided for @manualSource_web.
-  ///
-  /// In en, this message translates to:
-  /// **'Web'**
-  String get manualSource_web;
-
-  /// No description provided for @manualSource_searchingNetwork.
-  ///
-  /// In en, this message translates to:
-  /// **'Searching network…'**
-  String get manualSource_searchingNetwork;
-
-  /// No description provided for @manualSource_foundOnNetwork.
-  ///
-  /// In en, this message translates to:
-  /// **'Found on your network'**
-  String get manualSource_foundOnNetwork;
 
   /// No description provided for @sourceMappings_title.
   ///
@@ -3160,47 +2944,11 @@ abstract class L {
   /// **'Where do your games come from?'**
   String get onboarding_welcomeSubtitle;
 
-  /// No description provided for @onboarding_pairQrTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Pair RomM via QR'**
-  String get onboarding_pairQrTitle;
-
-  /// No description provided for @onboarding_pairQrSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Scan a code from your RomM server'**
-  String get onboarding_pairQrSubtitle;
-
-  /// No description provided for @onboarding_legacyLoginTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'RomM login (older servers)'**
-  String get onboarding_legacyLoginTitle;
-
-  /// No description provided for @onboarding_legacyLoginSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Username + password for RomM < 4.8'**
-  String get onboarding_legacyLoginSubtitle;
-
   /// No description provided for @onboarding_addServerTitle.
   ///
   /// In en, this message translates to:
   /// **'Add my own server'**
   String get onboarding_addServerTitle;
-
-  /// No description provided for @onboarding_addServerSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'SMB, FTP or Web mirror — map systems manually'**
-  String get onboarding_addServerSubtitle;
-
-  /// No description provided for @onboarding_localOnlyTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Local games only'**
-  String get onboarding_localOnlyTitle;
 
   /// No description provided for @onboarding_localOnlySubtitle.
   ///
@@ -3334,24 +3082,6 @@ abstract class L {
   /// **'Hang on, testing the connection...'**
   String get onboarding_hangOn;
 
-  /// No description provided for @onboarding_foundConsole.
-  ///
-  /// In en, this message translates to:
-  /// **'I found this console on your RomM server! Confirm or pick a different one.'**
-  String get onboarding_foundConsole;
-
-  /// No description provided for @onboarding_pickPlatform.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick the matching platform from your RomM server.'**
-  String get onboarding_pickPlatform;
-
-  /// No description provided for @onboarding_couldNotReach.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t reach your RomM server. Check the URL and try again.'**
-  String get onboarding_couldNotReach;
-
   /// No description provided for @onboarding_connectionGood.
   ///
   /// In en, this message translates to:
@@ -3436,53 +3166,11 @@ abstract class L {
   /// **'Select folder...'**
   String get onboarding_selectFolder;
 
-  /// No description provided for @providerForm_addSource.
-  ///
-  /// In en, this message translates to:
-  /// **'Add Source'**
-  String get providerForm_addSource;
-
-  /// No description provided for @providerForm_editSource.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit Source'**
-  String get providerForm_editSource;
-
-  /// No description provided for @providerForm_url.
-  ///
-  /// In en, this message translates to:
-  /// **'URL'**
-  String get providerForm_url;
-
-  /// No description provided for @providerForm_urlPlaceholder.
-  ///
-  /// In en, this message translates to:
-  /// **'https://...'**
-  String get providerForm_urlPlaceholder;
-
-  /// No description provided for @providerForm_path.
-  ///
-  /// In en, this message translates to:
-  /// **'Path'**
-  String get providerForm_path;
-
-  /// No description provided for @providerForm_pathPlaceholder.
-  ///
-  /// In en, this message translates to:
-  /// **'/roms/nes/ (optional)'**
-  String get providerForm_pathPlaceholder;
-
   /// No description provided for @providerForm_username.
   ///
   /// In en, this message translates to:
   /// **'Username'**
   String get providerForm_username;
-
-  /// No description provided for @providerForm_usernameOptional.
-  ///
-  /// In en, this message translates to:
-  /// **'(optional)'**
-  String get providerForm_usernameOptional;
 
   /// No description provided for @providerForm_password.
   ///
@@ -3490,227 +3178,11 @@ abstract class L {
   /// **'Password'**
   String get providerForm_password;
 
-  /// No description provided for @providerForm_host.
-  ///
-  /// In en, this message translates to:
-  /// **'Host'**
-  String get providerForm_host;
-
-  /// No description provided for @providerForm_hostPlaceholder.
-  ///
-  /// In en, this message translates to:
-  /// **'192.168.1.100'**
-  String get providerForm_hostPlaceholder;
-
-  /// No description provided for @providerForm_port.
-  ///
-  /// In en, this message translates to:
-  /// **'Port'**
-  String get providerForm_port;
-
-  /// No description provided for @providerForm_share.
-  ///
-  /// In en, this message translates to:
-  /// **'Share'**
-  String get providerForm_share;
-
-  /// No description provided for @providerForm_sharePlaceholder.
-  ///
-  /// In en, this message translates to:
-  /// **'roms'**
-  String get providerForm_sharePlaceholder;
-
-  /// No description provided for @providerForm_domain.
-  ///
-  /// In en, this message translates to:
-  /// **'Domain'**
-  String get providerForm_domain;
-
-  /// No description provided for @providerForm_domainOptional.
-  ///
-  /// In en, this message translates to:
-  /// **'(optional)'**
-  String get providerForm_domainOptional;
-
-  /// No description provided for @providerForm_rommUrl.
-  ///
-  /// In en, this message translates to:
-  /// **'URL'**
-  String get providerForm_rommUrl;
-
-  /// No description provided for @providerForm_rommUrlPlaceholder.
-  ///
-  /// In en, this message translates to:
-  /// **'https://romm.example.com'**
-  String get providerForm_rommUrlPlaceholder;
-
-  /// No description provided for @providerForm_apiKey.
-  ///
-  /// In en, this message translates to:
-  /// **'API Key'**
-  String get providerForm_apiKey;
-
-  /// No description provided for @providerForm_apiKeyOptional.
-  ///
-  /// In en, this message translates to:
-  /// **'(optional)'**
-  String get providerForm_apiKeyOptional;
-
-  /// No description provided for @providerForm_httpBlocked.
-  ///
-  /// In en, this message translates to:
-  /// **'HTTP to non-local servers is blocked. Use HTTPS, or enable after setup in Settings.'**
-  String get providerForm_httpBlocked;
-
-  /// No description provided for @providerForm_httpWarning.
-  ///
-  /// In en, this message translates to:
-  /// **'Credentials will be sent unencrypted over HTTP'**
-  String get providerForm_httpWarning;
-
   /// No description provided for @providerForm_testingConnection.
   ///
   /// In en, this message translates to:
   /// **'Testing connection...'**
   String get providerForm_testingConnection;
-
-  /// No description provided for @providerForm_connectionSuccessful.
-  ///
-  /// In en, this message translates to:
-  /// **'Connection successful!'**
-  String get providerForm_connectionSuccessful;
-
-  /// No description provided for @providerForm_fetchingPlatforms.
-  ///
-  /// In en, this message translates to:
-  /// **'Fetching platforms...'**
-  String get providerForm_fetchingPlatforms;
-
-  /// No description provided for @providerForm_noPlatformsFound.
-  ///
-  /// In en, this message translates to:
-  /// **'No platforms found on this RomM server.'**
-  String get providerForm_noPlatformsFound;
-
-  /// No description provided for @providerForm_platform.
-  ///
-  /// In en, this message translates to:
-  /// **'PLATFORM'**
-  String get providerForm_platform;
-
-  /// No description provided for @providerForm_pickPlatform.
-  ///
-  /// In en, this message translates to:
-  /// **'Pick a platform...'**
-  String get providerForm_pickPlatform;
-
-  /// No description provided for @providerForm_testAndSave.
-  ///
-  /// In en, this message translates to:
-  /// **'Test & Save'**
-  String get providerForm_testAndSave;
-
-  /// No description provided for @providerForm_connectionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Connection failed'**
-  String get providerForm_connectionFailed;
-
-  /// No description provided for @providerForm_hostMissing.
-  ///
-  /// In en, this message translates to:
-  /// **'Host'**
-  String get providerForm_hostMissing;
-
-  /// No description provided for @providerForm_portMissing.
-  ///
-  /// In en, this message translates to:
-  /// **'Port'**
-  String get providerForm_portMissing;
-
-  /// No description provided for @providerForm_pathMissing.
-  ///
-  /// In en, this message translates to:
-  /// **'Path'**
-  String get providerForm_pathMissing;
-
-  /// No description provided for @providerForm_shareMissing.
-  ///
-  /// In en, this message translates to:
-  /// **'Share'**
-  String get providerForm_shareMissing;
-
-  /// No description provided for @providerForm_urlMissing.
-  ///
-  /// In en, this message translates to:
-  /// **'URL'**
-  String get providerForm_urlMissing;
-
-  /// No description provided for @rommLogin_title.
-  ///
-  /// In en, this message translates to:
-  /// **'Log in to RomM'**
-  String get rommLogin_title;
-
-  /// No description provided for @rommLogin_name.
-  ///
-  /// In en, this message translates to:
-  /// **'Name'**
-  String get rommLogin_name;
-
-  /// No description provided for @rommLogin_nameDefault.
-  ///
-  /// In en, this message translates to:
-  /// **'My RomM'**
-  String get rommLogin_nameDefault;
-
-  /// No description provided for @rommLogin_serverUrl.
-  ///
-  /// In en, this message translates to:
-  /// **'Server URL'**
-  String get rommLogin_serverUrl;
-
-  /// No description provided for @rommLogin_username.
-  ///
-  /// In en, this message translates to:
-  /// **'Username'**
-  String get rommLogin_username;
-
-  /// No description provided for @rommLogin_usernameHint.
-  ///
-  /// In en, this message translates to:
-  /// **'admin'**
-  String get rommLogin_usernameHint;
-
-  /// No description provided for @rommLogin_password.
-  ///
-  /// In en, this message translates to:
-  /// **'Password'**
-  String get rommLogin_password;
-
-  /// No description provided for @rommLogin_passwordHint.
-  ///
-  /// In en, this message translates to:
-  /// **'••••••••'**
-  String get rommLogin_passwordHint;
-
-  /// No description provided for @rommLogin_nameRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Name is required'**
-  String get rommLogin_nameRequired;
-
-  /// No description provided for @rommLogin_serverUrlRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Server URL is required'**
-  String get rommLogin_serverUrlRequired;
-
-  /// No description provided for @rommLogin_credentialsRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Username or password required'**
-  String get rommLogin_credentialsRequired;
 
   /// No description provided for @ra_title.
   ///
@@ -3783,132 +3255,6 @@ abstract class L {
   /// In en, this message translates to:
   /// **'Skip for now'**
   String get ra_skipForNow;
-
-  /// No description provided for @pairing_scanQrTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Scan QR code'**
-  String get pairing_scanQrTitle;
-
-  /// No description provided for @pairing_scanQrHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Hold the QR code inside the frame'**
-  String get pairing_scanQrHint;
-
-  /// No description provided for @pairing_enterManually.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter code manually'**
-  String get pairing_enterManually;
-
-  /// No description provided for @pairing_invalidQr.
-  ///
-  /// In en, this message translates to:
-  /// **'QR code is not a valid RomM pairing link'**
-  String get pairing_invalidQr;
-
-  /// No description provided for @pairing_manualTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Manual pairing'**
-  String get pairing_manualTitle;
-
-  /// No description provided for @pairing_manualInstructions.
-  ///
-  /// In en, this message translates to:
-  /// **'Generate the code in your RomM web UI under '**
-  String get pairing_manualInstructions;
-
-  /// No description provided for @pairing_serverUrl.
-  ///
-  /// In en, this message translates to:
-  /// **'Server URL'**
-  String get pairing_serverUrl;
-
-  /// No description provided for @pairing_pairingCode.
-  ///
-  /// In en, this message translates to:
-  /// **'Pairing code'**
-  String get pairing_pairingCode;
-
-  /// No description provided for @pairing_pairingCodeHint.
-  ///
-  /// In en, this message translates to:
-  /// **'ABCD-1234'**
-  String get pairing_pairingCodeHint;
-
-  /// No description provided for @pairing_probingServer.
-  ///
-  /// In en, this message translates to:
-  /// **'Probing server…'**
-  String get pairing_probingServer;
-
-  /// No description provided for @pairing_serverNotReachable.
-  ///
-  /// In en, this message translates to:
-  /// **'Server not reachable or not a RomM instance'**
-  String get pairing_serverNotReachable;
-
-  /// No description provided for @pairing_serverUrlRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Server URL and code are required'**
-  String get pairing_serverUrlRequired;
-
-  /// No description provided for @pairing_successTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Pairing successful'**
-  String get pairing_successTitle;
-
-  /// No description provided for @pairing_server.
-  ///
-  /// In en, this message translates to:
-  /// **'Server'**
-  String get pairing_server;
-
-  /// No description provided for @pairing_token.
-  ///
-  /// In en, this message translates to:
-  /// **'Token'**
-  String get pairing_token;
-
-  /// No description provided for @pairing_userId.
-  ///
-  /// In en, this message translates to:
-  /// **'User ID'**
-  String get pairing_userId;
-
-  /// No description provided for @pairing_expiry.
-  ///
-  /// In en, this message translates to:
-  /// **'Expiry'**
-  String get pairing_expiry;
-
-  /// No description provided for @pairing_neverExpires.
-  ///
-  /// In en, this message translates to:
-  /// **'Never expires'**
-  String get pairing_neverExpires;
-
-  /// No description provided for @pairing_alreadyExpired.
-  ///
-  /// In en, this message translates to:
-  /// **'Already expired'**
-  String get pairing_alreadyExpired;
-
-  /// No description provided for @pairing_permissions.
-  ///
-  /// In en, this message translates to:
-  /// **'PERMISSIONS'**
-  String get pairing_permissions;
-
-  /// No description provided for @pairing_addServer.
-  ///
-  /// In en, this message translates to:
-  /// **'Add server'**
-  String get pairing_addServer;
 
   /// No description provided for @gameCard_cloudAvailable.
   ///

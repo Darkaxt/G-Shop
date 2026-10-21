@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../models/config/app_config.dart';
@@ -17,10 +15,6 @@ import 'drive/drive_media.dart';
 import 'drive/drive_bundle.dart';
 import 'owned_storage.dart';
 import 'download_foreground_service.dart';
-import 'disk_space_service.dart';
-import 'download_service.dart';
-import 'rom_manager.dart';
-import 'native_smb_service.dart';
 import 'storage_service.dart';
 
 class DownloadQueueState {
@@ -85,9 +79,7 @@ class DownloadQueueState {
 }
 
 class DownloadQueueManager extends ChangeNotifier {
-  static const int _maxRetries = 3;
   static const int _maxQueueSize = 100;
-  static final Random _jitterRandom = Random();
 
   DownloadQueueState _state = const DownloadQueueState();
   DownloadQueueState get state => _state;
@@ -100,19 +92,13 @@ class DownloadQueueManager extends ChangeNotifier {
   final Map<String, _DriveQueueAttempt> _driveAttempts = {};
   final DriveRuntime _driveRuntime;
 
-  final Map<String, StreamSubscription?> _subscriptions = {};
-  final Map<String, DownloadService> _downloadServices = {};
-  final Map<String, Completer<void>> _legacySettled = {};
-  final Map<String, Timer> _retryTimers = {};
   final StorageService _storage;
-  final NativeSmbService _smbService;
 
   /// Called after a download completes successfully. Used for post-download
   /// processing like RA hash verification.
   FutureOr<void> Function(DownloadItem item)? onItemCompleted;
 
-  DownloadQueueManager(this._storage, this._smbService,
-      {DriveRuntime? driveRuntime})
+  DownloadQueueManager(this._storage, {DriveRuntime? driveRuntime})
       : _driveRuntime = driveRuntime ?? DriveRuntime.instance {
     final maxConcurrent = _storage.getMaxConcurrentDownloads();
     _state = _state.copyWith(maxConcurrent: maxConcurrent);
@@ -130,90 +116,10 @@ class DownloadQueueManager extends ChangeNotifier {
     _processQueue();
   }
 
-  static bool _isRetryableError(String? error) {
-    if (error == null) return false;
-    const nonRetryable = ['File not found (404)', 'SSL error'];
-    return !nonRetryable.any((e) => error.contains(e));
-  }
-
-  void _scheduleRetry(String id, int retryCount) {
-    // Exponential backoff: 5s, 15s, 45s + random jitter to prevent thundering herd
-    const delays = [5, 15, 45];
-    final baseDelaySeconds = delays[retryCount.clamp(0, delays.length - 1)];
-    final jitterMs = _jitterRandom.nextInt(3000); // 0–3s jitter
-    final delay = Duration(seconds: baseDelaySeconds, milliseconds: jitterMs);
-
-    _retryTimers[id]?.cancel();
-    _retryTimers[id] = Timer(delay, () {
-      _retryTimers.remove(id);
-      if (_disposed) return;
-      final item = _state.getDownloadById(id);
-      if (item == null || item.status != DownloadStatus.error) return;
-
-      _updateItem(
-        id,
-        status: DownloadStatus.queued,
-        progress: 0,
-        receivedBytes: 0,
-        retryCount: retryCount + 1,
-        clearError: true,
-        clearSpeed: true,
-      );
-      _processQueue();
-    });
-  }
-
-  Future<void> _switchToAlternativeSource(String id) async {
-    final item = _state.getDownloadById(id);
-    if (item == null || item.game.remoteArtifact != null) return;
-
-    final alts = item.game.alternativeSources;
-    if (alts.isEmpty) return;
-
-    final next = alts.first;
-    final remaining = alts.skip(1).toList();
-
-    // Delete temp file from failed source
-    if (item.tempFilePath != null) {
-      try {
-        await File(item.tempFilePath!).delete();
-      } catch (e) {
-        debugPrint('DownloadQueue: temp file cleanup failed: $e');
-      }
-      _updateItem(id, clearTempFilePath: true);
-    }
-
-    final updatedGame = item.game.copyWith(
-      url: next.url,
-      providerConfig: next.providerConfig,
-      alternativeSources: remaining,
-    );
-
-    _updateItem(
-      id,
-      status: DownloadStatus.queued,
-      progress: 0,
-      receivedBytes: 0,
-      retryCount: 0,
-      clearError: true,
-      clearSpeed: true,
-    );
-
-    // Replace the game on the item
-    final newQueue = _state.queue.map((i) {
-      if (i.id == id) return i.copyWith(game: updatedGame);
-      return i;
-    }).toList();
-    _state = _state.copyWith(queue: newQueue);
-    _safeNotify();
-
-    debugPrint('DownloadQueue: switched to alternative source '
-        '${next.providerConfig.detailLabel} for ${item.game.filename}');
-    _processQueue();
-  }
-
   String addToQueue(GameItem game, SystemModel system, String targetFolder,
       {bool autoExtract = false}) {
+    if (!game.hasDownloadSource)
+      throw UnsupportedError('Choose a Google Drive game to download');
     final id = idFor(game, system);
     if (_closing || _disposed || _driveAttempts.containsKey(id)) return id;
 
@@ -246,10 +152,6 @@ class DownloadQueueManager extends ChangeNotifier {
       autoExtract: autoExtract,
     );
 
-    // Cancel any pending retry timer for this item
-    _retryTimers[id]?.cancel();
-    _retryTimers.remove(id);
-
     final newQueue = List<DownloadItem>.from(_state.queue);
 
     if (existing != null) {
@@ -276,17 +178,7 @@ class DownloadQueueManager extends ChangeNotifier {
       return;
     }
 
-    _retryTimers[id]?.cancel();
-    _retryTimers.remove(id);
-
-    await _subscriptions[id]?.cancel();
-    _subscriptions.remove(id);
-
-    await _downloadServices[id]?.cancelDownload(preserveTempFile: false);
-    _downloadServices.remove(id);
-    _legacySettled.remove(id)?.complete();
-
-    _updateItem(id, status: DownloadStatus.cancelled, clearTempFilePath: true);
+    _updateItem(id, status: DownloadStatus.cancelled);
     _persistQueue();
     _stopForegroundServiceIfIdle();
     _processQueue();
@@ -299,9 +191,6 @@ class DownloadQueueManager extends ChangeNotifier {
     if (item.isActive) {
       await cancelDownload(id);
     }
-
-    _retryTimers[id]?.cancel();
-    _retryTimers.remove(id);
 
     final newQueue = List<DownloadItem>.from(_state.queue)
       ..removeWhere((i) => i.id == id);
@@ -340,7 +229,7 @@ class DownloadQueueManager extends ChangeNotifier {
   }
 
   static bool _isDrive(DownloadItem item) =>
-      item.game.remoteArtifact != null ||
+      item.game.remoteArtifact?.id.providerId == 'drive' &&
       item.game.providerConfig?.type == ProviderType.drive;
 
   Future<void> pauseDownload(String id) async {
@@ -414,142 +303,11 @@ class DownloadQueueManager extends ChangeNotifier {
       await attempt.settled;
       return;
     }
-    _updateItem(item.id, status: DownloadStatus.downloading);
-    _updateForegroundService();
-
-    // Check if file already exists at target location
-    try {
-      final alreadyExists = await RomManager().exists(
-        item.game,
-        item.system,
-        item.targetFolder,
-      );
-      if (_disposed) return;
-      if (alreadyExists) {
-        debugPrint(
-            'DownloadQueue: file already exists, skipping: ${item.game.filename}');
-        _updateItem(item.id,
-            status: DownloadStatus.completed, clearTempFilePath: true);
-        _persistQueue();
-        _stopForegroundServiceIfIdle();
-        _processQueue();
-        return;
-      }
-    } catch (e) {
-      debugPrint('DownloadQueue: exists check failed (proceeding): $e');
-    }
-
-    // Check disk space before starting actual download
-    try {
-      final storageInfo =
-          await DiskSpaceService.getFreeSpace(item.targetFolder);
-      if (_disposed) return;
-      if (storageInfo != null && storageInfo.isLow) {
-        _updateItem(
-          item.id,
-          status: DownloadStatus.error,
-          error: 'Not enough disk space (${storageInfo.freeSpaceText})',
-        );
-        _stopForegroundServiceIfIdle();
-        _processQueue();
-        return;
-      }
-    } catch (e) {
-      debugPrint('DownloadQueue: disk space check failed (proceeding): $e');
-    }
-
-    final targetFolder = item.targetFolder;
-    if (_closing || _disposed) return;
-
-    _subscriptions[item.id]?.cancel();
-    _subscriptions.remove(item.id);
-
-    final oldService = _downloadServices.remove(item.id);
-    oldService?.dispose();
-
-    final downloadService = DownloadService(_smbService);
-    _downloadServices[item.id] = downloadService;
-    final settled = Completer<void>();
-    _legacySettled[item.id] = settled;
-    void settle() {
-      if (identical(_legacySettled[item.id], settled)) {
-        _legacySettled.remove(item.id);
-      }
-      if (!settled.isCompleted) settled.complete();
-    }
-
-    final subscription = downloadService
-        .downloadGameStream(
-      item.game,
-      targetFolder,
-      item.system,
-      existingTempFilePath: item.tempFilePath,
-      autoExtract: item.autoExtract,
-    )
-        .listen(
-      (progress) {
-        if (progress.status == DownloadStatus.error) {
-          debugPrint(
-              'DownloadQueue: error via progress for ${item.game.filename}: ${progress.error}');
-        }
-        _updateItem(
-          item.id,
-          status: progress.status,
-          progress: progress.progress,
-          receivedBytes: progress.receivedBytes,
-          totalBytes: progress.totalBytes,
-          downloadSpeed: progress.downloadSpeed,
-          tempFilePath: downloadService.currentTempFilePath,
-        );
-        _throttledNotificationUpdate();
-      },
-      onDone: () async {
-        _subscriptions.remove(item.id);
-        final service = _downloadServices.remove(item.id);
-        service?.dispose();
-        try {
-          await _onDownloadComplete(item.id);
-        } finally {
-          settle();
-        }
-      },
-      onError: (error) {
-        settle();
-        final tempPath = downloadService.currentTempFilePath;
-        _subscriptions.remove(item.id);
-        final service = _downloadServices.remove(item.id);
-        service?.dispose();
-        final errorMsg = error.toString();
-        debugPrint('DownloadQueue: error for ${item.game.filename}: $errorMsg');
-        _updateItem(
-          item.id,
-          status: DownloadStatus.error,
-          error: errorMsg,
-          tempFilePath: tempPath,
-        );
-
-        final currentItem = _state.getDownloadById(item.id);
-        if (!_closing &&
-            currentItem != null &&
-            currentItem.game.alternativeSources.isNotEmpty &&
-            _isRetryableError(errorMsg)) {
-          _switchToAlternativeSource(item.id);
-          return;
-        }
-        if (!_closing &&
-            currentItem != null &&
-            currentItem.retryCount < _maxRetries &&
-            _isRetryableError(errorMsg)) {
-          _scheduleRetry(item.id, currentItem.retryCount);
-        } else {
-          _stopForegroundServiceIfIdle();
-        }
-        _processQueue();
-      },
-      cancelOnError: true,
-    );
-
-    _subscriptions[item.id] = subscription;
+    _updateItem(item.id,
+        status: DownloadStatus.error,
+        error: 'This source is no longer supported. Connect Google Drive.');
+    await _persistQueue();
+    _processQueue();
   }
 
   bool _ownsDrive(String id, _DriveQueueAttempt attempt) =>
@@ -782,40 +540,6 @@ class DownloadQueueManager extends ChangeNotifier {
     }
   }
 
-  Future<void> _onDownloadComplete(String id) async {
-    final item = _state.getDownloadById(id);
-    if (item != null && item.status == DownloadStatus.error) {
-      debugPrint('DownloadQueue: download FAILED: $id — ${item.error}');
-    } else {
-      debugPrint('DownloadQueue: download complete: $id');
-    }
-    if (item == null) return;
-
-    if (item.status == DownloadStatus.error) {
-      if (item.retryCount < _maxRetries && _isRetryableError(item.error)) {
-        _scheduleRetry(id, item.retryCount);
-        return; // Keep foreground service alive for pending retry
-      }
-    }
-
-    if (item.status != DownloadStatus.completed &&
-        item.status != DownloadStatus.error) {
-      _updateItem(id,
-          status: DownloadStatus.completed, clearTempFilePath: true);
-    }
-
-    // Notify listener for post-download processing (e.g. RA hash verification)
-    final completedItem = _state.getDownloadById(id);
-    if (completedItem != null &&
-        completedItem.status == DownloadStatus.completed) {
-      await onItemCompleted?.call(completedItem);
-    }
-
-    _persistQueue();
-    _stopForegroundServiceIfIdle();
-    _processQueue();
-  }
-
   void _updateItem(
     String id, {
     DownloadStatus? status,
@@ -978,12 +702,6 @@ class DownloadQueueManager extends ChangeNotifier {
         }
 
         final downloadItem = DownloadItem.fromJson(map, system);
-        if (downloadItem.game.providerConfig == null) {
-          debugPrint(
-              'DownloadQueue: skipping restore item with null providerConfig');
-          continue;
-        }
-
         // Re-inject auth credentials from AppConfig (stripped during persist)
         final restoredItem = _rehydrateAuth(downloadItem, appConfig);
 
@@ -996,13 +714,14 @@ class DownloadQueueManager extends ChangeNotifier {
                   : restoredItem.status,
               clearSpeed: true));
         } else {
-          restored.add(restoredItem.copyWith(
-            status: DownloadStatus.queued,
-            progress: 0,
-            receivedBytes: 0,
-            clearError: true,
-            clearSpeed: true,
-          ));
+          restored.add(restoredItem.isComplete
+              ? restoredItem
+              : restoredItem.copyWith(
+                  status: DownloadStatus.error,
+                  error:
+                      'This source is no longer supported. Connect Google Drive.',
+                  clearSpeed: true,
+                ));
         }
       }
 
@@ -1044,26 +763,6 @@ class DownloadQueueManager extends ChangeNotifier {
     unawaited(close());
     _notificationThrottle?.cancel();
 
-    for (final timer in _retryTimers.values) {
-      timer.cancel();
-    }
-    _retryTimers.clear();
-
-    for (final sub in _subscriptions.values) {
-      sub?.cancel();
-    }
-    _subscriptions.clear();
-
-    for (final service in _downloadServices.values) {
-      try {
-        service.reset();
-      } catch (e) {
-        debugPrint('DownloadQueue: service reset failed during dispose: $e');
-      }
-      service.dispose();
-    }
-    _downloadServices.clear();
-
     DownloadForegroundService.stop();
     super.dispose();
   }
@@ -1080,8 +779,6 @@ class DownloadQueueManager extends ChangeNotifier {
       attempt.operation?.pause();
     }
     await Future.wait(attempts.map((attempt) => attempt.settled));
-    await Future.wait(
-        _legacySettled.values.map((done) => done.future).toList());
     await _stageRetirementRecovery;
     await _ownedRemovalRecovery;
     await _persistence;
