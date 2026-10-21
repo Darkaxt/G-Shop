@@ -79,6 +79,25 @@ class SocketMediaModel {
   static vm.Matrix4 openingTransform(
       Map<String, dynamic> surface, double opening) {
     final transform = vm.Matrix4.identity();
+    for (final raw in surface['openingTranslations'] as List? ?? const []) {
+      final keys = (raw['keys'] as List).cast<List>();
+      final t = opening.clamp(0.0, 1.0);
+      var value = (keys.last.sublist(1)).cast<num>();
+      for (var i = 1; i < keys.length; i++) {
+        final a = keys[i - 1], b = keys[i];
+        if (t <= (b[0] as num)) {
+          final f = ((t - (a[0] as num)) / ((b[0] as num) - (a[0] as num)))
+              .clamp(0.0, 1.0);
+          value = [
+            for (var n = 1; n < 4; n++)
+              (a[n] as num) + ((b[n] as num) - (a[n] as num)) * f
+          ];
+          break;
+        }
+      }
+      transform.translateByDouble(
+          value[0].toDouble(), value[1].toDouble(), value[2].toDouble(), 1);
+    }
     for (final raw in surface['openingHinges'] as List? ?? const []) {
       final hinge = raw as Map;
       final keys = (hinge['keys'] as List).cast<List>();
@@ -272,6 +291,29 @@ class SocketMediaModel {
         }
       }
       final hinges = s['openingHinges'];
+      final motions = s['openingTranslations'];
+      if (motions != null) {
+        if (motions is! List || motions.length > 16)
+          throw const FormatException('Invalid assembly hierarchy');
+        for (final motion in motions) {
+          final keys = motion['keys'];
+          if (keys is! List || keys.length < 2 || keys.length > 256)
+            throw const FormatException('Invalid assembly keys');
+          var previous = -1.0;
+          for (final key in keys) {
+            if (key is! List ||
+                key.length != 4 ||
+                key.any((v) => v is! num || !v.isFinite) ||
+                key[0] <= previous ||
+                key[0] < 0 ||
+                key[0] > 1)
+              throw const FormatException('Invalid assembly displacement');
+            previous = (key[0] as num).toDouble();
+          }
+          if (keys.first[0] != 0 || keys.last[0] != 1)
+            throw const FormatException('Incomplete assembly keys');
+        }
+      }
       if (hinges != null) {
         if (hinges is! List || hinges.length > 16) {
           throw const FormatException('Invalid local opening hierarchy');
@@ -476,6 +518,7 @@ class SocketMediaPose {
       required double seconds,
       double insertion = 0,
       double manualRotation = 0,
+      double opening = 0,
       bool reducedMotion = false}) {
     const degrees = math.pi / 180;
     final chosen = reducedMotion ? 1.0 : _expoOut(selected);
@@ -550,6 +593,7 @@ class SocketMediaPose {
         scaleX: sx,
         scaleY: sy,
         scaleZ: sz,
-        labelSpin: spin);
+        labelSpin: spin,
+        opening: opening);
   }
 }

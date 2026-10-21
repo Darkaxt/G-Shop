@@ -574,7 +574,7 @@ class SocketMediaGpu {
       final framing = model.data['unboxingGeometry'] == true
           ? UnboxingScene.framing(model, pose.unboxing)
           : 1.0;
-      return vm.Matrix4.identity()
+      final matrix = vm.Matrix4.identity()
         ..translateByDouble(0, pose.y, pose.z, 1)
         ..rotateY(pose.ry * framing)
         ..rotateX(pose.rx * framing +
@@ -582,6 +582,11 @@ class SocketMediaGpu {
             (model.data['cartridgeGeometry'] == true ? math.pi / 2 : 0))
         ..rotateZ(pose.rz)
         ..scaleByDouble(pose.scaleX, pose.scaleY, pose.scaleZ, 1);
+      if (model.data['assemblyInspection'] == true) {
+        final center = SocketMediaModel.poseCenter(model.data, pose.opening);
+        matrix.translateByDouble(-center.x, -center.y, -center.z, 1);
+      }
+      return matrix;
     }
     final values = (model.data['sourceRootTransform'] as List).cast<num>();
     final rest = vm.Matrix4.identity();

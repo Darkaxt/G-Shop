@@ -349,11 +349,12 @@ class ConsoleModel {
 
   static Future<ConsoleModel?> findNesConsoleVariant(String variant,
       {Directory? modelsDirectory}) async {
-    if (!{'front-loader', 'top-loader'}.contains(variant)) {
+    if (!{'front-loader', 'top-loader', 'famicom', 'dendy'}.contains(variant)) {
       throw const FormatException('Unknown NES console body');
     }
     if (modelsDirectory == null && !Platform.isAndroid) return null;
-    final root = modelsDirectory ?? Directory('/storage/emulated/0/RShop/models');
+    final root =
+        modelsDirectory ?? Directory('/storage/emulated/0/RShop/models');
     final dir = Directory('${root.path}/consoles/nes/variants/$variant');
     final file = File('${dir.path}/model.json');
     if (!await file.exists()) return null;
@@ -456,7 +457,13 @@ class ConsoleModel {
         }
       }
     }
-    if (receipts.length > (collection ? 272 : 64)) {
+    final nesOverview = systemId == 'nes' && data['overviewGeometry'] == true;
+    if (receipts.length >
+        (collection
+            ? 272
+            : nesOverview
+                ? 128
+                : 64)) {
       throw const FormatException('Invalid console texture inventory');
     }
     for (final entry in receipts.entries) {

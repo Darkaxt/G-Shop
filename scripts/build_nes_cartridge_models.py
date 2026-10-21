@@ -35,7 +35,8 @@ def material(name, color, roughness=.45, metallic=0, transmission=0):
     bsdf.inputs['Metallic'].default_value = metallic
     bsdf.inputs['Transmission Weight'].default_value = transmission
     bsdf.inputs['IOR'].default_value = 1.49
-    m['runtime'] = json.dumps({'color': [*color, 1], 'textures': {},
+    srgb = [12.92*v if v <= .0031308 else 1.055*v**(1/2.4)-.055 for v in color]
+    m['runtime'] = json.dumps({'color': [*srgb, 1], 'textures': {},
         'sourceProperties': {'roughness': roughness, 'metallic': metallic,
             'transmission': transmission, 'ior': 1.49, 'thickness': .015}})
     return m

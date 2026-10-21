@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:vector_math/vector_math_64.dart' as vm;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_gpu/gpu.dart' as gpu;
@@ -10,6 +11,33 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(useSocketOracle);
   tearDownAll(() => SocketMediaModel.importedBundle = null);
+  test('assembly translations interpolate and compose parent movements', () {
+    final surface = <String, dynamic>{
+      'openingTranslations': [
+        {
+          'keys': [
+            [0, 0, 0, 0],
+            [.5, 0, 0, .4],
+            [1, 0, 0, 1]
+          ]
+        },
+        {
+          'keys': [
+            [0, 0, 0, 0],
+            [1, .2, 0, 0]
+          ]
+        }
+      ]
+    };
+    final halfway = SocketMediaModel.openingTransform(surface, .5)
+        .transformed3(vm.Vector3(2, 3, 4));
+    expect(halfway.x, closeTo(2.1, 1e-7));
+    expect(halfway.y, 3);
+    expect(halfway.z, closeTo(4.4, 1e-7));
+    final closed = SocketMediaModel.openingTransform(surface, 0)
+        .transformed3(vm.Vector3(2, 3, 4));
+    expect(closed, vm.Vector3(2, 3, 4));
+  });
   test('transmitting plastic preserves IOR and does not become alpha blending',
       () {
     final material = <String, dynamic>{

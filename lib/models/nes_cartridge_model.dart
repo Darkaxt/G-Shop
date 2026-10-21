@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:crypto/crypto.dart';
+import 'package:flutter/services.dart';
+import '../services/socket_media_import.dart';
 import '../utils/game_metadata.dart';
 import 'socket_media_model.dart';
 
@@ -21,7 +24,30 @@ class NesCartridgeModel {
     'ave-angle': 'AVE · clipped corner',
     'active-clear': 'Active Enterprises · clear',
     'aladdin': 'Aladdin · adapter and compact cartridge',
+    'nintendo-3-white': 'Nintendo · pale regional shell',
+    'service-yellow': 'Service/test · yellow reference',
+    'famicombox-black': 'FamicomBox · black reference',
+    'inspection-clear': 'Nintendo · clear inspection aid',
+    'agci-gray': 'AGCI · grey reference',
+    'source-5-gray': 'Five screws · alternate source exterior',
+    'source-5-clear': 'Alternate exterior · clear inspection aid',
+    'famicom-gold': 'Famicom-compatible bootleg · gold reference',
+    'famicom-gold-clear': 'Famicom-compatible gold · inspection aid',
+    'famicom-black': 'Famicom-compatible multicart · black reference',
+    'famicom-black-clear': 'Famicom-compatible black · inspection aid',
+    'pcb-nrom-256': 'PCB · NROM-256 reference',
+    'pcb-snrom': 'PCB · SNROM reference',
+    'pcb-surom': 'PCB · SUROM reference',
+    'pcb-etrom': 'PCB · ETROM reference',
+    'pcb-unlicensed-reference': 'PCB · generic unlicensed reference',
+    'pcb-action52-reference': 'PCB · illustrative Action 52 reference',
+    'dust-sleeve': 'Dust sleeve · reference',
   };
+  static bool hasInspection(String style) =>
+      labels.containsKey(style) &&
+      style != 'aladdin' &&
+      style != 'dust-sleeve' &&
+      !style.startsWith('pcb-');
 
   static List<String> referencesFor(String filename) {
     if (filename.contains(RegExp(r'[/\\\[]')) ||
@@ -310,10 +336,46 @@ class NesCartridgeModel {
         data['cartridgeStyle'] != style ||
         data['motionKind'] != 'pushClick' ||
         data['textureFiles'] is! Map ||
-        (data['textureFiles'] as Map).isNotEmpty) {
+        (data['textureFiles'] as Map).length > 64) {
       throw const FormatException('NES shell identity differs from selection');
     }
     final bytes = ByteData.sublistView(await mesh.readAsBytes());
-    return SocketMediaModel.privateCartridge(data, bytes);
+    final receipts = (data['textureFiles'] as Map).cast<String, String>();
+    for (final entry in receipts.entries) {
+      SocketMediaDirectoryBundle.checkName(entry.key);
+      if (!RegExp(r'^[a-f0-9]{64}$').hasMatch(entry.value))
+        throw const FormatException('Invalid NES texture receipt');
+    }
+    for (final surface in data['surfaces'] as List) {
+      for (final name in (surface['material']['textures'] as Map).values) {
+        if (!receipts.containsKey(name))
+          throw const FormatException('Missing NES texture receipt');
+      }
+    }
+    return SocketMediaModel.privateCartridge(data, bytes,
+        textureBundle: _NesTextures(dir, receipts));
+  }
+}
+
+class _NesTextures extends SocketMediaDirectoryBundle {
+  final Map<String, String> receipts;
+  _NesTextures(super.directory, this.receipts);
+  @override
+  Future<ByteData> load(String key) async {
+    if (!key.startsWith(SocketMediaModel.assetRoot))
+      throw const FormatException('Invalid NES texture namespace');
+    final name = key.substring(SocketMediaModel.assetRoot.length);
+    SocketMediaDirectoryBundle.checkName(name);
+    if (!receipts.containsKey(name) ||
+        await File('${directory.path}/$name').length() > 20 * 1024 * 1024)
+      throw const FormatException('Invalid NES texture file');
+    final bytes = await super.load(key);
+    if (sha256
+            .convert(bytes.buffer
+                .asUint8List(bytes.offsetInBytes, bytes.lengthInBytes))
+            .toString() !=
+        receipts[name])
+      throw const FormatException('NES texture differs from its receipt');
+    return bytes;
   }
 }

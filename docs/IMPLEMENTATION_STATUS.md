@@ -6,16 +6,23 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 ## Scope state
 
 2026-10-21 new owner request: S25 **ACTIVE**, sole active stage, bounded ICON-01 /
-NES-01..05 batch (specification revision 134). S26 is COMPLETE below. Approved
-ImageGen icon is integrated into launcher/splash/README. All 623 animated cartons,
-the supplied 290-object scene, both console bodies and 13 cartridge references
-pass production import loaders and texture receipts. Their private deployment to
-Thor is verified; all 1,203 pre-existing import hashes remain unchanged. Focused
-library/preview/lifecycle/launch checks and NES readiness/rating checks pass.
+NES-01..06 batch (specification revision 135). S26 is COMPLETE below. Approved
+ImageGen icon is integrated into launcher/splash/README. All 623 animated cartons
+pass production loaders and texture receipts. The supplied 34 GLBs independently
+validate with zero Khronos errors/warnings; all delivery checksums match. The
+expanded collector preserves all 291 original nodes and placements and adds the
+top loader, Famicom and explicitly named Dendy-compatible clone (340 mesh objects).
+Four supplied console bodies and 31 cartridge/accessory references pass production
+loaders, including source assembly translations, texture receipts and separate
+front-label binding. Host checks verify inspection pause/resume, assembly and
+launch reset. Current signed native acceptance is still pending. Earlier private
+deployment preserved all 1,203 pre-existing import hashes; replacement activation
+is checked separately against that same baseline.
 The 9,831-archive census yields 453 same-region reference-box bindings and 1,219
 archives with known NES shell references; neither proves an owned physical SKU.
-Signed native acceptance and final 1.10.1/code 42 delivery remain advancement
-blockers within ACTIVE S25. No external
+Supplied-model native acceptance, the newly requested complete per-game unboxing,
+and final 1.10.1/code 42 delivery remain internal advancement blockers within
+ACTIVE S25. No external
 execution blocker established; no tracked deferral. Wider gallery work is retained.
 
 2026-10-21 delivery: **S26 COMPLETE**, Drive only, normal public

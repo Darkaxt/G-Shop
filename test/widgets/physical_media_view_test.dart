@@ -22,6 +22,42 @@ import '../helpers/socket_media_oracle.dart';
 void main() {
   setUpAll(useSocketOracle);
   tearDownAll(() => SocketMediaModel.importedBundle = null);
+  testWidgets('NES inspection pauses, resumes, assembles and resets for launch',
+      (tester) async {
+    final key = GlobalKey<PhysicalMediaViewState>();
+    Widget view({bool inspect = true, bool reduced = false}) => MaterialApp(
+        home: PhysicalMediaView(
+            key: key,
+            identity: 'nes-inspection',
+            title: 'NES reference',
+            format: PhysicalMediaFormat.nes,
+            inspectInside: inspect,
+            reducedMotion: reduced,
+            label: const Text('Game label')));
+    await tester.pumpWidget(view());
+    await tester.pump(const Duration(milliseconds: 450));
+    final halfway = key.currentState!.pose.opening;
+    expect(halfway, greaterThan(0));
+    expect(halfway, lessThan(1));
+    key.currentState!.didChangeAppLifecycleState(AppLifecycleState.paused);
+    await tester.pump(const Duration(seconds: 2));
+    expect(key.currentState!.pose.opening, halfway);
+    key.currentState!.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1350));
+    expect(key.currentState!.pose.opening, 1);
+    await tester.pumpWidget(view(inspect: false));
+    await tester.pump(const Duration(milliseconds: 1350));
+    expect(key.currentState!.pose.opening, 0);
+    await tester.pumpWidget(view(reduced: true));
+    expect(key.currentState!.pose.opening, 1);
+    await tester.pumpWidget(view());
+    final launched = key.currentState!.playInsertion();
+    expect(key.currentState!.pose.opening, 0);
+    key.currentState!.skipInsertion();
+    expect(await launched, isTrue);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets(
       'integrated handheld bypasses carton reveal and settles honest fallback',
       (tester) async {

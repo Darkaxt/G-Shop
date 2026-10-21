@@ -37,6 +37,7 @@ class _NesMediaPreviewState extends State<NesMediaPreview> {
   String? _style;
   int _edition = 0, _generation = 0;
   bool _boxReady = false, _cartridgeReady = false, _reported = false;
+  bool _inspectInside = false;
   late Future<List<NesBoxEdition>> _editions;
   Future<ConsoleModel?>? _box;
   List<NesBoxEdition>? _choices;
@@ -50,6 +51,7 @@ class _NesMediaPreviewState extends State<NesMediaPreview> {
     _generation++;
     _styles = NesCartridgeModel.referencesFor(widget.filename);
     _style = _styles.firstOrNull;
+    _inspectInside = false;
     _edition = 0;
     _box = null;
     _choices = null;
@@ -113,6 +115,13 @@ class _NesMediaPreviewState extends State<NesMediaPreview> {
             return const Center(child: CircularProgressIndicator());
           }
           final choices = _choices ??= snapshot.data ?? const [];
+          if (choices.isEmpty && _styles.isEmpty && _style == null) {
+            _ready(generation, box: true);
+            return Stack(fit: StackFit.expand, children: [
+              _fallback(),
+              Positioned(bottom: 4, right: 4, child: _referenceMenu())
+            ]);
+          }
           if (choices.isNotEmpty) _box ??= choices[_edition].load();
           return Column(children: [
             const Padding(
@@ -186,12 +195,15 @@ class _NesMediaPreviewState extends State<NesMediaPreview> {
                   const SizedBox(width: 12),
                   Expanded(
                       child: Column(children: [
-                    if (_styles.isNotEmpty)
+                    if (_style != null)
                       DropdownButton<String>(
                           value: _style,
                           isExpanded: true,
                           items: [
-                            for (final style in _styles)
+                            for (final style in {
+                              ..._styles,
+                              if (_style != null) _style!
+                            })
                               DropdownMenuItem(
                                   value: style,
                                   child: Text(NesCartridgeModel.labels[style]!,
@@ -202,10 +214,25 @@ class _NesMediaPreviewState extends State<NesMediaPreview> {
                             if (style == null || style == _style) return;
                             setState(() {
                               _style = style;
+                              _inspectInside = false;
                               _cartridgeReady = false;
                               _reported = false;
                             });
                           }),
+                    Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      if (_style != null &&
+                          NesCartridgeModel.hasInspection(_style!))
+                        IconButton(
+                            tooltip: _inspectInside
+                                ? 'Assemble cartridge'
+                                : 'Inspect inside',
+                            icon: Icon(_inspectInside
+                                ? Icons.close_fullscreen
+                                : Icons.open_in_full),
+                            onPressed: () => setState(
+                                () => _inspectInside = !_inspectInside)),
+                      _referenceMenu(),
+                    ]),
                     Expanded(
                         child: _style == null
                             ? _fallback()
@@ -216,6 +243,7 @@ class _NesMediaPreviewState extends State<NesMediaPreview> {
                                 title: widget.title,
                                 format: PhysicalMediaFormat.nes,
                                 cartridgeStyle: _style,
+                                inspectInside: _inspectInside,
                                 label: widget.label,
                                 labelIdentity: widget.labelIdentity,
                                 reducedMotion: widget.reducedMotion,
@@ -229,4 +257,18 @@ class _NesMediaPreviewState extends State<NesMediaPreview> {
           ]);
         });
   }
+
+  Widget _referenceMenu() => PopupMenuButton<String>(
+      tooltip: 'Other reference models',
+      icon: const Icon(Icons.view_in_ar_outlined),
+      itemBuilder: (_) => [
+            for (final e in NesCartridgeModel.labels.entries)
+              PopupMenuItem(value: e.key, child: Text(e.value))
+          ],
+      onSelected: (style) => setState(() {
+            _style = style;
+            _inspectInside = false;
+            _cartridgeReady = false;
+            _reported = false;
+          }));
 }

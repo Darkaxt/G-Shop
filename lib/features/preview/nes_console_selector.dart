@@ -18,10 +18,15 @@ class NesConsoleSelector extends StatefulWidget {
 }
 
 class _NesConsoleSelectorState extends State<NesConsoleSelector> {
+  static const names = {
+    'front-loader': 'NES · front loader',
+    'top-loader': 'NES-101 · top loader',
+    'famicom': 'Famicom HVC-001',
+    'dendy': 'Dendy-compatible clone'
+  };
   String _selected = 'collection';
   late final _variants = Future.wait([
-    ConsoleModel.findNesConsoleVariant('front-loader'),
-    ConsoleModel.findNesConsoleVariant('top-loader'),
+    for (final id in names.keys) ConsoleModel.findNesConsoleVariant(id),
   ]);
   @override
   Widget build(BuildContext context) => FutureBuilder<List<ConsoleModel?>>(
@@ -29,10 +34,10 @@ class _NesConsoleSelectorState extends State<NesConsoleSelector> {
       builder: (context, snapshot) {
         final variants = snapshot.data;
         final ConsoleModel? model;
-        if (_selected == 'front-loader') {
-          model = variants == null ? null : variants[0];
-        } else if (_selected == 'top-loader') {
-          model = variants == null ? null : variants[1];
+        if (names.containsKey(_selected)) {
+          model = variants == null
+              ? null
+              : variants[names.keys.toList().indexOf(_selected)];
         } else {
           model = widget.collection;
         }
@@ -41,11 +46,7 @@ class _NesConsoleSelectorState extends State<NesConsoleSelector> {
             ConsoleHardwareView(
                 key: widget.hardwareKey,
                 model: model,
-                title: _selected == 'collection'
-                    ? 'Nintendo Entertainment System'
-                    : _selected == 'front-loader'
-                        ? 'NES · front loader'
-                        : 'NES-101 · top loader',
+                title: names[_selected] ?? 'Nintendo Entertainment System',
                 reducedMotion: widget.reducedMotion,
                 onReady: widget.onReady),
           Positioned(
@@ -59,14 +60,11 @@ class _NesConsoleSelectorState extends State<NesConsoleSelector> {
                         const PopupMenuItem(
                             value: 'collection',
                             child: Text('Collector scene')),
-                        PopupMenuItem(
-                            value: 'front-loader',
-                            enabled: variants?[0] != null,
-                            child: const Text('NES · front loader')),
-                        PopupMenuItem(
-                            value: 'top-loader',
-                            enabled: variants?[1] != null,
-                            child: const Text('NES-101 · top loader')),
+                        for (var i = 0; i < names.length; i++)
+                          PopupMenuItem(
+                              value: names.keys.elementAt(i),
+                              enabled: variants != null && variants[i] != null,
+                              child: Text(names.values.elementAt(i))),
                       ],
                   icon: const Icon(Icons.layers_outlined))),
         ]);

@@ -24,6 +24,9 @@ def main():
     parser.add_argument('--source-url', required=True)
     parser.add_argument('--rom-set', help='Exact supplied Game & Watch MAME set')
     parser.add_argument('--edition-id', help='Exact NES carton catalogue edition ID')
+    parser.add_argument('--cartridge-style', help='Explicit NES cartridge reference identity')
+    parser.add_argument('--scratch-directory', type=Path,
+                        help='Owned scratch for GLBs requiring unique Blender material names')
     parser.add_argument('--visual-variant-id', help='Explicit visual-only hardware edition; no ROM binding')
     parser.add_argument('--resource-kind', choices=('handheld', 'box'), default='handheld')
     parser.add_argument('--gamewatch-collection', action='store_true',
@@ -40,7 +43,21 @@ def main():
         raise ValueError('Expected GLB JSON chunk')
     gltf = json.loads(raw[20:20+length])
     binary = raw[28+length:]
-    if gltf.get('skins') or gltf.get('animations') and not (args.rom_set or args.visual_variant_id or args.edition_id):
+    import_source = args.source
+    material_names = [m.get('name','') for m in gltf.get('materials',[])]
+    if len(set(material_names)) != len(material_names):
+        if args.scratch_directory is None:
+            raise ValueError('Duplicate source material names require an explicit scratch directory')
+        for index, mat in enumerate(gltf['materials']):
+            mat['name'] = mat.get('name','Material')[:40] + f'__gltf_{index}'
+        encoded = json.dumps(gltf,separators=(',',':')).encode('utf-8')
+        encoded += b' ' * (-len(encoded)%4)
+        prepared = struct.pack('<4sII',b'glTF',2,28+len(encoded)+len(binary)) + struct.pack('<II',len(encoded),0x4e4f534a) + encoded + struct.pack('<II',len(binary),0x004e4942) + binary
+        args.scratch_directory.mkdir(parents=True,exist_ok=True)
+        import_source = args.scratch_directory/(hashlib.sha256(prepared).hexdigest()+'.glb')
+        if not import_source.exists(): import_source.write_bytes(prepared)
+        elif import_source.read_bytes()!=prepared: raise ValueError('Canonical material scratch differs')
+    if gltf.get('skins') or gltf.get('animations') and not (args.rom_set or args.visual_variant_id or args.edition_id or args.cartridge_style):
         raise ValueError('This adapter preserves static console display scenes only')
     if args.rom_set and (args.system != 'gameandwatch' or
             not __import__('re').fullmatch('[a-z0-9_]+', args.rom_set)):
@@ -55,6 +72,8 @@ def main():
     if args.resource_kind == 'box' and not (args.rom_set or args.visual_variant_id or args.edition_id):
         raise ValueError('A box import requires its exact associated hardware identity')
     source_animations = {a['name']: a for a in gltf.get('animations', [])}
+    if args.cartridge_style and (args.system != 'nes' or args.edition_id or args.rom_set or args.visual_variant_id or not __import__('re').fullmatch('[a-z0-9-]+',args.cartridge_style)):
+        raise ValueError('Expected an explicit NES cartridge reference')
     if args.overview_max_triangles is not None and (
             source_animations or args.gamewatch_collection or
             not 1000 <= args.overview_max_triangles <= 180000 or
@@ -63,11 +82,11 @@ def main():
     if len(source_animations) != len(gltf.get('animations', [])):
         raise ValueError('Source animation names must be unique')
     clip_names = set(source_animations)
-    if clip_names not in (set(), {'Open', 'Close'},
+    if clip_names not in ((set(), {'Explode','Assemble'}) if args.cartridge_style else (set(), {'Open', 'Close'},
             {'BatteryRemove', 'BatteryInsert'},
-            {'Open', 'Close', 'BatteryRemove', 'BatteryInsert'}):
+            {'Open', 'Close', 'BatteryRemove', 'BatteryInsert'})):
         raise ValueError('Expected inspected opening and/or battery animation pairs')
-    animation = source_animations.get('Open')
+    animation = source_animations.get('Explode' if args.cartridge_style else 'Open')
     def values(index):
         a = gltf['accessors'][index]
         view = gltf['bufferViews'][a['bufferView']]
@@ -114,10 +133,18 @@ def main():
     def texture(slot):
         return names[gltf['textures'][slot['index']]['source']]
     materials = {}
+    material_uv_sets = {}
     double_sided = {}
     for mat in gltf['materials']:
         double_sided[mat['name']] = mat.get('doubleSided', False)
         pbr = mat.get('pbrMetallicRoughness', {})
+        slots = [value for value in [pbr.get('baseColorTexture'),
+            pbr.get('metallicRoughnessTexture'), mat.get('normalTexture'),
+            mat.get('occlusionTexture'), mat.get('emissiveTexture')] if value]
+        uv_sets = {slot.get('texCoord', 0) for slot in slots}
+        if len(uv_sets) > 1:
+            raise ValueError('A runtime surface requires one shared texture UV set')
+        material_uv_sets[mat['name']] = next(iter(uv_sets), 0)
         albedo = pbr.get('baseColorTexture')
         orm = pbr.get('metallicRoughnessTexture')
         maps = {}
@@ -127,9 +154,15 @@ def main():
         if mat.get('occlusionTexture'): maps['ao'] = texture(mat['occlusionTexture'])
         emission = mat.get('emissiveFactor', [0, 0, 0])
         if mat.get('emissiveTexture'): maps['emission'] = texture(mat['emissiveTexture'])
+        # glTF factors are linear; this renderer's material colour is sRGB,
+        # decoded by its shader alongside the source texture. Preserve alpha.
+        factor = pbr.get('baseColorFactor', [1, 1, 1, 1])
+        color = [12.92*v if v <= .0031308 else 1.055*v**(1/2.4)-.055
+            for v in factor[:3]] + factor[3:]
         materials[mat['name']] = {
-            'color': pbr.get('baseColorFactor', [1, 1, 1, 1]), 'textures': maps,
+            'color': color, 'textures': maps,
             'sourceProperties': {'roughness': pbr.get('roughnessFactor', 1),
+                'gltfTexCoord': material_uv_sets[mat['name']],
                 'metallic': pbr.get('metallicFactor', 1),
                 'normal_scale': mat.get('normalTexture', {}).get('scale', 1),
                 'ao_strength': mat.get('occlusionTexture', {}).get('strength', 1),
@@ -145,7 +178,7 @@ def main():
         if 'KHR_materials_ior' in extensions:
             properties['ior'] = extensions['KHR_materials_ior'].get('ior', 1.5)
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=str(args.source))
+    bpy.ops.import_scene.gltf(filepath=str(import_source))
     collection = None
     if args.gamewatch_collection:
         if args.system != 'gameandwatch' or args.rom_set or args.visual_variant_id or source_animations:
@@ -252,7 +285,7 @@ def main():
         if obj.animation_data:
             obj.animation_data.action = None
             for track in obj.animation_data.nla_tracks:
-                track.mute = not animation or track.name != 'Open'
+                track.mute = not animation or track.name != ('Explode' if args.cartridge_style else 'Open')
                 if not track.mute: starts.extend(s.frame_start for s in track.strips)
     if animation:
         if not starts:
@@ -260,7 +293,7 @@ def main():
         frame_origin = min(starts)
         bpy.context.scene.frame_set(int(frame_origin))
         bpy.context.view_layer.update()
-    objects = [o for o in bpy.context.scene.objects if o.type == 'MESH']
+    objects = [o for o in bpy.context.scene.objects if o.type == 'MESH' and len(o.data.polygons)>0]
     def axis(p): return Vector((p.x, p.z, -p.y))
     points = [axis(o.matrix_world @ v.co) for o in objects for v in o.data.vertices]
     # Frame the actual articulated envelope, not only the closed shell. Mesh
@@ -289,10 +322,24 @@ def main():
     high = Vector([max(p[a] for p in points) for a in range(3)])
     center, scale = (low + high) / 2, 2 / max(high - low)
     hinges = {}
+    translations = {}
     if animation:
         for channel in animation['channels']:
             node = gltf['nodes'][channel['target']['node']]
             sampler = animation['samplers'][channel['sampler']]
+            if args.cartridge_style:
+                if channel['target']['path'] != 'translation' or sampler.get('interpolation','LINEAR') != 'LINEAR':
+                    raise ValueError('Expected inspected translation-only cartridge assembly')
+                obj = bpy.data.objects[node['name']]
+                positions = values(sampler['output'])
+                parent = obj.parent.matrix_world.to_3x3() if obj.parent else Matrix.Identity(3)
+                keys=[]
+                for time,p in zip(values(sampler['input']),positions):
+                    delta=Vector(p)-Vector(positions[0])
+                    vector=axis(parent@Vector((delta.x,-delta.z,delta.y)))*scale
+                    keys.append([(time[0]-animation_start)/duration,*vector])
+                translations[obj.name]={'keys':keys}
+                continue
             if channel['target']['path'] != 'rotation' or sampler.get('interpolation', 'LINEAR') != 'LINEAR':
                 raise ValueError('Expected inspected linear quaternion hinge')
             obj = bpy.data.objects[node['name']]
@@ -318,20 +365,26 @@ def main():
                 'axis': list(axis(parent @ blender_direction).normalized()),
                 'keys': [[t, q.angle * (-1 if q.axis.dot(direction) < 0 else 1)] for t, q in pairs]}
     payload, surfaces = bytearray(), []
+    label_aspect = None
     closed_world = {o.name: o.matrix_world.copy() for o in objects}
     for obj in objects:
-        chain, parent = [], obj.parent
+        chain, motion_chain, parent = [], [], obj
+        while parent:
+            if parent.name in translations: motion_chain.insert(0,translations[parent.name])
+            parent=parent.parent
+        parent = obj.parent
         while parent:
             if parent.name in hinges: chain.insert(0, hinges[parent.name])
             parent = parent.parent
         mesh = obj.data
         mesh.calc_loop_triangles()
-        uv = mesh.uv_layers.active.data if mesh.uv_layers.active else None
         normal_matrix = obj.matrix_world.to_3x3().inverted().transposed()
         for index, mat in enumerate(mesh.materials):
             triangles = [t for t in mesh.loop_triangles if t.material_index == index]
             if not triangles: continue
             material = materials[mat.name]
+            uv_set = material_uv_sets[mat.name]
+            uv = mesh.uv_layers[uv_set].data if len(mesh.uv_layers) > uv_set else None
             if uv is None and material['textures']:
                 raise ValueError(f'Textured mesh part has no UV coordinates: {obj.name}')
             offset, count = len(payload), 0
@@ -344,13 +397,30 @@ def main():
                     count += 1
             indices = len(payload)
             for i in range(count): payload.extend(struct.pack('<I', i))
-            surfaces.append({'node': obj.name, 'name': mat.name, 'role': 'shell',
+            is_label = bool(args.cartridge_style and obj.name in
+                ('Replaceable front artwork', 'Replaceable wrap-over artwork'))
+            if is_label and label_aspect is None:
+                # UV derivatives preserve the full wrap atlas, including the
+                # narrow top strip. Other shell families have different labels.
+                tri = triangles[0]
+                a,b,c = [obj.matrix_world @ mesh.vertices[v].co for v in tri.vertices]
+                ta,tb,tc = [uv[l].uv for l in tri.loops]
+                du,dv = tb-ta,tc-ta
+                determinant = du.x*dv.y-du.y*dv.x
+                if abs(determinant) < 1e-10:
+                    raise ValueError('Replaceable label requires a nondegenerate UV mapping')
+                dpdu = ((b-a)*dv.y-(c-a)*du.y)/determinant
+                dpdv = ((c-a)*du.x-(b-a)*dv.x)/determinant
+                label_aspect = dpdu.length/dpdv.length
+            surfaces.append({'node': obj.name, 'name': mat.name,
+                'role': 'label' if is_label else 'shell',
                 'physicalMaterial': 'glass' if any(material['sourceProperties']['emission']) else 'source',
                 'singleSided': not double_sided[mat.name], 'openingHinges': chain,
+                'openingTranslations': motion_chain,
                 'vertexOffset': offset, 'vertexCount': count,
                 'indexOffset': indices, 'indexCount': count, 'material': material})
     animation_error = 0
-    if hinges:
+    if hinges or translations:
         # Verify the converted pivot/axis convention against Blender's actual
         # evaluated animation before accepting a private articulated import.
         for progress in (.5, 1):
@@ -367,6 +437,9 @@ def main():
                         angle = a[1] + (b[1]-a[1]) * (progress-a[0])/(b[0]-a[0])
                         pivot = Vector(hinge['pivot'])
                         point = pivot + Quaternion(Vector(hinge['axis']), angle) @ (point-pivot)
+                    for motion in next(s['openingTranslations'] for s in surfaces if s['node']==obj.name):
+                        keys=motion['keys']; a,b=next((a,b) for a,b in zip(keys,keys[1:]) if a[0]<=progress<=b[0])
+                        point += Vector(a[1:]).lerp(Vector(b[1:]),(progress-a[0])/(b[0]-a[0]))
                     expected = (axis(obj.matrix_world @ vertex.co)-center)*scale
                     animation_error = max(animation_error, (expected-point).length)
         if animation_error > .0001:
@@ -428,6 +501,13 @@ def main():
         manifest['retailEditionId'] = args.edition_id
         manifest['resourceKind'] = 'box'
         manifest['openingDurationMs'] = round(duration*1000) if hinges else 2000
+    if args.cartridge_style:
+        manifest.pop('hardwareGeometry')
+        manifest.update(name='nes-reference-'+args.cartridge_style,
+            cartridgeGeometry=True, cartridgeStyle=args.cartridge_style,
+            motionKind='pushClick', labelAspect=label_aspect or 1,
+            assemblyInspection=bool(translations), inspectionDurationMs=round(duration*1000))
+        manifest['sourceReference']['previewAnimationPolicy']={'inspection':['Explode','Assemble'] if translations else []}
     original_licence = gltf.get('asset', {}).get('extras', {}).get('sketchfab', {}).get('license')
     if original_licence:
         manifest['sourceReference']['originalLicence'] = original_licence

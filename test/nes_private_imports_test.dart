@@ -33,24 +33,49 @@ void main() {
       final model =
           (await NesCartridgeModel.load(style, modelsDirectory: root))!;
       expect(model.data['cartridgeStyle'], style);
+      if (NesCartridgeModel.hasInspection(style)) {
+        expect(model.data['assemblyInspection'], isTrue);
+        expect(model.data['inspectionDurationMs'], 1350);
+        expect(model.data['animationVerifiedMaxError'], lessThan(.0001));
+      }
+      if (!style.startsWith('pcb-') && !style.startsWith('famicom-') &&
+          style != 'dust-sleeve') {
+        expect(model.surfaces.any((s) => s['role'] == 'label'), isTrue,
+            reason: '$style must bind game artwork separately from the shell');
+        expect(model.surfaces.where((s) => s['node'] == 'Replaceable rear label')
+            .every((s) => s['role'] != 'label'), isTrue);
+      }
+      for (final name in (model.data['textureFiles'] as Map).keys) {
+        await model.textureBundle!.load('${SocketMediaModel.assetRoot}$name');
+      }
       if (style == 'active-clear') {
         expect(
-            model.surfaces.any(
-                (s) => s['material']['sourceProperties']['transmission'] == 1),
+            model.surfaces.any((s) => (s['material']['color'][3] as num) < 1),
             isTrue);
-        expect(
-            model.surfaces.any((s) => '${s['name']}'.contains('PCB')), isTrue);
+        expect(model.surfaces.any((s) => '${s['node']}'.contains('Board')),
+            isTrue);
       }
     }
     final scene = (await ConsoleModel.find('nes', modelsDirectory: root))!;
     expect(scene.isCollectionOverview, isTrue);
     final geometry = await scene.load();
+    final plastic =
+        geometry.surfaces.firstWhere((s) => s['name'] == 'Base_Light_Grey');
+    expect(plastic['material']['color'][0], closeTo(.5333, .001));
+    final labels = geometry.surfaces.firstWhere((s) => s['name'] == 'Labels');
+    expect(labels['material']['sourceProperties']['gltfTexCoord'], 1);
     expect(geometry.data['sourceReference']['overview']['objects'],
-        hasLength(290));
+        hasLength(340));
+    expect(geometry.data['sourceReference']['composition']['originalObjects'],
+        291);
+    expect(
+        geometry.data['sourceReference']['composition']
+            ['originalPlacementsPreserved'],
+        isTrue);
     for (final name in (geometry.data['textureFiles'] as Map).keys) {
       await geometry.textureBundle!.load('${SocketMediaModel.assetRoot}$name');
     }
-    for (final variant in ['front-loader', 'top-loader']) {
+    for (final variant in ['front-loader', 'top-loader', 'famicom', 'dendy']) {
       await (await ConsoleModel.findNesConsoleVariant(variant,
               modelsDirectory: root))!
           .load();

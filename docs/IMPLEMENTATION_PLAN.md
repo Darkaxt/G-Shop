@@ -1,12 +1,16 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 134, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 135, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current batch: S25 **ACTIVE**, sole active implementation stage. ICON-01 and
-NES-01..05 are already authorized. First integrate approved icon consumers; then
+NES-01..06 are already authorized. First integrate approved icon consumers; then
 inspect/import the supplied NES selector scene, census actual ROM/edition assets,
 deploy all prepared NES cartons and required reusable retail shell families.
+Integrate the supplied four console scenes, 23 articulated cartridge variants,
+six PCB references and dust sleeve; preserve original collector props while
+adding the other consoles in a shallow arc. Validate that foundation before
+wiring the requested per-game box/sleeve/personalized-cartridge unboxing.
 Verify complete integrated selector/library/edition workflows on Thor, reconcile
 coverage and existing feature contracts, then commit and deliver one normal final
 release. Public delivery verification is the final gate; no intermediate release.

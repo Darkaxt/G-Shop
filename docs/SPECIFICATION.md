@@ -1,6 +1,19 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 134, 2026-10-21.
+Authoritative specification, revision 135, 2026-10-21.
+
+Owner supplied-model continuation, 2026-10-21: review the three nes-models ZIPs,
+preserve their credits/limitations and use their prepared console and cartridge
+meshes in this same ACTIVE S25 batch. Expand the collector scene with the other
+console bodies in a shallow arc, preserving its original cartridge/box props
+unless a concrete visual improvement justifies a replacement. Keep distinct
+Nintendo Famicom and Dendy-compatible clone identities. Preserve the original
+GLBs and inspection animations; do not infer exact production PCBs, retail clear
+editions, or manufacturing variants from the supplied reference models alone.
+After this foundation is integrated and validated, wire and validate per-game
+unboxing: the matched animated carton, dust protector when appropriate, and the
+selected physical cartridge shell/finish with its separate personalized label.
+Keep this required continuation in the same delivery scope; no partial release.
 
 Owner NES continuation, 2026-10-21: integrate the approved ImageGen G icon into
 app resources, launcher/splash, README and normal APK delivery, then move to NES.
@@ -34,6 +47,12 @@ claim acceptance for uninspected consoles. No intermediate public release.
   family and edition-binding coverage report, reconcile focused host/native
   checks, commit and publish one normal final signed release with independent
   public source/version/signature/hash and installed-package verification.
+- NES-06: after validating the supplied-model foundation, integrate per-game
+  unboxing using the selected matched carton's real opening articulation, a
+  removable dust sleeve where applicable, and the selected cartridge shell,
+  finish and separate game label. Preserve explicit physical-edition uncertainty,
+  Reduced Motion, selection/lifecycle cancellation and the existing launch owner.
+  Validate the complete sequence on Thor before the same final release.
 
 Reference evidence: the owner's linked Legend of NES hardware/cartridge/Tengen
 photographs and catalogue, checked 2026-10-21, guide physical classification;
