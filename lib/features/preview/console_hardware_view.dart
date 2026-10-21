@@ -7,6 +7,7 @@ import '../../models/console_model.dart';
 import '../../models/game_watch_unboxing_scene.dart';
 import '../../models/socket_media_model.dart';
 import '../../widgets/socket_media_renderer.dart';
+import 'scene_preview_layout.dart';
 
 class ConsoleHardwareView extends StatefulWidget {
   final ConsoleModel model;
@@ -254,70 +255,65 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
             ? null
             : const BoxDecoration(gradient: AppTheme.backgroundGradient),
         child: SafeArea(
-            child: Column(children: [
-          if (widget.showTitle) ...[
-            const SizedBox(height: 24),
-            Text(widget.title,
-                textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 26, fontWeight: FontWeight.w600)),
-          ],
-          Expanded(
-              child: AnimatedBuilder(
-                  animation: Listenable.merge([_rotation, _opening]),
-                  builder: (_, __) => Listener(
-                      key: const ValueKey('console-model-gestures'),
-                      onPointerDown: _touchDown,
-                      onPointerUp: _touchUp,
-                      onPointerCancel: _touchUp,
-                      child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: widget.onInspect,
-                          onDoubleTap: widget.model.canOpen
-                              ? () {
-                                  if (_opening.value < .5) {
-                                    _opening.forward();
-                                  } else {
-                                    _opening.reverse();
-                                  }
-                                }
-                              : null,
-                          onScaleStart: (_) => _startZoom = _zoom,
-                          onScaleUpdate: (event) => setState(() {
-                                _yaw += event.focalPointDelta.dx * .012;
-                                _pitch =
-                                    (_pitch + event.focalPointDelta.dy * .012)
-                                        .clamp(-1.5, 1.5);
-                                _zoom =
-                                    (_startZoom * event.scale).clamp(.35, 1.5);
-                              }),
-                          child: SocketMediaRenderer.console(
-                            key: rendererKey,
-                            model: widget.model,
-                            frameComposition: true,
-                            compositionFill: widget.compositionFill,
-                            compositionZoom: _zoom / .9,
-                            gameWatchScene: widget.unboxingScene,
-                            identity:
-                                'console:${widget.systemId}:${widget.model.hardwareId}:${widget.generation}',
-                            title: widget.title,
-                            onReady: _ready,
-                            pose: SocketMediaPose(
-                                unboxing: widget.unboxingProgress,
-                                inspectedPart:
-                                    widget.inspecting ? 'console' : null,
-                                inspection: widget.inspecting ? 1 : 0,
-                                opening:
-                                    widget.sequenceOpening ?? _opening.value,
-                                rx: _pitch,
-                                ry: widget.stagingYaw +
-                                    _yaw +
-                                    (widget.reducedMotion ? 0 : _motionYaw),
-                                scaleX: _zoom * widget.stagingScale,
-                                scaleY: _zoom * widget.stagingScale,
-                                scaleZ: _zoom * widget.stagingScale),
-                          ))))),
-        ])),
+            child: ScenePreviewLayout(
+          composition: true,
+          header: widget.showTitle
+              ? Text(widget.title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontSize: 26, fontWeight: FontWeight.w600))
+              : null,
+          content: AnimatedBuilder(
+              animation: Listenable.merge([_rotation, _opening]),
+              builder: (_, __) => Listener(
+                  key: const ValueKey('console-model-gestures'),
+                  onPointerDown: _touchDown,
+                  onPointerUp: _touchUp,
+                  onPointerCancel: _touchUp,
+                  child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: widget.onInspect,
+                      onDoubleTap: widget.model.canOpen
+                          ? () {
+                              if (_opening.value < .5) {
+                                _opening.forward();
+                              } else {
+                                _opening.reverse();
+                              }
+                            }
+                          : null,
+                      onScaleStart: (_) => _startZoom = _zoom,
+                      onScaleUpdate: (event) => setState(() {
+                            _yaw += event.focalPointDelta.dx * .012;
+                            _pitch = (_pitch + event.focalPointDelta.dy * .012)
+                                .clamp(-1.5, 1.5);
+                            _zoom = (_startZoom * event.scale).clamp(.35, 1.5);
+                          }),
+                      child: SocketMediaRenderer.console(
+                        key: rendererKey,
+                        model: widget.model,
+                        frameComposition: true,
+                        compositionFill: widget.compositionFill,
+                        compositionZoom: _zoom / .9,
+                        gameWatchScene: widget.unboxingScene,
+                        identity:
+                            'console:${widget.systemId}:${widget.model.hardwareId}:${widget.generation}',
+                        title: widget.title,
+                        onReady: _ready,
+                        pose: SocketMediaPose(
+                            unboxing: widget.unboxingProgress,
+                            inspectedPart: widget.inspecting ? 'console' : null,
+                            inspection: widget.inspecting ? 1 : 0,
+                            opening: widget.sequenceOpening ?? _opening.value,
+                            rx: _pitch,
+                            ry: widget.stagingYaw +
+                                _yaw +
+                                (widget.reducedMotion ? 0 : _motionYaw),
+                            scaleX: _zoom * widget.stagingScale,
+                            scaleY: _zoom * widget.stagingScale,
+                            scaleZ: _zoom * widget.stagingScale),
+                      )))),
+        )),
       );
   @override
   void dispose() {

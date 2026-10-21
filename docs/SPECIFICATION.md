@@ -12,6 +12,9 @@ without changing upper gallery cards. User inspection zoom and the deliberate
 final launch zoom into the screen remain separate interactions. Register in
 CI-03/08 and the installed integration skill; verify animated poses, controls and
 representative viewports before accepting the current S26 workflow.
+Measure against the full lower safe viewport once: titles, captions and corner
+controls overlay the reserved edge areas instead of subtracting a second header/
+footer from an already padded model canvas. Keep ordinary resource layouts intact.
 
 Owner TV-placement correction, 2026-10-21: place the external television beside
 the console when they share a support level, as in the supplied TV/NES composition.

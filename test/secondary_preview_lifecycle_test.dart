@@ -227,6 +227,34 @@ void main() {
     expect(media.right, display.right);
     await tester.pumpWidget(const SizedBox());
   });
+  testWidgets('3D preview reserves chrome inside the full lower viewport',
+      (tester) async {
+    const channel = MethodChannel('com.darkaxt.gshop/preview_view');
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (_) async => null);
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+    await tester.pumpWidget(const MaterialApp(home: PreviewScreen()));
+    await messenger.handlePlatformMessage(
+        channel.name,
+        const StandardMethodCodec().encodeMethodCall(MethodCall('snapshot', {
+          'revision': 1,
+          'identity': 'full-3d-fixture',
+          'actionEpoch': 1,
+          'system': 'nes',
+          'filename': 'Fixture.nes',
+          'title': 'Fixture',
+          'mediaLoading': false,
+          'threeD': true,
+          'settings': const PreviewSettings().toJson(),
+        })),
+        (_) {});
+    await tester.pump();
+    expect(tester.getRect(find.byType(CoverSection)),
+        tester.getRect(find.byType(Scaffold)));
+    expect(find.byKey(const ValueKey('preview-game-title')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('pending cover never exposes an unfinished cartridge',
       (tester) async {
     const channel = MethodChannel('com.darkaxt.gshop/preview_view');

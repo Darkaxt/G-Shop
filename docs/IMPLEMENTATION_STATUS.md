@@ -56,21 +56,28 @@ Revision 145 lower framing is wired into collector views and G&W/NES/GBA browsin
 scenes. The camera measures the visible transformed/hinged geometry and perspective,
 targeting a centered 75% rectangle; occupied sub-envelopes avoid fitting the empty
 corners between separated collector consoles. Physical part transforms are retained.
-The edition arc reserves its edge areas once. Inspection hit testing, explicit zoom,
+The edition arc reserves its edge areas once. The lower collector/game viewport
+now fills the safe display, with titles/captions over its edge areas; header/footer
+columns no longer consume another model inset. Long titles fit their reserved
+band, corner controls retain horizontal clearance, and hardware inspection uses
+its own heading. Ordinary resource layouts retain their previous flow.
+Inspection hit testing, explicit zoom,
 GBA preparation-cover sizing and NES final screen entry follow the fitted camera.
 Actual imported-vertex checks pass for closed/extracting/settled scenes, collector
 turntable poses and tall/wide viewports, with default geometry inside 12.5% margins
 and at least 70% occupancy on the limiting axis. Focused layout/lifecycle/insertion
 checks pass; the preparation-cover assertion was updated from its superseded 90%
 size to the owner-requested 75%, and its complete widget checks pass. Installed and
-source skill 0.1.3 validate and share SHA-256
-`afe82555a185cb6e9b25655c1c40ae6ac46949e5dc2c6060c9a46dc8f387a9b7`.
+source skill 0.1.4 validate and share SHA-256
+`afc820b730046a4ccd4e55add9df0babc08242ee411df324ef780f0786cba031`.
 Evidence is retained in `scene-framing-current-check.log`,
 `scene-framing-focused-checks.log` and `scene-framing-preparation-check.log` under
 the existing task reports. Native rendering/performance/control review of this
 new framing is still an internal advancement blocker for SCENE-01..04 acceptance;
-resolve it with the next signed candidate on Thor. Existing candidate `92be9cb`
-predates this correction. The device remains in the owner's current review view.
+resolve it with the next complete signed candidate on Thor. Candidate `4e40c97`
+built successfully but predates the full-viewport layout correction, so it is not
+being installed for acceptance. Installed candidate `92be9cb` predates both.
+The owner has finished reviewing and explicitly made Thor available for update.
 
 S26 NES vertical workflow is implemented in source across ordinary and secondary
 views: persistent scene with translucent game information, cartridge inspection

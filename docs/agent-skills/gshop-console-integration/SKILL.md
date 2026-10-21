@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.3"
+  version: "0.1.4"
 ---
 
 # G-Shop Console Integration
@@ -49,6 +49,8 @@ actionable binding defects rather than manufacturing external blockers.
   on the non-limiting axis. Check closed/extracted/settled/rotating and multi-edition
   poses. Keep explicit inspection zoom and final screen-entry zoom separate; do
   not apply this lower-scene rule to upper gallery cards.
+  Reserve against the full lower safe viewport once; overlay titles/captions and
+  corner controls in its edge areas instead of subtracting another header/footer.
 - External TV on the same support level: place it beside the console, keeping
   the screen and insertion path clear from the launch camera. Do not put the
   console directly in front of that screen. Retain shared scale/grounding; the

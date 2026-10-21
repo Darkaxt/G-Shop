@@ -77,6 +77,9 @@ Do not compound fixed model-width limits with another arbitrary small scale.
 Apply to collector and game browsing/unboxing views, including the shallow arc;
 upper gallery cards keep CI-02. Explicit inspection zoom and the final intentional
 launch zoom into the display can leave this default framing.
+Reserve these areas once against the complete lower safe viewport. Render title,
+caption and corner controls over the edge areas; do not first subtract a header/
+footer column and then reserve the same margins again inside its smaller canvas.
 
 An external TV sharing the console's support level sits **beside the console**,
 as in the supplied TV/NES reference composition. Do not place the console directly

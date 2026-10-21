@@ -65,7 +65,12 @@ void _reserved(Rect rect, Size size) {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  const sizes = [Size(537.67, 331.27), Size(640, 480), Size(360, 640)];
+  const sizes = [
+    Size(537.67, 468.29),
+    Size(537.67, 331.27),
+    Size(640, 480),
+    Size(360, 640)
+  ];
   test(
       'lower camera centers rotated open geometry and explicit zoom still works',
       () {
