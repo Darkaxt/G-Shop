@@ -29,7 +29,7 @@ def build(root: Path) -> None:
   <rect x="136" y="136" width="752" height="752" rx="174" fill="none" stroke="#f4444c" stroke-width="14"/>
   <path d="M681.706 342.294 A240 240 0 1 0 681.706 681.706 L752 512 H542" fill="none" stroke="#ff565c" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
-''', encoding='utf-8')
+''', encoding='utf-8', newline='\n')
 
 
 if __name__ == '__main__':
