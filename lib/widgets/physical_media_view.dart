@@ -22,6 +22,7 @@ class PhysicalMediaView extends StatefulWidget {
   final bool inspectInside;
   final NesUnboxingScene? nesScene;
   final bool resourcesReady;
+  final bool informationVisible;
   const PhysicalMediaView(
       {super.key,
       required this.identity,
@@ -33,6 +34,7 @@ class PhysicalMediaView extends StatefulWidget {
       this.inspectInside = false,
       this.nesScene,
       this.resourcesReady = true,
+      this.informationVisible = false,
       this.reducedMotion = false,
       this.format = PhysicalMediaFormat.gameBoy});
   @override
@@ -57,6 +59,11 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
   Completer<bool>? _completion;
   bool _resumed = true;
   bool _gpuReady = false;
+  bool _launchHeld = false;
+  bool _zoomCartridge = false;
+  double _informationStart = 0, _informationBase = 0;
+  double get _informationAngle =>
+      _informationBase + (_idle.value - _informationStart) * math.pi * 2;
   double _manualRotation = 0;
   bool get _reduce =>
       widget.reducedMotion || MediaQuery.disableAnimationsOf(context);
@@ -104,11 +111,24 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
           unboxing: 1,
           inspectedPart: 'cartridge');
     final idle = _unboxing.isCompleted && !_reduce;
+    if (_zoomCartridge) {
+      return SocketMediaPose(
+          rx: .12,
+          ry: _manualRotation +
+              (idle && widget.informationVisible ? _informationAngle : 0),
+          opening: _inspection.value,
+          unboxing: 1,
+          inspectedPart: 'cartridge');
+    }
     return SocketMediaPose(
         rx: .12 + (idle ? math.sin(_idle.value * math.pi * 2) * .015 : 0),
         ry: -.12 +
             _manualRotation +
-            (idle ? math.sin(_idle.value * math.pi * 2) * .025 : 0),
+            (idle
+                ? widget.informationVisible
+                    ? _informationAngle
+                    : math.sin(_idle.value * math.pi * 2) * .025
+                : 0),
         opening: _inspection.value,
         unboxing: _unboxing.value);
   }
@@ -145,12 +165,24 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
   @override
   void didUpdateWidget(PhysicalMediaView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.informationVisible != widget.informationVisible) {
+      final idleYaw =
+          _zoomCartridge ? 0.0 : math.sin(_idle.value * math.pi * 2) * .025;
+      if (widget.informationVisible) {
+        _informationStart = _idle.value;
+        _informationBase = idleYaw;
+      } else {
+        _manualRotation += _informationAngle - idleYaw;
+      }
+      _idle.stop();
+    }
     if (oldWidget.identity != widget.identity ||
         oldWidget.format != widget.format ||
         oldWidget.nesScene?.identity != widget.nesScene?.identity) {
       _finish(false);
       _insertion.reset();
       _manualRotation = 0;
+      _zoomCartridge = false;
       _selection.reset();
       _inspection.value = 0;
       _gpuReady = false;
@@ -168,7 +200,10 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
   }
 
   void _configureMotion() {
-    if (!_resumed) return;
+    if (!_resumed || _launchHeld) return;
+    _idle.duration = widget.informationVisible
+        ? const Duration(seconds: 120)
+        : const Duration(microseconds: 62831853);
     if (widget.nesScene != null && !_unboxing.isCompleted) _idle.stop();
     if (widget.nesScene != null && _gpuReady && widget.resourcesReady) {
       if (_reduce || widget.inspectInside) {
@@ -212,6 +247,29 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
     _insertion.forward(from: 0);
     setState(() {});
     return pending.future;
+  }
+
+  /// Keep the selected source pose stable while the launch composite loads.
+  /// Releasing it resumes these same controllers, without resetting selection.
+  void holdForLaunch() {
+    _launchHeld = true;
+    _unboxing.stop();
+    _idle.stop();
+    _inspection.stop();
+  }
+
+  void inspectCartridge({bool toggle = false}) {
+    if (widget.nesScene == null || _launchHeld) return;
+    setState(() {
+      _zoomCartridge = toggle ? !_zoomCartridge : true;
+      _unboxing.value = 1;
+    });
+    _configureMotion();
+  }
+
+  void releaseLaunchHold() {
+    _launchHeld = false;
+    _configureMotion();
   }
 
   void skipInsertion() {
@@ -280,6 +338,9 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
                   clipBehavior: Clip.hardEdge,
                   children: [
                     GestureDetector(
+                        onDoubleTap: widget.nesScene == null
+                            ? null
+                            : () => inspectCartridge(toggle: true),
                         onHorizontalDragUpdate: (event) {
                           if (_completion == null) {
                             setState(

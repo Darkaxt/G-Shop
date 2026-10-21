@@ -18,6 +18,7 @@ import '../models/nes_cartridge_model.dart';
 import '../models/unboxing_scene.dart';
 import '../models/game_watch_unboxing_scene.dart';
 import '../models/nes_unboxing_scene.dart';
+import '../models/nes_launch_scene.dart';
 
 class SocketMediaRenderer extends StatefulWidget {
   final PhysicalMediaFormat format;
@@ -25,6 +26,7 @@ class SocketMediaRenderer extends StatefulWidget {
   final ConsoleModel? console;
   final GameWatchUnboxingScene? gameWatchScene;
   final NesUnboxingScene? nesScene;
+  final NesLaunchScene? nesLaunchScene;
   final String? cartridgeStyle;
   final UnboxingScene? unboxingScene;
   final SocketMediaPose pose;
@@ -42,6 +44,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.labelIdentity,
       this.cartridgeStyle,
       this.nesScene,
+      this.nesLaunchScene,
       this.onReady})
       : packaging = null,
         gameWatchScene = null,
@@ -57,6 +60,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.labelIdentity,
       this.onReady})
       : packaging = model,
+        nesLaunchScene = null,
         nesScene = null,
         unboxingScene = null,
         gameWatchScene = null,
@@ -72,6 +76,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.onReady,
       this.gameWatchScene})
       : console = model,
+        nesLaunchScene = null,
         nesScene = null,
         unboxingScene = null,
         packaging = null,
@@ -89,6 +94,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.labelIdentity,
       this.onReady})
       : unboxingScene = scene,
+        nesLaunchScene = null,
         nesScene = null,
         packaging = null,
         gameWatchScene = null,
@@ -116,6 +122,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
   bool _captureQueued = false, _captureDirty = false;
   bool frameRendered = false;
   bool _sceneSettledReported = false;
+  bool _launchFrameReported = false;
   Completer<Map<String, Object?>> _ready = Completer();
   Completer<Map<String, Object?>>? _poseReady;
   SocketMediaPose? _paintedPose;
@@ -155,16 +162,18 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         'geometrySha256': _renderer?.model.data['consoleGeometrySha256'] ??
             _renderer?.model.data['geometrySha256'] ??
             _renderer?.model.data['meshSha256'],
-        'sceneGeometrySha256':
-            widget.gameWatchScene == null && widget.nesScene == null
-                ? null
-                : _renderer?.model.data['geometrySha256'],
+        'sceneGeometrySha256': widget.gameWatchScene == null &&
+                widget.nesScene == null &&
+                widget.nesLaunchScene == null
+            ? null
+            : _renderer?.model.data['geometrySha256'],
         'boxGeometrySha256': _renderer?.model.data['boxGeometrySha256'],
         'canOpen': _renderer?.model.data['canOpen'] == true,
         'openingDurationMs': _renderer?.model.data['openingDurationMs'],
         'opening': widget.pose.opening,
         'pageFocus': widget.pose.pageFocus,
         'unboxing': widget.pose.unboxing,
+        'launch': widget.pose.launch,
         'inspectedPart': widget.pose.inspectedPart,
         'inspection': widget.pose.inspection,
         'inspectionBounds': {
@@ -210,6 +219,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         'sourceApkSha256': widget.packaging == null &&
                 widget.console == null &&
                 widget.unboxingScene == null &&
+                _renderer?.model.data['privateImport'] != true &&
                 _renderer?.model.data['cartridgeGeometry'] != true
             ? SocketMediaModel.apkSha256
             : null,
@@ -233,7 +243,8 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.pose.unboxing == 1 && widget.pose.unboxing < 1)
       _sceneSettledReported = false;
-    if (oldWidget.nesScene?.identity != widget.nesScene?.identity ||
+    if (oldWidget.nesLaunchScene?.identity != widget.nesLaunchScene?.identity ||
+        oldWidget.nesScene?.identity != widget.nesScene?.identity ||
         oldWidget.gameWatchScene?.identity != widget.gameWatchScene?.identity ||
         oldWidget.format != widget.format ||
         oldWidget.unboxingScene?.style != widget.unboxingScene?.style ||
@@ -281,31 +292,35 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     frameRendered = false;
     _paintedPose = null;
     _sceneSettledReported = false;
+    _launchFrameReported = false;
     _labelImage?.dispose();
     _labelImage = null;
     try {
       final renderer = await SocketMediaGpu.load(widget.format,
-          owned: widget.nesScene != null
-              ? await widget.nesScene!.load()
-              : widget.gameWatchScene != null
-                  ? await widget.gameWatchScene!.load()
-                  : widget.unboxingScene != null
-                      ? await widget.unboxingScene!.load() ??
-                          (throw StateError(
-                              'Import the holder-enabled box and cartridge'))
-                      : widget.console != null
-                          ? await widget.console!.load()
-                          : widget.cartridgeStyle != null &&
-                                  widget.format == PhysicalMediaFormat.nes
-                              ? await NesCartridgeModel.load(
-                                      widget.cartridgeStyle!) ??
-                                  (throw StateError(
-                                      'Import the selected NES cartridge shell'))
+          owned: widget.nesLaunchScene != null
+              ? await widget.nesLaunchScene!.load()
+              : widget.nesScene != null
+                  ? await widget.nesScene!.load()
+                  : widget.gameWatchScene != null
+                      ? await widget.gameWatchScene!.load()
+                      : widget.unboxingScene != null
+                          ? await widget.unboxingScene!.load() ??
+                              (throw StateError(
+                                  'Import the holder-enabled box and cartridge'))
+                          : widget.console != null
+                              ? await widget.console!.load()
                               : widget.cartridgeStyle != null &&
-                                      widget.format == PhysicalMediaFormat.gba
-                                  ? await GbaCartridgeModel.load(
-                                      widget.cartridgeStyle!)
-                                  : await widget.packaging?.load());
+                                      widget.format == PhysicalMediaFormat.nes
+                                  ? await NesCartridgeModel.load(
+                                          widget.cartridgeStyle!) ??
+                                      (throw StateError(
+                                          'Import the selected NES cartridge shell'))
+                                  : widget.cartridgeStyle != null &&
+                                          widget.format ==
+                                              PhysicalMediaFormat.gba
+                                      ? await GbaCartridgeModel.load(
+                                          widget.cartridgeStyle!)
+                                      : await widget.packaging?.load());
       if (!mounted || generation != _generation) return;
       _modelUs = _clock.elapsedMicroseconds;
       setState(() => _renderer = renderer);
@@ -364,6 +379,23 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     if (!mounted || _renderer != submitted || labelRevision != _labelRevision)
       return;
     _paintedPose = pose;
+    if (widget.nesLaunchScene != null &&
+        pose.launch == 1 &&
+        !_launchFrameReported) {
+      _launchFrameReported = true;
+      debugPrint('GShopSceneLaunchFrame ${jsonEncode({
+            'identity': widget.identity,
+            'system': 'nes',
+            'launch': pose.launch,
+            'frameRendered': true,
+            'consoleGeometrySha256':
+                submitted.model.data['consoleGeometrySha256'],
+            'sceneGeometrySha256': submitted.model.data['geometrySha256'],
+            'cartridgeStyle': submitted.model.data['cartridgeStyle'],
+            'retailEditionId': submitted.model.data['retailEditionId'],
+            'physicalDisplayPresented': null,
+          })}');
+    }
     if (widget.nesScene != null &&
         pose.inspectedPart == null &&
         widget.pose.unboxing == 1 &&
@@ -542,6 +574,13 @@ class SocketMediaGpu {
       part == null || pose.inspectedPart == null || part == pose.inspectedPart;
   static double surfaceOpening(SocketMediaModel model,
       Map<String, dynamic> surface, SocketMediaPose pose) {
+    if (model.data['nesLaunch'] == true && surface['launchPart'] == 'console') {
+      return NesLaunchScene.opening(surface, pose);
+    }
+    if (model.data['nesLaunch'] == true &&
+        surface['launchPart'] == 'cartridge') {
+      return pose.opening * (1 - NesLaunchScene.phase(pose.launch, 0, .12));
+    }
     if (model.data['nesUnboxing'] == true && surface['nesPart'] == 'box') {
       return NesUnboxingScene.boxOpening(model, pose.unboxing);
     }
@@ -581,6 +620,9 @@ class SocketMediaGpu {
   /// Undo the converter's Y reflection and baked rest basis exactly once.
   static vm.Matrix4 modelTransform(
       SocketMediaModel model, SocketMediaPose pose) {
+    if (model.data['nesLaunch'] == true) {
+      return NesLaunchScene.viewTransform(model, pose);
+    }
     if (model.data['nesUnboxing'] == true) {
       return NesUnboxingScene.viewTransform(model, pose);
     }
@@ -704,21 +746,36 @@ class SocketMediaGpu {
       ..translateByDouble(-centre.x, -centre.y, -centre.z, 1);
   }
 
-  static vm.Matrix4 cameraProjection(
-          double width, double height, double units) =>
-      vm.Matrix4.identity()
-        ..setEntry(0, 0, units * 2 / width)
-        // GpuImageSurface presents +clip-Y at the image top, like Godot's
-        // camera. Canvas's downward Y must not be applied a second time here.
-        ..setEntry(1, 1, units * 2 / height)
-        // After perspective division, depth must decrease toward the +Z
-        // camera. -.1 made (.5-.1*z)/(1-.25*z) increase, drawing backs first.
-        ..setEntry(2, 2, -.25)
-        ..setEntry(2, 3, .5)
-        ..setEntry(3, 2, -.25);
+  static vm.Matrix4 cameraProjection(double width, double height, double units,
+      {Offset? center}) {
+    final projection = vm.Matrix4.identity()
+      ..setEntry(0, 0, units * 2 / width)
+      // GpuImageSurface presents +clip-Y at the image top, like Godot's
+      // camera. Canvas's downward Y must not be applied a second time here.
+      ..setEntry(1, 1, units * 2 / height)
+      // After perspective division, depth must decrease toward the +Z
+      // camera. -.1 made (.5-.1*z)/(1-.25*z) increase, drawing backs first.
+      ..setEntry(2, 2, -.25)
+      ..setEntry(2, 3, .5)
+      ..setEntry(3, 2, -.25);
+    if (center != null) {
+      final x = center.dx * 2 / width - 1;
+      final y = 1 - center.dy * 2 / height;
+      projection
+        ..setEntry(0, 2, x * -.25)
+        ..setEntry(0, 3, x)
+        ..setEntry(1, 2, y * -.25)
+        ..setEntry(1, 3, y);
+    }
+    return projection;
+  }
 
   static double fittedUnits(SocketMediaModel model, Size size,
       {SocketMediaPose? pose}) {
+    if (model.data['nesLaunch'] == true) {
+      return NesLaunchScene.fittedUnits(
+          model, pose ?? const SocketMediaPose(), size.width, size.height);
+    }
     if (model.data['nesUnboxing'] == true) {
       return NesUnboxingScene.fittedUnits(model,
           pose ?? const SocketMediaPose(unboxing: 1), size.width, size.height);
@@ -1058,7 +1115,11 @@ class SocketMediaGpu {
         pass.setColorBlendEnable(true);
         pass.setColorBlendEquation(gpu.ColorBlendEquation());
         final units = fittedUnits(model, size, pose: pose);
-        final projection = cameraProjection(size.width, size.height, units);
+        final projection = cameraProjection(size.width, size.height, units,
+            center: model.data['nesLaunch'] == true
+                ? NesLaunchScene.cameraCenter(
+                    model, pose, size.width, size.height)
+                : null);
         final base = pose.pageFocus == 0
             ? modelTransform(model, pose)
             : Matrix4Tween(
@@ -1123,6 +1184,8 @@ class SocketMediaGpu {
                     ? 1
                     : 0));
         for (final surface in ordered) {
+          if (model.data['nesLaunch'] == true &&
+              !NesLaunchScene.visible(surface, pose)) continue;
           if (!partVisible(
               (surface['nesPart'] ??
                   surface['hardwarePart'] ??
@@ -1135,7 +1198,10 @@ class SocketMediaGpu {
               : gpu.CullMode.none);
           final isLabel = surface['role'] == 'label';
           final transform = base.clone();
-          if (model.data['nesUnboxing'] == true) {
+          if (model.data['nesLaunch'] == true) {
+            transform
+                .multiply(NesLaunchScene.partTransform(model, surface, pose));
+          } else if (model.data['nesUnboxing'] == true) {
             transform.multiply(NesUnboxingScene.partTransform(
                 model, surface['nesPart'] as String, pose));
           }
@@ -1185,7 +1251,9 @@ class SocketMediaGpu {
                       [...mvp.storage, ...transform.storage, ...normal.storage])
                   .buffer
                   .asByteData()));
-          final material = surface['material'] as Map<String, dynamic>;
+          final material = model.data['nesLaunch'] == true
+              ? NesLaunchScene.material(surface, pose)
+              : surface['material'] as Map<String, dynamic>;
           // Transmission already includes the opaque background sample. Replace
           // its pixel rather than compositing that background for a second time.
           pass.setColorBlendEnable(!transmitting(material));

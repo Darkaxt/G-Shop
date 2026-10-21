@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../../preview/nes_media_preview.dart';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -33,6 +34,7 @@ class CoverSection extends StatefulWidget {
   final GlobalKey<PhysicalMediaViewState>? physicalMediaKey;
   final bool physicalMediaEnabled, reducedMotion;
   final bool showPresentationControls;
+  final bool scenePresentation;
   final bool resourcesReady;
   final VoidCallback? onReady;
   final VoidCallback? onRevealed;
@@ -47,6 +49,7 @@ class CoverSection extends StatefulWidget {
   final bool showGameWatchVariants;
   final int? inspectedHardware;
   final bool hardwareInformationVisible;
+  final bool gameInformationVisible;
   final ValueChanged<int?>? onHardwareInspection;
   final ValueChanged<bool>? onHardwareInformation;
   final VoidCallback? onHardwareReference;
@@ -68,6 +71,7 @@ class CoverSection extends StatefulWidget {
     this.physicalMediaEnabled = false,
     this.reducedMotion = false,
     this.showPresentationControls = true,
+    this.scenePresentation = false,
     this.resourcesReady = true,
     this.onReady,
     this.onRevealed,
@@ -82,6 +86,7 @@ class CoverSection extends StatefulWidget {
     this.showGameWatchVariants = false,
     this.inspectedHardware,
     this.hardwareInformationVisible = false,
+    this.gameInformationVisible = false,
     this.onHardwareInspection,
     this.onHardwareInformation,
     this.onHardwareReference,
@@ -92,6 +97,8 @@ class CoverSection extends StatefulWidget {
 }
 
 class CoverSectionState extends State<CoverSection> {
+  Completer<bool> _physicalResolved = Completer<bool>();
+  Future<bool> get physicalMediaResolved => _physicalResolved.future;
   bool _physical = true, _reducedMotion = false;
   bool _modelReady = false;
   final _unboxingKey = GlobalKey<UnboxingPreviewState>();
@@ -124,6 +131,8 @@ class CoverSectionState extends State<CoverSection> {
     if (oldWidget.game.selectionKey != widget.game.selectionKey ||
         oldWidget.system.id != widget.system.id ||
         oldWidget.physicalMediaEnabled != widget.physicalMediaEnabled) {
+      if (!_physicalResolved.isCompleted) _physicalResolved.complete(false);
+      _physicalResolved = Completer<bool>();
       _modelReady = false;
     }
     _loadLabel();
@@ -177,6 +186,7 @@ class CoverSectionState extends State<CoverSection> {
 
   @override
   void dispose() {
+    if (!_physicalResolved.isCompleted) _physicalResolved.complete(false);
     _detachLabel();
     _label?.dispose();
     super.dispose();
@@ -307,6 +317,8 @@ class CoverSectionState extends State<CoverSection> {
     if (system.id == 'nes' && physical && threeD) {
       return Stack(fit: StackFit.expand, children: [
         NesMediaPreview(
+            compact: widget.scenePresentation,
+            informationVisible: widget.gameInformationVisible,
             key: ValueKey(game.selectionKey),
             filename: game.filename,
             identity: game.selectionKey,
@@ -318,6 +330,15 @@ class CoverSectionState extends State<CoverSection> {
             resourcesReady: widget.resourcesReady &&
                 (widget.physicalLabelUrl == null || label != null),
             physicalMediaKey: widget.physicalMediaKey,
+            onResolved: () {
+              if (!_physicalResolved.isCompleted)
+                _physicalResolved.complete(true);
+            },
+            onResolving: () {
+              if (!_physicalResolved.isCompleted)
+                _physicalResolved.complete(false);
+              _physicalResolved = Completer<bool>();
+            },
             onReady: () {
               if (mounted && !_modelReady) setState(() => _modelReady = true);
               widget.onReady?.call();

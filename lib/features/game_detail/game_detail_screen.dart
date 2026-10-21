@@ -1,4 +1,7 @@
 import 'dart:ui' as ui;
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import '../settings/metadata_settings_screen.dart';
@@ -13,6 +16,13 @@ import '../../core/responsive/responsive.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/download_item.dart';
 import '../../models/game_item.dart';
+import '../../models/console_model.dart';
+import '../../models/nes_launch_scene.dart';
+import '../../models/scene_launch_presentation.dart';
+import '../../models/socket_media_model.dart';
+import '../preview/nes_launch_preview.dart';
+import '../preview/dual_screen_preview_host.dart' show previewRouteObserver;
+import 'widgets/game_scene_information.dart';
 import '../../models/config/provider_config.dart';
 import '../../models/game_metadata_info.dart';
 import '../../models/system_model.dart';
@@ -87,7 +97,7 @@ class GameDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
-    with ConsoleScreenMixin {
+    with ConsoleScreenMixin, WidgetsBindingObserver, RouteAware {
   double get _galleryVolume {
     final audio = ref.watch(soundSettingsProvider);
     return audio.enabled && ref.watch(previewSettingsProvider).sound
@@ -101,6 +111,61 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
   final _physicalMediaKey = GlobalKey<PhysicalMediaViewState>();
   final _coverSectionKey = GlobalKey<CoverSectionState>();
   bool _openingOwnedRom = false;
+  bool _sceneInformation = false;
+  final _sceneLaunch = SceneLaunchPresentation();
+  NesLaunchScene? _nesLaunchScene;
+  SocketMediaPose? _nesInitialPose;
+  Widget? _nesLaunchLabel;
+  Object? _nesLaunchLabelIdentity;
+  PhysicalMediaViewState? _launchHeldMedia;
+  String? _sceneSelection;
+  ModalRoute<void>? _sceneRoute;
+  bool get _sceneView =>
+      ref.read(mediaPresentationProvider).enabled && widget.system.id == 'nes';
+
+  void _sceneChanged() {
+    debugPrint('GShopSceneLaunch ${jsonEncode({
+          'token': _sceneLaunch.token,
+          'phase': _sceneLaunch.phase.name,
+          'console': _sceneLaunch.consoleId,
+          'view': 'ordinary',
+          'skip': _sceneLaunch.skipRequested,
+          'visualAvailable': _sceneLaunch.visualAvailable,
+        })}');
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (_sceneRoute != route) {
+      previewRouteObserver.unsubscribe(this);
+      _sceneRoute = route;
+      if (route != null) previewRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPushNext() => _sceneLaunch.cancel();
+
+  void _clearSceneLaunch() {
+    if (_launchHeldMedia?.mounted == true)
+      _launchHeldMedia!.releaseLaunchHold();
+    _launchHeldMedia = null;
+    _nesLaunchScene = null;
+    _nesInitialPose = null;
+    _nesLaunchLabel = null;
+    _nesLaunchLabelIdentity = null;
+  }
+
+  @override
+  void toggleQuickMenu() {
+    if (_sceneLaunch.phase == SceneLaunchPhase.committing) return;
+    _sceneLaunch.cancel();
+    super.toggleQuickMenu();
+  }
+
   ProviderSubscription? _romChangeSubscription;
 
   // Section scroll keys for auto-scroll on D-pad navigation
@@ -154,6 +219,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _sceneLaunch.addListener(_sceneChanged);
     _debouncer = ref.read(inputDebouncerProvider);
     final queueManager = ref.read(downloadQueueManagerProvider);
     _initController(queueManager);
@@ -190,6 +257,13 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
 
   void _onControllerChanged() {
     if (!mounted) return;
+    final identity = _controller?.selectedVariant.selectionKey;
+    if (_sceneSelection != identity) {
+      _sceneLaunch.cancel();
+      _clearSceneLaunch();
+      _sceneInformation = false;
+      _sceneSelection = identity;
+    }
 
     setState(() {});
 
@@ -202,6 +276,11 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
 
   @override
   void dispose() {
+    previewRouteObserver.unsubscribe(this);
+    WidgetsBinding.instance.removeObserver(this);
+    _clearSceneLaunch();
+    _sceneLaunch.removeListener(_sceneChanged);
+    _sceneLaunch.dispose();
     _romChangeSubscription?.close();
     _debouncer.stopHold();
     _controller?.removeListener(_onControllerChanged);
@@ -236,6 +315,12 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
   // ---------------------------------------------------------------------------
 
   void _handleBack() {
+    if (_sceneLaunch.cancel()) return;
+    if (_sceneLaunch.phase == SceneLaunchPhase.committing) return;
+    if (_sceneInformation) {
+      setState(() => _sceneInformation = false);
+      return;
+    }
     final controller = _controller;
     if (controller == null) return;
 
@@ -266,6 +351,17 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       _executeDialogAction(controller).then((_) {
         if (mounted) requestScreenFocus();
       });
+      return;
+    }
+
+    if (_sceneView) {
+      if (_sceneLaunch.canInterrupt) {
+        _sceneLaunch.confirm();
+      } else if (controller.canOpenSelected) {
+        unawaited(_openOwnedRom());
+      } else {
+        controller.performAction();
+      }
       return;
     }
 
@@ -539,23 +635,46 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
 
   Future<void> _openOwnedRom({bool withoutCompanion = false}) async {
     if (_openingOwnedRom) {
-      _physicalMediaKey.currentState?.skipInsertion();
+      if (_sceneView) {
+        _sceneLaunch.confirm();
+      } else {
+        _physicalMediaKey.currentState?.skipInsertion();
+      }
       return;
     }
     final game = _controller?.selectedVariant;
     if (game == null) return;
     _openingOwnedRom = true;
+    final token = _sceneView && widget.system.id == 'nes'
+        ? _sceneLaunch.begin(
+            identity: game.selectionKey, consoleId: 'nes-front-loader')
+        : null;
+    if (_sceneInformation) setState(() => _sceneInformation = false);
     var handedOff = false;
     try {
+      if (token != null) await _prepareNesLaunch(token);
+      if (!mounted) return;
       await openManagedGame(ref, context, _emulatorLauncher, game,
           widget.system, widget.targetFolder,
           withoutCompanion: withoutCompanion, beforeHandoff: () async {
+        if (!mounted ||
+            !isCurrentScreen ||
+            _controller?.selectedVariant.selectionKey != game.selectionKey) {
+          throw PlatformException(code: 'cancelled');
+        }
+        if (token != null) {
+          if (!await _sceneLaunch.commitWhenPresented(token)) {
+            throw PlatformException(code: 'cancelled');
+          }
+          return;
+        }
         final media = _physicalMediaKey.currentState;
         if (media != null && !await media.playInsertion()) {
           throw PlatformException(code: 'cancelled');
         }
       });
       handedOff = true;
+      if (token != null) _sceneLaunch.handedOff(token);
     } catch (error) {
       if (!mounted) return;
       final code =
@@ -590,12 +709,78 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           'Companion was opened, but Android rejected the emulator launch.',
         _ => 'Could not open verified ROM: $code',
       };
-      showConsoleNotification(context, message: message);
+      if (code != 'cancelled' || !_sceneView) {
+        showConsoleNotification(context, message: message);
+      }
     } finally {
       _openingOwnedRom = false;
+      if (_sceneLaunch.canInterrupt) _sceneLaunch.cancel();
+      if (!handedOff) {
+        _clearSceneLaunch();
+        if (mounted) setState(() {});
+      }
       // Android accepts startActivity before the emulator covers our surface.
       // Hold the inserted pose through that handoff; reset on actual return.
       if (!handedOff) _physicalMediaKey.currentState?.resetInsertion();
+    }
+  }
+
+  Future<void> _prepareNesLaunch(int token) async {
+    bool current() =>
+        mounted &&
+        isCurrentScreen &&
+        _sceneLaunch.token == token &&
+        _sceneLaunch.canInterrupt;
+    try {
+      final target = await ConsoleModel.findNesLaunchTarget('front-loader');
+      if (!current()) throw PlatformException(code: 'cancelled');
+      final cover = _coverSectionKey.currentState;
+      if (target == null || cover == null) {
+        _sceneLaunch.unavailable(token);
+        return;
+      }
+      if (!await cover.physicalMediaResolved || !current()) {
+        throw PlatformException(code: 'cancelled');
+      }
+      final media = _physicalMediaKey.currentState;
+      if (media?.widget.nesScene == null) {
+        _sceneLaunch.unavailable(token);
+        return;
+      }
+      final frame = await media!.renderReady;
+      if (!current()) throw PlatformException(code: 'cancelled');
+      if (frame['error'] != null || frame['frameRendered'] != true) {
+        _sceneLaunch.unavailable(token);
+        return;
+      }
+      await target.load();
+      if (!current()) throw PlatformException(code: 'cancelled');
+      if (!mounted || !media.mounted)
+        throw PlatformException(code: 'cancelled');
+      media.holdForLaunch();
+      _launchHeldMedia = media;
+      final box = media.context.findRenderObject() as RenderBox;
+      setState(() {
+        _nesInitialPose = media.pose;
+        _nesLaunchLabel = media.widget.label;
+        _nesLaunchLabelIdentity = media.widget.labelIdentity;
+        _nesLaunchScene = NesLaunchScene(media.widget.nesScene!, target,
+            initialViewport: box.localToGlobal(Offset.zero) & box.size);
+      });
+    } on FormatException {
+      _sceneLaunch.unavailable(token);
+    } on FileSystemException {
+      _sceneLaunch.unavailable(token);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) {
+      _sceneLaunch.cancel();
+    } else if (_sceneLaunch.phase == SceneLaunchPhase.handedOff) {
+      _clearSceneLaunch();
+      _sceneLaunch.reset();
     }
   }
 
@@ -763,7 +948,13 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         QuickMenuItem(
           label: L.of(context).gameDetail_gameInfo,
           icon: Icons.info_outline_rounded,
-          onSelect: () => controller.openGameInfo(),
+          onSelect: () {
+            if (_sceneView) {
+              setState(() => _sceneInformation = true);
+            } else {
+              controller.openGameInfo();
+            }
+          },
         ),
       if (richMetadata?.cacheRowId != null)
         QuickMenuItem(
@@ -1041,32 +1232,63 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                             child: Text(L.of(context).common_retry)),
                       ]),
                     Expanded(
-                        child: rs.isPortrait
-                            ? _buildPortraitLayout(
-                                rs,
-                                state,
+                        child: _sceneView
+                            ? _buildSceneLayout(
                                 controller,
+                                state,
+                                selectedVariant,
                                 fileMetadata,
                                 richMetadata,
-                                isMultiRom,
                                 coverUrls,
-                                selectedVariant,
                                 isFavorite,
-                                raMatch)
-                            : _buildLandscapeLayout(
-                                rs,
-                                state,
-                                controller,
-                                fileMetadata,
-                                richMetadata,
-                                isMultiRom,
-                                coverUrls,
-                                selectedVariant,
-                                isFavorite,
-                                raMatch)),
+                                !gameMetadata.isLoading)
+                            : rs.isPortrait
+                                ? _buildPortraitLayout(
+                                    rs,
+                                    state,
+                                    controller,
+                                    fileMetadata,
+                                    richMetadata,
+                                    isMultiRom,
+                                    coverUrls,
+                                    selectedVariant,
+                                    isFavorite,
+                                    raMatch)
+                                : _buildLandscapeLayout(
+                                    rs,
+                                    state,
+                                    controller,
+                                    fileMetadata,
+                                    richMetadata,
+                                    isMultiRom,
+                                    coverUrls,
+                                    selectedVariant,
+                                    isFavorite,
+                                    raMatch)),
                   ]),
                 ),
               ),
+              if (_nesLaunchScene != null && _sceneLaunch.pending)
+                Positioned.fill(
+                    child: NesLaunchPreview(
+                        key: ValueKey('detail-launch:${_sceneLaunch.token}'),
+                        token: _sceneLaunch.token!,
+                        scene: _nesLaunchScene!,
+                        initialPose: _nesInitialPose!,
+                        label: _nesLaunchLabel!,
+                        labelIdentity: _nesLaunchLabelIdentity,
+                        title: selectedVariant.displayName,
+                        phase: _sceneLaunch.phase,
+                        skip: _sceneLaunch.skipRequested,
+                        reducedMotion:
+                            ref.watch(mediaPresentationProvider).reducedMotion,
+                        onPrepared: (ready) => ready
+                            ? _sceneLaunch.ready(_sceneLaunch.token!)
+                            : _sceneLaunch.unavailable(_sceneLaunch.token!),
+                        onFinished: () =>
+                            _sceneLaunch.rendered(_sceneLaunch.token!),
+                        onCancel: _sceneLaunch.cancel,
+                        onSkip: _sceneLaunch.skip)),
               _buildControls(state, controller),
               if (showQuickMenu)
                 QuickMenuOverlay(
@@ -1163,6 +1385,98 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
   // ---------------------------------------------------------------------------
   // Landscape layout: Cover + actions left (~30%), sections right (~70%)
   // ---------------------------------------------------------------------------
+
+  Widget _buildSceneLayout(
+          GameDetailController controller,
+          GameDetailState state,
+          GameItem game,
+          GameMetadataFull fileMetadata,
+          GameMetadataInfo? metadata,
+          List<String> coverUrls,
+          bool favorite,
+          bool resourcesReady) =>
+      Stack(fit: StackFit.expand, children: [
+        Padding(
+            padding: const EdgeInsets.only(top: 64),
+            child: IgnorePointer(
+                ignoring: _sceneInformation || _sceneLaunch.pending,
+                child: CoverSection(
+                    key: _coverSectionKey,
+                    game: game,
+                    system: widget.system,
+                    coverUrls: coverUrls,
+                    metadata: fileMetadata,
+                    isFavorite: favorite,
+                    isInstalled: state.isVariantInstalled,
+                    hasThumbnail: game.hasThumbnail,
+                    physicalMediaKey: _physicalMediaKey,
+                    physicalMediaEnabled: true,
+                    gameInformationVisible: _sceneInformation,
+                    showGameWatchVariants: true,
+                    showPresentationControls: false,
+                    scenePresentation: true,
+                    reducedMotion:
+                        ref.watch(mediaPresentationProvider).reducedMotion,
+                    resourcesReady: resourcesReady,
+                    physicalLabelUrl: metadata?.cachedSupportTexture,
+                    gbcDualMode: metadata?.gbcDualMode,
+                    contentTags: metadata?.contentTags ?? const [],
+                    cachedUrl: metadata?.cachedCover ?? game.cachedCoverUrl,
+                    packagingResources: metadata?.editionId == null
+                        ? const {}
+                        : ref
+                                .watch(editionGalleryMediaProvider(
+                                    metadata!.editionId!))
+                                .valueOrNull ??
+                            const {},
+                    galleryResources: () => _galleryResources(metadata),
+                    galleryVolume: _galleryVolume,
+                    onGalleryPlaying:
+                        ref.read(audioManagerProvider).setPreviewPlaying))),
+        Positioned(
+            top: 16,
+            left: 72,
+            right: 72,
+            child: Text(game.displayName,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                style: Theme.of(context).textTheme.titleLarge)),
+        Positioned(
+            top: 8,
+            left: 16,
+            child: IconButton.filledTonal(
+                tooltip: 'Game information',
+                onPressed: () {
+                  _physicalMediaKey.currentState?.inspectCartridge();
+                  setState(() => _sceneInformation = true);
+                },
+                icon: const Icon(Icons.info_outline))),
+        Positioned(
+            top: 8,
+            right: 16,
+            child: IconButton.filledTonal(
+                tooltip: controller.canOpenSelected ? 'Play' : 'Download',
+                onPressed: _openingOwnedRom
+                    ? null
+                    : () => controller.canOpenSelected
+                        ? unawaited(_openOwnedRom())
+                        : controller.performAction(),
+                icon: Icon(controller.canOpenSelected
+                    ? Icons.play_arrow
+                    : Icons.download))),
+        if (_sceneInformation)
+          GameSceneInformation(
+              title: game.displayName,
+              referenceNote:
+                  'Box and cartridge models are reference editions. Physical releases can differ.',
+              summary: metadata?.summary,
+              genres: metadata?.genres,
+              credits: metadata?.creditsLine,
+              score: metadata?.overallRating == null
+                  ? null
+                  : '${metadata!.overallRating!.rating.sourceLabel} ${metadata.overallRating!.rating.normalizedValue.toStringAsFixed(1)}/100',
+              onClose: () => setState(() => _sceneInformation = false)),
+      ]);
 
   Widget _buildLandscapeLayout(
     Responsive rs,
@@ -1504,6 +1818,16 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
   Widget _buildControls(
       GameDetailState state, GameDetailController controller) {
     if (showQuickMenu) return const SizedBox.shrink();
+    if (_sceneLaunch.pending) return const SizedBox.shrink();
+    if (_sceneView) {
+      return ConsoleHud(
+          b: HudAction(L.of(context).common_back, onTap: _handleBack),
+          a: HudAction(controller.canOpenSelected ? 'Play' : 'Download',
+              onTap: _handleConfirm),
+          select:
+              HudAction(L.of(context).common_favorite, onTap: _handleFavorite),
+          start: HudAction(L.of(context).common_menu, onTap: toggleQuickMenu));
+    }
 
     final l = L.of(context);
 

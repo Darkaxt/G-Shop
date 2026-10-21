@@ -25,6 +25,8 @@ def main():
     parser.add_argument('--rom-set', help='Exact supplied Game & Watch MAME set')
     parser.add_argument('--edition-id', help='Exact NES carton catalogue edition ID')
     parser.add_argument('--cartridge-style', help='Explicit NES cartridge reference identity')
+    parser.add_argument('--launch-target', choices=('nes-front-loader',),
+                        help='Inspected NES launch derivative with source-bound calibration')
     parser.add_argument('--scratch-directory', type=Path,
                         help='Owned scratch for GLBs requiring unique Blender material names')
     parser.add_argument('--visual-variant-id', help='Explicit visual-only hardware edition; no ROM binding')
@@ -57,8 +59,17 @@ def main():
         import_source = args.scratch_directory/(hashlib.sha256(prepared).hexdigest()+'.glb')
         if not import_source.exists(): import_source.write_bytes(prepared)
         elif import_source.read_bytes()!=prepared: raise ValueError('Canonical material scratch differs')
-    if gltf.get('skins') or gltf.get('animations') and not (args.rom_set or args.visual_variant_id or args.edition_id or args.cartridge_style):
+    if gltf.get('skins') or gltf.get('animations') and not (args.rom_set or args.visual_variant_id or args.edition_id or args.cartridge_style or args.launch_target):
         raise ValueError('This adapter preserves static console display scenes only')
+    launch = gltf.get('extras', {}).get('launchHardware')
+    if args.launch_target and (args.system != 'nes' or args.rom_set or
+            args.visual_variant_id or args.edition_id or args.cartridge_style or
+            not isinstance(launch, dict) or launch.get('schema') != 1 or
+            launch.get('target') != args.launch_target or
+            launch.get('system') != args.system or
+            launch.get('compatibleMedia') != 'nes-72-pin' or
+            launch.get('controllerPort') != 1):
+        raise ValueError('Expected a source-bound NES launch calibration')
     if args.rom_set and (args.system != 'gameandwatch' or
             not __import__('re').fullmatch('[a-z0-9_]+', args.rom_set)):
         raise ValueError('Expected an exact Game & Watch set')
@@ -372,7 +383,9 @@ def main():
         while parent:
             if parent.name in translations: motion_chain.insert(0,translations[parent.name])
             parent=parent.parent
-        parent = obj.parent
+        # glTF permits a rigid rotation directly on a mesh node as well as on
+        # an empty parent. The NES lid uses the former; include its own hinge.
+        parent = obj
         while parent:
             if parent.name in hinges: chain.insert(0, hinges[parent.name])
             parent = parent.parent
@@ -515,6 +528,26 @@ def main():
         manifest['poseCenters'] = [[time, *list((point-center)*scale)] for time, point in pose_bounds]
     if gltf.get('extras', {}).get('controlRegistration'):
         manifest['sourceReference']['controlRegistration'] = gltf['extras']['controlRegistration']
+    if args.launch_target:
+        nodes = {s['node'] for s in surfaces}
+        required = [launch['lidNode'], launch['powerLedNode'],
+                    *launch['trayNodes'], *launch['controllerNodes']]
+        if any(name not in nodes for name in required):
+            raise ValueError('Launch calibration references absent source geometry')
+        pivot = launch['lidPivot']
+        if len(pivot) != 3 or any(not __import__('math').isfinite(v) for v in pivot):
+            raise ValueError('Launch hinge requires a finite source-space anchor')
+        manifest['launchHardware'] = {
+            **launch, 'lidPivot': list((axis(Vector(pivot)) - center) * scale),
+            'sourceScale': scale,
+            'sourceCenter': list(center),
+            'geometrySha256': manifest['geometrySha256'],
+        }
+        manifest['sourceReference']['parents'] = [{
+            'author': launch['sourceAuthor'], 'url': launch['sourceUrl'],
+            'sha256': launch['sourceSha256'],
+        }]
+        manifest['sourceReference']['adaptation'] = launch['adaptation']
     args.output.mkdir(parents=True)
     (args.output/'model.mesh').write_bytes(payload)
     (args.output/'model.json').write_text(json.dumps(manifest, indent=2), encoding='utf8')

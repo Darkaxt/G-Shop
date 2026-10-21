@@ -365,6 +365,32 @@ class ConsoleModel {
     return ConsoleModel._('nes', dir, sha256.convert(bytes).toString());
   }
 
+  /// Launch bodies have source-bound slot/lid calibration. Collector scenes
+  /// and uncalibrated reference bodies cannot enter the random launch pool.
+  static Future<ConsoleModel?> findNesLaunchTarget(String target,
+      {Directory? modelsDirectory}) async {
+    if (target != 'front-loader') {
+      throw const FormatException('Unknown calibrated NES launch target');
+    }
+    if (modelsDirectory == null && !Platform.isAndroid) return null;
+    final root =
+        modelsDirectory ?? Directory('/storage/emulated/0/RShop/models');
+    final dir = Directory('${root.path}/consoles/nes/launch/$target');
+    final file = File('${dir.path}/model.json');
+    if (!await file.exists()) return null;
+    if (await file.length() > 1024 * 1024) {
+      throw const FormatException(
+          'Launch hardware manifest exceeds import size');
+    }
+    final bytes = await file.readAsBytes();
+    final data = jsonDecode(utf8.decode(bytes));
+    if (data['launchHardware']?['target'] != 'nes-$target' ||
+        data['overviewGeometry'] == true) {
+      throw const FormatException('Launch hardware identity differs');
+    }
+    return ConsoleModel._('nes', dir, sha256.convert(bytes).toString());
+  }
+
   static Future<ConsoleModel?> findNesBox(String editionId,
       {required String manifestSha256, Directory? modelsDirectory}) async {
     if (!RegExp(r'^nes-[a-f0-9]{12}$').hasMatch(editionId) ||

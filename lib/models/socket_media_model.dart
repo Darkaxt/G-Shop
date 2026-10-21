@@ -467,6 +467,7 @@ class SocketMediaPose {
       labelSpin,
       opening,
       unboxing,
+      launch,
       inspection,
       pageFocus,
       pageAspect;
@@ -483,6 +484,7 @@ class SocketMediaPose {
       this.labelSpin = 0,
       this.opening = 0,
       this.unboxing = 0,
+      this.launch = 0,
       this.inspectedPart,
       this.inspection = 0,
       this.pageFocus = 0,

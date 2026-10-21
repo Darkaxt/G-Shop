@@ -5,7 +5,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-21 current execution (specification revision 137): **S26 ACTIVE**, sole
+2026-10-21 current execution (specification revision 138): **S26 ACTIVE**, sole
 active stage, authorized SCENE-01..05 followed by SOCKET-01. **S25 BLOCKED** for
 its remaining wider console/gallery requirements under the owner's explicit
 sequencing hold; resume them after S26. The current ICON/NES-01..06 task is
@@ -37,6 +37,46 @@ are retained. Thor is awake at HOME with no active G-Shop service. Evidence:
 `D:/Temp/gshop-nes-20261021/reports/nes-final-delivery.json` and
 `nes-final-runtime-preservation.json`. No current ICON/NES blocker/deferral remains.
 Closure assessment identified no required consolidation for that bounded task.
+
+2026-10-21 owner-requested runtime support: RetroArch on Thor had touch controls
+enabled in both global configurations, with no enabling core/game override. A
+bounded agent changed only `input_overlay_enable` to false after graceful exit;
+byte read-back confirms all other settings preserved. Main-agent normal G-Shop
+NES launch and actual running-game screenshot verify no touch controls; Thor
+returned HOME. Recovery and evidence remain in
+`D:/Temp/gshop-scene-launch-20261021/reports/core-overlays/`. This device-setting
+correction needs no APK release and does not close S26 scene acceptance.
+
+S26 NES vertical workflow is implemented in source across ordinary and secondary
+views: persistent scene with translucent game information, cartridge inspection
+and slow rotation, contextual edition controls, direct owned-ROM launch and the
+source-calibrated front-loader/connected-controller/external-display sequence.
+Presentation tokens retain the existing ROM/save/native owner, double-A skips
+visuals, and B/route/lifecycle/selection invalidation cancels uncommitted handoff.
+Focused diagnostic checks against the real 13 retail shells verify front-aperture
+clearance and full insertion before pressing; the converter verifies its lid
+against Blender with maximum normalized error below 0.000001. These are geometry
+and control-contract diagnostics, not native workflow acceptance. The owner's
+corrected layout centers the grounded controller directly in front of the console
+and routes only the cable at the right. Its Blender render and converted geometry
+are inspected; source authoring retains the exact placement in provenance.
+The twelve private launch files on Thor now use the centered controller through
+verified transfer `3c2cf6ae42a74b8b94ee8cceb918cffc` and exact hash-checked
+activation. The prior twelve-file draft has a defined recovery location until
+native acceptance; original model imports remain unchanged. The corrected model
+also passes actual vertex centering/support-plane and all-shell aperture checks.
+Focused scene/widget/readiness/lifecycle/audio and all-carton/shell loader checks
+pass for the current NES source. Analysis has no errors; the existing protected
+render-layer warning and style advice remain. Prepare an internal signed candidate
+from this source for the actual native workflow, without publishing a release.
+
+Native NES scene/handoff/interrupt/Info verification remains required. The second
+compatible console/random pool, GBA and G&W adaptations, fallback/lifecycle
+acceptance and SOCKET-01 remain current S26 advancement blockers. The new scene
+entry is enabled only for NES while proving that vertical workflow; GBA/G&W retain
+their existing behavior until their same-stage adaptation. No S26 extension
+release or native candidate has been produced yet. Diagnostics and private source
+receipts are under `D:/Temp/gshop-scene-launch-20261021/reports/`.
 
 S26 extension acceptance remaining: unified scene information/actions, direct
 launch with compatible stable random model choice, generation-correct startup,

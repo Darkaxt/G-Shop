@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 137, 2026-10-21.
+Authoritative specification, revision 138, 2026-10-21.
 
 Owner S26 closure instruction, 2026-10-21: register the authorized three-system
 3D interaction and the Socket dependency/attribution evaluation as the remaining
@@ -44,6 +44,11 @@ not permission to interrupt unfinished current acceptance or release partial wor
   Use each generation's documented startup,
   avoid duplicate simulated/emulator boot sequences, support skip and Reduced
   Motion, and preserve cancellation, selection/lifecycle ownership and offline play.
+- Owner refinement, 2026-10-21: when an NES body participates in the boot
+  sequence, include its matching wired controller with the plug seated in player
+  port 1, the controller flat on the shared ground centered directly in front of
+  the console, and only the cable routed in a tidy loop at the right; retain the
+  source collector. This includes the owner's placement clarification.
 - SCENE-04: choose randomly among available validated compatible console models
   for that launch. Hold the chosen model/slot/pose stable throughout the attempt;
   exclude incompatible cartridges, decorative collector scenes and unavailable
@@ -54,6 +59,35 @@ not permission to interrupt unfinished current acceptance or release partial wor
   Reduced Motion, real emulator integration and resource-incomplete direct-launch
   behavior. Reconcile the integrated result and deliver one subsequent normal
   signed release with independent download/package/installed verification.
+
+SCENE visual/integration contract (implementation detail, 2026-10-21): preserve
+G-Shop's existing background, typography and controller conventions. At Thor's
+1920x1080 primary and 1240x1080 secondary displays, the scene fills the available
+canvas; keep persistent chrome to a compact title and corner information/actions.
+Use at least 44 logical-pixel touch targets. Information follows the existing
+Game & Watch panel (16-pixel inset/radius, partially translucent dark material,
+scrollable within the safe viewport); the selected inspected model stays visible
+and uses the existing slow information rotation, disabled by Reduced Motion.
+Move edition/reference choices into contextual actions while preserving visible
+physical-reference uncertainty in information/selection, not guessed SKU claims.
+Check smaller single-display layouts as well as the actual dual-screen view.
+
+Use the existing owned-ROM/save/companion launcher as the sole handoff owner.
+The main engine owns selection and attempt state; a secondary renderer receives
+only local rendering facts and returns generation-bound readiness/final-frame
+signals. Never use a watchdog or estimated animation time to authorize handoff.
+The two additional A presses use Flutter's double-tap gesture window; B/Back,
+selection change, route loss or backgrounding cancels an uncommitted attempt.
+A committed Android handoff is a separate boundary and cannot be retroactively
+cancelled. Keep the chosen compatible console stable until completion/cancellation.
+
+NES needs an external display in the launch composition, rather than inventing a
+built-in screen. Retain the original supplied hardware and collection scenes;
+prepare bounded, attributed launch variants/slot and screen anchors where needed.
+GBA's available AGB/SP bodies may be extracted from its existing private scene,
+with source credits retained. Original G&W games activate their LCD/selected game,
+without an invented cartridge or universal Nintendo boot logo. Startup ownership
+must respect the actual emulator/BIOS behavior so branding is not played twice.
 
 Owner supplied-model continuation, 2026-10-21: review the three nes-models ZIPs,
 preserve their credits/limitations and use their prepared console and cartridge

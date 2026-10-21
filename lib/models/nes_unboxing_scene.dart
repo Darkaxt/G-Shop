@@ -142,6 +142,7 @@ class NesUnboxingScene {
       'labelAspect': cartridge.labelAspect,
       'cartridgeFrameWidth': cartridge.sourceWidth,
       'cartridgeFrameHeight': cartridge.height,
+      'cartridgeClosedSize': cartSize,
       'frontSign': 1,
       'cartridgeStyle': style,
       'retailEditionId': box.retailEditionId,

@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/game_item.dart';
 import '../../models/console_model.dart';
+import '../../models/scene_launch_presentation.dart';
 import '../../models/game_watch_hardware_info.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/game_metadata_info.dart';
@@ -63,7 +65,7 @@ class DualScreenPreviewHost extends ConsumerStatefulWidget {
 }
 
 class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
-    with RouteAware {
+    with RouteAware, WidgetsBindingObserver {
   GameDetailController? _controller;
   PreviewSelection? _selection;
   SecondaryPreview? _bridge;
@@ -106,9 +108,16 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
   bool? _clipPreference;
   String? _bindingSignature;
   final _launcher = OwnedEmulatorLauncher();
+  final _sceneLaunch = SceneLaunchPresentation();
+  String? _launchConsoleGeneration;
+  bool get _sceneView =>
+      ref.read(mediaPresentationProvider).enabled &&
+      _selection?.system.id == 'nes';
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _sceneLaunch.addListener(_sceneLaunchChanged);
     widget.selection.addListener(_selected);
   }
 
@@ -134,6 +143,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
 
   @override
   void didPushNext() {
+    _sceneLaunch.cancel();
     _visible = false;
     unawaited(_bridge?.hide(this));
   }
@@ -147,11 +157,24 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
   }
 
   void _selected() {
+    _sceneLaunch.cancel();
     if (mounted) setState(() {});
   }
 
   void _changed() {
     if (mounted) setState(() {});
+  }
+
+  void _sceneLaunchChanged() {
+    debugPrint('GShopSceneLaunch ${jsonEncode({
+          'token': _sceneLaunch.token,
+          'phase': _sceneLaunch.phase.name,
+          'console': _sceneLaunch.consoleId,
+          'view': 'secondary',
+          'skip': _sceneLaunch.skipRequested,
+          'visualAvailable': _sceneLaunch.visualAvailable,
+        })}');
+    _changed();
   }
 
   void _bind(PreviewSelection selection) {
@@ -179,6 +202,8 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
       return;
     }
     _bindingSignature = signature;
+    _sceneLaunch.reset(notify: false);
+    _launchConsoleGeneration = null;
     _generation++;
     _hardwareRequest++;
     _hardwareModels = const [];
@@ -217,6 +242,15 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     if (!ref.read(dualScreenPreviewProvider) ||
         !_visible ||
         _controller == null) return false;
+    if (_sceneLaunch.canInterrupt) {
+      _sceneLaunch.confirm();
+      return true;
+    }
+    if (_sceneView) {
+      unawaited(
+          _action(_controller!.canOpenSelected ? 'launch' : 'download', null));
+      return true;
+    }
     if (_inspectedHardware != null) {
       setState(
           () => _hardwareInformationVisible = !_hardwareInformationVisible);
@@ -232,6 +266,11 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
   }
 
   bool closeDetails() {
+    if (_sceneLaunch.cancel()) return true;
+    if (_sceneView && _details) {
+      setState(() => _details = false);
+      return true;
+    }
     if (_hardwareInformationVisible) {
       setState(() => _hardwareInformationVisible = false);
       return true;
@@ -255,9 +294,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
           QuickMenuItem(
               label: 'Details',
               icon: Icons.info_outline,
-              onSelect: () {
-                if (mounted) setState(() => _details = true);
-              }),
+              onSelect: () => _action('details', null)),
           if (_hardwareModels.isNotEmpty)
             QuickMenuItem(
                 label: 'Inspect hardware',
@@ -333,6 +370,15 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
   Future<void> downloadMedia() => _action('media', null);
 
   Future<void> _findClip(GameMetadataInfo? metadata) async {
+    if (_sceneView) {
+      if (mounted)
+        setState(() {
+          _video = null;
+          _videoMedia = null;
+          _clipLoading = false;
+        });
+      return;
+    }
     final generation = _generation;
     final request = ++_clipRequest;
     if (mounted) setState(() => _clipLoading = true);
@@ -381,6 +427,28 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
 
   Future<void> _action(String action, int? variant) async {
     if (!mounted || !_visible) return;
+    if (action.startsWith('launch-')) {
+      if (variant == null || variant != _sceneLaunch.token) return;
+      switch (action) {
+        case 'launch-ready':
+          _sceneLaunch.ready(variant);
+        case 'launch-unavailable':
+          _sceneLaunch.unavailable(variant);
+        case 'launch-finished':
+          _sceneLaunch.rendered(variant);
+        case 'launch-cancel':
+          _sceneLaunch.cancel();
+        case 'launch-skip':
+          _sceneLaunch.skip();
+      }
+      return;
+    }
+    if (action == 'launch' && _sceneLaunch.canInterrupt) {
+      _sceneLaunch.confirm();
+      return;
+    }
+    if (_sceneLaunch.phase == SceneLaunchPhase.committing) return;
+    if (_sceneLaunch.canInterrupt) _sceneLaunch.cancel();
     if (action == 'hardware-inspect') {
       if (variant == null || variant < 0 || variant >= _hardwareModels.length) {
         return;
@@ -464,7 +532,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     if (action == 'details') {
       setState(() {
         _details = true;
-        _inspectedHardware = null;
+        if (!_sceneView) _inspectedHardware = null;
         _hardwareInformationVisible = false;
       });
       return;
@@ -491,6 +559,46 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     final generation = _generation;
     try {
       if (action == 'launch' && controller.canOpenSelected) {
+        if (_sceneView) {
+          setState(() {
+            _details = false;
+            _hardwareInformationVisible = false;
+          });
+        }
+        final cinematic = _sceneView && selection.system.id == 'nes';
+        final token = cinematic
+            ? _sceneLaunch.begin(
+                identity:
+                    '${selection.identity}:${controller.selectedVariant.selectionKey}',
+                consoleId: 'nes-front-loader')
+            : null;
+        if (token != null) {
+          _launchConsoleGeneration = null;
+          try {
+            final target =
+                await ConsoleModel.findNesLaunchTarget('front-loader');
+            if (!mounted ||
+                generation != _generation ||
+                !_sceneLaunch.canInterrupt) {
+              throw PlatformException(code: 'cancelled');
+            }
+            if (target == null) {
+              _sceneLaunch.unavailable(token);
+            } else {
+              await target.load();
+              if (!mounted ||
+                  generation != _generation ||
+                  !_sceneLaunch.canInterrupt) {
+                throw PlatformException(code: 'cancelled');
+              }
+              setState(() => _launchConsoleGeneration = target.generation);
+            }
+          } on FormatException {
+            _sceneLaunch.unavailable(token);
+          } on FileSystemException {
+            _sceneLaunch.unavailable(token);
+          }
+        }
         await openManagedGame(
             ref,
             context,
@@ -500,7 +608,14 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
             selection.target, beforeHandoff: () async {
           if (!mounted || generation != _generation)
             throw PlatformException(code: 'cancelled');
+          if (token == null) return;
+          if (!await _sceneLaunch.commitWhenPresented(token) ||
+              !mounted ||
+              generation != _generation) {
+            throw PlatformException(code: 'cancelled');
+          }
         });
+        if (token != null) _sceneLaunch.handedOff(token);
       } else if (action == 'download' && !controller.state.isVariantInstalled) {
         final added =
             await controller.addVariantToQueue(controller.selectedIndex);
@@ -554,13 +669,16 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
             if (error is PlatformException) 'code': error.code,
           })}');
       if (mounted && generation == _generation) {
-        _notice = error is StateError
-            ? error.message.toString()
-            : error is PlatformException && error.code == 'save_conflict'
-                ? 'Choose which save to use in Save backups.'
-                : 'Could not finish. Check game or metadata settings.';
+        _notice = error is PlatformException && error.code == 'cancelled'
+            ? null
+            : error is StateError
+                ? error.message.toString()
+                : error is PlatformException && error.code == 'save_conflict'
+                    ? 'Choose which save to use in Save backups.'
+                    : 'Could not finish. Check game or metadata settings.';
       }
     } finally {
+      if (_sceneLaunch.canInterrupt) _sceneLaunch.cancel();
       if (mounted) setState(() => _working = false);
     }
   }
@@ -628,7 +746,18 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
       final payload = <String, dynamic>{
         'identity': selection.identity,
         'actionIdentity':
-            '${controller.selectedVariant.selectionKey}:${controller.selectedVariant.raMatchKey}',
+            '${controller.selectedVariant.selectionKey}:${controller.selectedVariant.raMatchKey}:${_sceneLaunch.token}',
+        'sceneView': _sceneView,
+        'sceneLaunch': _sceneLaunch.pending
+            ? {
+                'token': _sceneLaunch.token,
+                'phase': _sceneLaunch.phase.name,
+                'console': _sceneLaunch.consoleId,
+                'consoleGeneration': _launchConsoleGeneration,
+                'skip': _sceneLaunch.skipRequested,
+                'visualAvailable': _sceneLaunch.visualAvailable,
+              }
+            : null,
         'filename': controller.selectedVariant.filename,
         'title': controller.selectedVariant.displayName,
         'system': selection.system.id,
@@ -717,7 +846,15 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) _sceneLaunch.cancel();
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _sceneLaunch.removeListener(_sceneLaunchChanged);
+    _sceneLaunch.dispose();
     _generation++;
     widget.selection.removeListener(_selected);
     previewRouteObserver.unsubscribe(this);
