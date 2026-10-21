@@ -38,6 +38,10 @@ class _ProjectionDatabase implements Database {
   int batches = 0;
   int standaloneWrites = 0;
   int catalogueReads = 0;
+  int rankedEvaluations = 0;
+  int hydratedIdentityReads = 0;
+  int maxDiscoveryRows = 0;
+  void Function()? onRankedEvaluation;
   final catalogueQueries = <({String sql, List<Object?> args})>[];
   _ProjectionDatabase(this.inner);
 
@@ -65,14 +69,23 @@ class _ProjectionTransaction implements Transaction {
 
   @override
   Future<List<Map<String, Object?>>> rawQuery(String sql,
-      [List<Object?>? arguments]) {
+      [List<Object?>? arguments]) async {
+    if (sql.contains('WITH scoped AS')) observation.rankedEvaluations++;
     if (RegExp(r'\b(?:FROM|JOIN)\s+games\b', caseSensitive: false)
         .hasMatch(sql)) {
       observation.catalogueReads++;
       observation.catalogueQueries
           .add((sql: sql, args: List.of(arguments ?? const [])));
     }
-    return inner.rawQuery(sql, arguments);
+    final rows = await inner.rawQuery(sql, arguments);
+    if (sql.contains('FROM library_discovery_') &&
+        rows.length > observation.maxDiscoveryRows) {
+      observation.maxDiscoveryRows = rows.length;
+    }
+    if (rows.isNotEmpty && sql.contains('g.record_json AS game_json')) {
+      observation.hydratedIdentityReads++;
+    }
+    return rows;
   }
 
   @override
@@ -116,6 +129,10 @@ class _ProjectionTransaction implements Transaction {
   @override
   Future<void> execute(String sql, [List<Object?>? arguments]) {
     observation.standaloneWrites++;
+    if (sql.contains('WITH scoped AS')) {
+      observation.rankedEvaluations++;
+      observation.onRankedEvaluation?.call();
+    }
     return inner.execute(sql, arguments);
   }
 
@@ -2042,6 +2059,74 @@ void main() {
             assessedBases: [basis]),
         isNull);
     expect(await db.query('library_query_views'), isEmpty);
+  });
+
+  test(
+      'warm full discovery evaluates membership once without hydrating metadata',
+      () async {
+    const count = 385;
+    for (var i = 1; i <= count; i++) {
+      await seed(i, score: i.isEven ? 80 : null);
+    }
+    // Finish real projection construction before observing the unchanged query.
+    await read(filter: LibraryQueryFilter(platformIds: {'psx'}, limit: 1));
+    final observed = _ProjectionDatabase(db);
+    final watch = Stopwatch()..start();
+    final result = (await LibraryQuery(Future.value(observed)).discover(
+        filter: LibraryQueryFilter(
+            platformIds: {'psx'},
+            releasePreference: const CommercialReleasePreference()),
+        orderedKeys: [
+          for (var i = 1; i <= count; i++) coverRatingKey('psx', 'Game $i.7z')
+        ],
+        preserveOrder: true,
+        isCurrent: () => true,
+        assessedBases: [basis]))!;
+    // ignore: avoid_print
+    print('warm discovery: rows=$count elapsedMs=${watch.elapsedMilliseconds} '
+        'rankedEvaluations=${observed.rankedEvaluations} '
+        'hydratedIdentityReads=${observed.hydratedIdentityReads}');
+    expect(result.groups.values.expand((keys) => keys), hasLength(count));
+    expect(result.totalMatches, count);
+    expect(result.collectionGames, count);
+    expect(result.rankedGames, count ~/ 2);
+    expect(result.groups.values.map((keys) => keys.single),
+        [for (var i = 1; i <= count; i++) coverRatingKey('psx', 'Game $i.7z')]);
+    expect(observed.rankedEvaluations, 1,
+        reason:
+            'A full-scope rank/filter plan must not repeat per output page.');
+    expect(observed.hydratedIdentityReads, 0,
+        reason: 'Discovery uses the current compact projection; visible cards '
+            'resolve their own metadata instead of hydrating the whole library.');
+    expect(observed.maxDiscoveryRows, 128,
+        reason: 'The single selection still crosses the native boundary in '
+            'bounded pages.');
+    expect(await db.query('library_query_views'), isEmpty);
+    expect(
+        await db.rawQuery("SELECT name FROM sqlite_temp_master "
+            "WHERE name LIKE 'library_discovery_%'"),
+        isEmpty);
+  });
+
+  test('selection cancellation discards its materialized discovery snapshot',
+      () async {
+    await seed(1, score: 90);
+    await read();
+    var current = true;
+    final observed = _ProjectionDatabase(db)
+      ..onRankedEvaluation = () => current = false;
+    final result = await LibraryQuery(Future.value(observed)).discover(
+        filter: LibraryQueryFilter(platformIds: {'psx'}),
+        orderedKeys: [coverRatingKey('psx', 'Game 1.7z')],
+        isCurrent: () => current,
+        assessedBases: [basis]);
+    expect(observed.rankedEvaluations, 1);
+    expect(result, isNull);
+    expect(await db.query('library_query_views'), isEmpty);
+    expect(
+        await db.rawQuery("SELECT name FROM sqlite_temp_master "
+            "WHERE name LIKE 'library_discovery_%'"),
+        isEmpty);
   });
 
   test(

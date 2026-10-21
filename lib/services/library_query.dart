@@ -383,52 +383,73 @@ class LibraryQuery {
     _validate(filter);
     final db = await _database;
     final bases = assessedBases ?? productionOverallScoreBases;
-    final view = 'ui-discovery:${++_viewSequence}';
+    final sequence = ++_viewSequence;
+    final view = 'ui-discovery:$sequence';
+    final selectionTable = 'library_discovery_$sequence';
     return db.transaction((txn) async {
       if (!isCurrent()) return null;
       final bindings = await _bindCacheView(
           txn, view, orderedKeys, filter.platformIds, bases);
+      var createdSelection = false;
       try {
+        if (!isCurrent()) return null;
+        final selection = _selection(LibraryQueryFilter(
+            platformIds: filter.platformIds,
+            category: filter.category,
+            releasePreference: filter.releasePreference,
+            tags: filter.tags,
+            genres: filter.genres,
+            regions: filter.regions,
+            languages: filter.languages,
+            matchAllTags: filter.matchAllTags,
+            ratingOrder: filter.ratingOrder,
+            top: filter.top,
+            featuredTop: filter.featuredTop,
+            search: filter.search,
+            viewIds: {...filter.viewIds, view},
+            manualViewId: preserveOrder ? view : null,
+            includeVariants: true));
+        // Evaluate canonical ranks, intersections and release preferences once.
+        // Only compact discovery fields cross SQLite's transport boundary;
+        // visible cards resolve their own metadata instead of loading every
+        // game's JSON, ratings and identity again for each output page.
+        await txn.execute('''CREATE TEMP TABLE $selectionTable (
+          position INTEGER PRIMARY KEY, group_key TEXT, cache_row_id INTEGER,
+          rank INTEGER, collection_games INTEGER, ranked_games INTEGER,
+          matches INTEGER)''');
+        createdSelection = true;
+        await txn.execute('''INSERT INTO $selectionTable
+          ${selection.intersection}, summary AS (SELECT
+            (SELECT COUNT(DISTINCT group_key) FROM scoped) AS collection_games,
+            (SELECT COUNT(*) FROM ranks) AS ranked_games,
+            (SELECT COUNT(*) FROM filtered WHERE edition_order = 1) AS matches)
+          SELECT ROW_NUMBER() OVER (ORDER BY ${selection.order}),
+            group_key, cache_row_id, rank, summary.*
+          FROM summary LEFT JOIN filtered ON 1 = 1''', selection.arguments);
         final groups = <String, List<String>>{};
         final featuredRanks = <String, int>{};
-        LibraryQueryPage? coverage;
-        var offset = 0;
+        Map<String, Object?>? coverage;
+        var cursor = 0;
         while (isCurrent()) {
-          final page = await _page(
-              txn,
-              LibraryQueryFilter(
-                  platformIds: filter.platformIds,
-                  category: filter.category,
-                  releasePreference: filter.releasePreference,
-                  tags: filter.tags,
-                  genres: filter.genres,
-                  regions: filter.regions,
-                  languages: filter.languages,
-                  matchAllTags: filter.matchAllTags,
-                  ratingOrder: filter.ratingOrder,
-                  top: filter.top,
-                  featuredTop: filter.featuredTop,
-                  search: filter.search,
-                  viewIds: {...filter.viewIds, view},
-                  manualViewId: preserveOrder ? view : null,
-                  includeVariants: true,
-                  limit: 128,
-                  offset: offset),
-              bases);
-          coverage = page;
-          for (final item in page.items) {
-            final key = bindings[item.cacheRowId];
+          final rows = await txn.rawQuery('''SELECT * FROM $selectionTable
+            WHERE position > ? ORDER BY position LIMIT 128''', [cursor]);
+          if (rows.isEmpty) break;
+          coverage ??= rows.first;
+          for (final row in rows) {
+            final key = bindings[row['cache_row_id']];
             if (key != null) {
-              groups.putIfAbsent(item.groupKey, () => []).add(key);
+              final group = row['group_key'] as String;
+              final rank = row['rank'] as int?;
+              groups.putIfAbsent(group, () => []).add(key);
               if (filter.featuredTop != null &&
-                  item.rank != null &&
-                  item.rank! <= filter.featuredTop!) {
-                featuredRanks[item.groupKey] = item.rank!;
+                  rank != null &&
+                  rank <= filter.featuredTop!) {
+                featuredRanks[group] = rank;
               }
             }
           }
-          if (page.items.length < 128) break;
-          offset += page.items.length;
+          if (rows.length < 128) break;
+          cursor = rows.last['position'] as int;
         }
         if (!isCurrent() || coverage == null) return null;
         final genres = await _genres(txn, filter.platformIds);
@@ -437,10 +458,11 @@ class LibraryQuery {
             boundKeys: bindings.values.toSet(),
             featuredRanks: featuredRanks,
             genres: genres,
-            collectionGames: coverage.collectionGames,
-            rankedGames: coverage.rankedGames,
-            totalMatches: coverage.totalMatches);
+            collectionGames: coverage['collection_games'] as int,
+            rankedGames: coverage['ranked_games'] as int,
+            totalMatches: coverage['matches'] as int);
       } finally {
+        if (createdSelection) await txn.execute('DROP TABLE $selectionTable');
         await txn.delete('library_query_views',
             where: 'view_id = ?', whereArgs: [view]);
       }
@@ -1113,9 +1135,8 @@ class LibraryQuery {
         ranks AS (SELECT group_key, source_order, score,
           ROW_NUMBER() OVER (ORDER BY score DESC, group_key) AS rank FROM scores)''';
 
-  static Future<LibraryQueryPage> _page(DatabaseExecutor txn,
-      LibraryQueryFilter filter, List<AssessedOverallScoreBasis> bases) async {
-    await _refresh(txn, bases);
+  static ({String intersection, String order, List<Object?> arguments})
+      _selection(LibraryQueryFilter filter) {
     final args = <Object?>[];
     final scope = filter.platformIds.isEmpty
         ? ''
@@ -1207,6 +1228,15 @@ class LibraryQuery {
             ? 'CASE WHEN rank <= $featured THEN 0 ELSE 1 END, '
                 'CASE WHEN rank <= $featured THEN rank ELSE NULL END, $tailOrder'
             : tailOrder;
+    return (intersection: intersection, order: order, arguments: args);
+  }
+
+  static Future<LibraryQueryPage> _page(DatabaseExecutor txn,
+      LibraryQueryFilter filter, List<AssessedOverallScoreBasis> bases) async {
+    await _refresh(txn, bases);
+    final selection = _selection(filter);
+    final intersection = selection.intersection;
+    final order = selection.order;
     // One evaluation supplies coverage/count/page, including empty pages.
     // Re-running the same full-scope rank CTE for each count tripled work.
     final response = await txn.rawQuery('''$intersection, summary AS (SELECT
@@ -1217,7 +1247,7 @@ class LibraryQuery {
         group_key, platform_id, title, cache_row_id, rank, manual_position, edition_order FROM filtered
         ${filter.includeVariants ? '' : 'WHERE edition_order = 1'} ORDER BY $order LIMIT ? OFFSET ?)
         SELECT page_rows.*, summary.* FROM summary LEFT JOIN page_rows ON 1 = 1 ORDER BY $order''',
-        [...args, filter.limit, filter.offset]);
+        [...selection.arguments, filter.limit, filter.offset]);
     final coverage = response.first;
     final rows = response.where((r) => r['edition_id'] != null).toList();
     final ratings = await LibraryStore.readEffectiveRatings(

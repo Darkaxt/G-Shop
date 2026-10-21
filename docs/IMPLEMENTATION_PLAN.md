@@ -1,6 +1,10 @@
 # Staged implementation plan
 
-Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 148
+Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 149
+prioritizes the recurring native library-loading regression before NES resource
+collection: preserve exact discovery semantics, remove the measured underlying
+work and verify actual Thor entry and focused resource/correctness checks.
+Revision 148
 requires the actual authorized Top 25 Drive coverage and recovery/binding audit
 before dependent scene resource acceptance. An installed animation fixture or
 captured fallback cannot stand in for a populated ranked cohort or authentic

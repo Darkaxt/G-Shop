@@ -5,7 +5,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-22 current execution (specification revision 148): **S26 ACTIVE**, sole
+2026-10-22 current execution (specification revision 149): **S26 ACTIVE**, sole
 active stage. The supplied Sony display and NES-101 derivative are integrated in
 the internal signed candidate from `4be05b9`, installed and hash/signer verified
 with all sixteen database/preferences files unchanged across that update. Native default framing
@@ -16,7 +16,23 @@ The native owned-ROM read succeeds during discovery. The preceding `7e17b72`
 candidate's global WAL setting conflicted with shared metadata's rollback journal;
 `4be05b9` scopes WAL to the private database. Native read-back confirms private WAL
 and shared DELETE, successful scoped recovery and the owned read completing before
-discovery finishes. Focused checks pass; the full host suite is still running.
+discovery finishes. Focused checks and the completed full host suite pass for
+that source. The owner's recurring library-loading report is an internal
+advancement blocker: native discovery takes 33 seconds after metadata readiness.
+Root-cause diagnosis/fix and native revalidation are required before starting NES
+resource collection. IGDB credentials are saved on Thor; no new credentials or
+lookup job were requested/started during the read-only coverage investigation.
+The loading regression reproduces on an unchanged 385-game fixture: discovery
+evaluates the whole ranking/filter selection four times and hydrates unused
+metadata. The correction materializes that same selection once inside its
+transaction and pages compact results by position; exact bindings, counts,
+release/Top/filter/manual-order semantics and cancellation cleanup are preserved.
+The regression and focused bulk-query, migration, controller and UI resource
+workflows pass. Actual Thor timing/re-entry verification is still required; do
+not call the native loading defect fixed from these host results. Evidence:
+`library-loading-before.log` and `library-loading-integration-checks.log` under
+the existing scene-launch reports. The full-suite result above predates this
+query correction and is not its acceptance evidence.
 Full NES-101 animation and the remaining
 three-system acceptance criteria remain open; no intermediate public release.
 The owner's slight information-panel blur is integrated into game information

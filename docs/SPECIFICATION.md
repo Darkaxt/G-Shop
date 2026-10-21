@@ -1,6 +1,16 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 148, 2026-10-22.
+Authoritative specification, revision 149, 2026-10-22.
+
+Owner library-loading regression, 2026-10-22: resolve the recurring long native
+library entry before starting NES resource collection. Current evidence shows
+33 seconds in discovery after metadata readiness. Preserve canonical ranking,
+scope/filter intersections, edition/release preferences, exact file binding,
+cancellation and complete result membership. Remove the proven repeated work at
+its source; no timeout, delayed reveal, retry or incomplete first result may stand
+in for a fix. Verify the real NES entry on Thor with app-monotonic phase timings,
+alongside focused correctness/resource regressions. This remains an advancement
+blocker within the sole ACTIVE S26, not a new implementation stage.
 
 Owner upstream-resource clarification, 2026-10-22: verify the authorized console's
 actual eligible distinct Top 25 metadata/artwork in the configured Google Drive
