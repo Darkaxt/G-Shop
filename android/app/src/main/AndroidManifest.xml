@@ -22,10 +22,6 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:requestLegacyExternalStorage="true"
         android:enableOnBackInvokedCallback="true">
-        <!-- Keep native owned-ROM reads available during UI/headless writes.
-             Sqflite applies this to every Android connection, including jobs. -->
-        <meta-data android:name="com.tekartik.sqflite.wal_enabled"
-            android:value="true" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

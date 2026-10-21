@@ -7,17 +7,21 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 2026-10-22 current execution (specification revision 147): **S26 ACTIVE**, sole
 active stage. The supplied Sony display and NES-101 derivative are integrated in
-the internal signed candidate from `44fdd8e`, installed and hash/signer verified
+the internal signed candidate from `7e17b72`, installed and hash/signer verified
 with all fourteen database/preferences files unchanged. Native default framing
 is verified for the collector, single and three-edition G&W scenes and NES media.
 The corrected front-loader/Sony path reaches the real owned game; B, background
 and selection cancellation and the NES-101 double-A skip are observed on Thor.
-The newly diagnosed database-reader contention is corrected in source and still
-requires its signed/native check. Full NES-101 animation and the remaining
+The native owned-ROM read succeeds during discovery; that candidate's global WAL
+setting conflicts with shared metadata's rollback journal. A scoped private-DB
+correction passes focused checks and still requires its signed/native check.
+Full NES-101 animation and the remaining
 three-system acceptance criteria remain open; no intermediate public release.
 The owner's slight information-panel blur is integrated into game information
 and hardware history; focused viewport/scroll/close and rotation/Back checks pass.
-Its signed/native visual check remains open.
+Both panels and closing Info are verified on Thor. The selected NES game's actual
+cartridge-label asset remains an acceptance gap; a rendered fallback is not a
+resolved retail label.
 The owner's subsequent reversed-arc/direct-tap and idle tutorial/trivia refinements
 are integrated and verified on Thor for the three-edition overview, direct model
 inspection, translucent history/slow rotation, Back, idle appearance and primary
@@ -260,6 +264,50 @@ the installed updated instructions were reread. No additional stage or release.
 Focused static analysis reports no errors/warnings and one existing test-style
 info (`curly_braces_in_flow_control_structures`); its exit status is 1 because
 Flutter treats that info as an issue. Evidence: `blur-and-regression-analysis.log`.
+
+Signed run `39681341739` passes for `7e17b72`; its independently downloaded and
+installed APK SHA-256 is
+`6994657537177641f3fd43bab2035637de63c7bbffc5218108567c729ccad4d2`.
+Source, production signer, approved icons, private-payload absence and all fourteen
+unchanged database/preferences files across installation verify. Native NES
+information and G&W Ball history show blur restricted to the rounded panel, with
+sharp text/controls and clear surrounding geometry; Back removes the panel/blur
+while retaining inspection. G&W reports the unchanged 120-second slow rotation.
+Evidence: `native/scene-7e-cartridge-info-blur-down.png`,
+`scene-7e-info-back-clear-down.png`, `scene-7e-gw-history-blur.*` and
+`scene-7e-gw-history-back.*`. The initial startup observer could not parse a long,
+truncated ConsolePreview log line; the shorter ConsoleMotion event subsequently
+verifies actual collector readiness. The library observer joined the subsequent
+real re-entry after its initial BoxReady occurred before its marker.
+
+The actual owned provider returns all 15,289 bytes with the expected checksum
+while NES discovery has not yet completed (`scene-7e-owned-discovery-overlap*`).
+However, startup also reports `SQLITE_BUSY` while shared metadata executes its
+required `PRAGMA journal_mode = DELETE`: the application-wide sqflite WAL flag
+was too broad. It is removed in source. Only the private `rshop.db` foreground
+and headless `onConfigure` callbacks now enable and verify WAL. Shared metadata's
+external-storage recovery contract stays unchanged. A synthetic Android proof
+opens a second writable handle during an exclusive writer and reads the prior
+committed value using this scoped configuration. The host lifecycle test first
+fails without private WAL, then passes with committed-reader isolation, independent
+UI/headless lifetime and a separate shared store still using DELETE. Database,
+shared-store and save-admission/publication regressions pass; focused analysis
+has no issues. Signed/runtime verification of this scoped correction remains
+required. Evidence: `scoped-wal-native-proof.log`, `scoped-wal-before.log`,
+`scoped-wal-integration-check.log` and `scoped-wal-analysis.log`.
+
+The owner's label review is confirmed by read-only queries against both stores:
+one edition binds the exact 10-Yard Fight archive, but neither store has a metadata
+record for it. Its NintAndBox carton binding is separate, so the box renders while
+the cartridge uses the earlier handwritten fallback. GPU `labelReady` confirms
+canvas capture, not presence of a retail texture; it cannot close actual-label
+acceptance. Next: restore normal shared metadata opening in the signed candidate,
+use the existing exact-game metadata/artwork workflow and inspect any resolved
+label. If no faithful label is supplied, apply CI-01 to that affected resource.
+Evidence: `nes-selected-label-inventory.json` and `NesLabelReadOnly.java`.
+The empty completed Sony transfer folder is removed through helper transaction
+`869e3644cf740b71940f47a99f3fc892` (one empty directory, zero file bytes); actual
+models and source deliveries are preserved.
 
 S26 NES vertical workflow is implemented in source across ordinary and secondary
 views: persistent scene with translucent game information, cartridge inspection

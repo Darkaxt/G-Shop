@@ -25,6 +25,16 @@ class DatabaseService {
   static const String _tableName = 'games';
   static const int _dbVersion = 42;
 
+  static Future<void> _configurePrivateDatabase(Database db) async {
+    // Independent native ROM readers need a committed snapshot during UI/save
+    // writes. Scope this to rshop.db: shared metadata retains DELETE journaling
+    // for its external-storage recovery/publication contract.
+    final mode = await db.rawQuery('PRAGMA journal_mode = WAL');
+    if (mode.single.values.single.toString().toLowerCase() != 'wal') {
+      throw StateError('private_database_wal_unavailable');
+    }
+  }
+
   /// Migration owns joined foreground/headless IO before calling this. A new
   /// engine/normal bootstrap then opens the activated database, never this handle.
   static Future<void> closeForMigration() async {
@@ -54,7 +64,9 @@ class DatabaseService {
     // engine close the other engine's handle.
     final db = await openDatabase(path,
         options: OpenDatabaseOptions(
-            singleInstance: false, rollbackActiveTransactionOnOpen: false));
+            singleInstance: false,
+            rollbackActiveTransactionOnOpen: false,
+            onConfigure: _configurePrivateDatabase));
     try {
       if (await db.getVersion() != _dbVersion) {
         throw StateError('Background save schema requires normal app startup');
@@ -83,6 +95,7 @@ class DatabaseService {
         // Native engine ownership closes abandoned transactions before handoff.
         // Never recover another live engine's connection by rolling it back.
         rollbackActiveTransactionOnOpen: false,
+        onConfigure: _configurePrivateDatabase,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
         onOpen: MetadataRefreshJobs.recoverInterrupted,

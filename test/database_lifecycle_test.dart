@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:g_shop/services/database_service.dart';
+import 'package:g_shop/services/metadata/shared_metadata_store.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite_common_ffi/src/database_factory_ffi_io.dart';
 import 'package:sqflite_common_ffi/src/sqflite_import.dart';
@@ -10,7 +11,7 @@ import 'package:sqflite_common_ffi/src/sqflite_import.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('headless database has an independent lifetime from the UI handle',
+  test('private WAL separates readers, headless lifetime and shared journaling',
       () async {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
@@ -25,8 +26,27 @@ void main() {
     DatabaseService.resetForTesting();
     final ui = await DatabaseService().database;
     Database? background;
+    SharedMetadataStore? shared;
     try {
+      expect((await ui.rawQuery('PRAGMA journal_mode')).single.values.single,
+          'wal');
+      shared = await SharedMetadataStore.open(Directory('${root.path}/shared'),
+          factory: databaseFactory, verifyAccess: () async {});
+      expect(
+          (await shared.cloudIndex.rawQuery('PRAGMA journal_mode'))
+              .single
+              .values
+              .single,
+          'delete',
+          reason:
+              'Private reader configuration must not change shared storage');
       background = await DatabaseService.openBackgroundDatabase();
+      expect(
+          (await background.rawQuery('PRAGMA journal_mode'))
+              .single
+              .values
+              .single,
+          'wal');
       expect(identical(ui, background), isFalse,
           reason:
               'A recreated UI must not roll back or close a live save pass');
@@ -43,6 +63,9 @@ void main() {
         await release.future;
       });
       await entered.future;
+      expect(await ui.query('games'), isEmpty,
+          reason:
+              'An independent reader sees only committed data during a writer');
       // UI teardown must not close the headless native handle mid-transaction.
       await ui.close();
       release.complete();
@@ -50,6 +73,7 @@ void main() {
       expect((await background.query('games')).single['filename'],
           'background.gba');
     } finally {
+      await shared?.close();
       await background?.close();
       await ui.close();
       DatabaseService.resetForTesting();
