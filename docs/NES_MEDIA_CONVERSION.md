@@ -1,6 +1,7 @@
 # NES private media conversion
 
-2026-10-21, ICON-01 / NES-01..05. Native and final-release verification is pending.
+2026-10-21, ICON-01 / NES-01..06. Supplied-model native checks pass;
+the new unboxing sequence and final release still require native acceptance.
 
 | Resource | Converted and import-verified | Binding |
 | --- | ---: | --- |
@@ -30,6 +31,21 @@ uses each model's UV dimensions; rear caution labels remain separate. Transparen
 inspection aids and illustrative PCBs are explicitly distinguished from retail
 editions. Famicom-compatible bootleg donor atlases remain their authored references.
 
+Per-game unboxing now composes the selected carton, applicable dust sleeve and
+personalized cartridge in one depth-tested scene. It opens the original flaps,
+extracts through their actual end, moves forward, removes the sleeve, and stages
+the cartridge in front. All 623 prepared cartons pass integrated extraction
+checks, including 33 landscape reconstructions with side openings. The 13 retail
+shell references pass seating, sleeve clearance, final depth separation and
+viewport checks. Resource/GPU admission, pause/resume, Reduced Motion, replay,
+inspection and the retained insertion/launch owner are covered by focused checks.
+Actual native acceptance of this complete sequence remains pending.
+
+The supplied flexible sleeve is fitted to the selected standard shell's depth
+while retaining its front proportions. Unboxing uses a plain sleeve so that an
+unproven Nintendo printing is not assigned to every licensed third-party game;
+the original branded accessory remains available as an explicit reference.
+
 The owner's 9,831 NES archives yield 453 same-region reference-box bindings, 71
 with multiple available printings. 6,220 archives are excluded as tagged hacks,
 aftermarket, prototypes, demos or other non-retail forms; another 3,158 have no
@@ -45,6 +61,11 @@ nonstandard proportions follow photographs rather than engineering measurements.
 Famicom, unknown unlicensed, modern aftermarket and hacked releases do not silently
 inherit a grey 72-pin cartridge. Zelda revisions and fixed Camerica colours retain
 their documented distinctions; ambiguous physical editions remain labelled choices.
+406 archives have both a compatible carton and a known shell reference, spanning
+438 available printing references. The remaining 47 box-bound archives have no
+proven compatible shell family; prepared bootleg donor models do not establish
+the exterior of every Japanese/Famicom release. They retain honest reference
+views rather than receiving an invented cartridge binding.
 
 References: [cartridge revisions](https://www.thelegendofnes.com/cartridge-design),
 [console hardware](https://www.thelegendofnes.com/ntsc-pal),
@@ -58,6 +79,8 @@ automatically assigning those physical editions to a ROM.
 Private census, per-file conversion/transfer receipts, reference photographs and
 renders remain under D:/Temp/gshop-nes-20261021/reports. Reusable authored sources
 and runtime imports are intentionally retained alongside that report directory.
-The initial device placement preserved every path/hash of the 1,203 previous
-imports. Supplied-model replacement, the requested per-game carton/sleeve/cartridge
-unboxing and final native/public delivery acceptance remain pending.
+The replacement activation verifies 401 supplied-model files and 623 corrected
+carton manifests while preserving every path/hash of the 1,203 previous imports.
+Signed candidate `5ad1b5b` verifies the collector, four console views, matched
+carton/gold cartridge label, clear-shell PCB visibility and assembly controls on
+Thor. Complete unboxing and final native/public delivery acceptance remain pending.

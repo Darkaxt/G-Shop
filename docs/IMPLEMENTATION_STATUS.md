@@ -15,15 +15,29 @@ top loader, Famicom and explicitly named Dendy-compatible clone (340 mesh object
 Four supplied console bodies and 31 cartridge/accessory references pass production
 loaders, including source assembly translations, texture receipts and separate
 front-label binding. Host checks verify inspection pause/resume, assembly and
-launch reset. Current signed native acceptance is still pending. Earlier private
-deployment preserved all 1,203 pre-existing import hashes; replacement activation
-is checked separately against that same baseline.
+launch reset. Signed candidate source `5ad1b5b` renders the expanded collection
+and all four supplied console bodies on Thor. Matched carton, gold shell with a
+separate game label, clear-shell PCB visibility and assembly controls pass visual
+checks. Its APK signer/icon resources and exact installed hash are verified;
+all database/preferences files are byte-identical across the in-place update.
+Replacement activation verifies all 401 new files and 623 corrected carton
+manifests, preserving every path/hash of the same 1,203 pre-existing imports.
 The 9,831-archive census yields 453 same-region reference-box bindings and 1,219
 archives with known NES shell references; neither proves an owned physical SKU.
-Supplied-model native acceptance, the newly requested complete per-game unboxing,
+Complete per-game unboxing, final integrated motion/lifecycle/launch acceptance
 and final 1.10.1/code 42 delivery remain internal advancement blockers within
 ACTIVE S25. No external
 execution blocker established; no tracked deferral. Wider gallery work is retained.
+
+NES-06 implementation checkpoint: the selected carton, optional standard-shell
+sleeve and personalized cartridge now share one depth buffer and sequence owner.
+All 623 cartons pass extraction through their actual flap end (33 are landscape
+side openings); 13 retail shell references pass seating, sleeve clearance and
+viewport checks. Lifecycle/resource admission and existing launch cancellation
+checks pass. 406 archives have compatible box+shell references across 438 available
+printing references. Remaining NES-06 acceptance is actual signed native sequence,
+inspection/replay/Reduced Motion and live launch integration, followed by final
+ICON/NES reconciliation and one normal independently verified release.
 
 2026-10-21 delivery: **S26 COMPLETE**, Drive only, normal public
 [v1.10.0/code 41](https://github.com/Darkaxt/G-Shop/releases/tag/v1.10.0).

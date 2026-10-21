@@ -38,12 +38,16 @@ void main() {
         expect(model.data['inspectionDurationMs'], 1350);
         expect(model.data['animationVerifiedMaxError'], lessThan(.0001));
       }
-      if (!style.startsWith('pcb-') && !style.startsWith('famicom-') &&
+      if (!style.startsWith('pcb-') &&
+          !style.startsWith('famicom-') &&
           style != 'dust-sleeve') {
         expect(model.surfaces.any((s) => s['role'] == 'label'), isTrue,
             reason: '$style must bind game artwork separately from the shell');
-        expect(model.surfaces.where((s) => s['node'] == 'Replaceable rear label')
-            .every((s) => s['role'] != 'label'), isTrue);
+        expect(
+            model.surfaces
+                .where((s) => s['node'] == 'Replaceable rear label')
+                .every((s) => s['role'] != 'label'),
+            isTrue);
       }
       for (final name in (model.data['textureFiles'] as Map).keys) {
         await model.textureBundle!.load('${SocketMediaModel.assetRoot}$name');
@@ -86,9 +90,17 @@ void main() {
           jsonDecode(await census.readAsString())['entries'] as List;
       final families = <String, int>{};
       var referenced = 0;
+      var unboxing = 0;
+      final unboxingEditions = <String>{};
       for (final entry in entries) {
         final choices = NesCartridgeModel.referencesFor(entry['filename']);
         if (choices.isNotEmpty) referenced++;
+        if (choices.isNotEmpty &&
+            catalogue.forArchive(entry['filename']).isNotEmpty) {
+          unboxing++;
+          unboxingEditions
+              .addAll(catalogue.forArchive(entry['filename']).map((e) => e.id));
+        }
         for (final style in choices) {
           families.update(style, (n) => n + 1, ifAbsent: () => 1);
         }
@@ -97,6 +109,8 @@ void main() {
           .writeAsString(jsonEncode({
         'archives': entries.length,
         'archivesWithShellReferences': referenced,
+        'archivesWithBoxAndShellReferences': unboxing,
+        'availableUnboxingEditionReferences': unboxingEditions.length,
         'styleReferences': families,
         'meaning': 'Reference families; not an exact owned physical SKU census'
       }));

@@ -17,12 +17,14 @@ import '../models/gba_cartridge_model.dart';
 import '../models/nes_cartridge_model.dart';
 import '../models/unboxing_scene.dart';
 import '../models/game_watch_unboxing_scene.dart';
+import '../models/nes_unboxing_scene.dart';
 
 class SocketMediaRenderer extends StatefulWidget {
   final PhysicalMediaFormat format;
   final PackagingModel? packaging;
   final ConsoleModel? console;
   final GameWatchUnboxingScene? gameWatchScene;
+  final NesUnboxingScene? nesScene;
   final String? cartridgeStyle;
   final UnboxingScene? unboxingScene;
   final SocketMediaPose pose;
@@ -39,6 +41,7 @@ class SocketMediaRenderer extends StatefulWidget {
       required this.label,
       this.labelIdentity,
       this.cartridgeStyle,
+      this.nesScene,
       this.onReady})
       : packaging = null,
         gameWatchScene = null,
@@ -54,6 +57,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.labelIdentity,
       this.onReady})
       : packaging = model,
+        nesScene = null,
         unboxingScene = null,
         gameWatchScene = null,
         console = null,
@@ -68,6 +72,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.onReady,
       this.gameWatchScene})
       : console = model,
+        nesScene = null,
         unboxingScene = null,
         packaging = null,
         cartridgeStyle = null,
@@ -84,6 +89,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.labelIdentity,
       this.onReady})
       : unboxingScene = scene,
+        nesScene = null,
         packaging = null,
         gameWatchScene = null,
         console = null,
@@ -149,9 +155,10 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         'geometrySha256': _renderer?.model.data['consoleGeometrySha256'] ??
             _renderer?.model.data['geometrySha256'] ??
             _renderer?.model.data['meshSha256'],
-        'sceneGeometrySha256': widget.gameWatchScene == null
-            ? null
-            : _renderer?.model.data['geometrySha256'],
+        'sceneGeometrySha256':
+            widget.gameWatchScene == null && widget.nesScene == null
+                ? null
+                : _renderer?.model.data['geometrySha256'],
         'boxGeometrySha256': _renderer?.model.data['boxGeometrySha256'],
         'canOpen': _renderer?.model.data['canOpen'] == true,
         'openingDurationMs': _renderer?.model.data['openingDurationMs'],
@@ -224,7 +231,10 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
   @override
   void didUpdateWidget(SocketMediaRenderer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.gameWatchScene?.identity != widget.gameWatchScene?.identity ||
+    if (oldWidget.pose.unboxing == 1 && widget.pose.unboxing < 1)
+      _sceneSettledReported = false;
+    if (oldWidget.nesScene?.identity != widget.nesScene?.identity ||
+        oldWidget.gameWatchScene?.identity != widget.gameWatchScene?.identity ||
         oldWidget.format != widget.format ||
         oldWidget.unboxingScene?.style != widget.unboxingScene?.style ||
         oldWidget.unboxingScene?.hasBooklet !=
@@ -275,25 +285,27 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     _labelImage = null;
     try {
       final renderer = await SocketMediaGpu.load(widget.format,
-          owned: widget.gameWatchScene != null
-              ? await widget.gameWatchScene!.load()
-              : widget.unboxingScene != null
-                  ? await widget.unboxingScene!.load() ??
-                      (throw StateError(
-                          'Import the holder-enabled box and cartridge'))
-                  : widget.console != null
-                      ? await widget.console!.load()
-                      : widget.cartridgeStyle != null &&
-                              widget.format == PhysicalMediaFormat.nes
-                          ? await NesCartridgeModel.load(
-                                  widget.cartridgeStyle!) ??
-                              (throw StateError(
-                                  'Import the selected NES cartridge shell'))
+          owned: widget.nesScene != null
+              ? await widget.nesScene!.load()
+              : widget.gameWatchScene != null
+                  ? await widget.gameWatchScene!.load()
+                  : widget.unboxingScene != null
+                      ? await widget.unboxingScene!.load() ??
+                          (throw StateError(
+                              'Import the holder-enabled box and cartridge'))
+                      : widget.console != null
+                          ? await widget.console!.load()
                           : widget.cartridgeStyle != null &&
-                                  widget.format == PhysicalMediaFormat.gba
-                              ? await GbaCartridgeModel.load(
-                                  widget.cartridgeStyle!)
-                              : await widget.packaging?.load());
+                                  widget.format == PhysicalMediaFormat.nes
+                              ? await NesCartridgeModel.load(
+                                      widget.cartridgeStyle!) ??
+                                  (throw StateError(
+                                      'Import the selected NES cartridge shell'))
+                              : widget.cartridgeStyle != null &&
+                                      widget.format == PhysicalMediaFormat.gba
+                                  ? await GbaCartridgeModel.load(
+                                      widget.cartridgeStyle!)
+                                  : await widget.packaging?.load());
       if (!mounted || generation != _generation) return;
       _modelUs = _clock.elapsedMicroseconds;
       setState(() => _renderer = renderer);
@@ -352,6 +364,26 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     if (!mounted || _renderer != submitted || labelRevision != _labelRevision)
       return;
     _paintedPose = pose;
+    if (widget.nesScene != null &&
+        pose.inspectedPart == null &&
+        widget.pose.unboxing == 1 &&
+        pose.unboxing == 1 &&
+        !_sceneSettledReported) {
+      _sceneSettledReported = true;
+      debugPrint('GShopNesUnboxingSettled ${jsonEncode({
+            'identity': widget.identity,
+            'edition': widget.nesScene!.box.retailEditionId,
+            'cartridgeStyle': widget.cartridgeStyle,
+            'hasSleeve': widget.nesScene!.hasSleeve,
+            'boxGeometrySha256': submitted.model.data['boxGeometrySha256'],
+            'cartridgeGeometrySha256':
+                submitted.model.data['cartridgeGeometrySha256'],
+            'sceneGeometrySha256': submitted.model.data['geometrySha256'],
+            'frameRendered': true,
+            'labelReady': _labelTexture != null,
+            'paintedProgress': pose.unboxing,
+          })}');
+    }
     if (identical(widget.pose, pose) && _poseReady != null) {
       final pending = _poseReady!;
       _poseReady = null;
@@ -510,6 +542,9 @@ class SocketMediaGpu {
       part == null || pose.inspectedPart == null || part == pose.inspectedPart;
   static double surfaceOpening(SocketMediaModel model,
       Map<String, dynamic> surface, SocketMediaPose pose) {
+    if (model.data['nesUnboxing'] == true && surface['nesPart'] == 'box') {
+      return NesUnboxingScene.boxOpening(model, pose.unboxing);
+    }
     if (model.data['unboxingGeometry'] == true &&
         surface['unboxingPart'] == 'booklet') {
       if (pose.inspectedPart != 'booklet') return 0;
@@ -546,6 +581,9 @@ class SocketMediaGpu {
   /// Undo the converter's Y reflection and baked rest basis exactly once.
   static vm.Matrix4 modelTransform(
       SocketMediaModel model, SocketMediaPose pose) {
+    if (model.data['nesUnboxing'] == true) {
+      return NesUnboxingScene.viewTransform(model, pose);
+    }
     // Turn around the console's original upright axis; pitch is the fixed
     // inspection-camera angle, not an axis tilted by every yaw increment.
     if (model.data['gameWatchUnboxing'] == true) {
@@ -681,6 +719,10 @@ class SocketMediaGpu {
 
   static double fittedUnits(SocketMediaModel model, Size size,
       {SocketMediaPose? pose}) {
+    if (model.data['nesUnboxing'] == true) {
+      return NesUnboxingScene.fittedUnits(model,
+          pose ?? const SocketMediaPose(unboxing: 1), size.width, size.height);
+    }
     if (model.data['gameWatchUnboxing'] == true) {
       if (pose?.inspectedPart == 'console') {
         return math.min(
@@ -1082,7 +1124,9 @@ class SocketMediaGpu {
                     : 0));
         for (final surface in ordered) {
           if (!partVisible(
-              (surface['hardwarePart'] ?? surface['unboxingPart']) as String?,
+              (surface['nesPart'] ??
+                  surface['hardwarePart'] ??
+                  surface['unboxingPart']) as String?,
               pose)) continue;
           final opening = surfaceOpening(model, surface, pose);
           if (opaqueOnly && transmitting(surface['material'])) continue;
@@ -1091,6 +1135,10 @@ class SocketMediaGpu {
               : gpu.CullMode.none);
           final isLabel = surface['role'] == 'label';
           final transform = base.clone();
+          if (model.data['nesUnboxing'] == true) {
+            transform.multiply(NesUnboxingScene.partTransform(
+                model, surface['nesPart'] as String, pose));
+          }
           if (model.data['gameWatchUnboxing'] == true) {
             transform.multiply(GameWatchUnboxingScene.partTransform(
                 model, surface['hardwarePart'] as String, pose));

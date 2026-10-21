@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/console_model.dart';
 import '../../models/nes_cartridge_model.dart';
 import '../../models/nes_media_catalogue.dart';
+import '../../models/nes_unboxing_scene.dart';
 import '../../widgets/media_cover_fallback.dart';
 import '../../widgets/physical_media_view.dart';
 import 'console_hardware_view.dart';
@@ -38,6 +39,10 @@ class _NesMediaPreviewState extends State<NesMediaPreview> {
   int _edition = 0, _generation = 0;
   bool _boxReady = false, _cartridgeReady = false, _reported = false;
   bool _inspectInside = false;
+  String? _renderedBoxEdition;
+  final _localPhysicalKey = GlobalKey<PhysicalMediaViewState>();
+  GlobalKey<PhysicalMediaViewState> get _physicalKey =>
+      widget.physicalMediaKey ?? _localPhysicalKey;
   late Future<List<NesBoxEdition>> _editions;
   Future<ConsoleModel?>? _box;
   List<NesBoxEdition>? _choices;
@@ -56,6 +61,7 @@ class _NesMediaPreviewState extends State<NesMediaPreview> {
     _box = null;
     _choices = null;
     _boxReady = false;
+    _renderedBoxEdition = null;
     _cartridgeReady = _style == null;
     _reported = false;
     _editions = NesMediaCatalogue.load().then(
@@ -86,8 +92,7 @@ class _NesMediaPreviewState extends State<NesMediaPreview> {
           'identity': widget.identity,
           'ready': true,
           'cartridgeRendered': _style != null,
-          'boxEdition':
-              _choices?.isNotEmpty == true ? _choices![_edition].id : null,
+          'boxEdition': _renderedBoxEdition,
           'cartridgeStyle': _style,
           'referenceOnly': true
         })}');
@@ -103,17 +108,66 @@ class _NesMediaPreviewState extends State<NesMediaPreview> {
       title: widget.title,
       identity: widget.identity,
       backgroundColor: Colors.transparent);
+  Widget _cartridge(int generation, {NesUnboxingScene? scene}) {
+    final style = _style;
+    if (style == null) return _fallback();
+    return PhysicalMediaView(
+        key: _physicalKey,
+        identity: '${widget.identity}:$style',
+        title: widget.title,
+        format: PhysicalMediaFormat.nes,
+        cartridgeStyle: style,
+        nesScene: scene,
+        resourcesReady: widget.resourcesReady,
+        inspectInside: _inspectInside,
+        label: widget.label,
+        labelIdentity: widget.labelIdentity,
+        reducedMotion: widget.reducedMotion,
+        onReady: () {
+          if (generation != _generation || style != _style) return;
+          if (scene != null) _renderedBoxEdition = scene.box.retailEditionId;
+          _ready(generation, box: scene != null, cartridge: true);
+        });
+  }
+
+  void _changedSelection({bool box = false}) {
+    _generation++;
+    _inspectInside = false;
+    _cartridgeReady = _style == null;
+    _reported = false;
+    if (box) {
+      _boxReady = false;
+      _renderedBoxEdition = null;
+    }
+  }
+
+  void _replay() {
+    final generation = _generation;
+    setState(() => _inspectInside = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && generation == _generation)
+        _physicalKey.currentState?.replayUnboxing();
+    });
+  }
+
+  void _selectStyle(String style) {
+    if (style == _style) return;
+    final layoutChanged = _styles.contains(style) != _styles.contains(_style);
+    setState(() {
+      _style = style;
+      _changedSelection(box: layoutChanged);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     _ready(_generation);
     final generation = _generation;
-    final cartridgeStyle = _style;
     return FutureBuilder<List<NesBoxEdition>>(
         future: _editions,
         builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
+          if (snapshot.connectionState != ConnectionState.done)
             return const Center(child: CircularProgressIndicator());
-          }
           final choices = _choices ??= snapshot.data ?? const [];
           if (choices.isEmpty && _styles.isEmpty && _style == null) {
             _ready(generation, box: true);
@@ -123,6 +177,8 @@ class _NesMediaPreviewState extends State<NesMediaPreview> {
             ]);
           }
           if (choices.isNotEmpty) _box ??= choices[_edition].load();
+          final unboxing =
+              choices.isNotEmpty && _style != null && _styles.contains(_style);
           return Column(children: [
             const Padding(
                 padding: EdgeInsets.symmetric(vertical: 4),
@@ -130,130 +186,104 @@ class _NesMediaPreviewState extends State<NesMediaPreview> {
                     'Reference editions · exact physical edition may differ',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 11, color: Colors.white60))),
+            Row(children: [
+              if (choices.isNotEmpty)
+                Expanded(
+                    child: DropdownButton<int>(
+                        value: _edition,
+                        isExpanded: true,
+                        items: [
+                          for (var i = 0; i < choices.length; i++)
+                            DropdownMenuItem(
+                                value: i,
+                                child: Text(choices[i].label,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 12)))
+                        ],
+                        onChanged: (i) {
+                          if (i == null || i == _edition) return;
+                          setState(() {
+                            _edition = i;
+                            _box = choices[i].load();
+                            _changedSelection(box: true);
+                          });
+                        })),
+              if (choices.isNotEmpty && _style != null)
+                const SizedBox(width: 12),
+              if (_style != null)
+                Expanded(
+                    child: DropdownButton<String>(
+                        value: _style,
+                        isExpanded: true,
+                        items: [
+                          for (final style in {
+                            ..._styles,
+                            if (_style != null) _style!
+                          })
+                            DropdownMenuItem(
+                                value: style,
+                                child: Text(NesCartridgeModel.labels[style]!,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 12)))
+                        ],
+                        onChanged: (style) {
+                          if (style == null || style == _style) return;
+                          _selectStyle(style);
+                        })),
+            ]),
+            Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+              if (unboxing)
+                IconButton(
+                    tooltip: 'Replay unboxing',
+                    onPressed: _replay,
+                    icon: const Icon(Icons.replay)),
+              if (_style != null && NesCartridgeModel.hasInspection(_style!))
+                IconButton(
+                    tooltip: _inspectInside
+                        ? 'Assemble cartridge'
+                        : 'Inspect inside',
+                    icon: Icon(_inspectInside
+                        ? Icons.close_fullscreen
+                        : Icons.open_in_full),
+                    onPressed: () =>
+                        setState(() => _inspectInside = !_inspectInside)),
+              _referenceMenu(),
+            ]),
             Expanded(
-                child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                  Expanded(
-                      child: Column(children: [
-                    if (choices.isNotEmpty)
-                      DropdownButton<int>(
-                          value: _edition,
-                          isExpanded: true,
-                          items: [
-                            for (var i = 0; i < choices.length; i++)
-                              DropdownMenuItem(
-                                  value: i,
-                                  child: Text(choices[i].label,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 12)))
-                          ],
-                          onChanged: (i) {
-                            if (i == null || i == _edition) return;
-                            setState(() {
-                              _edition = i;
-                              _box = choices[i].load();
-                              _boxReady = false;
-                              _reported = false;
-                            });
-                          }),
-                    Expanded(
-                        child: FutureBuilder<ConsoleModel?>(
-                            future: _box,
-                            builder: (context, boxSnapshot) {
-                              if (_box != null &&
-                                  boxSnapshot.connectionState !=
-                                      ConnectionState.done) {
-                                return const Center(
-                                    child: CircularProgressIndicator());
-                              }
-                              final model = boxSnapshot.data;
-                              if (model == null) {
-                                if (choices.isEmpty ||
-                                    boxSnapshot.connectionState ==
-                                        ConnectionState.done) {
-                                  _ready(generation, box: true);
-                                }
-                                return _fallback();
-                              }
-                              return ConsoleHardwareView(
-                                  key: ValueKey(model.generation),
-                                  model: model,
-                                  title: 'Reference box',
-                                  showTitle: false,
-                                  turntable: false,
-                                  transparentBackground: true,
-                                  reducedMotion: widget.reducedMotion,
-                                  onReady: () {
-                                    if (choices[_edition].id ==
-                                        model.retailEditionId) {
-                                      _ready(generation, box: true);
-                                    }
-                                  });
-                            })),
-                  ])),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: Column(children: [
-                    if (_style != null)
-                      DropdownButton<String>(
-                          value: _style,
-                          isExpanded: true,
-                          items: [
-                            for (final style in {
-                              ..._styles,
-                              if (_style != null) _style!
-                            })
-                              DropdownMenuItem(
-                                  value: style,
-                                  child: Text(NesCartridgeModel.labels[style]!,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 12)))
-                          ],
-                          onChanged: (style) {
-                            if (style == null || style == _style) return;
-                            setState(() {
-                              _style = style;
-                              _inspectInside = false;
-                              _cartridgeReady = false;
-                              _reported = false;
-                            });
-                          }),
-                    Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                      if (_style != null &&
-                          NesCartridgeModel.hasInspection(_style!))
-                        IconButton(
-                            tooltip: _inspectInside
-                                ? 'Assemble cartridge'
-                                : 'Inspect inside',
-                            icon: Icon(_inspectInside
-                                ? Icons.close_fullscreen
-                                : Icons.open_in_full),
-                            onPressed: () => setState(
-                                () => _inspectInside = !_inspectInside)),
-                      _referenceMenu(),
-                    ]),
-                    Expanded(
-                        child: _style == null
-                            ? _fallback()
-                            : PhysicalMediaView(
-                                key: widget.physicalMediaKey ??
-                                    ValueKey('${widget.identity}:$_style'),
-                                identity: '${widget.identity}:$_style',
-                                title: widget.title,
-                                format: PhysicalMediaFormat.nes,
-                                cartridgeStyle: _style,
-                                inspectInside: _inspectInside,
-                                label: widget.label,
-                                labelIdentity: widget.labelIdentity,
-                                reducedMotion: widget.reducedMotion,
-                                onReady: () {
-                                  if (_style == cartridgeStyle) {
-                                    _ready(generation, cartridge: true);
-                                  }
-                                })),
-                  ])),
-                ])),
+                child: FutureBuilder<ConsoleModel?>(
+                    future: _box,
+                    builder: (context, boxSnapshot) {
+                      if (_box != null &&
+                          boxSnapshot.connectionState != ConnectionState.done)
+                        return const Center(child: CircularProgressIndicator());
+                      final model = boxSnapshot.data;
+                      if (unboxing && model != null)
+                        return _cartridge(generation,
+                            scene: NesUnboxingScene(model, _style!));
+                      if (model == null) _ready(generation, box: true);
+                      return Row(children: [
+                        if (choices.isNotEmpty)
+                          Expanded(
+                              child: model == null
+                                  ? _fallback()
+                                  : ConsoleHardwareView(
+                                      key: ValueKey(model.generation),
+                                      model: model,
+                                      title: 'Reference box',
+                                      showTitle: false,
+                                      turntable: false,
+                                      transparentBackground: true,
+                                      reducedMotion: widget.reducedMotion,
+                                      onReady: () {
+                                        if (generation != _generation) return;
+                                        _renderedBoxEdition =
+                                            model.retailEditionId;
+                                        _ready(generation, box: true);
+                                      })),
+                        if (choices.isNotEmpty) const SizedBox(width: 12),
+                        Expanded(child: _cartridge(generation)),
+                      ]);
+                    })),
           ]);
         });
   }
@@ -265,10 +295,5 @@ class _NesMediaPreviewState extends State<NesMediaPreview> {
             for (final e in NesCartridgeModel.labels.entries)
               PopupMenuItem(value: e.key, child: Text(e.value))
           ],
-      onSelected: (style) => setState(() {
-            _style = style;
-            _inspectInside = false;
-            _cartridgeReady = false;
-            _reported = false;
-          }));
+      onSelected: _selectStyle);
 }
