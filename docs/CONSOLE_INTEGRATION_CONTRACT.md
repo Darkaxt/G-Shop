@@ -14,6 +14,24 @@ Distinguish absent files, invalid assets, uncertain physical bindings and resour
 that genuinely do not apply. A ROM revision is not automatically another exterior;
 a game title or CRC does not establish a physical printing, colour or shell.
 
+Before accepting resource coverage for an authorized console, snapshot its actual
+eligible distinct Top 25 from the canonical ranked query and current preferences;
+do not infer membership from an installed animation-test game. Verify the accepted
+ranking inputs and coverage denominator: zero selected/eligible entries in a
+non-empty collection is not a populated Top 25, even if its job completed. Resolve
+missing ranking prerequisites or record an explicitly established unsupported/
+sparse scope; do not invent ranks or silently accept an empty cohort. Verify the
+configured Google Drive root and every required metadata/artwork role there, with edition,
+region and integrity evidence, then trace recovery into the shared cache, app
+projection and native scene. Keep genuine source unavailability explicit. A job
+completion, folder count or another console's accepted cohort is not coverage.
+Diagnose upstream absence separately from cache/recovery, binding and rendering
+failures; do not conceal either with a local-only individual fetch. Any authorized
+acquisition follows the existing Drive publication workflow before acceptance.
+A captured fallback sticker or `labelReady` flag does not verify authentic artwork.
+An unranked or incomplete fixture may diagnose animation but cannot satisfy the
+Top 25 resource or personalized-label criteria. Keep exact inventories private.
+
 If any required resource is absent, invalid or cannot be identified sufficiently
 to integrate faithfully, **pause the affected console integration**. Record the
 exact resource/game/edition, blocked acceptance criterion, available evidence and

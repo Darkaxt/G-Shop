@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.6"
+  version: "0.1.7"
 ---
 
 # G-Shop Console Integration
@@ -33,6 +33,44 @@ a concrete workaround or acknowledges the specific limitation. Record that decis
 No silent generic model, guessed shell/colour/label or omitted prop. Runtime missing
 file handling is not acceptance of an incomplete resource set. Diagnose/fix
 actionable binding defects rather than manufacturing external blockers.
+
+## Verify upstream coverage before scene acceptance
+
+For the authorized console, establish the actual eligible, distinct Top 25 cohort
+from the app's canonical ranked query and current filters/preferences. Retain the
+snapshot and exact ROM/edition identities privately; fewer than 25 eligible games
+is valid. An installed game chosen for animation diagnostics is not automatically
+a ranked member. Do not substitute convenient games or infer membership from names.
+Check the ranked coverage denominator and accepted rating-source/freshness evidence.
+A completed job with zero selected/eligible games in a non-empty collection does
+not establish a populated Top 25. Diagnose missing ranking prerequisites; record
+genuinely unsupported ranking or sparse coverage explicitly rather than accepting
+an empty cohort or inventing ranks. Apply the authorized collection scope when a
+console uses a different, explicitly approved selection rule.
+
+Verify the configured Google Drive account/root and the cohort's metadata and
+required artwork there before accepting device resource coverage. For each game,
+record the required roles (including the cartridge/support label), edition/region
+binding, remote resource identity and integrity evidence. A folder count, completed
+job, successful upload or another console's accepted cohort does not prove coverage.
+Keep provider-unavailable resources and owner-approved limitations explicit under
+CI-01; a missing database row alone does not establish an absent source asset.
+
+Trace the same resource through Drive publication, shared-cache recovery, app
+projection and the rendered scene. Distinguish upstream absence, recovery failure,
+binding failure and renderer failure. If Drive already has the correct resource,
+repair that path rather than collecting another copy. Do not use an individual
+lookup/local-only patch to conceal an incomplete Top 25 publication or recovery.
+Any authorized acquisition must pass the existing Drive publication/integrity
+workflow before counting as integrated coverage.
+
+Inspect the actual texture in the native scene. A loader success, captured canvas
+or `labelReady` flag can include a handwritten fallback and is not evidence that
+authentic artwork resolved. Such a game may diagnose animation only; it cannot
+pass personalized-label or Top 25 resource acceptance. Keep those outcomes separate
+in the existing reconciliation ledger, and resolve actionable upstream/cache
+defects before continuing dependent acceptance or invoking the external resource
+gate. Preserve the current stage and the single final release boundary.
 
 ## Apply the contract to the current console
 

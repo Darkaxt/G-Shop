@@ -1,6 +1,11 @@
 # Staged implementation plan
 
-Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 147
+Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 148
+requires the actual authorized Top 25 Drive coverage and recovery/binding audit
+before dependent scene resource acceptance. An installed animation fixture or
+captured fallback cannot stand in for a populated ranked cohort or authentic
+cartridge label. Keep this within the current stage and existing resource gate.
+Revision 147
 adds a slight rounded-panel backdrop blur to game information and hardware
 history, retaining sharp text/buttons, slow rotation and Info/Back semantics.
 Verify this with the next signed candidate alongside the native reader fix.

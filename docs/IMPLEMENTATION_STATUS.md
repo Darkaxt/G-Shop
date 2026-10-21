@@ -5,16 +5,18 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-22 current execution (specification revision 147): **S26 ACTIVE**, sole
+2026-10-22 current execution (specification revision 148): **S26 ACTIVE**, sole
 active stage. The supplied Sony display and NES-101 derivative are integrated in
-the internal signed candidate from `7e17b72`, installed and hash/signer verified
-with all fourteen database/preferences files unchanged. Native default framing
+the internal signed candidate from `4be05b9`, installed and hash/signer verified
+with all sixteen database/preferences files unchanged across that update. Native default framing
 is verified for the collector, single and three-edition G&W scenes and NES media.
 The corrected front-loader/Sony path reaches the real owned game; B, background
 and selection cancellation and the NES-101 double-A skip are observed on Thor.
-The native owned-ROM read succeeds during discovery; that candidate's global WAL
-setting conflicts with shared metadata's rollback journal. A scoped private-DB
-correction passes focused checks and still requires its signed/native check.
+The native owned-ROM read succeeds during discovery. The preceding `7e17b72`
+candidate's global WAL setting conflicted with shared metadata's rollback journal;
+`4be05b9` scopes WAL to the private database. Native read-back confirms private WAL
+and shared DELETE, successful scoped recovery and the owned read completing before
+discovery finishes. Focused checks pass; the full host suite is still running.
 Full NES-101 animation and the remaining
 three-system acceptance criteria remain open; no intermediate public release.
 The owner's slight information-panel blur is integrated into game information
@@ -22,6 +24,22 @@ and hardware history; focused viewport/scroll/close and rotation/Back checks pas
 Both panels and closing Info are verified on Thor. The selected NES game's actual
 cartridge-label asset remains an acceptance gap; a rendered fallback is not a
 resolved retail label.
+The owner requires upstream Top 25 coverage to be checked first. The prior exact
+10-Yard Fight local/shared-cache absence establishes neither Drive absence nor
+ranked-cohort membership. CI-01 and the source/installed integration skill now
+require an actual canonical cohort snapshot, configured Drive resource audit and
+Drive-to-cache-to-renderer trace; fallback capture is not label acceptance. The
+current NES upstream audit confirms saved job 84 selected zero NES entries, with
+zero eligible ranked games in the 9,831-entry collection. Private/shared stores
+contain 97 NES ScreenScraper records and no NES IGDB records; the accepted NES
+ranking basis is IGDB. The configured Drive root matches the audited root, and a
+sampled NES packet lists provider artwork references but publishes no asset bodies.
+The earlier GBA 24-entry acceptance did not claim wider Nintendo completion. No
+individual resource fetch substitutes for completing the applicable upstream path.
+Source and installed skill 0.1.7 both validate and have matching hashes; the updated
+installed rule was reread. It explicitly rejects empty-job and fallback-label
+coverage claims. Private evidence: `nes-upstream-ranked-audit-scoped-settled.json`
+under the existing scene-launch reports. Wider S26 remains unfinished.
 The owner's subsequent reversed-arc/direct-tap and idle tutorial/trivia refinements
 are integrated and verified on Thor for the three-edition overview, direct model
 inspection, translucent history/slow rotation, Back, idle appearance and primary

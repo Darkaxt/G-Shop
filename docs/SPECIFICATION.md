@@ -1,6 +1,20 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 147, 2026-10-22.
+Authoritative specification, revision 148, 2026-10-22.
+
+Owner upstream-resource clarification, 2026-10-22: verify the authorized console's
+actual eligible distinct Top 25 metadata/artwork in the configured Google Drive
+root before accepting scene resource coverage. Distinguish ranked members from
+installed animation fixtures and upstream absence from recovery/binding/rendering
+defects. A completed job selecting zero eligible games in a non-empty collection
+does not verify a populated Top 25; establish accepted ranking inputs and actual
+coverage, without invented ranks or silent empty-cohort acceptance. Trace required
+edition-bound resources through Drive, shared cache, app
+projection and the native scene; a fallback sticker or label-ready diagnostic is
+not verified authentic artwork. Record this in CI-01 and the integration skill.
+Resolve actionable pipeline defects before dependent acceptance; retain the
+existing resource gate for genuine missing assets. No additional stage or partial
+release is authorized.
 
 Owner information-panel refinement, 2026-10-22: slightly blur the scene beneath
 the translucent game-information and hardware-history panels. Clip the backdrop
