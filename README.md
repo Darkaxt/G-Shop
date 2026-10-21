@@ -6,7 +6,7 @@ G-Shop builds on [AverageConsumer/R-Shop](https://github.com/AverageConsumer/R-S
 
 [Download the latest APK](https://github.com/Darkaxt/G-Shop/releases/latest) · [Add to Obtainium / ObtainX](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Darkaxt/G-Shop) · [Upstream project](https://github.com/AverageConsumer/R-Shop)
 
-Production package: `com.darkaxt.rshop` · APK: `app-release.apk` · Android 7.0+ · Current published release: **[1.10.0](https://github.com/Darkaxt/G-Shop/releases/tag/v1.10.0)**
+Production package: `com.darkaxt.rshop` · APK: `app-release.apk` · Android 7.0+ · Current published release: **[1.10.1](https://github.com/Darkaxt/G-Shop/releases/tag/v1.10.1)**
 
 <p align="center">
   <img src="screenshots/thor/gba-artwork-3d-up.png" width="960" alt="R-Shop on AYN Thor: ranked GBA games with box covers, source-attributed scores, cloud badges and a separately textured Mega Man Zero 3 cartridge" />
@@ -16,7 +16,7 @@ Production package: `com.darkaxt.rshop` · APK: `app-release.apk` · Android 7.0
 
 ## What changes from the original?
 
-The original R-Shop provides the controller-first foundation. G-Shop retains its attribution and Android update/signing identity with Google Drive as the sole collection source. Existing downloads, offline play, saves and imports remain supported; legacy source settings stay readable for recovery. Historical source comparisons below describe the upstream baseline. Version 1.10.0 is verified as an in-place Thor update, including live Drive access, cached browsing, imported 3D previews and background save dispatch.
+The original R-Shop provides the controller-first foundation. G-Shop retains its attribution and Android update/signing identity with Google Drive as the sole collection source. Existing downloads, offline play, saves and imports remain supported; legacy source settings stay readable for recovery. Historical source comparisons below describe the upstream baseline. Version 1.10.0 is verified as an in-place Thor update, including live Drive access, cached browsing, imported 3D previews and background save dispatch. Version 1.10.1 adds the approved icon and verified NES console/carton/cartridge unboxing; see [NES conversion and coverage](docs/NES_MEDIA_CONVERSION.md).
 
 | Area | Original workflow | Added in this fork |
 | --- | --- | --- |

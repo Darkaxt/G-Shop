@@ -1,5 +1,19 @@
 # Staged implementation plan
 
+Current execution, 2026-10-21: **S26 ACTIVE**, sole active stage; current
+ICON/NES-01..06 task delivered and verified as normal v1.10.1/code 42, including
+exact cleanup. Wider **S25 BLOCKED** only by the owner's sequencing hold.
+
+Within S26, implement the complete SCENE-01..04 workflow first, proving the real
+NES path before adapting the integrated behavior to GBA and Game & Watch. Preserve
+one scene/launch owner across ordinary and secondary views, selected ROM identity,
+resource/lifecycle cancellation, stable compatible random choice, and actual
+per-generation startup. Then validate all three complete workflows under SCENE-05;
+perform SOCKET-01 last, based on the final actual resource/provenance inventory,
+and close with one normal release plus independent package/installed verification.
+No intermediate S26 release. No later-stage work opens while S26 is ACTIVE.
+Historical revision checkpoints below are superseded by this current state.
+
 Revision 137 assigns the owner-authorized continuation to S26's remaining
 extension: SCENE-01..05 followed by SOCKET-01 as its last implementation/review
 step. S25 current ICON/NES delivery remains ACTIVE. S26 extension is NOT STARTED;

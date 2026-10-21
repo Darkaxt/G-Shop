@@ -5,77 +5,49 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-21 current ICON/NES acceptance: signed source `e286e54` passes actual
-carton/sleeve/cartridge replay, GPU-hash settlement, inspection/reassembly,
-background/resume, Reduced Motion on/off with saved preference restoration, and
-selector rotation/drag. Exact managed archive launch passes grant/save/native
-handoff and visibly reaches the NES title screen in RetroArch/FCEUmm. Host checks
-for all 623 real flap ends, 13 compatible retail shell references and retained
-launch/lifecycle contracts remain applicable; diagnostics-only changes pass their
-affected launch/preview checks and the hosted native release build. Current
-package/icon/signature/private-payload and exact installed hash checks pass,
-with all 14 database/preferences files unchanged across the update. No current
-implementation blocker/deferral remains. Normal v1.10.1 delivery verification and
-exact cleanup remain required before this batch closes. Wider S25 is not complete.
-Closure assessment: no required consolidation identified within this bounded batch;
-the approved unified scene ownership/navigation change belongs to S26 SCENE-01..05.
+2026-10-21 current execution (specification revision 137): **S26 ACTIVE**, sole
+active stage, authorized SCENE-01..05 followed by SOCKET-01. **S25 BLOCKED** for
+its remaining wider console/gallery requirements under the owner's explicit
+sequencing hold; resume them after S26. The current ICON/NES-01..06 task is
+COMPLETE and delivered; this does not claim wider S25 completion.
 
-2026-10-21 owner stage correction (specification revision 137): S25 current
-ICON/NES batch is ACTIVE; S26 extension is NOT STARTED and owns SCENE-01..05,
-then SOCKET-01 as the last implementation/reconciliation step before its final
-release. Historical S26 v1.10.0 Drive-only/rebranding delivery stays verified;
-new scope must pass before claiming S26 COMPLETE again. After current NES delivery,
-park wider S25 under the explicit owner sequencing hold and activate S26. Socket
-review must prove actual remaining dependencies/derivative provenance before
-removing or narrowing importer/credit requirements; no source deletion is implied.
+The ICON/NES task shipped as normal public/latest
+[v1.10.1/code 42](https://github.com/Darkaxt/G-Shop/releases/tag/v1.10.1), tag and
+BUILDINFO source `e286e5403d43f3691c260bbf2e25b32216c355e4`. Independent
+unauthenticated download verifies all three assets, production signer, approved
+master/15 packaged icons, private-payload absence and APK SHA-256
+`3baeea5538fbf342d370f7b127be473075773ff26a375a6ce91fb525de570673`, identical
+to Thor's installed package. Every database/preferences file is unchanged across
+installation. Native evidence covers the expanded collector/four console bodies,
+matched carton/cartridge labels and PCB inspection, full carton/sleeve/cartridge
+sequence, replay, assembly, background/resume, actual Reduced Motion/restoration,
+selector rotation/drag, real managed NES launch to its RetroArch/FCEUmm title screen
+and return to the same selected 3D scene. Current focused all-carton/shell and
+retained launch/preview checks plus hosted native release verification pass.
+All 623 cartons are deployed; 406 archives have compatible box/shell references
+across 438 printings; 47 box-bound archives have no proven shell family. ROM
+identity does not establish an owned physical printing.
 
-2026-10-21 owner continuation: SCENE-01..05 is authorized after the current
-ICON/NES delivery. Unified game-view implementation is NOT STARTED. S25 is the
-sole ACTIVE stage; no implementation of the new navigation/launch behavior has
-begun. The current signed candidate is source `2d9df44`, installed with exact APK
-hash and all 14 database/preferences files unchanged across installation. Native
-replay shows actual carton opening, sleeved extraction, sleeve removal and final
-composition; GPU receipt, inspection/reassembly and background/resume pass. Evidence:
-`D:/Temp/gshop-nes-20261021/reports/unboxing-native-checkpoint.json`. Actual Reduced
-Motion and complete live NES launch verification remain current advancement
-blockers, followed by final reconciliation/delivery and exact cleanup. No tracked
-deferral or external execution blocker is established.
+Exact cleanup is applied: Windows `a858056099a0a055ce153c4133fb3713`; Android
+`a0b80e0fd17b3c6b1a799f8a4010434e`, `686a73815df781ff339fe5c58e872248`,
+`e3f9df6386aaddb2800b4e1733b9f103`. All 7,166 active resource paths/hashes remain
+unchanged, including the 1,203 original imports. Editable sources, reusable imports,
+reports, versioned release package, user downloads and permanent carton catalogue
+are retained. Thor is awake at HOME with no active G-Shop service. Evidence:
+`D:/Temp/gshop-nes-20261021/reports/nes-final-delivery.json` and
+`nes-final-runtime-preservation.json`. No current ICON/NES blocker/deferral remains.
+Closure assessment identified no required consolidation for that bounded task.
 
-2026-10-21 new owner request: S25 **ACTIVE**, sole active stage, bounded ICON-01 /
-NES-01..06 batch (specification revision 135). S26 is COMPLETE below. Approved
-ImageGen icon is integrated into launcher/splash/README. All 623 animated cartons
-pass production loaders and texture receipts. The supplied 34 GLBs independently
-validate with zero Khronos errors/warnings; all delivery checksums match. The
-expanded collector preserves all 291 original nodes and placements and adds the
-top loader, Famicom and explicitly named Dendy-compatible clone (340 mesh objects).
-Four supplied console bodies and 31 cartridge/accessory references pass production
-loaders, including source assembly translations, texture receipts and separate
-front-label binding. Host checks verify inspection pause/resume, assembly and
-launch reset. Signed candidate source `5ad1b5b` renders the expanded collection
-and all four supplied console bodies on Thor. Matched carton, gold shell with a
-separate game label, clear-shell PCB visibility and assembly controls pass visual
-checks. Its APK signer/icon resources and exact installed hash are verified;
-all database/preferences files are byte-identical across the in-place update.
-Replacement activation verifies all 401 new files and 623 corrected carton
-manifests, preserving every path/hash of the same 1,203 pre-existing imports.
-The 9,831-archive census yields 453 same-region reference-box bindings and 1,219
-archives with known NES shell references; neither proves an owned physical SKU.
-Complete per-game unboxing, final integrated motion/lifecycle/launch acceptance
-and final 1.10.1/code 42 delivery remain internal advancement blockers within
-ACTIVE S25. No external
-execution blocker established; no tracked deferral. Wider gallery work is retained.
+S26 extension acceptance remaining: unified scene information/actions, direct
+launch with compatible stable random model choice, generation-correct startup,
+double-A skip and B/Back cancellation, complete native G&W/NES/GBA workflows,
+resource-incomplete behavior, then Socket importer/provenance/attribution review
+and one final independently verified release. These are current advancement
+blockers while implementation proceeds; no external impediment or tracked
+deferral is established. Historical Drive-only/rebranding delivery below remains
+verified for that earlier S26 scope, not completion of the extension.
 
-NES-06 implementation checkpoint: the selected carton, optional standard-shell
-sleeve and personalized cartridge now share one depth buffer and sequence owner.
-All 623 cartons pass extraction through their actual flap end (33 are landscape
-side openings); 13 retail shell references pass seating, sleeve clearance and
-viewport checks. Lifecycle/resource admission and existing launch cancellation
-checks pass. 406 archives have compatible box+shell references across 438 available
-printing references. Remaining NES-06 acceptance is actual signed native sequence,
-inspection/replay/Reduced Motion and live launch integration, followed by final
-ICON/NES reconciliation and one normal independently verified release.
-
-2026-10-21 delivery: **S26 COMPLETE**, Drive only, normal public
+2026-10-21 historical S26 Drive/rebranding delivery: completed scope, normal public
 [v1.10.0/code 41](https://github.com/Darkaxt/G-Shop/releases/tag/v1.10.0).
 Release tag and BUILDINFO both identify source
 `eb01503e7eb88664d72fa95b87163cac85dfbf80`; the public APK and installed Thor APK

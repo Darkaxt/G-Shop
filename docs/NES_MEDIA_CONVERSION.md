@@ -1,7 +1,7 @@
 # NES private media conversion
 
 2026-10-21, ICON-01 / NES-01..06. Supplied-model and complete unboxing native
-checks pass on Thor. Final normal release verification is the remaining gate.
+checks pass on Thor. Normal v1.10.1/code 42 public and installed delivery is verified.
 
 | Resource | Converted and import-verified | Binding |
 | --- | ---: | --- |
@@ -93,6 +93,9 @@ carton/gold cartridge label, clear-shell PCB visibility and assembly controls on
 Thor. Source `e286e54` adds the complete unboxing/live-launch acceptance above.
 Its final APK is production-signed, includes the approved master icon and all 15
 verified launcher/splash resources, contains no private model payload, and installs
-with all 14 database/preferences files byte-identical. Public delivery remains the
-last gate for this batch; SCENE-01..05 and SOCKET-01 belong to the subsequent S26
-extension and are not claimed here.
+with all 14 database/preferences files byte-identical. Normal [v1.10.1/code 42](https://github.com/Darkaxt/G-Shop/releases/tag/v1.10.1)
+public retrieval verifies tag/source `e286e5403d43f3691c260bbf2e25b32216c355e4`,
+all three required release assets, production signature/icon and exact APK hash
+`3baeea5538fbf342d370f7b127be473075773ff26a375a6ce91fb525de570673`, matching
+Thor's installed APK. SCENE-01..05 and SOCKET-01 are the subsequent S26 extension
+and are not claimed by this release.
