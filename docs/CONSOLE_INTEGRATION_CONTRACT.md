@@ -49,6 +49,11 @@ Preserve the established GBA presentation: upright selected carton, restricted
 the object's transparent silhouette. Unselected cards stay still. Reduced Motion
 retains the selected glow and legible selection without the sweep. Gallery motion
 must not expose a blank edge, turn the box upside down or reload its geometry.
+Use the **same shared resting yaw as GBA** (currently -0.70 radians, about -40
+degrees), so unselected and Reduced Motion cartons visibly show a side face and
+depth. Do not add a flatter per-console rest override, such as the former G&W
+-0.20-radian pose. Shared selection animation alone is insufficient parity;
+compare the actual idle, selected and Reduced Motion frames with GBA.
 Full model inspection has separate rotation controls; the restricted gallery sweep
 does not limit the inspector. Preserve existing responsive layout and touch/
 controller selection. A required missing box invokes CI-01; do not quietly replace

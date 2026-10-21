@@ -69,6 +69,8 @@ void main() {
     expect(find.byKey(const ValueKey('library-model-selection-halo')),
         findsNothing);
     final still = yaw();
+    expect(still, -.70,
+        reason: 'Unselected G&W cartons use the same visible-side rest pose as GBA');
     await tester.pump(const Duration(seconds: 2));
     expect(yaw(), still);
     expect(
@@ -81,6 +83,8 @@ void main() {
           card(true, reduced: !systemReduced, systemReduced: systemReduced));
       expect(tester.state(find.byType(GameWatchPreview)), same(mountedPreview));
       final reducedYaw = yaw();
+      expect(reducedYaw, -.70,
+          reason: 'Reduced Motion keeps the GBA carton rest angle');
       await tester.pump(const Duration(seconds: 2));
       expect(yaw(), reducedYaw);
       expect(find.byKey(const ValueKey('library-model-selection-halo')),

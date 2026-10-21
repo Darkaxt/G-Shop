@@ -177,7 +177,6 @@ class BaseGameCard extends StatelessWidget {
                   LibraryModelPresentation(
                       selected: isSelected,
                       reducedMotion: reducedMotion,
-                      restYaw: -.2,
                       builder: (context, pose) => IgnorePointer(
                           child: GameWatchPreview(
                               key: ValueKey('gamewatch-shelf-$filename'),

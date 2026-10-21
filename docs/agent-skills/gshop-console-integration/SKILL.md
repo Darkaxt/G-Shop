@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.0"
+  version: "0.1.1"
 ---
 
 # G-Shop Console Integration
@@ -37,7 +37,10 @@ actionable binding defects rather than manufacturing external blockers.
 ## Apply the contract to the current console
 
 - Upper cards: matching NintAndBox box, one representative, selected upright
-  bounded yaw and back glow; no rotation for unselected/Reduced Motion.
+  bounded yaw and back glow; no rotation for unselected/Reduced Motion. Use GBA's
+  shared resting yaw (currently -0.70 rad, about -40 degrees), not a flatter
+  per-console override. Check visible side depth in idle and Reduced Motion as
+  well as the selected +/-30-degree sweep; shared animation alone is not parity.
 - Lower selector: large console/game composition; retain source props, hide only
   approved staging; shallow arc for multiple valid physical editions.
 - Game browsing: actual box/contents and applicable sleeve/case/booklet, proper

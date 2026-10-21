@@ -1,6 +1,13 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 141, 2026-10-21.
+Authoritative specification, revision 142, 2026-10-21.
+
+Owner gallery correction, 2026-10-21: G&W carton cards must use the same GBA
+resting orientation as well as its selected sweep/glow. Remove the flatter
+per-console idle angle; verify visible side depth for unselected, selected and
+Reduced Motion states in the actual gallery. CI-02 and the integration skill
+record this rule. This is authorized within the current integration work, not
+permission for a separate partial release.
 
 Owner reusable console-integration instruction, 2026-10-21: the included
 [CONSOLE_INTEGRATION_CONTRACT.md](CONSOLE_INTEGRATION_CONTRACT.md), CI-01..08,
