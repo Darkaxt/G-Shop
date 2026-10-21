@@ -1,6 +1,41 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 135, 2026-10-21.
+Authoritative specification, revision 136, 2026-10-21.
+
+Owner unified 3D interaction authorization, 2026-10-21: finish the current
+ICON/NES-01..06 task and its verified delivery first, then implement the approved
+3D game-view interaction for Game & Watch, NES and GBA. This is ordered work,
+not permission to interrupt unfinished current acceptance or release partial work.
+
+- SCENE-01: the existing 3D scene becomes the game view in both ordinary and
+  secondary-screen presentation. A launches an installed supported game directly
+  from that view; cloud-only games retain their download/install action. Preserve
+  selected ROM/revision, variant, installation ownership and existing launch owner.
+- SCENE-02: Info while inspecting the cartridge opens game metadata in a partially
+  translucent overlay; console inspection opens hardware history where available.
+  Keep the inspected model visible in slow rotation, B closes information/zoom,
+  and retain useful emulator, save, variant and resource-management actions in
+  contextual actions/settings. Remove the separate game-detail Resources and
+  trailers/images tabs from the normal flow without deleting imported resources.
+- SCENE-03: on launch, continue the existing unboxing into compatible cartridge
+  insertion, appropriate power-on/startup and zoom toward the console display,
+  followed by the real emulator handoff. During the running launch animation,
+  two A presses bypass the remaining animation and continue the same launch;
+  B/Back interrupts it and cancels the pending handoff, restoring the scene.
+  Skipping never bypasses ROM/save validation or creates another launch owner.
+  Use each generation's documented startup,
+  avoid duplicate simulated/emulator boot sequences, support skip and Reduced
+  Motion, and preserve cancellation, selection/lifecycle ownership and offline play.
+- SCENE-04: choose randomly among available validated compatible console models
+  for that launch. Hold the chosen model/slot/pose stable throughout the attempt;
+  exclude incompatible cartridges, decorative collector scenes and unavailable
+  resources. Game & Watch uses the selected game's valid handheld exterior and
+  appropriate LCD activation, with no invented cartridge or unrelated firmware.
+- SCENE-05: validate all three complete native workflows, compatible model choice,
+  translucent game/hardware information, controller/touch navigation, interruption,
+  Reduced Motion, real emulator integration and resource-incomplete direct-launch
+  behavior. Reconcile the integrated result and deliver one subsequent normal
+  signed release with independent download/package/installed verification.
 
 Owner supplied-model continuation, 2026-10-21: review the three nes-models ZIPs,
 preserve their credits/limitations and use their prepared console and cartridge

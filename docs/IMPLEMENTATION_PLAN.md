@@ -1,5 +1,13 @@
 # Staged implementation plan
 
+Revision 136 records the owner's already-authorized ordered continuation.
+S25 remains the sole ACTIVE stage. Its current ICON/NES-01..06 delivery must pass
+before implementation begins on the next bounded S25 batch, SCENE-01..05.
+The latter batch is NOT STARTED and covers one complete unified 3D workflow across
+G&W/NES/GBA: contextual information and actions, compatible stable random console
+choice, generation-correct insertion/startup, native/emulator integration, then its
+own final verified delivery. Do not claim wider S25 completion from either batch.
+
 Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 135, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 

@@ -546,6 +546,13 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
         }
       }
     } catch (error) {
+      debugPrint('GShopPreviewAction ${jsonEncode({
+            'action': action,
+            'system': selection.system.id,
+            'state': 'failed',
+            'errorType': error.runtimeType.toString(),
+            if (error is PlatformException) 'code': error.code,
+          })}');
       if (mounted && generation == _generation) {
         _notice = error is StateError
             ? error.message.toString()

@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import '../models/game_item.dart';
@@ -231,52 +233,75 @@ class OwnedEmulatorLauncher {
 
   Future<void> _open(GameItem game, SystemModel system, String root,
       String? companionComponent, Future<void> Function()? prepareSave) async {
-    String? exactPath;
-    final grant = await _grant(game, system.id, root,
-        resolvedPath: (path) => exactPath = path);
-    await InstallationMutations.run(exactPath!, () async {
-      await prepareSave?.call();
-      if (companionComponent != null) {
-        grant['companionComponent'] = companionComponent;
-      }
-      await channel.invokeMethod<void>(
-          system.id == 'nds'
-              ? 'launchOwnedMelon'
-              : system.id == 'gamegear'
-                  ? 'launchOwnedRetroArchGameGear'
-                  : system.id == 'megadrive'
-                      ? 'launchOwnedRetroArchMegaDrive'
-                      : system.id == 'mastersystem'
-                          ? 'launchOwnedRetroArchMasterSystem'
-                          : system.id == 'sg1000'
-                              ? 'launchOwnedRetroArchSG1000'
-                              : system.id == 'n64'
-                                  ? 'launchOwnedRetroArchN64'
-                                  : system.id == 'nes'
-                                      ? 'launchOwnedRetroArchNes'
-                                      : system.id == 'snes'
-                                          ? 'launchOwnedRetroArchSnes'
-                                          : system.id == 'gb'
-                                              ? 'launchOwnedRetroArchGameBoy'
-                                              : system.id == 'gbc'
-                                                  ? 'launchOwnedRetroArchGameBoyColor'
-                                                  : system.id == 'gba'
-                                                      ? 'launchOwnedRetroArchGameBoyAdvance'
-                                                      : system.id == 'psx'
-                                                          ? 'launchOwnedRetroArchPSX'
-                                                          : system.id == 'psp'
-                                                              ? 'launchOwnedPPSSPP'
-                                                              : system.id ==
-                                                                      'ps2'
-                                                                  ? 'launchOwnedNetherSX2'
-                                                                  : system.id ==
-                                                                          'wiiu'
-                                                                      ? 'launchOwnedCemu'
-                                                                      : 'launchOwnedDolphin',
-          grant);
-      if (grant['installationId'] case final String id) {
-        await romManager.recordSuccessfulLaunch(id);
-      }
-    });
+    var phase = 'grant';
+    void report(String state, {Object? error}) {
+      debugPrint('GShopOwnedLaunch ${jsonEncode({
+            'system': system.id,
+            'phase': phase,
+            'state': state,
+            if (error != null) 'errorType': error.runtimeType.toString(),
+            if (error is PlatformException) 'code': error.code,
+            if (error is OwnedStorageException) 'code': error.code,
+          })}');
+    }
+
+    report('started');
+    try {
+      String? exactPath;
+      final grant = await _grant(game, system.id, root,
+          resolvedPath: (path) => exactPath = path);
+      await InstallationMutations.run(exactPath!, () async {
+        phase = 'prepare-save';
+        report('started');
+        await prepareSave?.call();
+        if (companionComponent != null) {
+          grant['companionComponent'] = companionComponent;
+        }
+        phase = 'native-handoff';
+        report('started');
+        await channel.invokeMethod<void>(
+            system.id == 'nds'
+                ? 'launchOwnedMelon'
+                : system.id == 'gamegear'
+                    ? 'launchOwnedRetroArchGameGear'
+                    : system.id == 'megadrive'
+                        ? 'launchOwnedRetroArchMegaDrive'
+                        : system.id == 'mastersystem'
+                            ? 'launchOwnedRetroArchMasterSystem'
+                            : system.id == 'sg1000'
+                                ? 'launchOwnedRetroArchSG1000'
+                                : system.id == 'n64'
+                                    ? 'launchOwnedRetroArchN64'
+                                    : system.id == 'nes'
+                                        ? 'launchOwnedRetroArchNes'
+                                        : system.id == 'snes'
+                                            ? 'launchOwnedRetroArchSnes'
+                                            : system.id == 'gb'
+                                                ? 'launchOwnedRetroArchGameBoy'
+                                                : system.id == 'gbc'
+                                                    ? 'launchOwnedRetroArchGameBoyColor'
+                                                    : system.id == 'gba'
+                                                        ? 'launchOwnedRetroArchGameBoyAdvance'
+                                                        : system.id == 'psx'
+                                                            ? 'launchOwnedRetroArchPSX'
+                                                            : system.id == 'psp'
+                                                                ? 'launchOwnedPPSSPP'
+                                                                : system.id ==
+                                                                        'ps2'
+                                                                    ? 'launchOwnedNetherSX2'
+                                                                    : system.id ==
+                                                                            'wiiu'
+                                                                        ? 'launchOwnedCemu'
+                                                                        : 'launchOwnedDolphin',
+            grant);
+        if (grant['installationId'] case final String id) {
+          await romManager.recordSuccessfulLaunch(id);
+        }
+      });
+      report('completed');
+    } catch (error) {
+      report('failed', error: error);
+      rethrow;
+    }
   }
 }

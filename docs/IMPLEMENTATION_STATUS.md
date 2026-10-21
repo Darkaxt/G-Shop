@@ -5,6 +5,18 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-21 owner continuation: SCENE-01..05 is authorized after the current
+ICON/NES delivery. Unified game-view implementation is NOT STARTED. S25 is the
+sole ACTIVE stage; no implementation of the new navigation/launch behavior has
+begun. The current signed candidate is source `2d9df44`, installed with exact APK
+hash and all 14 database/preferences files unchanged across installation. Native
+replay shows actual carton opening, sleeved extraction, sleeve removal and final
+composition; GPU receipt, inspection/reassembly and background/resume pass. Evidence:
+`D:/Temp/gshop-nes-20261021/reports/unboxing-native-checkpoint.json`. Actual Reduced
+Motion and complete live NES launch verification remain current advancement
+blockers, followed by final reconciliation/delivery and exact cleanup. No tracked
+deferral or external execution blocker is established.
+
 2026-10-21 new owner request: S25 **ACTIVE**, sole active stage, bounded ICON-01 /
 NES-01..06 batch (specification revision 135). S26 is COMPLETE below. Approved
 ImageGen icon is integrated into launcher/splash/README. All 623 animated cartons
