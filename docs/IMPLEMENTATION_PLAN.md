@@ -1,12 +1,20 @@
 # Staged implementation plan
 
+Revision 137 assigns the owner-authorized continuation to S26's remaining
+extension: SCENE-01..05 followed by SOCKET-01 as its last implementation/review
+step. S25 current ICON/NES delivery remains ACTIVE. S26 extension is NOT STARTED;
+after the NES delivery gate, park wider S25 on the explicit sequencing hold and
+activate S26. Its integrated three-system workflow, provenance/importer audit and
+final independent release verification are required before S26 is COMPLETE again.
+Historical v1.10.0 Drive/rebranding acceptance remains valid for that earlier scope.
+
 Revision 136 records the owner's already-authorized ordered continuation.
 S25 remains the sole ACTIVE stage. Its current ICON/NES-01..06 delivery must pass
-before implementation begins on the next bounded S25 batch, SCENE-01..05.
+before implementation begins on the S26 extension, SCENE-01..05 / SOCKET-01.
 The latter batch is NOT STARTED and covers one complete unified 3D workflow across
 G&W/NES/GBA: contextual information and actions, compatible stable random console
 choice, generation-correct insertion/startup, native/emulator integration, then its
-own final verified delivery. Do not claim wider S25 completion from either batch.
+own final verified delivery. Do not claim wider S25 completion from either delivery.
 
 Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 135, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).

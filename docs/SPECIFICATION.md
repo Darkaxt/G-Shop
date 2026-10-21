@@ -1,6 +1,24 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 136, 2026-10-21.
+Authoritative specification, revision 137, 2026-10-21.
+
+Owner S26 closure instruction, 2026-10-21: register the authorized three-system
+3D interaction and the Socket dependency/attribution evaluation as the remaining
+S26 extension, after the current ICON/NES delivery. The previously delivered
+Drive-only/rebranding scope remains historically verified in v1.10.0; the new
+S26 extension is NOT STARTED while S25's current batch is ACTIVE. After that batch
+passes, park wider S25 under this owner-directed sequencing hold and activate S26.
+
+- SOCKET-01: as S26's last implementation/reconciliation step, inventory the
+  actual remaining Socket dependencies and provenance of geometry, textures,
+  animations, shaders/code and other imported resources. Evaluate whether the
+  importer is still required after G&W/NES/GBA redesign. Remove or narrow it only
+  where complete replacements make that correct without breaking supported media
+  formats or existing imports. Retain required source/derivative attributions and
+  licenses; expansion or redesign alone does not establish independent provenance.
+  Record the evidence, retained/removed dependencies and justified credit wording
+  in the existing resource report, verify the resulting setup/runtime/package,
+  then perform S26's final signed release and independent delivery verification.
 
 Owner unified 3D interaction authorization, 2026-10-21: finish the current
 ICON/NES-01..06 task and its verified delivery first, then implement the approved

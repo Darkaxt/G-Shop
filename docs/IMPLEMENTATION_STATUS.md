@@ -5,6 +5,30 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-21 current ICON/NES acceptance: signed source `e286e54` passes actual
+carton/sleeve/cartridge replay, GPU-hash settlement, inspection/reassembly,
+background/resume, Reduced Motion on/off with saved preference restoration, and
+selector rotation/drag. Exact managed archive launch passes grant/save/native
+handoff and visibly reaches the NES title screen in RetroArch/FCEUmm. Host checks
+for all 623 real flap ends, 13 compatible retail shell references and retained
+launch/lifecycle contracts remain applicable; diagnostics-only changes pass their
+affected launch/preview checks and the hosted native release build. Current
+package/icon/signature/private-payload and exact installed hash checks pass,
+with all 14 database/preferences files unchanged across the update. No current
+implementation blocker/deferral remains. Normal v1.10.1 delivery verification and
+exact cleanup remain required before this batch closes. Wider S25 is not complete.
+Closure assessment: no required consolidation identified within this bounded batch;
+the approved unified scene ownership/navigation change belongs to S26 SCENE-01..05.
+
+2026-10-21 owner stage correction (specification revision 137): S25 current
+ICON/NES batch is ACTIVE; S26 extension is NOT STARTED and owns SCENE-01..05,
+then SOCKET-01 as the last implementation/reconciliation step before its final
+release. Historical S26 v1.10.0 Drive-only/rebranding delivery stays verified;
+new scope must pass before claiming S26 COMPLETE again. After current NES delivery,
+park wider S25 under the explicit owner sequencing hold and activate S26. Socket
+review must prove actual remaining dependencies/derivative provenance before
+removing or narrowing importer/credit requirements; no source deletion is implied.
+
 2026-10-21 owner continuation: SCENE-01..05 is authorized after the current
 ICON/NES delivery. Unified game-view implementation is NOT STARTED. S25 is the
 sole ACTIVE stage; no implementation of the new navigation/launch behavior has

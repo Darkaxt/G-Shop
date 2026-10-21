@@ -1,7 +1,7 @@
 # NES private media conversion
 
-2026-10-21, ICON-01 / NES-01..06. Supplied-model native checks pass;
-the new unboxing sequence and final release still require native acceptance.
+2026-10-21, ICON-01 / NES-01..06. Supplied-model and complete unboxing native
+checks pass on Thor. Final normal release verification is the remaining gate.
 
 | Resource | Converted and import-verified | Binding |
 | --- | ---: | --- |
@@ -39,7 +39,14 @@ checks, including 33 landscape reconstructions with side openings. The 13 retail
 shell references pass seating, sleeve clearance, final depth separation and
 viewport checks. Resource/GPU admission, pause/resume, Reduced Motion, replay,
 inspection and the retained insertion/launch owner are covered by focused checks.
-Actual native acceptance of this complete sequence remains pending.
+Signed source `e286e54` renders the complete sequence on Thor. Host-only recording
+inspection verifies flap opening, sleeved extraction, removal and final staging;
+GPU receipts bind the rendered carton/shell/scene hashes and separate label.
+Inspection/reassembly, background/resume and actual Reduced Motion settings pass;
+the original motion preference is restored and read back. The exact managed NES
+archive also launches through the existing save/grant owner into RetroArch/FCEUmm
+and displays its title screen. A previously reported generic launch error did not
+recur on this signed build; sanitized phase/code diagnostics remain available.
 
 The supplied flexible sleeve is fitted to the selected standard shell's depth
 while retaining its front proportions. Unboxing uses a plain sleeve so that an
@@ -83,4 +90,9 @@ The replacement activation verifies 401 supplied-model files and 623 corrected
 carton manifests while preserving every path/hash of the 1,203 previous imports.
 Signed candidate `5ad1b5b` verifies the collector, four console views, matched
 carton/gold cartridge label, clear-shell PCB visibility and assembly controls on
-Thor. Complete unboxing and final native/public delivery acceptance remain pending.
+Thor. Source `e286e54` adds the complete unboxing/live-launch acceptance above.
+Its final APK is production-signed, includes the approved master icon and all 15
+verified launcher/splash resources, contains no private model payload, and installs
+with all 14 database/preferences files byte-identical. Public delivery remains the
+last gate for this batch; SCENE-01..05 and SOCKET-01 belong to the subsequent S26
+extension and are not claimed here.
