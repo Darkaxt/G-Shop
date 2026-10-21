@@ -77,6 +77,17 @@ does not limit the inspector. Preserve existing responsive layout and touch/
 controller selection. A required missing box invokes CI-01; do not quietly replace
 the card with an unrelated object.
 
+Default console browsing places up to 100 eligible canonical games first in
+overall-score rank order, followed by the full alphabetical tail. Preserve
+explicit Top/rating filters, release preferences and manual shelf order; no
+browse-triggered scraping or invented ranks. Verify this in both the ordinary
+console browser and the main Library console tab. Shared cards do not establish
+shared ordering. Compare accepted source/freshness/confidence rules and visible
+source-labelled score badges with GBA, including the rating-overlay setting,
+publication refresh and re-entry. Diagnose absent rating inputs separately from
+sorting or rendering defects and apply CI-01's upstream audit before claiming
+coverage. Keep unrated games accessible without manufacturing a badge.
+
 ## Lower console composition — CI-03
 
 The console-section preview is a large rotating composition of the applicable

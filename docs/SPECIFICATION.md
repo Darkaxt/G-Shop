@@ -10,6 +10,7 @@ tail. NES and GBA use the same accepted score policy and source-labelled badges;
 missing NES rating inputs must be resolved through the upstream workflow,
 not invented labels or browse-triggered scraping. Verify both console scopes,
 publication refresh and actual native order/badges within the existing S26.
+Register these acceptance rules in CI-02 and the installed integration skill.
 
 Owner library-loading regression, 2026-10-22: resolve the recurring long native
 library entry before starting NES resource collection. Current evidence shows

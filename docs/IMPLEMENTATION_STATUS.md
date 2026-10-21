@@ -16,7 +16,16 @@ publication-driven reorder. Focused query/controller/console/Library checks
 and source analysis pass. Native order/badge acceptance remains open. The
 normal ratings-only NES operation was started once on Thor; job 104 is running
 with accepted matching inputs, rather than blindly scraping all 9,831 titles.
-Its completion, Drive publication and recovered rendered scores remain required.
+Job 104 has now completed: 84 provider requests, 58 matched records and 47 with
+scores. After projection recovery, 24 distinct NES games qualify under the
+existing ranking policy. Main Library on the installed `9bc449a` shows Best 24
+followed by A–Z and the actual IGDB score badges. The ordinary browser correction
+is committed as `246fd42`; its internal signed build is running. Drive publication
+stopped partway with HTTP 500 `responsePreparationFailure`; a read-only audit of
+all 24 exact cohort packets confirms partial new rating publication and incomplete
+artwork. Upstream publication/resource acceptance and native ordinary-browser
+verification remain open. CI-02 and skill 0.1.8 now explicitly require both
+entry points, ranked-prefix/tail behavior and native source-labelled score parity.
 No intermediate public release. Evidence: `console-default-order-before.log`,
 `console-default-order-checks.log`, `console-default-order-analysis.log` and
 `nes-ratings-job-private.json` under the scene-launch reports.

@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.7"
+  version: "0.1.8"
 ---
 
 # G-Shop Console Integration
@@ -71,6 +71,23 @@ pass personalized-label or Top 25 resource acceptance. Keep those outcomes separ
 in the existing reconciliation ledger, and resolve actionable upstream/cache
 defects before continuing dependent acceptance or invoking the external resource
 gate. Preserve the current stage and the single final release boundary.
+
+## Verify browsing order and score parity
+
+Exercise both entry points: the ordinary console browser and the main Library's
+console tab. Do not infer parity from their shared cards or from one working path.
+By default, place up to 100 eligible canonical games first in score-rank order,
+then retain the full alphabetical tail. Use the actual eligible count; preserve
+explicit Top/rating filters, release preferences and manual shelf order. Browsing
+must remain cache-only and must not scrape to manufacture the default ordering.
+
+Verify the same accepted source, freshness, confidence and exact-edition binding
+rules used by GBA, plus the visible source-labelled score badges and rating-overlay
+setting. Distinguish missing rating inputs from ordering or badge-rendering defects.
+Trace absent inputs through the upstream coverage workflow above; neither a shared
+badge widget nor a completed job proves populated scores. Check actual native
+order/badges after publication and re-entry, including the unrated tail. Do not
+copy GBA's scores or claim another console's coverage from the GBA reference.
 
 ## Apply the contract to the current console
 
