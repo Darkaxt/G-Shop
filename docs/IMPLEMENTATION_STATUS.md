@@ -5,14 +5,49 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-21 owner decision: **S26 ACTIVE**, sole active stage; Drive only.
-The source-boundary blocker is resolved. GSHOP-02 requires complete removal of
-all non-Drive acquisition/setup modes while preserving legacy recovery data,
-downloads/offline operation and retained integrations. Current advancement blockers:
-full integrated/native acceptance and one normal 1.10.0/code 41 final release with
-independent public/installed verification. Drive-only setup/runtime removal is
-integrated and host acceptance is reconciled. No tracked deferral.
-Wider S25 stays parked under owner sequencing.
+2026-10-21 delivery: **S26 COMPLETE**, Drive only, normal public
+[v1.10.0/code 41](https://github.com/Darkaxt/G-Shop/releases/tag/v1.10.0).
+Release tag and BUILDINFO both identify source
+`eb01503e7eb88664d72fa95b87163cac85dfbf80`; the public APK and installed Thor APK
+both have SHA-256 `abe19f73f90857195778d36d432230e9035cd787d83a248da44ac0aab8c5bd54`.
+Unauthenticated independent retrieval verifies all three required assets,
+published/non-draft/non-prerelease state, latest tag, version/code, production
+certificate, G label/icon, retired permission removal and private-payload absence.
+No S26 blocker or tracked deferral remains. Wider S25 is not completed by this release.
+
+GSHOP-01/02: current product, Dart symbols/package, paired native channels and
+repository use G-Shop; executable non-Drive acquisition/setup paths are removed.
+Drive setup, mapping/destination options and full raw legacy recovery remain.
+GSHOP-03/04: same production signer/package/UID; database/config byte-identical
+across install before launch. After native workflows, 40 systems, seven sources,
+unchanged on-device configuration and every path/hash of 1,203 imported files
+remain. Secure encryption-key preference hash is unchanged; normal token refresh
+changes token-store bytes. No app-data clear, source replacement or user-file move.
+GSHOP-05: actual native Google sign-in and live root/folder listing succeed,
+cancelled without saving configuration. Cached G&W browsing retains 53 entries;
+the lower selector renders the collection with its table hidden and reports the
+40-second turntable. Balloon Fight/Climber paired cartons/hardware, sequential
+unboxing, actual settled pixels and background/resume ownership pass. The existing
+periodic save job completes through the renamed headless Dart entrypoint with the
+app process initially absent and returns to waiting. Its pre-existing one
+pending/attention item is unchanged; no new uploaded-backup claim. Thor is returned
+to its original Asleep state with no active app service.
+
+Private receipts: D:/Temp/gshop-s26-20261021/reports/native-acceptance.json,
+post-update-data-verification.json and public-delivery-verification.json.
+Renderer/GPU events and inspected pixels do not measure physical display timing.
+Closure design assessment: active Drive views remain separate from raw preserved
+configuration; exact Drive ownership/publication remains the existing authority;
+retired executable adapters are gone and IGDB platform data has its own retained
+module. No remaining duplication or ownership conflict blocks S26 acceptance;
+no speculative consolidation stage is introduced.
+
+Final cleanup uses reviewed transaction 3f947e8df7a31359ba1c93c9ac882bdf:
+all 275 exact scratch members (321,082,586 logical bytes) removed, terminal APPLIED,
+zero exclusions/errors/residual work root. Required reports, permanent model
+catalogue, user archives, external font cache and four pre-existing failure PNGs
+are preserved. No Windows Gradle build was launched for S26; signed compilation
+ran in the established hosted Linux workflow with its two-worker profile.
 
 Host verification: the full suite census completed, including the unchanged
 large catalogue, artwork and durable metadata recovery checks. Its failures were
@@ -35,7 +70,7 @@ bytes equal the pre-task failure image. The four pre-existing failure PNGs are
 unchanged. Offline cover tests use their existing explicit public font cache.
 Host Library tests use supported flat previews, with enabled 3D assertions retained
 in the native fixture; host Skia cannot validate Flutter GPU pixels. Signed Thor
-model/rendering acceptance remains required before GSHOP-05 can pass.
+model/rendering acceptance is now recorded above for the delivered package.
 
 Repository rename is verified: Darkaxt/G-Shop retains GitHub repository ID
 1361824141, public visibility, AverageConsumer/R-Shop parent, existing releases

@@ -1,7 +1,7 @@
 # G-Shop update and compatibility boundaries
 
 Authority: SPECIFICATION.md revision 133, GSHOP-01 through GSHOP-05.
-Status: S26 ACTIVE. Drive-only source setup and preserved-data host acceptance are reconciled; native update and final release acceptance remain outstanding.
+Status: S26 COMPLETE in normal public v1.10.0/code 41. Host, signed in-place Thor update, live Drive, native rendering, headless save dispatch and independent public delivery acceptance pass. IMPLEMENTATION_STATUS.md records the exact source and evidence limits.
 
 The maintained Dart package and application symbols use `g_shop` / `GShop`.
 Localized app text, notifications, launcher and splash artwork use G-Shop.
@@ -28,7 +28,7 @@ Some old identifiers intentionally remain the installed data/protocol identity:
 Upstream names, licensing, attribution, dated reports and historical source
 receipts retain their factual names. The established GitHub fork is now Darkaxt/G-Shop, with its identity, history,
 releases and visibility verified unchanged. The old address resolves to the new
-repository. The final release must still be independently retrieved. The local
+repository. The normal final release was independently retrieved and matches the installed Thor package. The local
 checkout folder stays stable for managed project and active-consumer references.
 
 The owner selected Google Drive only on 2026-10-21. RomM, SMB, FTP, Web and

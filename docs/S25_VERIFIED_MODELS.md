@@ -18,7 +18,7 @@ All 2,527 NintAndBox archive editions are accepted as a separate reusable privat
 animated GLB / packed Blender library at E:/R-Shop Reference Assets/NintAndBox/2026-03/3D-Boxes.
 This does not claim broad runtime integration or wider S25 model/cinematic
 acceptance. S25 is **BLOCKED** on the owner's explicit sequencing hold while
-S26 is prioritized (currently BLOCKED on its source-boundary answer). Retain every remaining requirement below and
+S26 was prioritized and is now COMPLETE in normal public/installed v1.10.0. Retain every remaining requirement below and
 resume it after S26; earlier chronological ACTIVE/pending statements are historical.
 
 ## Hardware-variant lower preview — 2026-10-20, COMPLETE bounded batch
