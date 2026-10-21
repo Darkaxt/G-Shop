@@ -34,6 +34,8 @@ class SocketMediaRenderer extends StatefulWidget {
   final Widget label;
   final Object? labelIdentity;
   final VoidCallback? onReady;
+  final bool frameComposition;
+  final double compositionFill, compositionZoom;
   const SocketMediaRenderer(
       {super.key,
       required this.format,
@@ -45,6 +47,9 @@ class SocketMediaRenderer extends StatefulWidget {
       this.cartridgeStyle,
       this.nesScene,
       this.nesLaunchScene,
+      this.frameComposition = false,
+      this.compositionFill = .75,
+      this.compositionZoom = 1,
       this.onReady})
       : packaging = null,
         gameWatchScene = null,
@@ -59,7 +64,10 @@ class SocketMediaRenderer extends StatefulWidget {
       required this.label,
       this.labelIdentity,
       this.onReady})
-      : packaging = model,
+      : frameComposition = false,
+        compositionFill = .75,
+        compositionZoom = 1,
+        packaging = model,
         nesLaunchScene = null,
         nesScene = null,
         unboxingScene = null,
@@ -74,6 +82,9 @@ class SocketMediaRenderer extends StatefulWidget {
       required this.identity,
       required this.title,
       this.onReady,
+      this.frameComposition = false,
+      this.compositionFill = .75,
+      this.compositionZoom = 1,
       this.gameWatchScene})
       : console = model,
         nesLaunchScene = null,
@@ -92,8 +103,11 @@ class SocketMediaRenderer extends StatefulWidget {
       required this.title,
       required this.label,
       this.labelIdentity,
+      this.compositionZoom = 1,
       this.onReady})
-      : unboxingScene = scene,
+      : frameComposition = true,
+        compositionFill = .75,
+        unboxingScene = scene,
         nesLaunchScene = null,
         nesScene = null,
         packaging = null,
@@ -135,7 +149,9 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     if (model == null ||
         model.data['unboxingGeometry'] != true ||
         _viewport.isEmpty) return const {};
-    return SocketMediaGpu.inspectionBounds(model, widget.pose, _viewport);
+    return SocketMediaGpu.inspectionBounds(model, widget.pose, _viewport,
+        frameComposition: widget.frameComposition,
+        zoom: widget.compositionZoom);
   }
 
   String? partAt(Offset position) {
@@ -176,6 +192,8 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         'launch': widget.pose.launch,
         'inspectedPart': widget.pose.inspectedPart,
         'inspection': widget.pose.inspection,
+        'compositionFraming': widget.frameComposition,
+        if (widget.frameComposition) 'compositionFill': widget.compositionFill,
         'inspectionBounds': {
           for (final entry in inspectionBounds.entries)
             entry.key: [
@@ -439,6 +457,16 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
           })}');
     }
     if (frameRendered) return;
+    if (widget.frameComposition) {
+      debugPrint('GShopCompositionFrame ${jsonEncode({
+            'identity': widget.identity,
+            'frameRendered': true,
+            'fill': widget.compositionFill,
+            'zoom': widget.compositionZoom,
+            'width': _viewport.width,
+            'height': _viewport.height,
+          })}');
+    }
     setState(() {
       frameRendered = true;
       _gpuUs = _clock.elapsedMicroseconds;
@@ -517,7 +545,10 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
                 MediaQuery.devicePixelRatioOf(context), (size) {
               _viewport = size;
               _rendered(renderer, labelRevision, pose);
-            }, (error) => _paintFailed(renderer, error)))
+            }, (error) => _paintFailed(renderer, error),
+                frameComposition: widget.frameComposition,
+                compositionFill: widget.compositionFill,
+                compositionZoom: widget.compositionZoom))
       else
         widget.packaging != null ||
                 widget.unboxingScene != null ||
@@ -772,6 +803,58 @@ class SocketMediaGpu {
     return projection;
   }
 
+  /// The camera measures the same rigid/hinged transforms used for drawing.
+  static vm.Matrix4 surfaceTransform(
+      SocketMediaModel model,
+      Map<String, dynamic> surface,
+      SocketMediaPose pose,
+      vm.Matrix4 base,
+      Size size,
+      double units) {
+    final transform = base.clone();
+    final opening = surfaceOpening(model, surface, pose);
+    final isLabel = surface['role'] == 'label';
+    if (model.data['nesLaunch'] == true) {
+      transform.multiply(NesLaunchScene.partTransform(model, surface, pose));
+    } else if (model.data['nesUnboxing'] == true) {
+      transform.multiply(NesUnboxingScene.partTransform(
+          model, surface['nesPart'] as String, pose));
+    }
+    if (model.data['gameWatchUnboxing'] == true) {
+      transform.multiply(GameWatchUnboxingScene.partTransform(
+          model, surface['hardwarePart'] as String, pose));
+    }
+    if (model.data['unboxingGeometry'] == true) {
+      transform.multiply(UnboxingScene.partTransform(model,
+          surface['unboxingPart'] as String, pose.unboxing, size.width / units,
+          inspectedPart: pose.inspectedPart, inspection: pose.inspection));
+    }
+    if (surface['openingHinges'] is List) {
+      transform.multiply(openingTransform(surface, opening));
+    } else if (surface['hinged'] == true && opening != 0) {
+      final pivot = (surface['pivot'] as List).cast<num>();
+      transform
+        ..translateByDouble(pivot[0].toDouble(), 0, 0, 1)
+        ..rotateY(-opening.clamp(0, 1) *
+            (model.data['maxOpenRadians'] as num).toDouble())
+        ..translateByDouble(-pivot[0].toDouble(), 0, 0, 1);
+    }
+    if (pose.labelSpin != 0 && (isLabel || model.motionKind == 'disc')) {
+      final pivot = (surface['pivot'] as List).cast<num>();
+      final axis = (surface['spinAxis'] as List).cast<num>();
+      transform
+        ..translateByDouble(
+            pivot[0].toDouble(), pivot[1].toDouble(), pivot[2].toDouble(), 1)
+        ..rotate(
+            vm.Vector3(
+                axis[0].toDouble(), axis[1].toDouble(), axis[2].toDouble()),
+            pose.labelSpin)
+        ..translateByDouble(-pivot[0].toDouble(), -pivot[1].toDouble(),
+            -pivot[2].toDouble(), 1);
+    }
+    return transform;
+  }
+
   static double fittedUnits(SocketMediaModel model, Size size,
       {SocketMediaPose? pose}) {
     if (model.data['nesLaunch'] == true) {
@@ -822,10 +905,168 @@ class SocketMediaGpu {
         : math.min(size.width * .72, size.height * .68 / model.height);
   }
 
-  static Map<String, Rect> inspectionBounds(
-      SocketMediaModel model, SocketMediaPose pose, Size size) {
+  // Meshes are immutable. Cache source-space envelopes once, not every vertex
+  // on every animation tick. Transform each surface's corners with its actual
+  // part/hinge matrix, then include perspective before measuring screen space.
+  static final _compositionCorners =
+      Expando<List<List<vm.Vector3>>>('composition-corners');
+
+  static Rect compositionBounds(SocketMediaModel model, SocketMediaPose pose,
+      Size size, double layoutUnits) {
+    final corners = _compositionCorners[model] ??= [
+      for (final surface in model.surfaces)
+        (() {
+          final low = vm.Vector3.all(double.infinity);
+          final high = vm.Vector3.all(double.negativeInfinity);
+          for (var i = 0; i < surface['vertexCount']; i++) {
+            final offset = (surface['vertexOffset'] as int) + i * 32;
+            for (var axis = 0; axis < 3; axis++) {
+              final value =
+                  model.mesh.getFloat32(offset + axis * 4, Endian.little);
+              low[axis] = math.min(low[axis], value);
+              high[axis] = math.max(high[axis], value);
+            }
+          }
+          // A collector surface can span several separated consoles. Its one
+          // large box contains empty corners and makes a rotated scene look
+          // needlessly small. Cache occupied source-space sub-envelopes;
+          // they still contain every vertex under the same rigid transform.
+          final span = high - low;
+          int bin(double v, int axis) => span[axis] == 0
+              ? 0
+              : (((v - low[axis]) / span[axis] * 4).floor()).clamp(0, 3);
+          final lows =
+              List.generate(64, (_) => vm.Vector3.all(double.infinity));
+          final highs =
+              List.generate(64, (_) => vm.Vector3.all(double.negativeInfinity));
+          for (var i = 0; i < surface['vertexCount']; i++) {
+            final offset = (surface['vertexOffset'] as int) + i * 32;
+            final x = model.mesh.getFloat32(offset, Endian.little);
+            final y = model.mesh.getFloat32(offset + 4, Endian.little);
+            final z = model.mesh.getFloat32(offset + 8, Endian.little);
+            final cell = bin(x, 0) + bin(y, 1) * 4 + bin(z, 2) * 16;
+            lows[cell].x = math.min(lows[cell].x, x);
+            lows[cell].y = math.min(lows[cell].y, y);
+            lows[cell].z = math.min(lows[cell].z, z);
+            highs[cell].x = math.max(highs[cell].x, x);
+            highs[cell].y = math.max(highs[cell].y, y);
+            highs[cell].z = math.max(highs[cell].z, z);
+          }
+          return [
+            for (var cell = 0; cell < 64; cell++)
+              if (lows[cell].x.isFinite)
+                for (final x in [lows[cell].x, highs[cell].x])
+                  for (final y in [lows[cell].y, highs[cell].y])
+                    for (final z in [lows[cell].z, highs[cell].z])
+                      vm.Vector3(x, y, z)
+          ];
+        })()
+    ];
+    var left = double.infinity, bottom = double.infinity;
+    var right = double.negativeInfinity, top = double.negativeInfinity;
+    final base = modelTransform(model, pose);
+    for (var i = 0; i < model.surfaces.length; i++) {
+      final surface = model.surfaces[i];
+      if (model.data['nesLaunch'] == true &&
+          !NesLaunchScene.visible(surface, pose)) continue;
+      if (!partVisible(
+          (surface['nesPart'] ??
+              surface['hardwarePart'] ??
+              surface['unboxingPart']) as String?,
+          pose)) continue;
+      final transform =
+          surfaceTransform(model, surface, pose, base, size, layoutUnits);
+      for (final corner in corners[i]) {
+        final v = transform.transformed3(corner);
+        final perspective = 1 - .25 * v.z;
+        if (perspective <= 0) {
+          throw StateError('Composition crosses the camera plane');
+        }
+        final x = v.x / perspective, y = v.y / perspective;
+        left = math.min(left, x);
+        right = math.max(right, x);
+        bottom = math.min(bottom, y);
+        top = math.max(top, y);
+      }
+    }
+    return Rect.fromLTRB(left, bottom, right, top);
+  }
+
+  /// Center the whole lower scene in the space left for text and controls.
+  /// Layout units stay separate: changing the camera must not reposition props.
+  static vm.Matrix4 compositionProjection(
+      SocketMediaModel model, SocketMediaPose pose, Size size,
+      {double fill = .75, double zoom = 1}) {
+    if (model.data['nesLaunch'] == true) {
+      final rect = model.data['launchInitialViewport'] as List?;
+      final initialSize = rect == null
+          ? size
+          : Size((rect[2] as num).toDouble(), (rect[3] as num).toDouble());
+      final initialPose = SocketMediaPose(
+          rx: pose.rx,
+          ry: pose.ry,
+          rz: pose.rz,
+          y: pose.y,
+          z: pose.z,
+          opening: pose.opening,
+          unboxing: pose.unboxing,
+          inspectedPart: pose.inspectedPart);
+      final bounds = compositionBounds(model, initialPose, initialSize,
+          fittedUnits(model, initialSize, pose: initialPose));
+      final initialUnits = math.min(initialSize.width * fill / bounds.width,
+          initialSize.height * fill / bounds.height);
+      final enter = NesLaunchScene.phase(pose.launch, 0, .22);
+      final initialCenter = Offset(
+          ((rect?[0] as num?)?.toDouble() ?? 0) +
+              initialSize.width / 2 -
+              bounds.center.dx * initialUnits,
+          ((rect?[1] as num?)?.toDouble() ?? 0) +
+              initialSize.height / 2 +
+              bounds.center.dy * initialUnits);
+      final workPose = SocketMediaPose(
+          rx: pose.rx,
+          ry: pose.ry,
+          opening: pose.opening,
+          unboxing: pose.unboxing,
+          inspectedPart: pose.inspectedPart,
+          launch: pose.launch.clamp(.22, .82));
+      final workBounds = compositionBounds(
+          model, workPose, size, fittedUnits(model, size, pose: workPose));
+      final workUnits = math.min(size.width * fill / workBounds.width,
+          size.height * fill / workBounds.height);
+      final workCenter = Offset(
+          size.width / 2 - workBounds.center.dx * workUnits,
+          size.height / 2 + workBounds.center.dy * workUnits);
+      final screenUnits = NesLaunchScene.fittedUnits(
+          model,
+          const SocketMediaPose(unboxing: 1, launch: 1),
+          size.width,
+          size.height);
+      final screenZoom = NesLaunchScene.phase(pose.launch, .82, 1);
+      final units =
+          (initialUnits * (1 - enter) + workUnits * enter) * (1 - screenZoom) +
+              screenUnits * screenZoom;
+      return cameraProjection(size.width, size.height, units,
+          center: Offset.lerp(Offset.lerp(initialCenter, workCenter, enter),
+              Offset(size.width / 2, size.height / 2), screenZoom));
+    }
     final units = fittedUnits(model, size, pose: pose);
-    final projection = cameraProjection(size.width, size.height, units);
+    final bounds = compositionBounds(model, pose, size, units);
+    final fit = math.min(size.width * fill / bounds.width,
+            size.height * fill / bounds.height) *
+        zoom;
+    return cameraProjection(size.width, size.height, fit,
+        center: Offset(size.width / 2 - bounds.center.dx * fit,
+            size.height / 2 + bounds.center.dy * fit));
+  }
+
+  static Map<String, Rect> inspectionBounds(
+      SocketMediaModel model, SocketMediaPose pose, Size size,
+      {bool frameComposition = false, double zoom = 1}) {
+    final units = fittedUnits(model, size, pose: pose);
+    final projection = frameComposition
+        ? compositionProjection(model, pose, size, zoom: zoom)
+        : cameraProjection(size.width, size.height, units);
     final base = modelTransform(model, pose);
     final result = <String, Rect>{};
     for (final entry in (model.data['partBounds'] as Map).entries) {
@@ -1074,7 +1315,10 @@ class SocketMediaGpu {
   }
 
   void paint(Canvas canvas, Size size, double ratio, SocketMediaPose pose,
-      gpu.Texture label, VoidCallback completed, ValueChanged<Object> failed) {
+      gpu.Texture label, VoidCallback completed, ValueChanged<Object> failed,
+      {bool frameComposition = false,
+      double compositionFill = .75,
+      double compositionZoom = 1}) {
     if (size.isEmpty) return;
     final context = gpu.gpuContext;
     final width = (size.width * ratio).ceil(),
@@ -1117,11 +1361,19 @@ class SocketMediaGpu {
         pass.setColorBlendEnable(true);
         pass.setColorBlendEquation(gpu.ColorBlendEquation());
         final units = fittedUnits(model, size, pose: pose);
-        final projection = cameraProjection(size.width, size.height, units,
+        final ordinaryProjection = cameraProjection(
+            size.width, size.height, units,
             center: model.data['nesLaunch'] == true
                 ? NesLaunchScene.cameraCenter(
                     model, pose, size.width, size.height)
                 : null);
+        final projection = frameComposition
+            ? Matrix4Tween(
+                    begin: compositionProjection(model, pose, size,
+                        fill: compositionFill, zoom: compositionZoom),
+                    end: ordinaryProjection)
+                .transform(pose.pageFocus)
+            : ordinaryProjection;
         final base = pose.pageFocus == 0
             ? modelTransform(model, pose)
             : Matrix4Tween(
@@ -1193,56 +1445,13 @@ class SocketMediaGpu {
                   surface['hardwarePart'] ??
                   surface['unboxingPart']) as String?,
               pose)) continue;
-          final opening = surfaceOpening(model, surface, pose);
           if (opaqueOnly && transmitting(surface['material'])) continue;
           pass.setCullMode(surface['singleSided'] == true
               ? gpu.CullMode.backFace
               : gpu.CullMode.none);
           final isLabel = surface['role'] == 'label';
-          final transform = base.clone();
-          if (model.data['nesLaunch'] == true) {
-            transform
-                .multiply(NesLaunchScene.partTransform(model, surface, pose));
-          } else if (model.data['nesUnboxing'] == true) {
-            transform.multiply(NesUnboxingScene.partTransform(
-                model, surface['nesPart'] as String, pose));
-          }
-          if (model.data['gameWatchUnboxing'] == true) {
-            transform.multiply(GameWatchUnboxingScene.partTransform(
-                model, surface['hardwarePart'] as String, pose));
-          }
-          if (model.data['unboxingGeometry'] == true) {
-            transform.multiply(UnboxingScene.partTransform(
-                model,
-                surface['unboxingPart'] as String,
-                pose.unboxing,
-                size.width / units,
-                inspectedPart: pose.inspectedPart,
-                inspection: pose.inspection));
-          }
-          if (surface['openingHinges'] is List) {
-            transform.multiply(openingTransform(surface, opening));
-          } else if (surface['hinged'] == true && opening != 0) {
-            final pivot = (surface['pivot'] as List).cast<num>();
-            transform
-              ..translateByDouble(pivot[0].toDouble(), 0, 0, 1)
-              ..rotateY(-opening.clamp(0, 1) *
-                  (model.data['maxOpenRadians'] as num).toDouble())
-              ..translateByDouble(-pivot[0].toDouble(), 0, 0, 1);
-          }
-          if (pose.labelSpin != 0 && (isLabel || model.motionKind == 'disc')) {
-            final pivot = (surface['pivot'] as List).cast<num>();
-            final axis = (surface['spinAxis'] as List).cast<num>();
-            transform
-              ..translateByDouble(pivot[0].toDouble(), pivot[1].toDouble(),
-                  pivot[2].toDouble(), 1)
-              ..rotate(
-                  vm.Vector3(axis[0].toDouble(), axis[1].toDouble(),
-                      axis[2].toDouble()),
-                  pose.labelSpin)
-              ..translateByDouble(-pivot[0].toDouble(), -pivot[1].toDouble(),
-                  -pivot[2].toDouble(), 1);
-          }
+          final transform =
+              surfaceTransform(model, surface, pose, base, size, units);
           final normal = vm.Matrix4.copy(transform)
             ..invert()
             ..transpose();
@@ -1346,17 +1555,28 @@ class _SocketMediaPainter extends CustomPainter {
   final SocketMediaPose pose;
   final gpu.Texture label;
   final double ratio;
+  final bool frameComposition;
+  final double compositionFill, compositionZoom;
   final ValueChanged<Size> rendered;
   final ValueChanged<Object> failed;
   _SocketMediaPainter(this.renderer, this.pose, this.label, this.ratio,
-      this.rendered, this.failed);
+      this.rendered, this.failed,
+      {required this.frameComposition,
+      required this.compositionFill,
+      required this.compositionZoom});
   @override
   void paint(Canvas canvas, Size size) => renderer.paint(
-      canvas, size, ratio, pose, label, () => rendered(size), failed);
+      canvas, size, ratio, pose, label, () => rendered(size), failed,
+      frameComposition: frameComposition,
+      compositionFill: compositionFill,
+      compositionZoom: compositionZoom);
   @override
   bool shouldRepaint(_SocketMediaPainter old) =>
       old.renderer != renderer ||
       old.pose != pose ||
       old.label != label ||
-      old.ratio != ratio;
+      old.ratio != ratio ||
+      old.frameComposition != frameComposition ||
+      old.compositionFill != compositionFill ||
+      old.compositionZoom != compositionZoom;
 }

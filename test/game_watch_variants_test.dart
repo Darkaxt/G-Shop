@@ -236,6 +236,10 @@ void main() {
     expect(left.right, lessThanOrEqualTo(right.left));
     expect(left.left, greaterThanOrEqualTo(0));
     expect(right.right, lessThanOrEqualTo(1240));
+    expect(left.left, closeTo(1240 * .125, .001));
+    expect(right.right, closeTo(1240 * .875, .001));
+    expect(views.every((v) => v.compositionFill == 1), isTrue,
+        reason: 'Reserve the edge areas once for the complete edition arc');
     expect(ready, 0);
     views.first.onReady?.call();
     expect(ready, 0);

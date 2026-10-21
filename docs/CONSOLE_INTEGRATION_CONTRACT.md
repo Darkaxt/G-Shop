@@ -68,6 +68,16 @@ as Game & Watch's display table/board. Add editions in a shallow semicircle, wit
 readable silhouettes and consistent relative scale, rather than an arbitrary row.
 Keep labels out of the overview; show edition names and information on inspection.
 
+Default camera framing reserves **10–15% on each edge for text and buttons**:
+target a centered 75% width/height composition rectangle (12.5% margins). Fit the
+whole visible arrangement, including opened flaps, extracted contents, controllers
+and cables, while retaining shared physical proportions. The limiting axis fills
+that rectangle; preserve aspect ratio even if the other axis leaves extra space.
+Do not compound fixed model-width limits with another arbitrary small scale.
+Apply to collector and game browsing/unboxing views, including the shallow arc;
+upper gallery cards keep CI-02. Explicit inspection zoom and the final intentional
+launch zoom into the display can leave this default framing.
+
 An external TV sharing the console's support level sits **beside the console**,
 as in the supplied TV/NES reference composition. Do not place the console directly
 in front of the same-level screen. Keep the full screen and insertion path clear
@@ -187,6 +197,12 @@ Motion and incomplete-resource runtime handling. Use focused host checks and rea
 device evidence, including Thor's 1920x1080 upper and 1240x1080 lower display and a
 smaller ordinary single-screen layout. Check actual rendered frames and physical
 input; a loader success or build alone is insufficient.
+
+Check default projected composition bounds against the central 70–80% viewport
+at closed, extraction, settled and rotating poses. Text/buttons remain in the
+reserved edge areas with usable targets; no flap, cable or edition may clip during
+the ordinary sequence. Review single and multiple-edition layouts and both tall
+and wide viewports; a bounding-envelope check complements actual rendered review.
 
 Keep the existing visual contract: theme/typography, compact title/corner actions,
 at least 44 logical-pixel touch targets, safe-area information panel with 16-pixel

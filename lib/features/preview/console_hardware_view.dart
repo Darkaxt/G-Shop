@@ -17,7 +17,7 @@ class ConsoleHardwareView extends StatefulWidget {
   final bool showTitle;
   final bool turntable, transparentBackground;
   final bool informationRotation;
-  final double stagingYaw, stagingScale;
+  final double stagingYaw, stagingScale, compositionFill;
   final VoidCallback? onInspect;
   final VoidCallback? onReady;
   final GameWatchUnboxingScene? unboxingScene;
@@ -34,6 +34,7 @@ class ConsoleHardwareView extends StatefulWidget {
       this.informationRotation = false,
       this.stagingYaw = 0,
       this.stagingScale = 1,
+      this.compositionFill = .75,
       this.onInspect,
       this.transparentBackground = false,
       this.reducedMotion = false,
@@ -293,6 +294,9 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
                           child: SocketMediaRenderer.console(
                             key: rendererKey,
                             model: widget.model,
+                            frameComposition: true,
+                            compositionFill: widget.compositionFill,
+                            compositionZoom: _zoom / .9,
                             gameWatchScene: widget.unboxingScene,
                             identity:
                                 'console:${widget.systemId}:${widget.model.hardwareId}:${widget.generation}',

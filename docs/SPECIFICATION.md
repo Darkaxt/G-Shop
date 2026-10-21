@@ -1,6 +1,17 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 144, 2026-10-21.
+Authoritative specification, revision 145, 2026-10-21.
+
+Owner lower-scene framing clarification, 2026-10-21: reserve approximately
+10–15% at each edge for text and buttons. Fit the complete default composition
+to the central 70–80% rectangle, targeting 12.5% margins. Preserve aspect ratios
+and shared physical scale; an aspect-mismatched composition may leave more space
+on its non-limiting axis. This supersedes the earlier 80%-minimum suggestion.
+Apply to lower collector and browsing/unboxing scenes, including multiple editions,
+without changing upper gallery cards. User inspection zoom and the deliberate
+final launch zoom into the screen remain separate interactions. Register in
+CI-03/08 and the installed integration skill; verify animated poses, controls and
+representative viewports before accepting the current S26 workflow.
 
 Owner TV-placement correction, 2026-10-21: place the external television beside
 the console when they share a support level, as in the supplied TV/NES composition.

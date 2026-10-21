@@ -446,7 +446,11 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
         final count = widget.variants.length;
         final inspected = _inspected;
         final width = bounds.maxWidth, height = bounds.maxHeight;
-        final cellWidth = (width - 12 * (count - 1)) / count;
+        // Reserve margins once for the whole arc, rather than shrinking each
+        // edition twice. Single-model and inspection cameras frame themselves.
+        final arc = Rect.fromLTWH(
+            width * .125, height * .125, width * .75, height * .75);
+        final cellWidth = (arc.width - 12 * (count - 1)) / count;
         return Stack(clipBehavior: Clip.hardEdge, children: [
           for (var i = 0; i < count; i++)
             Builder(builder: (context) {
@@ -459,20 +463,20 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
                       ? i - 1
                       : i;
               final angle = count == 1 ? 0.0 : (slot / (count - 1) - .5) * 1.9;
-              final x = width / 2 +
+              final x = arc.center.dx +
                   (count == 1
                       ? 0
-                      : (width - cellWidth) /
+                      : (arc.width - cellWidth) /
                           2 *
                           math.sin(angle) /
                           math.sin(.95));
-              final y = height * (.39 + .20 * math.cos(angle));
+              final y = arc.top + arc.height * (.39 + .20 * math.cos(angle));
               final overview = count == 1
                   ? Rect.fromLTWH(0, 0, width, height)
                   : Rect.fromCenter(
                       center: Offset(x, y),
                       width: cellWidth,
-                      height: height * .78);
+                      height: arc.height * .78);
               final rect = inspected == i
                   ? Rect.fromLTWH(0, 48, width, math.max(1, height - 48))
                   : overview;
@@ -501,6 +505,10 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
                                                     : 0))
                                             : null,
                                         inspecting: inspected == i,
+                                        compositionFill:
+                                            inspected == null && count > 1
+                                                ? 1
+                                                : .75,
                                         onInteraction: _settleSequence,
                                         title: _label(i),
                                         showTitle: false,
@@ -508,10 +516,9 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
                                         reducedMotion: widget.reducedMotion,
                                         informationRotation:
                                             inspected == i && _information,
-                                        stagingYaw:
-                                            inspected == null && count > 1
-                                                ? .2 - angle * .35
-                                                : 0,
+                                        stagingYaw: inspected == null && count > 1
+                                            ? .2 - angle * .35
+                                            : 0,
                                         stagingScale:
                                             inspected == null && count > 1
                                                 ? .90 + .10 * math.cos(angle)
@@ -520,8 +527,7 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
                                             ? () => _inspect(i)
                                             : null,
                                         transparentBackground: true,
-                                        onReady: () =>
-                                            _rendered(i, generation)))),
+                                        onReady: () => _rendered(i, generation)))),
                             if (inspected == null)
                               Positioned(
                                   right: 0,

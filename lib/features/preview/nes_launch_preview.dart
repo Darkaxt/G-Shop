@@ -139,6 +139,7 @@ class _NesLaunchPreviewState extends State<NesLaunchPreview>
             animation: _timeline,
             builder: (context, _) => SocketMediaRenderer(
                 key: _renderer,
+                frameComposition: true,
                 format: PhysicalMediaFormat.nes,
                 nesLaunchScene: widget.scene,
                 identity: 'launch:${widget.token}',

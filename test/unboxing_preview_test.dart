@@ -67,8 +67,8 @@ void main() {
     final canvas = tester.getSize(find.byType(UnboxingPreview));
     final cover = tester
         .getRect(find.byKey(const ValueKey('unboxing-preparation-cover')));
-    expect(cover.width, closeTo(canvas.shortestSide * .9, .001));
-    expect(cover.height, closeTo(canvas.shortestSide * .9, .001));
+    expect(cover.width, closeTo(canvas.shortestSide * .75, .001));
+    expect(cover.height, closeTo(canvas.shortestSide * .75, .001));
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets('the prepared cover uses the same English front as the carton',

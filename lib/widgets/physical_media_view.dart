@@ -349,6 +349,7 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
                         },
                         child: SocketMediaRenderer(
                             key: _rendererKey,
+                            frameComposition: true,
                             format: widget.format,
                             cartridgeStyle: widget.cartridgeStyle,
                             nesScene: widget.nesScene,

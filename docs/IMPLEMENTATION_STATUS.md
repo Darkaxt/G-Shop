@@ -5,9 +5,12 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-21 current execution (specification revision 144): **S26 ACTIVE**, sole
-active stage. The owner supplied two TV models, resolving the external-display
-absence; the selected Sony derivative is undergoing conversion/integration.
+2026-10-21 current execution (specification revision 145): **S26 ACTIVE**, sole
+active stage. The supplied Sony display and NES-101 derivative are integrated in
+the internal signed candidate from `92be9cb`, installed and hash/signer verified
+with all fourteen database/preferences files unchanged. Native TV/launch acceptance
+is still required. The owner's lower-scene framing refinement is being verified
+before the next cohesive candidate; no intermediate public release.
 Authorized scope remains SCENE-01..05 followed by SOCKET-01. **S25 BLOCKED** for
 its remaining wider console/gallery requirements under the owner's explicit
 sequencing hold; resume them after S26. The current ICON/NES-01..06 task is
@@ -48,6 +51,26 @@ NES launch and actual running-game screenshot verify no touch controls; Thor
 returned HOME. Recovery and evidence remain in
 `D:/Temp/gshop-scene-launch-20261021/reports/core-overlays/`. This device-setting
 correction needs no APK release and does not close S26 scene acceptance.
+
+Revision 145 lower framing is wired into collector views and G&W/NES/GBA browsing
+scenes. The camera measures the visible transformed/hinged geometry and perspective,
+targeting a centered 75% rectangle; occupied sub-envelopes avoid fitting the empty
+corners between separated collector consoles. Physical part transforms are retained.
+The edition arc reserves its edge areas once. Inspection hit testing, explicit zoom,
+GBA preparation-cover sizing and NES final screen entry follow the fitted camera.
+Actual imported-vertex checks pass for closed/extracting/settled scenes, collector
+turntable poses and tall/wide viewports, with default geometry inside 12.5% margins
+and at least 70% occupancy on the limiting axis. Focused layout/lifecycle/insertion
+checks pass; the preparation-cover assertion was updated from its superseded 90%
+size to the owner-requested 75%, and its complete widget checks pass. Installed and
+source skill 0.1.3 validate and share SHA-256
+`afe82555a185cb6e9b25655c1c40ae6ac46949e5dc2c6060c9a46dc8f387a9b7`.
+Evidence is retained in `scene-framing-current-check.log`,
+`scene-framing-focused-checks.log` and `scene-framing-preparation-check.log` under
+the existing task reports. Native rendering/performance/control review of this
+new framing is still an internal advancement blocker for SCENE-01..04 acceptance;
+resolve it with the next signed candidate on Thor. Existing candidate `92be9cb`
+predates this correction. The device remains in the owner's current review view.
 
 S26 NES vertical workflow is implemented in source across ordinary and secondary
 views: persistent scene with translucent game information, cartridge inspection
@@ -107,8 +130,9 @@ The completed host composition/choice/frame-ownership, loader, widget/readiness
 and lifecycle checks pass, with three existing private-oracle skips. An observed
 128-surface limit rejected the larger AVE composition after adding the TV; NES
 launches now use the existing bounded 192-surface paired-scene allowance. Ordinary
-hardware keeps its original bound. The subsequent owner placement regression is
-being checked; no new candidate/device acceptance or final release is implied.
+hardware keeps its original bound. The subsequent owner placement regression
+passes and candidate `92be9cb` is installed/verified as recorded above. Native
+TV/launch acceptance and the new framing candidate remain outstanding.
 
 The reusable console contract CI-01..08 is now versioned in
 `CONSOLE_INTEGRATION_CONTRACT.md`, with source skill under

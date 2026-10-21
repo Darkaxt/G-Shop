@@ -307,7 +307,7 @@ class UnboxingPreviewState extends State<UnboxingPreview>
     return image == null
         ? const Center(child: CircularProgressIndicator())
         : LayoutBuilder(builder: (context, constraints) {
-            final side = constraints.biggest.shortestSide * .9;
+            final side = constraints.biggest.shortestSide * .75;
             return Center(
                 child: SizedBox.square(
                     dimension: side,
@@ -355,6 +355,9 @@ class UnboxingPreviewState extends State<UnboxingPreview>
                   if (_imagesReady && widget.resources.isNotEmpty)
                     SocketMediaRenderer.unboxing(
                       key: _renderer,
+                      compositionZoom: _returning
+                          ? 1 + (_zoom - 1) * _inspection.value
+                          : _zoom,
                       scene: UnboxingScene(widget.style,
                           hasBooklet:
                               bookletPanelPath(widget.resources, 0) != null,

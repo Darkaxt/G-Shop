@@ -1,6 +1,10 @@
 # Staged implementation plan
 
-Current execution, 2026-10-21: **S26 ACTIVE**, sole active stage. The owner supplied
+Current execution, 2026-10-21: **S26 ACTIVE**, sole active stage. Revision 145
+adds the owner's lower-scene framing correction: fit the default composition
+inside 12.5% margins for text/buttons, preserving relative scale and upper cards.
+Implement and verify this within SCENE-01..04; the final screen zoom remains
+intentional. No additional stage or partial release is introduced. The owner supplied
 two TV models, resolving the CI-01 external-display absence. Current
 ICON/NES-01..06 task delivered and verified as normal v1.10.1/code 42, including
 exact cleanup. Wider **S25 BLOCKED** only by the owner's sequencing hold.
