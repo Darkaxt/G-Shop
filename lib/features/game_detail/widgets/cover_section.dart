@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../preview/nes_media_preview.dart';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -303,6 +304,40 @@ class CoverSectionState extends State<CoverSection> {
     final mediaReady = widget.resourcesReady &&
         (widget.physicalLabelUrl == null || label != null) &&
         (!threeD || _modelReady);
+    if (system.id == 'nes' && physical && threeD) {
+      return Stack(fit: StackFit.expand, children: [
+        NesMediaPreview(
+            key: ValueKey(game.selectionKey),
+            filename: game.filename,
+            identity: game.selectionKey,
+            title: game.displayName,
+            label: labelWidget,
+            labelIdentity: label ??
+                '${game.selectionKey}:${widget.physicalLabelUrl ?? game.displayName}',
+            reducedMotion: _reducedMotion || widget.reducedMotion,
+            resourcesReady: widget.resourcesReady &&
+                (widget.physicalLabelUrl == null || label != null),
+            physicalMediaKey: widget.physicalMediaKey,
+            onReady: () {
+              if (mounted && !_modelReady) setState(() => _modelReady = true);
+              widget.onReady?.call();
+              widget.onRevealed?.call();
+            }),
+        if (widget.showPresentationControls)
+          Positioned(
+              top: 4,
+              right: 4,
+              child: IconButton(
+                  tooltip: 'Resources',
+                  onPressed: openGallery,
+                  icon: const Icon(Icons.view_in_ar))),
+        if (widget.isFavorite)
+          const Positioned(
+              top: 8,
+              left: 8,
+              child: Icon(Icons.favorite, size: 18, color: Colors.redAccent)),
+      ]);
+    }
     final cartridgeStyle = system.id == 'gba'
         ? GbaCartridgeModel.styleFor(game.filename, widget.contentTags)
         : null;

@@ -14,6 +14,7 @@ import '../models/socket_media_model.dart';
 import '../models/packaging_model.dart';
 import '../models/console_model.dart';
 import '../models/gba_cartridge_model.dart';
+import '../models/nes_cartridge_model.dart';
 import '../models/unboxing_scene.dart';
 import '../models/game_watch_unboxing_scene.dart';
 
@@ -283,9 +284,16 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
                   : widget.console != null
                       ? await widget.console!.load()
                       : widget.cartridgeStyle != null &&
-                              widget.format == PhysicalMediaFormat.gba
-                          ? await GbaCartridgeModel.load(widget.cartridgeStyle!)
-                          : await widget.packaging?.load());
+                              widget.format == PhysicalMediaFormat.nes
+                          ? await NesCartridgeModel.load(
+                                  widget.cartridgeStyle!) ??
+                              (throw StateError(
+                                  'Import the selected NES cartridge shell'))
+                          : widget.cartridgeStyle != null &&
+                                  widget.format == PhysicalMediaFormat.gba
+                              ? await GbaCartridgeModel.load(
+                                  widget.cartridgeStyle!)
+                              : await widget.packaging?.load());
       if (!mounted || generation != _generation) return;
       _modelUs = _clock.elapsedMicroseconds;
       setState(() => _renderer = renderer);

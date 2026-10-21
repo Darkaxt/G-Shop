@@ -12,6 +12,7 @@ import '../services/metadata/effective_overall_rating.dart';
 import 'installed_indicator.dart';
 import 'smart_cover_image.dart';
 import 'gba_box_tile.dart';
+import 'nes_box_tile.dart';
 import 'library_model_presentation.dart';
 import 'handwritten_media_sticker.dart';
 import '../features/preview/game_watch_preview.dart';
@@ -129,7 +130,9 @@ class BaseGameCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rs = context.rs;
-    if ((systemId == 'gba' || systemId == 'gameandwatch') &&
+    if ((systemId == 'gba' ||
+            systemId == 'gameandwatch' ||
+            systemId == 'nes') &&
         gameIdentity != null) {
       Widget boxCard = GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -138,6 +141,37 @@ class BaseGameCard extends StatelessWidget {
           onLongPress: onLongPress,
           child: Column(children: [
             Expanded(child: Consumer(builder: (context, ref, _) {
+              if (systemId == 'nes') {
+                final rating = overallRating ??
+                    (showRating
+                        ? ref
+                            .watch(cachedSelectionRatingProvider((
+                              platform: systemId!,
+                              selection: gameIdentity!
+                            )))
+                            .valueOrNull
+                        : null);
+                return Stack(fit: StackFit.expand, children: [
+                  NesBoxTile(
+                      filename: filename ?? displayName,
+                      identity: gameIdentity!,
+                      title: displayName,
+                      selected: isSelected,
+                      reducedMotion: reducedMotion,
+                      fallback: _cover(cachedUrl)),
+                  if (showRating && rating != null)
+                    Positioned(
+                        top: 8,
+                        right: 8,
+                        child: _CoverRating(rating: rating, isSmall: false)),
+                  if (isInstalled || isRemoteAvailable)
+                    Positioned(
+                        bottom: 8,
+                        right: 8,
+                        child: _AvailabilityBadge(
+                            installed: isInstalled, isSmall: false)),
+                ]);
+              }
               if (systemId == 'gameandwatch') {
                 return Stack(fit: StackFit.expand, children: [
                   LibraryModelPresentation(

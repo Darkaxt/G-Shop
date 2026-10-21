@@ -1,7 +1,18 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 133, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 134, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
+
+Current batch: S25 **ACTIVE**, sole active implementation stage. ICON-01 and
+NES-01..05 are already authorized. First integrate approved icon consumers; then
+inspect/import the supplied NES selector scene, census actual ROM/edition assets,
+deploy all prepared NES cartons and required reusable retail shell families.
+Verify complete integrated selector/library/edition workflows on Thor, reconcile
+coverage and existing feature contracts, then commit and deliver one normal final
+release. Public delivery verification is the final gate; no intermediate release.
+Advancement blockers are remaining implementation/native/delivery criteria, all
+internally actionable until a specific external impediment is demonstrated.
+No tracked deferral. Optional showcase variants remain optional.
 
 Current delivery, 2026-10-21: Drive only, **S26 COMPLETE** in normal public
 [v1.10.0/code 41](https://github.com/Darkaxt/G-Shop/releases/tag/v1.10.0).

@@ -1,5 +1,7 @@
 # G-Shop — cloud library, handheld first
 
+<p align="center"><img src="assets/icon.png" width="160" alt="G-Shop red neon G icon" /></p>
+
 G-Shop builds on [AverageConsumer/R-Shop](https://github.com/AverageConsumer/R-Shop) for keeping a large retro collection in Google Drive and downloading games when you want to play. Keep the controller-first frontend, add richer discovery, and spend your SD space on the games you actually use.
 
 [Download the latest APK](https://github.com/Darkaxt/G-Shop/releases/latest) · [Add to Obtainium / ObtainX](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Darkaxt/G-Shop) · [Upstream project](https://github.com/AverageConsumer/R-Shop)

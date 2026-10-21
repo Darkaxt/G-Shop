@@ -5,6 +5,19 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-21 new owner request: S25 **ACTIVE**, sole active stage, bounded ICON-01 /
+NES-01..05 batch (specification revision 134). S26 is COMPLETE below. Approved
+ImageGen icon is integrated into launcher/splash/README. All 623 animated cartons,
+the supplied 290-object scene, both console bodies and 13 cartridge references
+pass production import loaders and texture receipts. Their private deployment to
+Thor is verified; all 1,203 pre-existing import hashes remain unchanged. Focused
+library/preview/lifecycle/launch checks and NES readiness/rating checks pass.
+The 9,831-archive census yields 433 same-region reference-box bindings and 1,256
+archives with known NES shell references; neither proves an owned physical SKU.
+Signed native acceptance and final 1.10.1/code 42 delivery remain advancement
+blockers within ACTIVE S25. No external
+execution blocker established; no tracked deferral. Wider gallery work is retained.
+
 2026-10-21 delivery: **S26 COMPLETE**, Drive only, normal public
 [v1.10.0/code 41](https://github.com/Darkaxt/G-Shop/releases/tag/v1.10.0).
 Release tag and BUILDINFO both identify source

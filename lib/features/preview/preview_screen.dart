@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/game_item.dart';
 import '../../models/console_model.dart';
+import 'nes_console_selector.dart';
 import '../../models/preview_settings.dart';
 import '../../models/system_model.dart';
 import '../../services/socket_media_import.dart';
@@ -325,12 +326,20 @@ class _PreviewScreenState extends State<PreviewScreen>
         return const Scaffold(
             body: Center(child: Text('Console model unavailable')));
       return Scaffold(
-          body: ConsoleHardwareView(
-              key: _consoleKey,
-              model: model,
-              title: snapshot['title'] as String,
-              onReady: () => unawaited(_rendered(snapshot['revision'] as int)),
-              reducedMotion: snapshot['reducedMotion'] == true));
+          body: system.id == 'nes'
+              ? NesConsoleSelector(
+                  collection: model,
+                  hardwareKey: _consoleKey,
+                  reducedMotion: snapshot['reducedMotion'] == true,
+                  onReady: () =>
+                      unawaited(_rendered(snapshot['revision'] as int)))
+              : ConsoleHardwareView(
+                  key: _consoleKey,
+                  model: model,
+                  title: snapshot['title'] as String,
+                  onReady: () =>
+                      unawaited(_rendered(snapshot['revision'] as int)),
+                  reducedMotion: snapshot['reducedMotion'] == true));
     }
     final game = GameItem(
         filename: snapshot['filename'] as String,

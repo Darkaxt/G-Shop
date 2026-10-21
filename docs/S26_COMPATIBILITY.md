@@ -5,7 +5,7 @@ Status: S26 COMPLETE in normal public v1.10.0/code 41. Host, signed in-place Tho
 
 The maintained Dart package and application symbols use `g_shop` / `GShop`.
 Localized app text, notifications, launcher and splash artwork use G-Shop.
-The authored G mark is reproducible from `scripts/build_brand_icon.py`; the
+The approved ImageGen G master is restored by `scripts/build_brand_icon.py`; the
 existing dark/red interface and launch theme behavior are retained. Native and
 Dart method-channel endpoints change together to `com.darkaxt.gshop/*`.
 The scheduled background Dart package URIs must change with the package name.

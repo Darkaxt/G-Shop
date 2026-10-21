@@ -14,6 +14,7 @@ class ConsoleModel {
   final String? romSet;
   final String? visualVariantId;
   final bool isCollectionOverview;
+  final String? retailEditionId;
   String get hardwareId =>
       romSet == null ? visualVariantId ?? '' : _physicalRomSet(romSet!);
   final bool canOpen;
@@ -23,6 +24,7 @@ class ConsoleModel {
       {this.romSet,
       this.visualVariantId,
       this.isCollectionOverview = false,
+      this.retailEditionId,
       this.canOpen = false,
       this.isBox = false,
       this.openingDurationMs = 2000});
@@ -337,8 +339,60 @@ class ConsoleModel {
     }
     final bytes = await manifest.readAsBytes();
     return ConsoleModel._(systemId, dir, sha256.convert(bytes).toString(),
-        isCollectionOverview: SocketMediaModel.isGameWatchCollection(
+        isCollectionOverview: _isOverview(
             jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>));
+  }
+
+  static bool _isOverview(Map<String, dynamic> data) =>
+      SocketMediaModel.isGameWatchCollection(data) ||
+      data['system'] == 'nes' && data['overviewGeometry'] == true;
+
+  static Future<ConsoleModel?> findNesConsoleVariant(String variant,
+      {Directory? modelsDirectory}) async {
+    if (!{'front-loader', 'top-loader'}.contains(variant)) {
+      throw const FormatException('Unknown NES console body');
+    }
+    if (modelsDirectory == null && !Platform.isAndroid) return null;
+    final root = modelsDirectory ?? Directory('/storage/emulated/0/RShop/models');
+    final dir = Directory('${root.path}/consoles/nes/variants/$variant');
+    final file = File('${dir.path}/model.json');
+    if (!await file.exists()) return null;
+    if (await file.length() > 1024 * 1024) {
+      throw const FormatException('NES console manifest exceeds import size');
+    }
+    final bytes = await file.readAsBytes();
+    return ConsoleModel._('nes', dir, sha256.convert(bytes).toString());
+  }
+
+  static Future<ConsoleModel?> findNesBox(String editionId,
+      {required String manifestSha256, Directory? modelsDirectory}) async {
+    if (!RegExp(r'^nes-[a-f0-9]{12}$').hasMatch(editionId) ||
+        !RegExp(r'^[a-f0-9]{64}$').hasMatch(manifestSha256)) {
+      throw const FormatException('Invalid NES box reference');
+    }
+    if (modelsDirectory == null && !Platform.isAndroid) return null;
+    final root =
+        modelsDirectory ?? Directory('/storage/emulated/0/RShop/models');
+    final dir = Directory('${root.path}/boxes/nes/$editionId');
+    final file = File('${dir.path}/model.json');
+    if (!await file.exists()) return null;
+    if (await file.length() > 1024 * 1024) {
+      throw const FormatException('NES box manifest exceeds import size');
+    }
+    final bytes = await file.readAsBytes();
+    if (sha256.convert(bytes).toString() != manifestSha256) {
+      throw const FormatException('NES box differs from its catalogue receipt');
+    }
+    final data = jsonDecode(utf8.decode(bytes));
+    final duration = data['openingDurationMs'];
+    if (duration is! int || duration < 1 || duration > 60000) {
+      throw const FormatException('Invalid NES box opening interval');
+    }
+    return ConsoleModel._('nes', dir, manifestSha256,
+        isBox: true,
+        canOpen: true,
+        retailEditionId: editionId,
+        openingDurationMs: duration);
   }
 
   Future<SocketMediaModel> load() async {
@@ -349,6 +403,10 @@ class ConsoleModel {
     }
     final data = jsonDecode(utf8.decode(manifest)) as Map<String, dynamic>;
     if (data['system'] != systemId ||
+        retailEditionId != null &&
+            (data['retailEditionId'] != retailEditionId ||
+                data['resourceKind'] != 'box' ||
+                data['canOpen'] != true) ||
         romSet != null && data['romSet'] != _physicalRomSet(romSet!) ||
         visualVariantId != null &&
             (data['visualVariantId'] != visualVariantId ||

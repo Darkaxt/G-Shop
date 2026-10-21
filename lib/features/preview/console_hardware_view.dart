@@ -60,8 +60,11 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
   double? _inspectionYaw;
   int _pointers = 0;
   double _yaw = -.2, _pitch = defaultPitch, _zoom = .9, _startZoom = .9;
-  double get _initialPitch =>
-      widget.model.isCollectionOverview ? .85 : defaultPitch;
+  double get _initialPitch => widget.model.isCollectionOverview
+      ? .85
+      : widget.systemId == 'nes' && !widget.model.isBox
+          ? .60
+          : defaultPitch;
   double get _motionYaw => widget.informationRotation || widget.turntable
       ? _rotation.value * math.pi * 2
       : math.sin(_rotation.value * math.pi * 2) * .14;

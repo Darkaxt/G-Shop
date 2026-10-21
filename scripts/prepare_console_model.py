@@ -23,10 +23,14 @@ def main():
     parser.add_argument('--author', required=True)
     parser.add_argument('--source-url', required=True)
     parser.add_argument('--rom-set', help='Exact supplied Game & Watch MAME set')
+    parser.add_argument('--edition-id', help='Exact NES carton catalogue edition ID')
     parser.add_argument('--visual-variant-id', help='Explicit visual-only hardware edition; no ROM binding')
     parser.add_argument('--resource-kind', choices=('handheld', 'box'), default='handheld')
     parser.add_argument('--gamewatch-collection', action='store_true',
                         help='Bounded overview of the supplied 63-device selector; hide its display board')
+    parser.add_argument('--overview-max-triangles', type=int,
+                        help='Bound a static multi-object console selector without removing objects')
+    parser.add_argument('--overview-texture-size', type=int, default=512)
     args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:])
     if args.output.exists():
         raise ValueError('Preserve existing conversions; select an absent output')
@@ -36,7 +40,7 @@ def main():
         raise ValueError('Expected GLB JSON chunk')
     gltf = json.loads(raw[20:20+length])
     binary = raw[28+length:]
-    if gltf.get('skins') or gltf.get('animations') and not (args.rom_set or args.visual_variant_id):
+    if gltf.get('skins') or gltf.get('animations') and not (args.rom_set or args.visual_variant_id or args.edition_id):
         raise ValueError('This adapter preserves static console display scenes only')
     if args.rom_set and (args.system != 'gameandwatch' or
             not __import__('re').fullmatch('[a-z0-9_]+', args.rom_set)):
@@ -44,9 +48,18 @@ def main():
     if args.visual_variant_id and (args.rom_set or args.system != 'gameandwatch' or
             not __import__('re').fullmatch('[a-z0-9_-]+', args.visual_variant_id)):
         raise ValueError('Expected a visual-only Game & Watch variant identity')
-    if args.resource_kind == 'box' and not (args.rom_set or args.visual_variant_id):
+    if args.edition_id and (args.system != 'nes' or args.resource_kind != 'box' or
+            args.rom_set or args.visual_variant_id or
+            not __import__('re').fullmatch('nes-[0-9a-f]{12}', args.edition_id)):
+        raise ValueError('Expected an exact NES carton edition')
+    if args.resource_kind == 'box' and not (args.rom_set or args.visual_variant_id or args.edition_id):
         raise ValueError('A box import requires its exact associated hardware identity')
     source_animations = {a['name']: a for a in gltf.get('animations', [])}
+    if args.overview_max_triangles is not None and (
+            source_animations or args.gamewatch_collection or
+            not 1000 <= args.overview_max_triangles <= 180000 or
+            args.overview_texture_size not in (256, 512, 1024)):
+        raise ValueError('Expected a bounded static selector overview')
     if len(source_animations) != len(gltf.get('animations', [])):
         raise ValueError('Source animation names must be unique')
     clip_names = set(source_animations)
@@ -196,6 +209,43 @@ def main():
                     for role, value in material['textures'].items():
                         if value == original: material['textures'][role] = replacement
                 names[i] = replacement
+    overview = None
+    if args.overview_max_triangles is not None:
+        objects = [o for o in bpy.context.scene.objects if o.type == 'MESH']
+        source_count = sum(len(o.data.polygons) for o in objects)
+        minimum = sum(min(24, len(o.data.polygons)) for o in objects)
+        if minimum >= args.overview_max_triangles:
+            raise ValueError('Overview budget cannot retain every object')
+        ratio = min(1, (args.overview_max_triangles-minimum) / source_count)
+        for obj in objects:
+            if len(obj.data.polygons) <= 24 or ratio == 1:
+                continue
+            bpy.context.view_layer.objects.active = obj
+            mod = obj.modifiers.new('Console overview tessellation', 'DECIMATE')
+            mod.ratio = max(ratio, 24 / len(obj.data.polygons))
+            mod.use_collapse_triangulate = True
+            bpy.ops.object.modifier_apply(modifier=mod.name)
+        for i in images:
+            source_name = gltf['images'][i].get('name')
+            image = bpy.data.images.get(source_name) if source_name else None
+            if image is None:
+                raise ValueError(f'Cannot identify overview texture {i}')
+            width, height = image.size[:]
+            if max(width, height) > args.overview_texture_size:
+                factor = args.overview_texture_size / max(width, height)
+                image.scale(max(1, round(width*factor)), max(1, round(height*factor)))
+            image.pack()
+            images[i] = bytes(image.packed_file.data)
+            if images[i][:8] == b'\x89PNG\r\n\x1a\n':
+                replacement, original = f'texture-{i:02d}.png', names[i]
+                for material in materials.values():
+                    for role, value in material['textures'].items():
+                        if value == original: material['textures'][role] = replacement
+                names[i] = replacement
+        overview = {'objects': [o.name for o in objects],
+                    'sourceTriangles': source_count,
+                    'decimationRatio': ratio,
+                    'textureMaxDimension': args.overview_texture_size}
     frame_origin = 0
     starts = []
     for obj in bpy.context.scene.objects:
@@ -321,7 +371,7 @@ def main():
                     animation_error = max(animation_error, (expected-point).length)
         if animation_error > .0001:
             raise ValueError(f'Converted hinge differs from source animation: {animation_error}')
-    if collection:
+    if collection or overview:
         merged = {}
         for surface in surfaces:
             key = surface['name']
@@ -362,6 +412,10 @@ def main():
     if collection:
         manifest['selectorScene'] = collection
         manifest['sourceReference']['adaptation'] = 'All 63 original placements and vertical axis; only Display_board hidden; elevated overview camera, reduced tessellation and 256px textures; original sources retained'
+    if overview:
+        manifest['overviewGeometry'] = True
+        manifest['sourceReference']['overview'] = overview
+        manifest['sourceReference']['adaptation'] = 'All authored objects and placements retained; bounded tessellation/textures for the console selector; original source retained'
     if args.rom_set:
         manifest['romSet'] = args.rom_set
         manifest['resourceKind'] = args.resource_kind
@@ -370,6 +424,13 @@ def main():
         manifest['visualVariantId'] = args.visual_variant_id
         manifest['resourceKind'] = args.resource_kind
         manifest['openingDurationMs'] = round(duration*1000) if hinges else 2000
+    if args.edition_id:
+        manifest['retailEditionId'] = args.edition_id
+        manifest['resourceKind'] = 'box'
+        manifest['openingDurationMs'] = round(duration*1000) if hinges else 2000
+    original_licence = gltf.get('asset', {}).get('extras', {}).get('sketchfab', {}).get('license')
+    if original_licence:
+        manifest['sourceReference']['originalLicence'] = original_licence
     if pose_bounds:
         manifest['poseCenters'] = [[time, *list((point-center)*scale)] for time, point in pose_bounds]
     if gltf.get('extras', {}).get('controlRegistration'):

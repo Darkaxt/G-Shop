@@ -1,6 +1,43 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 133, 2026-10-21.
+Authoritative specification, revision 134, 2026-10-21.
+
+Owner NES continuation, 2026-10-21: integrate the approved ImageGen G icon into
+app resources, launcher/splash, README and normal APK delivery, then move to NES.
+Resume S25 as the sole ACTIVE stage for this bounded icon/NES batch. S26 remains
+COMPLETE. Existing wider gallery requirements remain separate; this batch cannot
+claim acceptance for uninspected consoles. No intermediate public release.
+
+- ICON-01: use assets/branding/gshop-icon-imagegen.png as the approved source;
+  update all current icon consumers and reproduction tooling, retaining original
+  generation provenance and upstream credit. Verify the actual final APK/resources.
+- NES-01: inspect and privately import the supplied NES-ad1ba0a5.glb as the NES
+  console-section secondary preview. Preserve authored objects/materials and
+  attribution, record any necessary bounded display conversion, and verify real
+  rotation, gestures, Reduced Motion and route/lifecycle ownership on Thor.
+- NES-02: deploy the prepared 623 NES/Famicom carton editions as reusable private
+  resources, including real Open/Close clips. Integrate boxes with exact known
+  collection editions through the existing media lane; preserve regional/printing
+  distinctions and honestly report unbound or missing artwork. Do not replace
+  uncertainty with a guessed title-only physical edition or duplicate ROM data.
+- NES-03: cover original front loader and NES-101/top-loader bodies, standard
+  three/five-screw cartridge revisions and grey/gold materials. Reuse physical
+  geometry where correct; preserve edition-specific labels and explicit ambiguity.
+- NES-04: census actual owned NES releases and add reusable Tengen, Camerica,
+  Color Dreams/Bunch/Wisdom Tree, AVE, Active Enterprises and Aladdin shell
+  families where represented. Preserve PCB visibility for transparent shells and
+  distinguish licensed/unlicensed releases. Regional console markings, Sharp TV,
+  service/FamicomBox/competition cartridges follow retail requirements; optional
+  showcase assets are not prerequisites or invented missing collection meshes.
+- NES-05: verify the integrated real selector, carton/cartridge selection and
+  affected offline/metadata/controller/dual-screen behavior, produce a physical
+  family and edition-binding coverage report, reconcile focused host/native
+  checks, commit and publish one normal final signed release with independent
+  public source/version/signature/hash and installed-package verification.
+
+Reference evidence: the owner's linked Legend of NES hardware/cartridge/Tengen
+photographs and catalogue, checked 2026-10-21, guide physical classification;
+ROM names alone cannot prove screw revision, shell colour or regional printing.
 
 Owner source decision, 2026-10-21: Google Drive only. GSHOP-02 now explicitly
 removes RomM, SMB, FTP, Web and standalone local-library setup/discovery as active
