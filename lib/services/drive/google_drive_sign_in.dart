@@ -17,7 +17,7 @@ import 'drive_authorization.dart';
 /// authorization to Google's native SDK. No embedded client secret is needed.
 class GoogleDriveSignIn implements DriveAuthorizationDriver {
   static const _nativeAuthorization =
-      MethodChannel('com.retro.rshop/drive_authorization');
+      MethodChannel('com.darkaxt.gshop/drive_authorization');
   final GoogleSignIn _google;
   final String serverClientId;
   final HttpClientAdapter? _revocationAdapter;

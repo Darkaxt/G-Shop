@@ -5,14 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import 'package:retro_eshop/models/config/app_config.dart';
-import 'package:retro_eshop/models/ra_models.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/services/config_storage_service.dart';
-import 'package:retro_eshop/services/database_service.dart';
-import 'package:retro_eshop/services/ra_api_service.dart';
-import 'package:retro_eshop/services/ra_sync_service.dart';
-import 'package:retro_eshop/services/storage_service.dart';
+import 'package:g_shop/models/config/app_config.dart';
+import 'package:g_shop/models/ra_models.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/services/config_storage_service.dart';
+import 'package:g_shop/services/database_service.dart';
+import 'package:g_shop/services/ra_api_service.dart';
+import 'package:g_shop/services/ra_sync_service.dart';
+import 'package:g_shop/services/storage_service.dart';
 
 // ─── Fakes ───────────────────────────────────────────────
 

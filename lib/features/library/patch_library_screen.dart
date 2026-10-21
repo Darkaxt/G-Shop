@@ -57,7 +57,7 @@ String _recipeMessage(Object error) => switch (error) {
       StateError() ||
       FileSystemException() =>
         'Shared recipes are unavailable. Choose or reconnect metadata storage in Settings.',
-      _ => 'That file is not a supported R-Shop patch recipe.',
+      _ => 'That file is not a supported G-Shop patch recipe.',
     };
 
 Future<void> _shareRecipe(PortablePatchRecipe recipe) async {

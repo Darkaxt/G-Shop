@@ -82,7 +82,7 @@ class EsDeMetadataConflict {
 
 class EsDeMetadataProjection {
   /// A bare gamelist number has no original-game label. Keep that richer score
-  /// in R-Shop instead of attributing it to translation/audio-patch quality.
+  /// in G-Shop instead of attributing it to translation/audio-patch quality.
   static String? rating(EffectiveOverallRating? overall) =>
       overall?.rankingEligible == true &&
               overall!.ownership != OverallRatingOwnership.originalGame

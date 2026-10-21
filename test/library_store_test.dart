@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/scraped_metadata.dart';
-import 'package:retro_eshop/services/library_store.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
+import 'package:g_shop/services/library_store.dart';
 
 void main() {
   late Database db;

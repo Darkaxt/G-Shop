@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:retro_eshop/services/audio_manager.dart';
-import 'package:retro_eshop/services/feedback_service.dart';
-import 'package:retro_eshop/services/haptic_service.dart';
+import 'package:g_shop/services/audio_manager.dart';
+import 'package:g_shop/services/feedback_service.dart';
+import 'package:g_shop/services/haptic_service.dart';
 
 // ─── Fakes ───────────────────────────────────────────────
 

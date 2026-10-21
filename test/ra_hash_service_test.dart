@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/ra_hash_service.dart';
+import 'package:g_shop/services/ra_hash_service.dart';
 
 void main() {
   group('RaHashService.getHashMethod', () {

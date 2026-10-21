@@ -189,7 +189,7 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
   /// atomic write so the resolver immediately produces working providers
   /// for every mapped system on the next rebuild.
   ///
-  /// [mappingsBySystemId] is keyed by R-Shop system slug; the value is
+  /// [mappingsBySystemId] is keyed by G-Shop system slug; the value is
   /// the remote path (relative to the source's base) for that system.
   /// Empty paths are dropped.
   /// Replaces every [SystemSourceMapping] for [sourceId] across all

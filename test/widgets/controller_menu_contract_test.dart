@@ -6,24 +6,24 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:retro_eshop/core/input/input.dart';
-import 'package:retro_eshop/features/settings/settings_screen.dart';
-import 'package:retro_eshop/features/settings/widgets/settings_tabs.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/providers/download_providers.dart';
-import 'package:retro_eshop/services/storage_service.dart';
-import 'package:retro_eshop/services/input_debouncer.dart';
-import 'package:retro_eshop/features/library/shelf_edit_screen.dart';
-import 'package:retro_eshop/features/library/widgets/shelf_picker_dialog.dart';
-import 'package:retro_eshop/features/game_detail/widgets/game_detail_overlay.dart';
-import 'package:retro_eshop/models/custom_shelf.dart';
-import 'package:retro_eshop/models/game_metadata_info.dart';
-import 'package:retro_eshop/utils/game_metadata.dart';
-import 'package:retro_eshop/features/settings/config_mode_screen.dart';
-import 'package:retro_eshop/features/onboarding/onboarding_screen.dart';
-import 'package:retro_eshop/models/config/app_config.dart';
-import 'package:retro_eshop/providers/game_providers.dart';
-import 'package:retro_eshop/services/config_storage_service.dart';
+import 'package:g_shop/core/input/input.dart';
+import 'package:g_shop/features/settings/settings_screen.dart';
+import 'package:g_shop/features/settings/widgets/settings_tabs.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/providers/download_providers.dart';
+import 'package:g_shop/services/storage_service.dart';
+import 'package:g_shop/services/input_debouncer.dart';
+import 'package:g_shop/features/library/shelf_edit_screen.dart';
+import 'package:g_shop/features/library/widgets/shelf_picker_dialog.dart';
+import 'package:g_shop/features/game_detail/widgets/game_detail_overlay.dart';
+import 'package:g_shop/models/custom_shelf.dart';
+import 'package:g_shop/models/game_metadata_info.dart';
+import 'package:g_shop/utils/game_metadata.dart';
+import 'package:g_shop/features/settings/config_mode_screen.dart';
+import 'package:g_shop/features/onboarding/onboarding_screen.dart';
+import 'package:g_shop/models/config/app_config.dart';
+import 'package:g_shop/providers/game_providers.dart';
+import 'package:g_shop/services/config_storage_service.dart';
 import '../helpers/pump_helpers.dart';
 
 // These tests exercise route/shortcut ownership, not wall-clock rate limiting
@@ -110,7 +110,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     FlutterSecureStorage.setMockInitialValues({});
     PackageInfo.setMockInitialValues(
-        appName: 'R-Shop',
+        appName: 'G-Shop',
         packageName: 'test',
         version: '1',
         buildNumber: '1',

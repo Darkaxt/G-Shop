@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/ra_models.dart';
+import 'package:g_shop/models/ra_models.dart';
 
 void main() {
   group('RaGame', () {

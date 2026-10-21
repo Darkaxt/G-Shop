@@ -15,7 +15,7 @@ class EsDePublicationResult {
 }
 
 /// Pending metadata and field ownership live in the shared metadata database.
-/// The OS lock excludes cooperating R-Shop publishers, NOT ES-DE. Publication
+/// The OS lock excludes cooperating G-Shop publishers, NOT ES-DE. Publication
 /// requires ES-DE's documented closed-writer maintenance window throughout.
 class EsDeMetadataPublication {
   final Database _db;

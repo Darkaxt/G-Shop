@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/config/system_config.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/services/library_sync_service.dart';
-import 'package:retro_eshop/utils/friendly_error.dart';
+import 'package:g_shop/models/config/system_config.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/services/library_sync_service.dart';
+import 'package:g_shop/utils/friendly_error.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

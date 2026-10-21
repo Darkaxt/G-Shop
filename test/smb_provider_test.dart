@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/config/system_config.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/services/download_handle.dart';
-import 'package:retro_eshop/services/native_smb_service.dart';
-import 'package:retro_eshop/services/providers/smb_provider.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/config/system_config.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/services/download_handle.dart';
+import 'package:g_shop/services/native_smb_service.dart';
+import 'package:g_shop/services/providers/smb_provider.dart';
 
 class FakeNativeSmbService extends NativeSmbService {
   List<SmbFileEntry> stubbedFiles = [];

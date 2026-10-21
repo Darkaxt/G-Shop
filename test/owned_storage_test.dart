@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/transfer_record.dart';
-import 'package:retro_eshop/services/owned_storage.dart';
+import 'package:g_shop/models/transfer_record.dart';
+import 'package:g_shop/services/owned_storage.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

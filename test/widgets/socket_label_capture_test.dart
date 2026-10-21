@@ -1,7 +1,7 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/widgets/socket_media_renderer.dart';
+import 'package:g_shop/widgets/socket_media_renderer.dart';
 
 // RenderObject.debugNeedsPaint always returns false in release builds.
 // Retain the real viewport/layout/paint lifecycle while exercising that contract.

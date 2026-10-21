@@ -460,7 +460,7 @@ class LDe extends L {
   }
 
   @override
-  String get appTitle => 'R-Shop';
+  String get appTitle => 'G-Shop';
 
   @override
   String get settings_language => 'Sprache';
@@ -1683,7 +1683,7 @@ class LDe extends L {
   String get filter_title => 'FILTER';
 
   @override
-  String get onboarding_welcomeTitle => 'Willkommen bei R-Shop';
+  String get onboarding_welcomeTitle => 'Willkommen bei G-Shop';
 
   @override
   String get onboarding_welcomeSubtitle => 'Woher kommen deine Spiele?';
@@ -2132,7 +2132,7 @@ class LDe extends L {
       'Zwischengespeicherte Einträge, keine eindeutigen Spiele. Quellgrößen sind keine SD-Belegung; lokale Bytes schließen fremde Dateien, Spielstände und BIOS aus.';
 
   @override
-  String get service_notificationTitle => 'R-Shop';
+  String get service_notificationTitle => 'G-Shop';
 
   @override
   String get service_channelName => 'Downloads';

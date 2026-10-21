@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:retro_eshop/features/game_detail/widgets/metadata_badges.dart';
-import 'package:retro_eshop/utils/game_metadata.dart';
+import 'package:g_shop/features/game_detail/widgets/metadata_badges.dart';
+import 'package:g_shop/utils/game_metadata.dart';
 import '../helpers/pump_helpers.dart';
 
 void main() {

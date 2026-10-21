@@ -2,8 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_gpu/gpu.dart' as gpu;
-import 'package:retro_eshop/models/socket_media_model.dart';
-import 'package:retro_eshop/widgets/socket_media_renderer.dart';
+import 'package:g_shop/models/socket_media_model.dart';
+import 'package:g_shop/widgets/socket_media_renderer.dart';
 import 'helpers/socket_media_oracle.dart';
 
 void main() {

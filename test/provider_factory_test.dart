@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/services/native_smb_service.dart';
-import 'package:retro_eshop/services/provider_factory.dart';
-import 'package:retro_eshop/services/providers/ftp_provider.dart';
-import 'package:retro_eshop/services/providers/romm_provider.dart';
-import 'package:retro_eshop/services/providers/smb_provider.dart';
-import 'package:retro_eshop/services/providers/web_provider.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/services/native_smb_service.dart';
+import 'package:g_shop/services/provider_factory.dart';
+import 'package:g_shop/services/providers/ftp_provider.dart';
+import 'package:g_shop/services/providers/romm_provider.dart';
+import 'package:g_shop/services/providers/smb_provider.dart';
+import 'package:g_shop/services/providers/web_provider.dart';
 
 void main() {
   group('ProviderFactory', () {

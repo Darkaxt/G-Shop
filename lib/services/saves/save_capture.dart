@@ -184,7 +184,7 @@ class SaveCapture {
     return row == null ? null : SaveRootConfiguration.decode(row);
   }
 
-  static const _channel = MethodChannel('com.retro.rshop/save_capture');
+  static const _channel = MethodChannel('com.darkaxt.gshop/save_capture');
   static bool validRomCompanionDirectory(String path) =>
       RegExp(r'^/storage/(emulated/0|[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4})/.+$')
           .hasMatch(path) &&

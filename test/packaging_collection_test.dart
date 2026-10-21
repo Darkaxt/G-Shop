@@ -1,19 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/scraped_metadata.dart';
-import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
-import 'package:retro_eshop/services/metadata/metadata_cloud_library.dart';
-import 'package:retro_eshop/services/metadata/screenscraper_provider.dart';
-import 'package:retro_eshop/providers/metadata_providers.dart';
-import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
+import 'package:g_shop/services/metadata/metadata_artwork_cache.dart';
+import 'package:g_shop/services/metadata/metadata_cloud_library.dart';
+import 'package:g_shop/services/metadata/screenscraper_provider.dart';
+import 'package:g_shop/providers/metadata_providers.dart';
+import 'package:g_shop/services/metadata/metadata_credentials.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/services/library_store.dart';
-import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/services/library_store.dart';
+import 'package:g_shop/services/metadata/shared_metadata_store.dart';
 import 'metadata_cloud_library_test.dart' show MemoryMetadataDrive;
 import 'metadata_controls_test.dart' show controlsDatabase, MemorySecrets;
 

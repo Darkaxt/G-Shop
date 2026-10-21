@@ -1,7 +1,7 @@
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/sound_settings.dart';
-import 'package:retro_eshop/services/audio_manager.dart';
+import 'package:g_shop/models/sound_settings.dart';
+import 'package:g_shop/services/audio_manager.dart';
 
 // ---------------------------------------------------------------------------
 // Fake engine that records all calls and allows configurable behaviour.

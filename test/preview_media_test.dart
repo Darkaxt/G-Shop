@@ -6,13 +6,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:retro_eshop/models/preview_settings.dart';
-import 'package:retro_eshop/models/scraped_metadata.dart';
-import 'package:retro_eshop/providers/preview_providers.dart';
-import 'package:retro_eshop/services/storage_service.dart';
-import 'package:retro_eshop/services/metadata/preview_video_cache.dart';
-import 'package:retro_eshop/services/metadata/metadata_provider.dart';
-import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
+import 'package:g_shop/models/preview_settings.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
+import 'package:g_shop/providers/preview_providers.dart';
+import 'package:g_shop/services/storage_service.dart';
+import 'package:g_shop/services/metadata/preview_video_cache.dart';
+import 'package:g_shop/services/metadata/metadata_provider.dart';
+import 'package:g_shop/services/metadata/shared_metadata_store.dart';
 import 'metadata_controls_test.dart' show ControlsArtworkProvider;
 
 Uint8List movie(int value) {

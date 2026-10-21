@@ -7,22 +7,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:retro_eshop/core/theme/app_theme.dart';
-import 'package:retro_eshop/core/widgets/console_focusable.dart';
-import 'package:retro_eshop/features/settings/widgets/general_tab.dart';
-import 'package:retro_eshop/features/settings/widgets/advanced_tab.dart';
-import 'package:retro_eshop/features/settings/metadata_settings_screen.dart';
-import 'package:retro_eshop/l10n/app_localizations.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/providers/metadata_providers.dart';
-import 'package:retro_eshop/providers/library_providers.dart';
-import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
-import 'package:retro_eshop/services/library_query.dart';
-import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
-import 'package:retro_eshop/services/metadata/metadata_provider.dart';
-import 'package:retro_eshop/services/storage_service.dart';
-import 'package:retro_eshop/services/cover_preload_service.dart';
-import 'package:retro_eshop/widgets/media_cover_fallback.dart';
+import 'package:g_shop/core/theme/app_theme.dart';
+import 'package:g_shop/core/widgets/console_focusable.dart';
+import 'package:g_shop/features/settings/widgets/general_tab.dart';
+import 'package:g_shop/features/settings/widgets/advanced_tab.dart';
+import 'package:g_shop/features/settings/metadata_settings_screen.dart';
+import 'package:g_shop/l10n/app_localizations.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/providers/metadata_providers.dart';
+import 'package:g_shop/providers/library_providers.dart';
+import 'package:g_shop/services/metadata/metadata_credentials.dart';
+import 'package:g_shop/services/library_query.dart';
+import 'package:g_shop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:g_shop/services/metadata/metadata_provider.dart';
+import 'package:g_shop/services/storage_service.dart';
+import 'package:g_shop/services/cover_preload_service.dart';
+import 'package:g_shop/widgets/media_cover_fallback.dart';
 import '../metadata_controls_test.dart'
     show controlsDatabase, MemorySecrets, ControlsProvider;
 import '../helpers/pump_helpers.dart';
@@ -735,7 +735,7 @@ void main() {
         matchesGoldenFile('goldens/metadata_settings_progress.png'));
     await tester.tap(find.byKey(const ValueKey('metadata-nav-storage')));
     await tester.pumpAndSettle();
-    expect(find.text('No folder selected — saved inside R-Shop only'),
+    expect(find.text('No folder selected — saved inside G-Shop only'),
         findsOneWidget);
     final choose = find.byKey(const ValueKey('metadata-shared-storage'));
     await tester.ensureVisible(choose);

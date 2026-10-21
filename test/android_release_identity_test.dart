@@ -3,6 +3,20 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('headless Android owners use the current Dart package after rebranding', () {
+    final package = RegExp(r'^name:\s*(\S+)', multiLine: true)
+        .firstMatch(File('pubspec.yaml').readAsStringSync())!.group(1)!;
+    for (final entry in {
+      'RomCacheJobService.kt': 'services/rom_cache_background.dart',
+      'SaveBackupJobService.kt': 'services/saves/save_backup_background.dart',
+    }.entries) {
+      final native = File('android/app/src/main/kotlin/com/retro/rshop/${entry.key}')
+          .readAsStringSync();
+      expect(native, contains('package:$package/${entry.value}'),
+          reason: 'Scheduled background engines must resolve the current AOT package');
+    }
+  });
+
   test('native preview entrypoint is declared in the root AOT library', () {
     final main = File('lib/main.dart').readAsStringSync();
     final native = File(
@@ -16,14 +30,14 @@ void main() {
         reason: 'The native root-library lookup cannot resolve a re-export in AOT');
   });
 
-  test('release keeps R-Shop branding with a separate fork package', () {
+  test('release keeps G-Shop branding with a separate fork package', () {
     final build = File('android/app/build.gradle.kts').readAsStringSync();
     final defaults = RegExp(r'defaultConfig\s*\{([\s\S]*?)\n    \}')
         .firstMatch(build)!
         .group(1)!;
 
     expect(defaults, contains('applicationId = "com.darkaxt.rshop"'));
-    expect(defaults, contains('manifestPlaceholders["appLabel"] = "R-Shop"'));
+    expect(defaults, contains('manifestPlaceholders["appLabel"] = "G-Shop"'));
     expect(build, isNot(contains('outputFileName')),
         reason: 'Keep the upstream APK naming route, not a fork rename');
     final release = build.substring(build.indexOf('        release {'));

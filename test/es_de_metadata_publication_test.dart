@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:retro_eshop/services/metadata/es_de_metadata_projection.dart';
-import 'package:retro_eshop/services/metadata/es_de_metadata_publication.dart';
+import 'package:g_shop/services/metadata/es_de_metadata_projection.dart';
+import 'package:g_shop/services/metadata/es_de_metadata_publication.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {

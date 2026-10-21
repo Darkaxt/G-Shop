@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:retro_eshop/models/patch_catalogue.dart';
-import 'package:retro_eshop/models/portable_patch_recipe.dart';
-import 'package:retro_eshop/services/drive/drive_patch_catalogue.dart';
-import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
-import 'package:retro_eshop/services/patch_build_store.dart';
+import 'package:g_shop/models/patch_catalogue.dart';
+import 'package:g_shop/models/portable_patch_recipe.dart';
+import 'package:g_shop/services/drive/drive_patch_catalogue.dart';
+import 'package:g_shop/services/metadata/shared_metadata_store.dart';
+import 'package:g_shop/services/patch_build_store.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'portable_patch_recipe_test.dart' show portableFixture;

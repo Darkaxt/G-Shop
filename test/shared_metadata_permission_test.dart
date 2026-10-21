@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
-import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
+import 'package:g_shop/services/metadata/metadata_artwork_cache.dart';
+import 'package:g_shop/services/metadata/shared_metadata_store.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'metadata_controls_test.dart' show controlsDatabase;

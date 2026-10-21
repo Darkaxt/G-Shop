@@ -601,7 +601,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
 
   Future<void> _chooseCompanion(String editionId) async {
     closeQuickMenu();
-    const channel = MethodChannel('com.retro.rshop/companions');
+    const channel = MethodChannel('com.darkaxt.gshop/companions');
     final apps = channel.invokeListMethod<dynamic>('applications').then(
         (items) => (items ?? const [])
             .map((item) => Map<String, String>.from(item as Map))
@@ -1782,7 +1782,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
   }
 }
 
-/// Artwork remains subordinate to R-Shop's red/dark background identity.
+/// Artwork remains subordinate to G-Shop's red/dark background identity.
 class _CoverBackground extends StatelessWidget {
   final String? coverUrl;
 

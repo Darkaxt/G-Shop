@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/disk_space_service.dart';
+import 'package:g_shop/services/disk_space_service.dart';
 
 void main() {
   const oneGB = 1024 * 1024 * 1024;

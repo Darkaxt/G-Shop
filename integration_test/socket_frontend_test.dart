@@ -10,12 +10,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:retro_eshop/core/theme/app_theme.dart';
-import 'package:retro_eshop/features/game_detail/widgets/cover_section.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/utils/game_metadata.dart';
-import 'package:retro_eshop/widgets/physical_media_view.dart';
+import 'package:g_shop/core/theme/app_theme.dart';
+import 'package:g_shop/features/game_detail/widgets/cover_section.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/utils/game_metadata.dart';
+import 'package:g_shop/widgets/physical_media_view.dart';
 
 import '../test/widgets/console_discovery_test.dart'
     show ConsoleOfflineRequests;

@@ -27,7 +27,7 @@ class OwnedEmulatorLauncher {
   final _opening = <String, Future<void>>{};
   OwnedEmulatorLauncher(
       {RomManager? romManager,
-      this.channel = const MethodChannel('com.retro.rshop/storage')})
+      this.channel = const MethodChannel('com.darkaxt.gshop/storage')})
       : romManager = romManager ?? RomManager();
 
   static bool supports(GameItem game, SystemModel system) =>

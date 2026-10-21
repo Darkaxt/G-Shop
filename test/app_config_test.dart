@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/config/app_config.dart';
-import 'package:retro_eshop/models/config/system_config.dart';
+import 'package:g_shop/models/config/app_config.dart';
+import 'package:g_shop/models/config/system_config.dart';
 
 Map<String, dynamic> _providerJson({
   String type = 'web',

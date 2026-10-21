@@ -43,7 +43,7 @@ android {
     defaultConfig {
         // Keep the fork separate from the installed upstream app and its data.
         applicationId = "com.darkaxt.rshop"
-        manifestPlaceholders["appLabel"] = "R-Shop"
+        manifestPlaceholders["appLabel"] = "G-Shop"
         testInstrumentationRunner = "com.retro.rshop.OwnedRomInstrumentation"
 
         // Version values are pulled from pubspec.yaml automatically
@@ -78,7 +78,7 @@ android {
         debug {
             applicationIdSuffix = if (sharedMetadataProof == "true") ".sharedproof" else ".debug"
             manifestPlaceholders["appLabel"] =
-                if (sharedMetadataProof == "true") "R-Shop Shared Proof" else "R-Shop Drive Dev"
+                if (sharedMetadataProof == "true") "G-Shop Shared Proof" else "G-Shop Drive Dev"
         }
         release {
             signingConfig = if (hasReleaseSigning) {
@@ -97,7 +97,7 @@ android {
 // Publication must never silently use Android's development certificate.
 tasks.matching { it.name.startsWith("assembleRelease") || it.name.startsWith("bundleRelease") }
     .configureEach {
-        doFirst { check(hasReleaseSigning) { "Configure private R-Shop release signing before packaging." } }
+        doFirst { check(hasReleaseSigning) { "Configure private G-Shop release signing before packaging." } }
     }
 
 kotlin {

@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/features/preview/resource_gallery.dart';
-import 'package:retro_eshop/widgets/socket_media_renderer.dart';
-import 'package:retro_eshop/features/preview/game_watch_preview.dart';
+import 'package:g_shop/features/preview/resource_gallery.dart';
+import 'package:g_shop/widgets/socket_media_renderer.dart';
+import 'package:g_shop/features/preview/game_watch_preview.dart';
 // Exercise the real controller's native boundary without decoding media on host.
 // ignore: depend_on_referenced_packages
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';

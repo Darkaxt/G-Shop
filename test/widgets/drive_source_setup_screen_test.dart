@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/features/sources/drive_source_setup_screen.dart';
-import 'package:retro_eshop/models/config/source.dart';
-import 'package:retro_eshop/models/config/drive_source_config.dart';
-import 'package:retro_eshop/services/drive/drive_api.dart';
+import 'package:g_shop/features/sources/drive_source_setup_screen.dart';
+import 'package:g_shop/models/config/source.dart';
+import 'package:g_shop/models/config/drive_source_config.dart';
+import 'package:g_shop/services/drive/drive_api.dart';
 
 class _FakeApi implements DriveCatalogueApi {
   @override

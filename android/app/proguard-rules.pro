@@ -6,7 +6,7 @@
 -keep class org.asn1s.** { *; }
 
 # smbj references javax.el and org.ietf.jgss classes that are not available on Android.
-# These are optional features (EL expression filtering, Kerberos/SPNEGO auth) not used by R-Shop.
+# These are optional features (EL expression filtering, Kerberos/SPNEGO auth) not used by G-Shop.
 -dontwarn javax.el.**
 -dontwarn org.ietf.jgss.**
 -dontwarn org.bouncycastle.**

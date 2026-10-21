@@ -464,7 +464,7 @@ class ResourceGalleryState extends State<ResourceGallery>
     old?.removeListener(_playing);
     widget.onPlayingChanged?.call(false);
     await old?.dispose();
-    if (old != null) debugPrint('RShopGallery playerReleased=true');
+    if (old != null) debugPrint('GShopGallery playerReleased=true');
   }
 
   Future<void> play() async {
@@ -533,7 +533,7 @@ class ResourceGalleryState extends State<ResourceGallery>
   void _galleryReported() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || view != ResourceView.gallery) return;
-      debugPrint('RShopGallery ${jsonEncode({
+      debugPrint('GShopGallery ${jsonEncode({
             'items': galleryItems.length,
             'index': page,
             'kind': galleryItem?.trailer == true ? 'trailer' : 'image',
@@ -635,7 +635,7 @@ class ResourceGalleryState extends State<ResourceGallery>
         !_manualModelReady ||
         _manualMotion.isAnimating ||
         _manualMotion.isCompleted) return;
-    debugPrint('RShopManual phase=opening page=${page + 1}');
+    debugPrint('GShopManual phase=opening page=${page + 1}');
     if (pages.length < 2 ||
         widget.reducedMotion ||
         MediaQuery.disableAnimationsOf(context)) {
@@ -665,7 +665,7 @@ class ResourceGalleryState extends State<ResourceGallery>
       _manualRequested = false;
       reading = true;
     });
-    debugPrint('RShopManual phase=reader page=${page + 1} focus=1');
+    debugPrint('GShopManual phase=reader page=${page + 1} focus=1');
   }
 
   @override
@@ -799,7 +799,7 @@ class ResourceGalleryState extends State<ResourceGallery>
     // Bounded transition evidence, not a frame-by-frame UI stream. No URLs,
     // titles, account data or tokens are logged.
     final snapshot = rendererKey.currentState?.snapshot;
-    debugPrint('RShopResources ${jsonEncode({
+    debugPrint('GShopResources ${jsonEncode({
           'frameRendered': snapshot?['frameRendered'],
           'labelReady': snapshot?['labelReady'],
           'error': snapshot?['error'],

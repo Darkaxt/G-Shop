@@ -15,7 +15,7 @@ class PlatformMappingResult {
     required this.isOverride,
   });
 
-  /// Only an actual R-Shop system may become an active mapping.
+  /// Only an actual G-Shop system may become an active mapping.
   String? get activePlatformId =>
       status == PlatformMappingStatus.supported ? requestedPlatformId : null;
 }

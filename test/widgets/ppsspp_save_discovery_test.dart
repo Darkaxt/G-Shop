@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/features/settings/save_backup_settings_screen.dart';
-import 'package:retro_eshop/services/saves/save_capture.dart';
+import 'package:g_shop/features/settings/save_backup_settings_screen.dart';
+import 'package:g_shop/services/saves/save_capture.dart';
 import '../helpers/pump_helpers.dart';
 
 void main() {
-  const channel = MethodChannel('com.retro.rshop/save_capture');
+  const channel = MethodChannel('com.darkaxt.gshop/save_capture');
   const directory = '/storage/emulated/0/PSP/PPSSPP_STATE';
   const slot = 'ULUS10041_1.00_0.ppst';
   final calls = <MethodCall>[];

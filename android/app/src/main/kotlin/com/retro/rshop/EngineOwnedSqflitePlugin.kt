@@ -15,7 +15,7 @@ class EngineOwnedSqflitePlugin : SqflitePlugin() {
         super.onMethodCall(MethodCall(method, arguments), object : MethodChannel.Result {
             override fun success(value: Any?) {
                 if (method == "openDatabase" || method == "closeDatabase")
-                    Log.i("RShopDatabaseOwner", "owner=$owner phase=${if (method == "openDatabase") "opened" else "closed"}")
+                    Log.i("GShopDatabaseOwner", "owner=$owner phase=${if (method == "openDatabase") "opened" else "closed"}")
                 reply.success(value)
             }
             override fun error(code: String, message: String?, details: Any?) = reply.error(code, message, details)

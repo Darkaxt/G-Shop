@@ -1,9 +1,25 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 131, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 132, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
-Current execution, 2026-10-21: revision 131 G&W batch **COMPLETE**, including
+Current S26 checkpoint: **BLOCKED** on the essential GSHOP-02 source boundary
+answer (Drive only, or retain SMB/FTP/Web). Independent branding/update compatibility
+preparation has focused host evidence; no source integration has been removed.
+Complete source removal/migration after the answer, then required integrated/native
+verification and the one final renamed-repository release. These remain acceptance
+blockers, not tracked deferrals or delivered features. No stage is ACTIVE now.
+
+S26 execution order when resumed: establish the supported-source
+boundary and compatibility contract (GSHOP-02/03); implement complete source/UI
+migration and product naming together (GSHOP-01/02/04); verify retained integrated
+workflows and signed in-place update (GSHOP-03/04/05); reconcile all criteria,
+commit, rename the existing fork and publish/independently verify its one normal
+final release (GSHOP-01/05). No intermediate release or additional ACTIVE stage.
+The SMB/FTP/Web scope question is pending; independent branding preparation may
+proceed, but cannot satisfy source-removal or delivery acceptance.
+
+Initial post-G&W transition, 2026-10-21 (superseded by the current S26 blocker above): revision 131 batch **COMPLETE**, including
 all 2,527 permanent catalogue editions and independent normal public/installed
 v1.9.24 delivery. **S26 ACTIVE**, sole active stage. Wider **S25 BLOCKED** by
 owner-directed sequencing hold; preserve and resume its remaining individual-console
@@ -315,10 +331,10 @@ Authority: [preview/acquisition extension](PREVIEW_ACQUISITION_SPECIFICATION.md)
 | S24 Drive-backed metadata cache | COMPLETE | METADATA-CLOUD-01: normalized console/game/typed-resource Drive tree; local searchable facts and background media cache with configurable 2 GiB default; mandatory actual GBA Top 25 box/cartridge/trailer integration | GitHub run 39039861817 builds/signs code 33; every one of 24 actual eligible ranked GBA entries passes the installed gallery-to-renderer path and visual label inspection. Native motion/left-edge review, startup preservation and public/installed SHA-256 equality pass. Earlier cloud/cache acceptance remains applicable where unchanged. Wider Nintendo job completion is not claimed. |
 | S25 Interactive media gallery and preserved startup | BLOCKED | Preserve PREVIEW-START-01; compact independently inspectable Box / Case / Cartridge / Manual / Gallery, trailer-first combined media and controls. Use local NintAndBox -> public low-res .es -> LaunchBox -> ScreenScraper, actual multilingual evidence, distinct fitted panels, adapted cardboard/booklet and era-appropriate cases. Retain focus, volume and companion ownership. | Earlier 1.9.19 native evidence applies only to unchanged paths. Current source/model/gallery changes require integrated Drive/cache/native verification. Individual Nintendo model verification precedes the deliberately held cinematic; gaps remain in S25_VERIFIED_MODELS.md. |
 | Historical REGION-01 (formerly S26) | COMPLETE | Ordered EUR/USA/JPN collection preference, one preferred commercial release per canonical game and Show all versions; Hacks/Patches unaffected | Native touch/controller/restart/reset, a real regional pair with one game/two retained versions, JPN/EUR selection and exact EUR archive download/RetroArch launch pass. Shared query/rank/bundle/unknown/modification and encrypted migration checks pass. Final GBA model/trailer/audio rendering passes in 1.9.16. |
-| S26 G-Shop rebranding and supported-source scope | ACTIVE | Owner-authorized implementation after current G&W delivery: G-Shop repository/internal naming; remove original remote server and standalone local-only collection modes, retaining the Drive-backed library and our on-device functionality | Establish migration/update/OAuth/configuration acceptance, implement and verify retained integrations and data preservation, then deliver one proper verified final release. Preserve historical REGION-01 acceptance. |
+| S26 G-Shop rebranding and supported-source scope | BLOCKED | Owner-authorized implementation after current G&W delivery: G-Shop repository/internal naming; remove original remote server and standalone local-only collection modes, retaining the Drive-backed library and our on-device functionality | Establish migration/update/OAuth/configuration acceptance, implement and verify retained integrations and data preservation, then deliver one proper verified final release. Preserve historical REGION-01 acceptance. |
 
 S24's correction is COMPLETE with fresh integrated and public delivery evidence.
-S26 alone is ACTIVE under the owner-directed post-G&W transition; wider S25 is parked.
+S26 is parked on its source-boundary answer; wider S25 remains parked under owner sequencing.
 S22, R22 and historical REGION-01 retain applicable
 recorded results; the old startup-only S25 result is historical.
 S25's newly requested interactive-gallery scope is ACTIVE; its earlier

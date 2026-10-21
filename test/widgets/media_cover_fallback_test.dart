@@ -9,13 +9,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
-import 'package:retro_eshop/l10n/app_localizations.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/services/image_cache_service.dart';
-import 'package:retro_eshop/widgets/base_game_card.dart';
-import 'package:retro_eshop/widgets/media_cover_fallback.dart';
-import 'package:retro_eshop/widgets/physical_media_view.dart';
-import 'package:retro_eshop/widgets/smart_cover_image.dart';
+import 'package:g_shop/l10n/app_localizations.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/services/image_cache_service.dart';
+import 'package:g_shop/widgets/base_game_card.dart';
+import 'package:g_shop/widgets/media_cover_fallback.dart';
+import 'package:g_shop/widgets/physical_media_view.dart';
+import 'package:g_shop/widgets/smart_cover_image.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -121,11 +121,16 @@ class MigrationService extends ChangeNotifier {
           .list()
           .where((file) =>
               file is File &&
-              p.basename(file.path).startsWith('R-Shop-') &&
+              (p.basename(file.path).startsWith('G-Shop-') ||
+                  p.basename(file.path).startsWith('R-Shop-')) &&
               file.path.endsWith('.rshop'))
           .cast<File>()
           .toList();
-      files.sort((a, b) => a.path.compareTo(b.path));
+      // Both product names use the same timestamped export format. Comparing
+      // the full prefix would always rank an older R-Shop export after G-Shop.
+      String timestamp(File file) => p.basename(file.path)
+          .replaceFirst(RegExp(r'^[RG]-Shop-'), '');
+      files.sort((a, b) => timestamp(a).compareTo(timestamp(b)));
       if (files.isNotEmpty) lastBackup = files.last;
     }
   }
@@ -276,7 +281,7 @@ class MigrationService extends ChangeNotifier {
             'metadata.sqlite-shm'
           });
         }
-        // Documents is also used by Flutter's debug engine. Only R-Shop's
+        // Documents is also used by Flutter's debug engine. Only G-Shop's
         // persistent documents belong in migration, never kernels/snapshots or
         // resource timestamps that could replace the destination runtime.
         for (final name in ['config.json', 'config.json.bak']) {
@@ -378,7 +383,7 @@ class MigrationService extends ChangeNotifier {
             Directory(p.join(locations.privateRoot.path, 'exports'));
         await exports.create(recursive: true);
         result = File(p.join(exports.path,
-            'R-Shop-${DateTime.now().toUtc().toIso8601String().replaceAll(':', '-')}.rshop'));
+            'G-Shop-${DateTime.now().toUtc().toIso8601String().replaceAll(':', '-')}.rshop'));
         _phase('Backing up');
         await archive.write(result,
             password: password,

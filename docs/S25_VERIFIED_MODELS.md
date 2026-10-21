@@ -2,6 +2,25 @@
 
 Updated 2026-10-20. This records actual inspected assets, not candidate listings.
 
+## Current G&W batch and owner sequencing — 2026-10-21
+
+Revision 131 batch is **COMPLETE** in normal public/installed v1.9.24. All
+53 ROM-revision bindings / 51 owned game labels are represented by 52 primary
+physical IDs; no owned exterior is missing. Available: 63 handheld variants,
+60 integrated cartons, one Diskun case and the large 63-device secondary selector
+with only Display_board hidden. Both Helmet MCU revisions share the supplied
+exterior; no separate CN-17 housing is inferred. Native selector rotation,
+Reduced Motion, lifecycle, refined models, Crystal apertures, translucent info
+and sequential boxed-edition workflows pass their applicable signed checks.
+See IMPLEMENTATION_STATUS.md for exact delivered source/hash and evidence limits.
+
+All 2,527 NintAndBox archive editions are accepted as a separate reusable private
+animated GLB / packed Blender library at E:/R-Shop Reference Assets/NintAndBox/2026-03/3D-Boxes.
+This does not claim broad runtime integration or wider S25 model/cinematic
+acceptance. S25 is **BLOCKED** on the owner's explicit sequencing hold while
+S26 is prioritized (currently BLOCKED on its source-boundary answer). Retain every remaining requirement below and
+resume it after S26; earlier chronological ACTIVE/pending statements are historical.
+
 ## Hardware-variant lower preview — 2026-10-20, COMPLETE bounded batch
 
 Revision 120 keeps one exact model in library cards and Resources. The lower

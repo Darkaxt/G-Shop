@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/utils/image_helper.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/utils/image_helper.dart';
 
 final _nes = SystemModel.supportedSystems.firstWhere((s) => s.id == 'nes');
 final _pico8 = SystemModel.supportedSystems.firstWhere((s) => s.id == 'pico8');

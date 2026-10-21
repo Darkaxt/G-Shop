@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/services/providers/ftp_provider.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/services/providers/ftp_provider.dart';
 
 void main() {
   group('FtpProvider', () {

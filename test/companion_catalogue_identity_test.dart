@@ -2,11 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/services/library_query.dart';
-import 'package:retro_eshop/services/library_store.dart';
-import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
-import 'package:retro_eshop/services/storage_service.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/services/library_query.dart';
+import 'package:g_shop/services/library_store.dart';
+import 'package:g_shop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:g_shop/services/storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 

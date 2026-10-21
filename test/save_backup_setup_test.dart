@@ -6,9 +6,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
-import 'package:retro_eshop/services/drive/drive_authorization.dart';
-import 'package:retro_eshop/services/saves/drive_save_backup_area.dart';
-import 'package:retro_eshop/services/saves/save_backup_setup.dart';
+import 'package:g_shop/services/drive/drive_authorization.dart';
+import 'package:g_shop/services/saves/drive_save_backup_area.dart';
+import 'package:g_shop/services/saves/save_backup_setup.dart';
 
 class _Driver implements DriveAuthorizationDriver {
   int consents = 0;

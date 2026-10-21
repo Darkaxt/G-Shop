@@ -3,8 +3,8 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/drive/drive_authorization.dart';
-import 'package:retro_eshop/services/saves/drive_save_backup_area.dart';
+import 'package:g_shop/services/drive/drive_authorization.dart';
+import 'package:g_shop/services/saves/drive_save_backup_area.dart';
 
 class _Auth implements DriveAuthorizationDriver {
   final scopes = <List<String>>[];
@@ -45,7 +45,7 @@ class _Transport implements HttpClientAdapter {
 
 Map<String, Object?> _area(String id) => {
       'id': id,
-      'name': 'R-Shop Save Backups',
+      'name': 'G-Shop Save Backups',
       'mimeType': 'application/vnd.google-apps.folder',
       'ownedByMe': true,
       'isAppAuthorized': true,

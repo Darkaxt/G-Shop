@@ -2,11 +2,11 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/config/system_config.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/services/download_handle.dart';
-import 'package:retro_eshop/services/providers/web_provider.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/config/system_config.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/services/download_handle.dart';
+import 'package:g_shop/services/providers/web_provider.dart';
 
 /// Fake Dio adapter for testing WebProvider without real HTTP.
 class _FakeHttpAdapter implements HttpClientAdapter {

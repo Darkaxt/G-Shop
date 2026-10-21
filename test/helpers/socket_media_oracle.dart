@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'package:retro_eshop/models/socket_media_model.dart';
-import 'package:retro_eshop/services/socket_media_import.dart';
+import 'package:g_shop/models/socket_media_model.dart';
+import 'package:g_shop/services/socket_media_import.dart';
 
 const socketOracleRoot = String.fromEnvironment('RSHOP_SOCKET_MEDIA_ORACLE');
 void useSocketOracle() {

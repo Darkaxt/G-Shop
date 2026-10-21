@@ -15,7 +15,7 @@ internal object DriveTokenCacheChannel {
     private val worker = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
     fun attach(context: Context, messenger: BinaryMessenger) {
-        MethodChannel(messenger, "com.retro.rshop/drive_authorization")
+        MethodChannel(messenger, "com.darkaxt.gshop/drive_authorization")
             .setMethodCallHandler { call, result ->
                 if (call.method != "clearTokenIfMicroG") {
                     result.notImplemented()

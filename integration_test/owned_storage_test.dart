@@ -8,17 +8,17 @@ import 'package:integration_test/integration_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:retro_eshop/models/transfer_record.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/services/owned_storage.dart';
-import 'package:retro_eshop/services/transfer_journal.dart';
-import 'package:retro_eshop/services/installation_index.dart';
-import 'package:retro_eshop/services/drive/drive_media.dart';
-import 'package:retro_eshop/services/drive/drive_transfer_engine.dart';
-import 'package:retro_eshop/services/drive/drive_runtime.dart';
-import 'package:retro_eshop/services/download_queue_manager.dart';
-import 'package:retro_eshop/services/storage_service.dart';
-import 'package:retro_eshop/services/native_smb_service.dart';
+import 'package:g_shop/models/transfer_record.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/services/owned_storage.dart';
+import 'package:g_shop/services/transfer_journal.dart';
+import 'package:g_shop/services/installation_index.dart';
+import 'package:g_shop/services/drive/drive_media.dart';
+import 'package:g_shop/services/drive/drive_transfer_engine.dart';
+import 'package:g_shop/services/drive/drive_runtime.dart';
+import 'package:g_shop/services/download_queue_manager.dart';
+import 'package:g_shop/services/storage_service.dart';
+import 'package:g_shop/services/native_smb_service.dart';
 
 /// Real native bridge, separate debug UID, synthetic bytes only. No production
 /// bootstrap, provider access, user ROMs or recursive cleanup.

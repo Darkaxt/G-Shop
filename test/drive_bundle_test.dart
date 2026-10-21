@@ -4,16 +4,16 @@ import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/drive/drive_bundle.dart';
-import 'package:retro_eshop/services/drive/drive_api.dart';
-import 'package:retro_eshop/services/drive/drive_authorization.dart';
-import 'package:retro_eshop/services/drive/drive_catalogue.dart';
-import 'package:retro_eshop/services/drive/drive_runtime.dart';
-import 'package:retro_eshop/services/drive/drive_media.dart';
-import 'package:retro_eshop/services/owned_storage.dart';
-import 'package:retro_eshop/services/transfer_journal.dart';
-import 'package:retro_eshop/models/config/drive_source_config.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
+import 'package:g_shop/services/drive/drive_bundle.dart';
+import 'package:g_shop/services/drive/drive_api.dart';
+import 'package:g_shop/services/drive/drive_authorization.dart';
+import 'package:g_shop/services/drive/drive_catalogue.dart';
+import 'package:g_shop/services/drive/drive_runtime.dart';
+import 'package:g_shop/services/drive/drive_media.dart';
+import 'package:g_shop/services/owned_storage.dart';
+import 'package:g_shop/services/transfer_journal.dart';
+import 'package:g_shop/models/config/drive_source_config.dart';
+import 'package:g_shop/models/config/provider_config.dart';
 
 import '../integration_test/support/drive_bundle_protocol_fixture.dart';
 

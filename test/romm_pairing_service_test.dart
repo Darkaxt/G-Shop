@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/config/source.dart';
-import 'package:retro_eshop/services/romm_pairing_service.dart';
+import 'package:g_shop/models/config/source.dart';
+import 'package:g_shop/services/romm_pairing_service.dart';
 
 /// Lightweight Dio adapter that returns pre-canned responses keyed by
 /// `<METHOD> <uri>`.

@@ -77,7 +77,7 @@ void main() {
         body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
           const Icon(Icons.restore_outlined, size: 48),
           const SizedBox(height: 16),
-          const Text('R-Shop could not recover the previous setup.'),
+          const Text('G-Shop could not recover the previous setup.'),
           const Text('Your files have been kept. Retry after storage is available.'),
           const SizedBox(height: 16),
           FilledButton.icon(autofocus: true, onPressed: main,
@@ -166,7 +166,7 @@ void main() {
           deviceMemoryProvider.overrideWithValue(deviceMemory),
           nativeSmbServiceProvider.overrideWithValue(nativeSmbService),
         ],
-        child: RShopApp(audioManager: audioManager),
+        child: GShopApp(audioManager: audioManager),
       ),
     );
   }, (error, stack) {
@@ -175,16 +175,16 @@ void main() {
   });
 }
 
-class RShopApp extends ConsumerStatefulWidget {
+class GShopApp extends ConsumerStatefulWidget {
   final AudioManager audioManager;
 
-  const RShopApp({super.key, required this.audioManager});
+  const GShopApp({super.key, required this.audioManager});
 
   @override
-  ConsumerState<RShopApp> createState() => _RShopAppState();
+  ConsumerState<GShopApp> createState() => _GShopAppState();
 }
 
-class _RShopAppState extends ConsumerState<RShopApp> with WidgetsBindingObserver {
+class _GShopAppState extends ConsumerState<GShopApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
@@ -380,7 +380,7 @@ class _RShopAppState extends ConsumerState<RShopApp> with WidgetsBindingObserver
     return GlobalInputWrapper(
       child: MaterialApp(
         navigatorObservers: [previewRouteObserver],
-        title: 'R-Shop',
+        title: 'G-Shop',
         debugShowCheckedModeBanner: false,
         localizationsDelegates: L.localizationsDelegates,
         supportedLocales: L.supportedLocales,

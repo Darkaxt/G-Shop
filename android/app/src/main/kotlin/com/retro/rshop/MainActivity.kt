@@ -20,11 +20,11 @@ import java.util.zip.ZipInputStream
 import com.google.android.gms.auth.GoogleAuthUtil
 
 class MainActivity : FlutterActivity() {
-    private val CHANNEL = "com.retro.rshop/zip"
-    private val STORAGE_CHANNEL = "com.retro.rshop/storage"
-    private val PROGRESS_CHANNEL = "com.retro.rshop/zip_progress"
-    private val SMB_CHANNEL = "com.retro.rshop/smb"
-    private val SMB_PROGRESS_CHANNEL = "com.retro.rshop/smb_progress"
+    private val CHANNEL = "com.darkaxt.gshop/zip"
+    private val STORAGE_CHANNEL = "com.darkaxt.gshop/storage"
+    private val PROGRESS_CHANNEL = "com.darkaxt.gshop/zip_progress"
+    private val SMB_CHANNEL = "com.darkaxt.gshop/smb"
+    private val SMB_PROGRESS_CHANNEL = "com.darkaxt.gshop/smb_progress"
     private val TAG = "MainActivity"
 
     private val extractorPool = Executors.newFixedThreadPool(2)
@@ -87,13 +87,13 @@ class MainActivity : FlutterActivity() {
         romCacheChannel = RomCacheChannel.attach(this, flutterEngine.dartExecutor.binaryMessenger,true)
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
-            "com.retro.rshop/save_capture").setMethodCallHandler { call, result ->
+            "com.darkaxt.gshop/save_capture").setMethodCallHandler { call, result ->
             val service = saveCapture ?: SaveCaptureService(this).also { saveCapture = it }
             service.handle(call, result)
         }
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
-            "com.retro.rshop/companions").setMethodCallHandler { call, result ->
+            "com.darkaxt.gshop/companions").setMethodCallHandler { call, result ->
             if (call.method != "applications") {
                 result.notImplemented()
             } else try {
@@ -104,7 +104,7 @@ class MainActivity : FlutterActivity() {
         }
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
-            "com.retro.rshop/drive_authorization").setMethodCallHandler { call, result ->
+            "com.darkaxt.gshop/drive_authorization").setMethodCallHandler { call, result ->
             if (call.method != "clearTokenIfMicroG") {
                 result.notImplemented()
                 return@setMethodCallHandler

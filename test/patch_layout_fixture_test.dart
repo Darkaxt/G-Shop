@@ -4,9 +4,9 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/patch_catalogue.dart';
-import 'package:retro_eshop/services/drive/drive_patch_catalogue.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/patch_catalogue.dart';
+import 'package:g_shop/services/drive/drive_patch_catalogue.dart';
 
 class _LayoutCatalogue extends DrivePatchCatalogue {
   final Directory root;

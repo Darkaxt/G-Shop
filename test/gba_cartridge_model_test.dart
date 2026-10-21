@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/gba_cartridge_model.dart';
-import 'package:retro_eshop/models/unboxing_scene.dart';
-import 'package:retro_eshop/models/packaging_model.dart';
-import 'package:retro_eshop/models/socket_media_model.dart';
-import 'package:retro_eshop/widgets/socket_media_renderer.dart';
+import 'package:g_shop/models/gba_cartridge_model.dart';
+import 'package:g_shop/models/unboxing_scene.dart';
+import 'package:g_shop/models/packaging_model.dart';
+import 'package:g_shop/models/socket_media_model.dart';
+import 'package:g_shop/widgets/socket_media_renderer.dart';
 import 'package:vector_math/vector_math_64.dart' as vm;
 
 void main() {

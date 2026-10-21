@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'rom_cache_runtime.dart';
 
 class RomCacheDispatch {
-  static const channel = MethodChannel('com.retro.rshop/rom_cache');
+  static const channel = MethodChannel('com.darkaxt.gshop/rom_cache');
   static Future<void> acquire(CancelToken cancellation,
       {bool migration = false}) async {
     if (!Platform.isAndroid) return;

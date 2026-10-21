@@ -4,10 +4,10 @@ import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/foundation.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/services/drive/drive_api.dart';
-import 'package:retro_eshop/services/drive/drive_media.dart';
-import 'package:retro_eshop/services/drive/drive_verification.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/services/drive/drive_api.dart';
+import 'package:g_shop/services/drive/drive_media.dart';
+import 'package:g_shop/services/drive/drive_verification.dart';
 
 final _bytes = Uint8List.fromList([1, 2, 3, 4, 5]);
 Map<String, String> get _hashes => {

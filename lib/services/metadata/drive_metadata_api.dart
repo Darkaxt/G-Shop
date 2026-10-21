@@ -77,7 +77,7 @@ class DriveMetadataApi implements MetadataCloudRemote {
         !{'root', 'folder', 'artwork', 'video', 'records'}
             .contains(props['kind']) ||
         folder != {'root', 'folder'}.contains(props['kind'])) {
-      throw const FormatException('Not an owned R-Shop metadata object');
+      throw const FormatException('Not an owned G-Shop metadata object');
     }
     final id = json['id'] as String;
     _id(id);

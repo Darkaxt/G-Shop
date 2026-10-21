@@ -34,7 +34,7 @@ class PreviewScreen extends StatefulWidget {
 
 class _PreviewScreenState extends State<PreviewScreen>
     with WidgetsBindingObserver {
-  static const bridge = MethodChannel('com.retro.rshop/preview_view');
+  static const bridge = MethodChannel('com.darkaxt.gshop/preview_view');
   Map<String, dynamic>? _snapshot;
   VideoPlayerController? _video;
   Future<void> _settled = Future.value();
@@ -98,7 +98,7 @@ class _PreviewScreenState extends State<PreviewScreen>
           try {
             console = await ConsoleModel.find(snapshot['system'] as String);
           } catch (error) {
-            debugPrint('RShopConsolePreview import unavailable: $error');
+            debugPrint('GShopConsolePreview import unavailable: $error');
           }
         }
         if (!mounted || incoming != _incomingRevision) return;

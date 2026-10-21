@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/config_storage_service.dart';
+import 'package:g_shop/services/config_storage_service.dart';
 
 /// Minimal valid JSON that ConfigParser.parse() accepts.
 String _validConfigJson({String systemId = 'snes', String name = 'SNES'}) {

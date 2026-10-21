@@ -5,12 +5,12 @@ import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/transfer_record.dart';
-import 'package:retro_eshop/services/installation_index.dart';
-import 'package:retro_eshop/services/owned_storage.dart';
-import 'package:retro_eshop/services/verified_file_publication.dart';
-import 'package:retro_eshop/services/transfer_journal.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/transfer_record.dart';
+import 'package:g_shop/services/installation_index.dart';
+import 'package:g_shop/services/owned_storage.dart';
+import 'package:g_shop/services/verified_file_publication.dart';
+import 'package:g_shop/services/transfer_journal.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'support/owned_storage_fixture.dart';

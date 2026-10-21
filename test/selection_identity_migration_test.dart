@@ -2,10 +2,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/custom_shelf.dart';
-import 'package:retro_eshop/services/storage_service.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/custom_shelf.dart';
+import 'package:g_shop/services/storage_service.dart';
 
 class _RejectSelectionWrite extends InMemorySharedPreferencesStore {
   _RejectSelectionWrite() : super.empty();

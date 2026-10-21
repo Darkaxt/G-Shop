@@ -5,8 +5,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
-import 'package:retro_eshop/services/storage_service.dart';
-import 'package:retro_eshop/features/game_detail/widgets/companion_picker_dialog.dart';
+import 'package:g_shop/services/storage_service.dart';
+import 'package:g_shop/features/game_detail/widgets/companion_picker_dialog.dart';
 
 class _RejectWrite extends InMemorySharedPreferencesStore {
   _RejectWrite() : super.empty();

@@ -424,7 +424,7 @@ class DriveSaveBackupGenerationApi {
         if (count > size) {
           if (kDebugMode) {
             debugPrint(
-                'RShopSaveReadback: excess_length expected=$size observed=$count');
+                'GShopSaveReadback: excess_length expected=$size observed=$count');
           }
           throw const SaveBackupGenerationException(
               SaveBackupGenerationIssue.digestMismatch);
@@ -443,7 +443,7 @@ class DriveSaveBackupGenerationApi {
     if (count != size || result.value.toString() != properties['sha256']) {
       if (kDebugMode) {
         debugPrint(
-            'RShopSaveReadback: content_check expected=$size observed=$count '
+            'GShopSaveReadback: content_check expected=$size observed=$count '
             'digest_equal=${result.value.toString() == properties['sha256']}');
       }
       throw const SaveBackupGenerationException(
@@ -455,7 +455,7 @@ class DriveSaveBackupGenerationApi {
     // head revision identifies content, so metadata-only changes cannot make a
     // fully hashed read look corrupt. Ownership/binding are rechecked above.
     if (after!['headRevisionId'] != current!['headRevisionId']) {
-      if (kDebugMode) debugPrint('RShopSaveReadback: content_revision_changed');
+      if (kDebugMode) debugPrint('GShopSaveReadback: content_revision_changed');
       throw const SaveBackupGenerationException(
           SaveBackupGenerationIssue.digestMismatch);
     }
@@ -498,7 +498,7 @@ class DriveSaveBackupGenerationApi {
                     .hasMatch(mime)
             ? mime
             : 'invalid';
-        debugPrint('RShopSaveReadback: metadata_check '
+        debugPrint('GShopSaveReadback: metadata_check '
             'present=${data != null} id_equal=${data?['id'] == id} '
             'owner=${data?['ownedByMe'] == true} '
             'authorized=${data?['isAppAuthorized'] == true} '

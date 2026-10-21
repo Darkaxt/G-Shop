@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/romm_api_service.dart';
-import 'package:retro_eshop/services/romm_platform_matcher.dart';
+import 'package:g_shop/services/romm_api_service.dart';
+import 'package:g_shop/services/romm_platform_matcher.dart';
 
 RommPlatform _platform({
   required String slug,

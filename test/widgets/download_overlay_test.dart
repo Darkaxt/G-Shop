@@ -3,19 +3,19 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/download_item.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/providers/download_providers.dart';
-import 'package:retro_eshop/services/download_queue_manager.dart';
-import 'package:retro_eshop/services/storage_service.dart';
-import 'package:retro_eshop/widgets/download/action_button.dart';
-import 'package:retro_eshop/widgets/download/download_item_card.dart';
-import 'package:retro_eshop/widgets/download_overlay.dart';
-import 'package:retro_eshop/widgets/app_overlay_host.dart';
-import 'package:retro_eshop/l10n/app_localizations.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/download_item.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/providers/download_providers.dart';
+import 'package:g_shop/services/download_queue_manager.dart';
+import 'package:g_shop/services/storage_service.dart';
+import 'package:g_shop/widgets/download/action_button.dart';
+import 'package:g_shop/widgets/download/download_item_card.dart';
+import 'package:g_shop/widgets/download_overlay.dart';
+import 'package:g_shop/widgets/app_overlay_host.dart';
+import 'package:g_shop/l10n/app_localizations.dart';
 
 import '../helpers/pump_helpers.dart';
 

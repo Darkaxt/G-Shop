@@ -7,17 +7,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
-import 'package:retro_eshop/services/metadata/metadata_cloud_library.dart';
-import 'package:retro_eshop/services/metadata/drive_metadata_api.dart';
-import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
-import 'package:retro_eshop/services/metadata/preview_video_cache.dart';
-import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
-import 'package:retro_eshop/services/library_store.dart';
-import 'package:retro_eshop/models/scraped_metadata.dart';
-import 'package:retro_eshop/services/metadata/metadata_provider.dart';
-import 'package:retro_eshop/providers/metadata_providers.dart';
-import 'package:retro_eshop/services/drive/drive_authorization.dart';
+import 'package:g_shop/services/metadata/shared_metadata_store.dart';
+import 'package:g_shop/services/metadata/metadata_cloud_library.dart';
+import 'package:g_shop/services/metadata/drive_metadata_api.dart';
+import 'package:g_shop/services/metadata/metadata_artwork_cache.dart';
+import 'package:g_shop/services/metadata/preview_video_cache.dart';
+import 'package:g_shop/services/metadata/metadata_credentials.dart';
+import 'package:g_shop/services/library_store.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
+import 'package:g_shop/services/metadata/metadata_provider.dart';
+import 'package:g_shop/providers/metadata_providers.dart';
+import 'package:g_shop/services/drive/drive_authorization.dart';
 import 'drive_authorization_test.dart' show FakeDriveAuthorizationDriver;
 import 'metadata_controls_test.dart'
     show controlsDatabase, ControlsArtworkProvider, MemorySecrets;
@@ -851,12 +851,12 @@ void main() {
     };
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-            const MethodChannel('com.retro.rshop/storage'),
+            const MethodChannel('com.darkaxt.gshop/storage'),
             (_) async => {'ready': true});
     addTearDown(() => TestDefaultBinaryMessengerBinding
         .instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-            const MethodChannel('com.retro.rshop/storage'), null));
+            const MethodChannel('com.darkaxt.gshop/storage'), null));
     await controls.refresh(systemSlug: 'psx');
     await oldCloud.sync(Future.value(source), pull: false);
     expect(
@@ -979,7 +979,7 @@ void main() {
         changed: () => mediaChanges++);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-            const MethodChannel('com.retro.rshop/storage'),
+            const MethodChannel('com.darkaxt.gshop/storage'),
             (_) async => {'ready': true});
     addTearDown(() async {
       await controls.close();
@@ -989,7 +989,7 @@ void main() {
       await db.close();
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-              const MethodChannel('com.retro.rshop/storage'), null);
+              const MethodChannel('com.darkaxt.gshop/storage'), null);
       // Exact task-owned scratch remains for transactional cleanup.
     });
     await controls.load();

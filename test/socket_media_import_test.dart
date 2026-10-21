@@ -5,13 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/services/socket_media_import.dart';
-import 'package:retro_eshop/services/storage_service.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/services/socket_media_import.dart';
+import 'package:g_shop/services/storage_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  const channel = MethodChannel('com.retro.rshop/socket_import');
+  const channel = MethodChannel('com.darkaxt.gshop/socket_import');
   setUp(() => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(
           channel,

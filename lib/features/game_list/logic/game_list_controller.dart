@@ -206,7 +206,7 @@ class GameListController extends ChangeNotifier {
   Future<void> loadGames(
       {bool forceRefresh = false, bool silent = false}) async {
     final loadingWatch = Stopwatch()..start();
-    void phase(String name) => debugPrint('RShopConsoleLoad scope=${system.id} '
+    void phase(String name) => debugPrint('GShopConsoleLoad scope=${system.id} '
         'phase=$name elapsedMs=${loadingWatch.elapsedMilliseconds}');
     phase('started');
     if (silent) {
@@ -498,7 +498,7 @@ class GameListController extends ChangeNotifier {
         final readinessWatch = Stopwatch()..start();
         try {
           await _prepareMetadata?.call();
-          debugPrint('RShopDiscovery scope=${system.id} '
+          debugPrint('GShopDiscovery scope=${system.id} '
               'metadataReadyMs=${readinessWatch.elapsedMilliseconds} candidates=${keys.length}');
           if (_disposed) return;
           final result = await LibraryQuery(_databaseService.database).discover(
@@ -517,7 +517,7 @@ class GameListController extends ChangeNotifier {
           if (_disposed) return;
           if (generation != _discoveryGeneration) continue;
           if (result == null) return;
-          debugPrint('RShopDiscovery scope=${system.id} '
+          debugPrint('GShopDiscovery scope=${system.id} '
               'discoveredMs=${readinessWatch.elapsedMilliseconds} matches=${result.totalMatches}');
           final files = {
             for (final g in _state.allGames)

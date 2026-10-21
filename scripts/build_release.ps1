@@ -25,7 +25,7 @@ try {
     }
     . (Join-Path $PSScriptRoot 'release_signing.ps1') -SigningDirectory $SigningDirectory -LoadEnvironment
     $gateArguments = @($GateScript, 'run', '--project', (Join-Path $projectRoot 'android'),
-        '--owner-task', 'Verify and package signed R-Shop release', '--kotlin-strategy', 'in-process')
+        '--owner-task', 'Verify and package signed G-Shop release', '--kotlin-strategy', 'in-process')
     if ($ThreadName) { $gateArguments += @('--thread-name', $ThreadName) }
     $gateArguments += @('--', ':app:testReleaseUnitTest', ':app:assembleRelease', '-Ptarget-platform=android-arm64')
     & python @gateArguments

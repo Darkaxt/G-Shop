@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:retro_eshop/services/native_smb_service.dart';
+import 'package:g_shop/services/native_smb_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -42,7 +42,7 @@ void main() {
       methodCalls = [];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-        const MethodChannel('com.retro.rshop/smb'),
+        const MethodChannel('com.darkaxt.gshop/smb'),
         (call) async {
           methodCalls.add(call);
           switch (call.method) {
@@ -79,7 +79,7 @@ void main() {
     tearDown(() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-        const MethodChannel('com.retro.rshop/smb'),
+        const MethodChannel('com.darkaxt.gshop/smb'),
         null,
       );
     });
@@ -120,7 +120,7 @@ void main() {
       test('returns failure on connection error', () async {
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(
-          const MethodChannel('com.retro.rshop/smb'),
+          const MethodChannel('com.darkaxt.gshop/smb'),
           (call) async => {'success': false, 'error': 'Host unreachable'},
         );
 
@@ -135,7 +135,7 @@ void main() {
       test('handles PlatformException', () async {
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(
-          const MethodChannel('com.retro.rshop/smb'),
+          const MethodChannel('com.darkaxt.gshop/smb'),
           (call) async =>
               throw PlatformException(code: 'SMB_ERROR', message: 'Timeout'),
         );
@@ -151,7 +151,7 @@ void main() {
       test('handles null response', () async {
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(
-          const MethodChannel('com.retro.rshop/smb'),
+          const MethodChannel('com.darkaxt.gshop/smb'),
           (call) async => null,
         );
 
@@ -209,7 +209,7 @@ void main() {
       test('returns empty list on null response', () async {
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(
-          const MethodChannel('com.retro.rshop/smb'),
+          const MethodChannel('com.darkaxt.gshop/smb'),
           (call) async => null,
         );
 
@@ -224,7 +224,7 @@ void main() {
       test('throws on PlatformException', () async {
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(
-          const MethodChannel('com.retro.rshop/smb'),
+          const MethodChannel('com.darkaxt.gshop/smb'),
           (call) async => throw PlatformException(
               code: 'SMB_ERROR', message: 'Access denied'),
         );
@@ -269,7 +269,7 @@ void main() {
       test('throws on PlatformException', () async {
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(
-          const MethodChannel('com.retro.rshop/smb'),
+          const MethodChannel('com.darkaxt.gshop/smb'),
           (call) async => throw PlatformException(
               code: 'SMB_ERROR', message: 'Write failed'),
         );
@@ -300,7 +300,7 @@ void main() {
       test('handles PlatformException gracefully', () async {
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(
-          const MethodChannel('com.retro.rshop/smb'),
+          const MethodChannel('com.darkaxt.gshop/smb'),
           (call) async => throw PlatformException(
               code: 'ERROR', message: 'Not found'),
         );

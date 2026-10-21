@@ -4,11 +4,11 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/scraped_metadata.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
-import 'package:retro_eshop/services/metadata/metadata_provider.dart';
-import 'package:retro_eshop/services/metadata/screenscraper_provider.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/services/metadata/metadata_credentials.dart';
+import 'package:g_shop/services/metadata/metadata_provider.dart';
+import 'package:g_shop/services/metadata/screenscraper_provider.dart';
 
 // Synthetic wire fixture shaped after the documented API v2 fields. This is
 // contract evidence, not a captured or authenticated live response.
@@ -94,7 +94,7 @@ class _Wire implements HttpClientAdapter {
 const _developer = ScreenScraperDeveloperCredentials(
   developerId: 'fixture-dev',
   developerPassword: 'fixture-dev-secret',
-  softwareName: 'R-Shop-fixture',
+  softwareName: 'G-Shop-fixture',
 );
 const _user = ScreenScraperUserCredentials(
   username: 'fixture-user',
@@ -108,7 +108,7 @@ String _authenticatedMedia(
     Uri.https('api.screenscraper.fr', '/api2/mediaJeu.php', {
       'devid': 'fixture-dev',
       'devpassword': 'fixture-dev-secret',
-      'softname': 'R-Shop-fixture',
+      'softname': 'G-Shop-fixture',
       'ssid': 'fixture-user',
       'sspassword': 'fixture-user-secret',
       'jeuid': gameId,
@@ -472,7 +472,7 @@ void main() {
     expect(request.queryParameters, {
       'devid': 'fixture-dev',
       'devpassword': 'fixture-dev-secret',
-      'softname': 'R-Shop-fixture',
+      'softname': 'G-Shop-fixture',
       'ssid': 'fixture-user',
       'sspassword': 'fixture-user-secret',
       'output': 'json',

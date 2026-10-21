@@ -4,17 +4,17 @@ import 'dart:ui' show instantiateImageCodec;
 import 'package:vector_math/vector_math_64.dart' as vm;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/widgets/physical_media_view.dart';
-import 'package:retro_eshop/widgets/socket_media_renderer.dart';
-import 'package:retro_eshop/widgets/smart_cover_image.dart';
-import 'package:retro_eshop/widgets/media_cover_fallback.dart';
-import 'package:retro_eshop/features/game_detail/widgets/cover_section.dart';
-import 'package:retro_eshop/features/preview/game_watch_preview.dart';
-import 'package:retro_eshop/widgets/cover_reveal.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/socket_media_model.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/utils/game_metadata.dart';
+import 'package:g_shop/widgets/physical_media_view.dart';
+import 'package:g_shop/widgets/socket_media_renderer.dart';
+import 'package:g_shop/widgets/smart_cover_image.dart';
+import 'package:g_shop/widgets/media_cover_fallback.dart';
+import 'package:g_shop/features/game_detail/widgets/cover_section.dart';
+import 'package:g_shop/features/preview/game_watch_preview.dart';
+import 'package:g_shop/widgets/cover_reveal.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/socket_media_model.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/utils/game_metadata.dart';
 import '../helpers/socket_media_oracle.dart';
 
 // Host checks cover binding, artwork roles and the existing launch lifecycle.

@@ -3,8 +3,8 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/drive/drive_api.dart';
-import 'package:retro_eshop/services/drive/drive_authorization.dart';
+import 'package:g_shop/services/drive/drive_api.dart';
+import 'package:g_shop/services/drive/drive_authorization.dart';
 
 class _Auth implements DriveAuthorizationDriver {
   int renewals = 0;

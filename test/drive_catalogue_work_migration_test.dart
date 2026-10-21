@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:retro_eshop/services/database_service.dart';
-import 'package:retro_eshop/services/drive/drive_catalogue.dart';
+import 'package:g_shop/services/database_service.dart';
+import 'package:g_shop/services/drive/drive_catalogue.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

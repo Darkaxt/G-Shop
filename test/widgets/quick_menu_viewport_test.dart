@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/services/feedback_service.dart';
-import 'package:retro_eshop/widgets/quick_menu.dart';
-import 'package:retro_eshop/l10n/app_localizations.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/services/feedback_service.dart';
+import 'package:g_shop/widgets/quick_menu.dart';
+import 'package:g_shop/l10n/app_localizations.dart';
 
 class _Feedback implements FeedbackService {
   @override

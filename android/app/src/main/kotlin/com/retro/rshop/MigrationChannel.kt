@@ -9,7 +9,7 @@ import io.flutter.plugin.common.MethodChannel
 /** Maintenance admission persists across a process death. Recovery clears it
  * only after the private restore journal is settled, before normal bootstrap. */
 internal object MigrationChannel {
-    const val NAME = "com.retro.rshop/migration"
+    const val NAME = "com.darkaxt.gshop/migration"
     @Volatile var busy = false
         private set
     private var jobs = 0

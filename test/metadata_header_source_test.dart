@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/config/app_config.dart';
-import 'package:retro_eshop/models/config/drive_source_config.dart';
-import 'package:retro_eshop/models/config/source.dart';
-import 'package:retro_eshop/models/config/system_config.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/providers/metadata_providers.dart';
+import 'package:g_shop/models/config/app_config.dart';
+import 'package:g_shop/models/config/drive_source_config.dart';
+import 'package:g_shop/models/config/source.dart';
+import 'package:g_shop/models/config/system_config.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/providers/metadata_providers.dart';
 
 void main() {
   final artifact = RemoteArtifact(

@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/config/drive_source_config.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/services/local_folder_matcher.dart';
-import 'package:retro_eshop/services/remote_folder_scanner.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/config/drive_source_config.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/services/local_folder_matcher.dart';
+import 'package:g_shop/services/remote_folder_scanner.dart';
 
 void main() {
   group('RemoteFolderEntry', () {

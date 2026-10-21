@@ -120,7 +120,7 @@ abstract class L {
   /// No description provided for @saveBackup_help.
   ///
   /// In en, this message translates to:
-  /// **'Keep save backups in a separate private area of Google Drive. R-Shop can change only backups it creates, not your cloud ROMs. Choose the saves to back up before anything is uploaded.'**
+  /// **'Keep save backups in a separate private area of Google Drive. G-Shop can change only backups it creates, not your cloud ROMs. Choose the saves to back up before anything is uploaded.'**
   String get saveBackup_help;
 
   /// No description provided for @saveBackup_authorize.
@@ -324,13 +324,13 @@ abstract class L {
   /// No description provided for @metadata_sharedStorageHelp.
   ///
   /// In en, this message translates to:
-  /// **'Choose a folder to keep game information and artwork outside R-Shop. Existing information is copied, not deleted. It survives uninstall: reconnect your source and choose this folder again to recover it. Account details and downloaded-game records are not backed up here. Set up ES-DE sharing separately.'**
+  /// **'Choose a folder to keep game information and artwork outside G-Shop. Existing information is copied, not deleted. It survives uninstall: reconnect your source and choose this folder again to recover it. Account details and downloaded-game records are not backed up here. Set up ES-DE sharing separately.'**
   String get metadata_sharedStorageHelp;
 
   /// No description provided for @metadata_privateStorage.
   ///
   /// In en, this message translates to:
-  /// **'No folder selected — saved inside R-Shop only'**
+  /// **'No folder selected — saved inside G-Shop only'**
   String get metadata_privateStorage;
 
   /// No description provided for @metadata_chooseSharedStorage.
@@ -432,7 +432,7 @@ abstract class L {
   /// No description provided for @metadata_reviewSaved.
   ///
   /// In en, this message translates to:
-  /// **'Your choice was saved. R-Shop will check the match before using its rating.'**
+  /// **'Your choice was saved. G-Shop will check the match before using its rating.'**
   String get metadata_reviewSaved;
 
   /// No description provided for @metadata_reviewError.
@@ -913,7 +913,7 @@ abstract class L {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'R-Shop'**
+  /// **'G-Shop'**
   String get appTitle;
 
   /// No description provided for @settings_language.
@@ -3151,7 +3151,7 @@ abstract class L {
   /// No description provided for @onboarding_welcomeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Welcome to R-Shop'**
+  /// **'Welcome to G-Shop'**
   String get onboarding_welcomeTitle;
 
   /// No description provided for @onboarding_welcomeSubtitle.
@@ -3961,7 +3961,7 @@ abstract class L {
   /// No description provided for @service_notificationTitle.
   ///
   /// In en, this message translates to:
-  /// **'R-Shop'**
+  /// **'G-Shop'**
   String get service_notificationTitle;
 
   /// No description provided for @service_channelName.

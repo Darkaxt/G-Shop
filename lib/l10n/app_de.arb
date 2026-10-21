@@ -135,7 +135,7 @@
   "metadata_scoreDetails": "{source}: {score}/100. Originalskala: {raw} ({minimum}–{maximum}). {count} Bewertungen. Abgerufen am {date}.",
   "@@locale": "de",
 
-  "appTitle": "R-Shop",
+  "appTitle": "G-Shop",
 
   "settings_language": "Sprache",
   "settings_languageSystem": "Systemstandard",
@@ -538,7 +538,7 @@
   "filter_languages": "SPRACHEN",
   "filter_title": "FILTER",
 
-  "onboarding_welcomeTitle": "Willkommen bei R-Shop",
+  "onboarding_welcomeTitle": "Willkommen bei G-Shop",
   "onboarding_welcomeSubtitle": "Woher kommen deine Spiele?",
   "onboarding_pairQrTitle": "RomM per QR koppeln",
   "onboarding_pairQrSubtitle": "Scanne einen Code von deinem RomM-Server",
@@ -680,7 +680,7 @@
   "library_sizeUnknown": "Unbekannt",
   "library_unknownSizes": "{count} unbekannte Quellgrößen",
   "library_dashboardNote": "Zwischengespeicherte Einträge, keine eindeutigen Spiele. Quellgrößen sind keine SD-Belegung; lokale Bytes schließen fremde Dateien, Spielstände und BIOS aus.",
-  "service_notificationTitle": "R-Shop",
+  "service_notificationTitle": "G-Shop",
   "service_channelName": "Downloads",
   "service_channelDescription": "Zeigt Fortschritt beim Herunterladen von Spielen",
   "service_downloadComplete": "Downloads abgeschlossen",

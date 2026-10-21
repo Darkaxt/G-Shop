@@ -12,7 +12,7 @@ import java.util.ArrayDeque
 /** Main-thread, process-wide admission for UI/headless cache engines. Ownership
  * ends on actual joined completion/detach, never on a timer or a stale lease. */
 internal object RomCacheChannel {
-    const val NAME = "com.retro.rshop/rom_cache"
+    const val NAME = "com.darkaxt.gshop/rom_cache"
     const val PERIODIC_ID = 0x525344
     const val EXPIRY_ID = 0x525345
     private const val PERIOD = 6L*60*60*1000

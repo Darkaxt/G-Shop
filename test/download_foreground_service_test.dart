@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:retro_eshop/services/download_foreground_service.dart';
+import 'package:g_shop/services/download_foreground_service.dart';
 
 void main() {
   group('DownloadForegroundService.buildNotificationText', () {

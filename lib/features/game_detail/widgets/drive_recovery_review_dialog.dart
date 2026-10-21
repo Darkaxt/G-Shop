@@ -117,7 +117,7 @@ class _DriveRecoveryReviewDialogState
         'truncated' =>
           'The complete file could not be read. Check your connection and try again.',
         'ownership_conflict_or_journal_failure' =>
-          'R-Shop could not safely register this file. Your files have not been changed.',
+          'G-Shop could not safely register this file. Your files have not been changed.',
         _ =>
           'The comparison could not finish. Check your connection and storage access, then try again. Your files have not been changed.',
       };
@@ -285,8 +285,8 @@ class _DriveRecoveryReviewDialogState
                             widget.supportedExtensions) &&
                         _adopted == null) ...[
                       const Text(
-                          'Add to R-Shop checks that the files match, then lets '
-                          'R-Shop manage this existing download. Nothing is deleted.'),
+                          'Add to G-Shop checks that the files match, then lets '
+                          'G-Shop manage this existing download. Nothing is deleted.'),
                       const SizedBox(height: 12),
                     ],
                     Text(
@@ -310,7 +310,7 @@ class _DriveRecoveryReviewDialogState
                       Text(_closeRequested
                           ? 'Stopping the comparison…'
                           : _adopting
-                              ? 'Checking the file before adding it to R-Shop…'
+                              ? 'Checking the file before adding it to G-Shop…'
                               : 'Comparing your local copy with Google Drive…'),
                     ],
                     if (_issue != null && !_running)
@@ -323,9 +323,9 @@ class _DriveRecoveryReviewDialogState
                           'This confirms the files match, not that the game runs in your emulator. Nothing was deleted.'),
                     ],
                     if (_adopted != null) ...[
-                      const Text('Your existing download was added to R-Shop.'),
+                      const Text('Your existing download was added to G-Shop.'),
                       const Text(
-                          'Nothing was deleted. R-Shop will check this file again before removing it. This does not confirm that the game runs in your emulator.'),
+                          'Nothing was deleted. G-Shop will check this file again before removing it. This does not confirm that the game runs in your emulator.'),
                     ],
                     ExpansionTile(
                       title: const Text('Technical details'),
@@ -355,7 +355,7 @@ class _DriveRecoveryReviewDialogState
                       widget.artifact.displayName, widget.supportedExtensions))
                 OutlinedButton(
                     onPressed: () => _verify(adopt: true),
-                    child: const Text('Add to R-Shop')),
+                    child: const Text('Add to G-Shop')),
               if (!_running && _adopted == null)
                 FilledButton(
                     autofocus: _result == null,

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/config_parser.dart';
+import 'package:g_shop/services/config_parser.dart';
 
 String _buildConfigJson({
   int version = 2,

@@ -4,18 +4,18 @@ library;
 import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:retro_eshop/models/scraped_metadata.dart';
-import 'package:retro_eshop/models/library_identity.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
+import 'package:g_shop/models/library_identity.dart';
 
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:retro_eshop/services/library_store.dart';
-import 'package:retro_eshop/services/library_query.dart';
-import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
-import 'package:retro_eshop/services/metadata/igdb_provider.dart';
-import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:g_shop/services/library_store.dart';
+import 'package:g_shop/services/library_query.dart';
+import 'package:g_shop/services/metadata/effective_overall_rating.dart';
+import 'package:g_shop/services/metadata/igdb_provider.dart';
+import 'package:g_shop/services/metadata/metadata_refresh_jobs.dart';
 
 /// Retain only fixed public boundary/status diagnostics, never auth payloads.
 class _BoundaryTransport implements HttpClientAdapter {

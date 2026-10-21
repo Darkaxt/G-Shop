@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/widgets/handwritten_media_sticker.dart';
+import 'package:g_shop/widgets/handwritten_media_sticker.dart';
 
 void main() {
   test('curved glyphs fit the disc annulus and preserve every title word', () {

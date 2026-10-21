@@ -462,7 +462,7 @@ class LEs extends L {
   }
 
   @override
-  String get appTitle => 'R-Shop';
+  String get appTitle => 'G-Shop';
 
   @override
   String get settings_language => 'Idioma';
@@ -1684,7 +1684,7 @@ class LEs extends L {
   String get filter_title => 'FILTRO';
 
   @override
-  String get onboarding_welcomeTitle => 'Bienvenido a R-Shop';
+  String get onboarding_welcomeTitle => 'Bienvenido a G-Shop';
 
   @override
   String get onboarding_welcomeSubtitle => '¿De dónde vienen tus juegos?';
@@ -2133,7 +2133,7 @@ class LEs extends L {
       'Entradas en caché, no juegos únicos. El tamaño de origen no es el uso de la SD; los bytes locales gestionados excluyen archivos ajenos, partidas y BIOS.';
 
   @override
-  String get service_notificationTitle => 'R-Shop';
+  String get service_notificationTitle => 'G-Shop';
 
   @override
   String get service_channelName => 'Descargas';

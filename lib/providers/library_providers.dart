@@ -158,10 +158,10 @@ final scopedMetadataProjectionProvider =
   ref.watch(gameDbChangedProvider);
   ref.watch(librarySyncServiceProvider.select((s) => s.completedSystems));
   final database = ref.watch(libraryDbProvider).database;
-  debugPrint('RShopMetadataProjection scope=$scope phase=opening');
+  debugPrint('GShopMetadataProjection scope=$scope phase=opening');
   final shared = await ref.watch(sharedMetadataStoreProvider);
   if (shared == null) return 0;
-  debugPrint('RShopMetadataProjection scope=$scope phase=restoring');
+  debugPrint('GShopMetadataProjection scope=$scope phase=restoring');
   return shared.restore(await database,
       platformId: scope.isEmpty ? null : scope);
 });

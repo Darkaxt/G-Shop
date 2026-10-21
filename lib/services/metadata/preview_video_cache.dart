@@ -21,7 +21,7 @@ class PreviewVideoCache {
   static String key(MetadataMedia media) =>
       sha256.convert(utf8.encode(jsonEncode(media.toJson()))).toString();
   static Future<void> _nativeDecoder(File file) async {
-    final result = await const MethodChannel('com.retro.rshop/storage')
+    final result = await const MethodChannel('com.darkaxt.gshop/storage')
         .invokeMapMethod<String, dynamic>(
             'validatePreviewVideo', {'path': file.path});
     if (result?['ready'] != true)

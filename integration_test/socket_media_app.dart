@@ -12,18 +12,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:retro_eshop/core/theme/app_theme.dart';
-import 'package:retro_eshop/core/input/input.dart';
-import 'package:retro_eshop/features/settings/media_settings_screen.dart';
-import 'package:retro_eshop/features/game_detail/widgets/cover_section.dart';
-import 'package:retro_eshop/l10n/app_localizations.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/services/storage_service.dart';
-import 'package:retro_eshop/services/socket_media_import.dart';
-import 'package:retro_eshop/utils/game_metadata.dart';
-import 'package:retro_eshop/widgets/physical_media_view.dart';
+import 'package:g_shop/core/theme/app_theme.dart';
+import 'package:g_shop/core/input/input.dart';
+import 'package:g_shop/features/settings/media_settings_screen.dart';
+import 'package:g_shop/features/game_detail/widgets/cover_section.dart';
+import 'package:g_shop/l10n/app_localizations.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/services/storage_service.dart';
+import 'package:g_shop/services/socket_media_import.dart';
+import 'package:g_shop/utils/game_metadata.dart';
+import 'package:g_shop/widgets/physical_media_view.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -94,7 +94,7 @@ class _MediaProofState extends ConsumerState<_MediaProof> {
         } else if (command == 'settings-action') {
           if (WidgetsBinding.instance.lifecycleState !=
               AppLifecycleState.resumed) {
-            throw StateError('R-Shop is not foreground');
+            throw StateError('G-Shop is not foreground');
           }
           final target = _settingControl(args['target'] ?? '');
           final widget = target?.widget;

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/widgets/unboxing_preview.dart';
+import 'package:g_shop/widgets/unboxing_preview.dart';
 
 void main() {
   testWidgets('decoding panels does not remount the visible preparation image',

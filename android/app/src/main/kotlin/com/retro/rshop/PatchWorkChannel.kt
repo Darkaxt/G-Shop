@@ -8,7 +8,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import org.emunix.unipatcher.helpers.ResourceProvider
 import org.emunix.unipatcher.patcher.PatchBaseExtractor
-import org.emunix.unipatcher.patcher.RShopPatchEngine
+import org.emunix.unipatcher.patcher.GShopPatchEngine
 import java.io.File
 import java.io.InterruptedIOException
 import java.util.concurrent.Executors
@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /** One foreground patch worker. Cancellation joins its real completion. */
 class PatchWorkChannel(private val context: Context, messenger: BinaryMessenger) {
-    private val channel = MethodChannel(messenger, "com.retro.rshop/patches")
+    private val channel = MethodChannel(messenger, "com.darkaxt.gshop/patches")
     private val main = Handler(Looper.getMainLooper())
     private val worker = Executors.newSingleThreadExecutor()
     private val workRoot = File(context.filesDir, "patch-work")
@@ -44,7 +44,7 @@ class PatchWorkChannel(private val context: Context, messenger: BinaryMessenger)
     private fun handle(call: MethodCall, reply: MethodChannel.Result) {
         try {
             if (call.method == "revision") {
-                reply.success(RShopPatchEngine.REVISION)
+                reply.success(GShopPatchEngine.REVISION)
                 return
             }
             val root = job(call)
@@ -97,7 +97,7 @@ class PatchWorkChannel(private val context: Context, messenger: BinaryMessenger)
                             override fun getString(resId: Int) = context.getString(resId)
                             override fun getAsset(fileName: String) = context.assets.open(fileName)
                         }
-                        RShopPatchEngine.apply(call.argument<String>("format") ?: "",
+                        GShopPatchEngine.apply(call.argument<String>("format") ?: "",
                             patch, input, output, resources,
                             call.argument<List<String>>("preprocessing") ?: emptyList())
                     }
@@ -113,7 +113,7 @@ class PatchWorkChannel(private val context: Context, messenger: BinaryMessenger)
                     main.post {
                         if (active === work) active = null
                         if (code == null) reply.success(mapOf("output" to output.path,
-                            "engineRevision" to RShopPatchEngine.REVISION))
+                            "engineRevision" to GShopPatchEngine.REVISION))
                         else reply.error(code, "Patch operation did not complete", null)
                         work.cancellationReplies.forEach { it.success(null) }
                         work.cancellationReplies.clear()

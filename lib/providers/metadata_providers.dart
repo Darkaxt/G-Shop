@@ -323,7 +323,7 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
           }
           // Keep only application source locations, not arbitrary stack text.
           final frames =
-              RegExp(r'package:retro_eshop/[A-Za-z0-9_./]+\.dart:\d+:\d+')
+              RegExp(r'package:g_shop/[A-Za-z0-9_./]+\.dart:\d+:\d+')
                   .allMatches(stack.toString())
                   .take(4);
           for (final frame in frames) {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/widgets/confirm_dialog.dart';
+import 'package:g_shop/widgets/confirm_dialog.dart';
 import '../helpers/pump_helpers.dart';
 
 void main() {

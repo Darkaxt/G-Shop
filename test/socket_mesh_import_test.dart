@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/socket_mesh_import.dart';
+import 'package:g_shop/services/socket_mesh_import.dart';
 
 void main() {
   const fixtureRoot = String.fromEnvironment('RSHOP_SOCKET_IMPORT_FIXTURES');

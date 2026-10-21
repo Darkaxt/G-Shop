@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/features/settings/widgets/scan_console_tile.dart';
-import 'package:retro_eshop/models/system_model.dart';
+import 'package:g_shop/features/settings/widgets/scan_console_tile.dart';
+import 'package:g_shop/models/system_model.dart';
 import '../helpers/pump_helpers.dart';
 
 void main() {

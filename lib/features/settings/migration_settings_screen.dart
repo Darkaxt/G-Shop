@@ -97,7 +97,7 @@ class _MigrationSettingsState extends ConsumerState<MigrationSettingsScreen>
   Future<void> _share(File file) async {
     await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/octet-stream')],
-        subject: 'R-Shop encrypted backup');
+        subject: 'G-Shop encrypted backup');
   }
 
   Future<void> _backup(MigrationService service) async {
@@ -207,7 +207,7 @@ class _MigrationSettingsState extends ConsumerState<MigrationSettingsScreen>
             appBar: AppBar(title: const Text('Device migration')),
             body: const Center(
                 child: Text(
-                    'Could not open migration settings. Please reopen R-Shop.')))),
+                    'Could not open migration settings. Please reopen G-Shop.')))),
         data: (service) => AnimatedBuilder(
             animation: service,
             builder: (context, _) => buildWithActions(
@@ -260,13 +260,13 @@ class _MigrationSettingsState extends ConsumerState<MigrationSettingsScreen>
                                                           leading: Icon(Icons
                                                               .lock_outline),
                                                           title: Text(
-                                                              'Take your complete R-Shop setup with you'),
+                                                              'Take your complete G-Shop setup with you'),
                                                           subtitle: Text(
                                                               'Settings, API keys, metadata, installed games and their data in one encrypted file.')),
                                                       const SizedBox(
                                                           height: 16),
                                                       const Text(
-                                                          'Keep the backup password somewhere safe. R-Shop cannot recover it.'),
+                                                          'Keep the backup password somewhere safe. G-Shop cannot recover it.'),
                                                       const SizedBox(
                                                           height: 24),
                                                       _action(
@@ -355,7 +355,7 @@ class _MigrationSettingsState extends ConsumerState<MigrationSettingsScreen>
                                                           title: Text(
                                                               'Previous setup'),
                                                           subtitle: Text(
-                                                              'An interrupted restore is rolled back when R-Shop opens. A successful restore keeps the previous setup on this device.')),
+                                                              'An interrupted restore is rolled back when G-Shop opens. A successful restore keeps the previous setup on this device.')),
                                                       const SizedBox(
                                                           height: 24),
                                                       _action(
@@ -413,7 +413,7 @@ class _MigrationSettingsState extends ConsumerState<MigrationSettingsScreen>
                                                               'cancelled' =>
                                                                 'Stopped. Your current setup has been kept.',
                                                               'root_unavailable' =>
-                                                                'Allow R-Shop root access to include your protected game data.',
+                                                                'Allow G-Shop root access to include your protected game data.',
                                                               'storage_permission' =>
                                                                 'Allow file access in Android, then try again.',
                                                               _ =>

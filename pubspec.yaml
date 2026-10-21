@@ -1,5 +1,5 @@
-name: retro_eshop
-description: "R-Shop — A retro game manager for Android with a console-style UI, controller support, and download queue."
+name: g_shop
+description: "G-Shop — A retro game manager for Android with a console-style UI, controller support, and download queue."
 publish_to: 'none'
 version: 1.9.24+40
 
@@ -100,6 +100,9 @@ flutter_launcher_icons:
   adaptive_icon_foreground: "assets/icon.png"
 
 flutter_native_splash:
+  android: true
+  ios: false
+  web: false
   color: "#121212"
   image: "assets/icon.png"
   fullscreen: true

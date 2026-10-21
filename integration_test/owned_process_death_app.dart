@@ -10,14 +10,14 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/transfer_record.dart';
-import 'package:retro_eshop/services/drive/drive_media.dart';
-import 'package:retro_eshop/services/drive/drive_runtime.dart';
-import 'package:retro_eshop/services/drive/drive_transfer_engine.dart';
-import 'package:retro_eshop/services/installation_index.dart';
-import 'package:retro_eshop/services/owned_storage.dart';
-import 'package:retro_eshop/services/transfer_journal.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/transfer_record.dart';
+import 'package:g_shop/services/drive/drive_media.dart';
+import 'package:g_shop/services/drive/drive_runtime.dart';
+import 'package:g_shop/services/drive/drive_transfer_engine.dart';
+import 'package:g_shop/services/installation_index.dart';
+import 'package:g_shop/services/owned_storage.dart';
+import 'package:g_shop/services/transfer_journal.dart';
 
 final _status = ValueNotifier('Starting isolated process-death probe');
 void _require(bool value, String code) {

@@ -60,7 +60,7 @@ class PatchBuildService {
       DriveRuntime? runtime,
       this.sharedStore,
       this.storage = const OwnedStorage(),
-      this.native = const MethodChannel('com.retro.rshop/patches')})
+      this.native = const MethodChannel('com.darkaxt.gshop/patches')})
       : database = database ?? DatabaseService().database,
         runtime = runtime ?? DriveRuntime.instance;
   late final PatchBuildStore store =

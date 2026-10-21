@@ -116,7 +116,7 @@ class _ConsolePreviewHostState extends ConsumerState<ConsolePreviewHost>
               (_, __) async {});
         } catch (error) {
           if (!mounted || generation != _generation) return;
-          debugPrint('RShopConsolePreview import unavailable: $error');
+          debugPrint('GShopConsolePreview import unavailable: $error');
           await _bridge?.hide(this);
         }
       });

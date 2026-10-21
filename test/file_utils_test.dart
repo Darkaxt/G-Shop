@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/utils/file_utils.dart';
+import 'package:g_shop/utils/file_utils.dart';
 
 void main() {
   group('moveFile', () {

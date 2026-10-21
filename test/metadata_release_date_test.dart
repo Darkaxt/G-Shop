@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/scraped_metadata.dart';
-import 'package:retro_eshop/services/metadata/es_de_metadata_projection.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
+import 'package:g_shop/services/metadata/es_de_metadata_projection.dart';
 
 void main() {
   test('release selection uses exact edition region, not first provider row',

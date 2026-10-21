@@ -113,7 +113,7 @@ class RommPlatformMatcher {
 
   /// Builds the `knownPlatforms` map for a freshly-paired RomM source.
   ///
-  /// For every R-Shop system slug in [systemIds], looks for a matching
+  /// For every G-Shop system slug in [systemIds], looks for a matching
   /// [RommPlatform] in [platforms] and records its numeric id. Systems
   /// the server doesn't ship are silently dropped — they will not be
   /// fetched on sync.

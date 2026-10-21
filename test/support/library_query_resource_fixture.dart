@@ -4,12 +4,12 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/scraped_metadata.dart';
-import 'package:retro_eshop/services/library_store.dart';
-import 'package:retro_eshop/services/library_query.dart';
-import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
-import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
+import 'package:g_shop/services/library_store.dart';
+import 'package:g_shop/services/library_query.dart';
+import 'package:g_shop/services/metadata/effective_overall_rating.dart';
+import 'package:g_shop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:sqflite/sqflite.dart';
 
 // Observe the actual SQLite calls; never replace their returned rows or writes.

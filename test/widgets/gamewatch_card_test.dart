@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/features/preview/game_watch_preview.dart';
-import 'package:retro_eshop/l10n/app_localizations.dart';
-import 'package:retro_eshop/widgets/base_game_card.dart';
-import 'package:retro_eshop/widgets/library_model_presentation.dart';
+import 'package:g_shop/features/preview/game_watch_preview.dart';
+import 'package:g_shop/l10n/app_localizations.dart';
+import 'package:g_shop/widgets/base_game_card.dart';
+import 'package:g_shop/widgets/library_model_presentation.dart';
 
 void main() {
   testWidgets(

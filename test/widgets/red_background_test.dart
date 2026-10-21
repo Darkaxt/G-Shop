@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:retro_eshop/core/theme/app_theme.dart';
-import 'package:retro_eshop/core/widgets/animated_background.dart';
-import 'package:retro_eshop/core/widgets/radial_glow.dart';
-import 'package:retro_eshop/core/widgets/screen_layout.dart';
-import 'package:retro_eshop/features/game_list/widgets/dynamic_background.dart';
-import 'package:retro_eshop/features/settings/settings_screen.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/services/storage_service.dart';
+import 'package:g_shop/core/theme/app_theme.dart';
+import 'package:g_shop/core/widgets/animated_background.dart';
+import 'package:g_shop/core/widgets/radial_glow.dart';
+import 'package:g_shop/core/widgets/screen_layout.dart';
+import 'package:g_shop/features/game_list/widgets/dynamic_background.dart';
+import 'package:g_shop/features/settings/settings_screen.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/services/storage_service.dart';
 import '../helpers/pump_helpers.dart';
 
 void main() {

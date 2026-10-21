@@ -4,11 +4,11 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/scraped_metadata.dart';
-import 'package:retro_eshop/services/database_service.dart';
-import 'package:retro_eshop/services/library_store.dart';
-import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
+import 'package:g_shop/services/database_service.dart';
+import 'package:g_shop/services/library_store.dart';
+import 'package:g_shop/services/metadata/metadata_refresh_jobs.dart';
 
 void main() {
   setUpAll(() {

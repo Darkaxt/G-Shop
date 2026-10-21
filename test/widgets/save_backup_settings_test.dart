@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:retro_eshop/services/saves/emulator_family_settings.dart';
+import 'package:g_shop/services/saves/emulator_family_settings.dart';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -9,23 +9,23 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:retro_eshop/features/settings/save_backup_settings_screen.dart';
-import 'package:retro_eshop/models/config/app_config.dart';
-import 'package:retro_eshop/models/config/source.dart';
-import 'package:retro_eshop/models/config/drive_source_config.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/models/save_root_configuration.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/services/config_storage_service.dart';
-import 'package:retro_eshop/services/sources_notifier.dart';
-import 'package:retro_eshop/services/drive/drive_authorization.dart';
-import 'package:retro_eshop/services/saves/drive_save_backup_area.dart';
-import 'package:retro_eshop/services/saves/save_backup_setup.dart';
-import 'package:retro_eshop/services/saves/save_capture.dart';
-import 'package:retro_eshop/models/emulator_family_registry.dart';
-import 'package:retro_eshop/services/owned_emulator_launcher.dart';
+import 'package:g_shop/features/settings/save_backup_settings_screen.dart';
+import 'package:g_shop/models/config/app_config.dart';
+import 'package:g_shop/models/config/source.dart';
+import 'package:g_shop/models/config/drive_source_config.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/models/save_root_configuration.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/services/config_storage_service.dart';
+import 'package:g_shop/services/sources_notifier.dart';
+import 'package:g_shop/services/drive/drive_authorization.dart';
+import 'package:g_shop/services/saves/drive_save_backup_area.dart';
+import 'package:g_shop/services/saves/save_backup_setup.dart';
+import 'package:g_shop/services/saves/save_capture.dart';
+import 'package:g_shop/models/emulator_family_registry.dart';
+import 'package:g_shop/services/owned_emulator_launcher.dart';
 
 import '../helpers/pump_helpers.dart';
 
@@ -182,7 +182,7 @@ void main() {
     });
     settings.file.writeAsStringSync(source, flush: true);
     await settings.reload();
-    const channel = MethodChannel('com.retro.rshop/save_capture');
+    const channel = MethodChannel('com.darkaxt.gshop/save_capture');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       if (call.method == 'installedSaveEmulators') {
@@ -293,7 +293,7 @@ void main() {
   testWidgets(
       'common dialog writes the shared file; external changes reload without import',
       (tester) async {
-    const channel = MethodChannel('com.retro.rshop/save_capture');
+    const channel = MethodChannel('com.darkaxt.gshop/save_capture');
     final requested = <List<String>>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
@@ -378,7 +378,7 @@ void main() {
               : '$platform unresolved standard save folder keeps custom mapping and backup setup available',
           (tester) async {
         SharedPreferences.setMockInitialValues({});
-        const channel = MethodChannel('com.retro.rshop/save_capture');
+        const channel = MethodChannel('com.darkaxt.gshop/save_capture');
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(channel, (call) async {
           if (call.method == 'standardSaveRoot') {
@@ -505,7 +505,7 @@ void main() {
       'coverage keeps the existing save workspace mounted but unfocusable',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
-    const channel = MethodChannel('com.retro.rshop/save_capture');
+    const channel = MethodChannel('com.darkaxt.gshop/save_capture');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (_) async => <Object>[]);
     addTearDown(() => TestDefaultBinaryMessengerBinding
@@ -544,7 +544,7 @@ void main() {
   testWidgets('emulator coverage is a separate offline section without Drive',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
-    const channel = MethodChannel('com.retro.rshop/save_capture');
+    const channel = MethodChannel('com.darkaxt.gshop/save_capture');
     final calls = <MethodCall>[];
     var failInventory = false;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -632,7 +632,7 @@ void main() {
           ? '/storage/emulated/0/Saves/MelonDualDS'
           : '/storage/emulated/0/PSP/PPSSPP_STATE';
       final name = melon ? 'Game.sav' : 'ULUS10041_1.00_0.ppst';
-      const channel = MethodChannel('com.retro.rshop/save_capture');
+      const channel = MethodChannel('com.darkaxt.gshop/save_capture');
       final calls = <MethodCall>[];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (call) async {
@@ -693,7 +693,7 @@ void main() {
   testWidgets(
       'Melon standard folder is available without the Android folder picker',
       (tester) async {
-    const channel = MethodChannel('com.retro.rshop/save_capture');
+    const channel = MethodChannel('com.darkaxt.gshop/save_capture');
     final calls = <MethodCall>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
@@ -735,7 +735,7 @@ void main() {
   testWidgets(
       'Melon discovers its configured folder without opening the picker',
       (tester) async {
-    const channel = MethodChannel('com.retro.rshop/save_capture');
+    const channel = MethodChannel('com.darkaxt.gshop/save_capture');
     const directory = '/storage/75D7-DC5F/Saves/DS';
     final calls = <MethodCall>[];
     var pickerCalls = 0, mappingCalls = 0;
@@ -783,7 +783,7 @@ void main() {
   testWidgets(
       'DS launch-bound mapping finds the exact destination even before the first save',
       (tester) async {
-    const channel = MethodChannel('com.retro.rshop/save_capture');
+    const channel = MethodChannel('com.darkaxt.gshop/save_capture');
     final calls = <MethodCall>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {

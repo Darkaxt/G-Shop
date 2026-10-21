@@ -2,8 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import 'package:retro_eshop/services/database_service.dart';
-import 'package:retro_eshop/services/thumbnail_migration_service.dart';
+import 'package:g_shop/services/database_service.dart';
+import 'package:g_shop/services/thumbnail_migration_service.dart';
 
 Future<Database> _createTestDb() async {
   return databaseFactoryFfi.openDatabase(

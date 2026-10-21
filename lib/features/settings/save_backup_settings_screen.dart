@@ -718,7 +718,7 @@ class _SaveBackupSettingsScreenState
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _pcsxCards(),
         const Text(
-            'R-Shop could not link this memory card. Check that the game is downloaded and RetroArch’s card settings use a supported save location.'),
+            'G-Shop could not link this memory card. Check that the game is downloaded and RetroArch’s card settings use a supported save location.'),
       ]);
     }
     if (_section == SaveBackupSection.area && !_editingMapping) {
@@ -1509,7 +1509,7 @@ class _SaveBackupSettingsScreenState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
-              'Backup support for the emulators R-Shop recognizes on this device. '
+              'Backup support for the emulators G-Shop recognizes on this device. '
               'In-game saves and save states are listed separately. Support may '
               'depend on the game and storage folder. This list does not scan your files.'),
           const SizedBox(height: 12),
@@ -1577,7 +1577,7 @@ class _SaveBackupSettingsScreenState
                 final entries = snapshot.data!;
                 if (entries.isEmpty) {
                   return const Text(
-                      'R-Shop could not find any emulators it recognizes. '
+                      'G-Shop could not find any emulators it recognizes. '
                       'Other emulators may still be installed.');
                 }
                 return Column(
@@ -1702,7 +1702,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
           }
           if (!snapshot.hasData || snapshot.data!.length != 1) {
             return const Text(
-                'R-Shop could not link this game’s save. Check its save location.');
+                'G-Shop could not link this game’s save. Check its save location.');
           }
           return panel(snapshot.data!.single);
         });
@@ -1733,7 +1733,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                   : 'Restore the selected cloud version to this game’s configured save location. '
                       '${job.localCopyAvailable ? 'Copies of your local saves are kept so you can undo the restore. ' : 'There is no device copy to replace. '}'
                       'No cloud version is overwritten or deleted. '
-                      '${job.isStandalone ? 'Exit ${job.emulatorLabel} safely and keep it closed during restore. R-Shop checks that it has exited before replacing a save.' : 'Close the game in RetroArch first.'}'),
+                      '${job.isStandalone ? 'Exit ${job.emulatorLabel} safely and keep it closed during restore. G-Shop checks that it has exited before replacing a save.' : 'Close the game in RetroArch first.'}'),
               actions: [
                 TextButton(
                     key: const ValueKey('save-conflict-cancel'),
@@ -1793,7 +1793,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
     if (widget.job.busy) return;
     final writerInstruction = widget.job.isStandalone
         ? 'Exit ${widget.job.emulatorLabel} safely and keep it closed during restore. '
-            'R-Shop checks that it has exited before replacing a save; it never stops the emulator automatically.'
+            'G-Shop checks that it has exited before replacing a save; it never stops the emulator automatically.'
         : 'Close the game in RetroArch before continuing.';
     final accepted = await showConsoleDialog<bool>(
         context: context,
@@ -2178,14 +2178,14 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                     builder: (context, snapshot) {
                       if (snapshot.hasError) {
                         return const Text(
-                            'R-Shop could not find this game’s save folder. Check that the game is downloaded and storage access is allowed.');
+                            'G-Shop could not find this game’s save folder. Check that the game is downloaded and storage access is allowed.');
                       }
                       if (!snapshot.hasData) {
                         return const LinearProgressIndicator();
                       }
                       if (_selectedName == null) {
                         return const Text(
-                            'R-Shop could not link this game’s save. Check its save location.');
+                            'G-Shop could not link this game’s save. Check its save location.');
                       }
                       return const Text('Save linked automatically',
                           key: ValueKey('save-linked-automatically'),
@@ -2193,12 +2193,12 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                     }),
                 Text(
                     job.isMelon
-                        ? 'MelonDualDS can stay open. R-Shop only backs up a completed save and keeps your previous backup if the save is still changing.'
+                        ? 'MelonDualDS can stay open. G-Shop only backs up a completed save and keeps your previous backup if the save is still changing.'
                         : job.isPpssppSavedata
-                            ? 'Exit PPSSPP normally after saving. R-Shop then backs up the complete folder together, keeping your last verified backup if saving has not finished.'
+                            ? 'Exit PPSSPP normally after saving. G-Shop then backs up the complete folder together, keeping your last verified backup if saving has not finished.'
                             : job.isPpsspp
-                                ? 'Finish saving in PPSSPP before backing up. R-Shop will not upload a save that changes while it is being copied.'
-                                : 'RetroArch can stay open. R-Shop checks that saving has finished and keeps your previous backup if the file is still changing.',
+                                ? 'Finish saving in PPSSPP before backing up. G-Shop will not upload a save that changes while it is being copied.'
+                                : 'RetroArch can stay open. G-Shop checks that saving has finished and keeps your previous backup if the file is still changing.',
                     style: TextStyle(fontSize: 18, height: 1.4)),
                 const SizedBox(height: 16),
                 ConsoleFocusable(
@@ -2242,7 +2242,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                 if (job.isStandalone) ...[
                   Text(
                       'Exit ${job.emulatorLabel} safely and keep it closed during restore. '
-                      'R-Shop checks that it has exited before replacing a save; '
+                      'G-Shop checks that it has exited before replacing a save; '
                       'it never stops the emulator automatically.'),
                   _appInfoButton(job),
                 ],
@@ -2256,7 +2256,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                       child: Text(
                           job.localCopyAvailable
                               ? 'Save conflict: local and cloud versions differ. Both are preserved. '
-                                  'Choose which one to use; R-Shop will not choose based on the date.'
+                                  'Choose which one to use; G-Shop will not choose based on the date.'
                               : 'More than one cloud save is available. Choose which one to restore. '
                                   'All cloud copies are kept.',
                           style: TextStyle(fontSize: 18, height: 1.4))),
@@ -2404,7 +2404,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                             'stop_ppsspp_required' =>
                               'Exit ${job.emulatorLabel} safely, then return here and resume without reopening it. Your existing saves and cloud backups are kept.',
                             'root_unavailable' =>
-                              'Allow R-Shop root access in your root manager, then resume the restore. Your cloud backup and staged save are kept.',
+                              'Allow G-Shop root access in your root manager, then resume the restore. Your cloud backup and staged save are kept.',
                             'related_group_changed' =>
                               'This backup and the local save contain different files. Nothing was replaced; both copies are kept.',
                             'incompatible_state' =>
@@ -2559,10 +2559,10 @@ class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
                       ]),
                 if (status.enabled && widget.service.backgroundIssue != null)
                   const Text(
-                      'Android could not schedule background backups. Backups can still run when you return to R-Shop or start one yourself.'),
+                      'Android could not schedule background backups. Backups can still run when you return to G-Shop or start one yourself.'),
                 if (status.enabled && widget.service.watchIssue != null)
                   const Text(
-                      'Live save monitoring is unavailable. Check the selected folder. Backups can still run when you return to R-Shop or start one yourself.'),
+                      'Live save monitoring is unavailable. Check the selected folder. Backups can still run when you return to G-Shop or start one yourself.'),
               ],
               if (_issue != null) Text(_issue!),
             ]);
@@ -2659,8 +2659,8 @@ class _StandaloneSaveMappingPanelState
           _slot = mapping.name;
           _confirmed = false;
           _locationInfo = names.contains(mapping.name)
-              ? 'Found the save used by this game’s R-Shop launch. Review it below.'
-              : 'Found where this game’s R-Shop launch will save. No local save exists yet; a compatible cloud save can be restored here.';
+              ? 'Found the save used by this game’s G-Shop launch. Review it below.'
+              : 'Found where this game’s G-Shop launch will save. No local save exists yet; a compatible cloud save can be restored here.';
         });
         return;
       }
@@ -2686,7 +2686,7 @@ class _StandaloneSaveMappingPanelState
         final emulator = widget.melon ? 'MelonDualDS' : 'PPSSPP';
         setState(() => _issue = error is PlatformException &&
                 error.code == 'root_unavailable'
-            ? 'Allow R-Shop root access in Magisk to find $emulator’s save folder, or choose the folder yourself.'
+            ? 'Allow G-Shop root access in Magisk to find $emulator’s save folder, or choose the folder yourself.'
             : '$emulator’s save location could not be resolved. Choose the folder configured in the emulator. Your saves and mapping are unchanged.');
       }
     } finally {
@@ -2728,9 +2728,9 @@ class _StandaloneSaveMappingPanelState
       if (mounted) {
         setState(() => _issue = widget.melon
             ? error is PlatformException && error.code == 'root_unavailable'
-                ? 'Root access was not available. Allow R-Shop in Magisk, then try again. Your saves and mapping are unchanged.'
+                ? 'Root access was not available. Allow G-Shop in Magisk, then try again. Your saves and mapping are unchanged.'
                 : 'The save folder could not be opened. Check root access for the standard folder, or choose the custom folder configured in MelonDualDS. Your mapping is unchanged.'
-            : 'Choose ${widget.pspSavedata ? 'SAVEDATA' : 'PPSSPP_STATE'} inside PPSSPP’s configured PSP folder. Protected app folders require R-Shop root access. No mapping was changed.');
+            : 'Choose ${widget.pspSavedata ? 'SAVEDATA' : 'PPSSPP_STATE'} inside PPSSPP’s configured PSP folder. Protected app folders require G-Shop root access. No mapping was changed.');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -2813,10 +2813,10 @@ class _StandaloneSaveMappingPanelState
         const SizedBox(height: 12),
         Text(
             widget.melon
-                ? 'R-Shop checks MelonDualDS’s save settings using root. Select this game’s .sav or .srm file from the detected folder, or choose another folder below. Emulator settings and existing saves are not changed.'
+                ? 'G-Shop checks MelonDualDS’s save settings using root. Select this game’s .sav or .srm file from the detected folder, or choose another folder below. Emulator settings and existing saves are not changed.'
                 : widget.pspSavedata
-                    ? 'R-Shop finds PPSSPP’s Memory Stick using root. Choose the in-game save folder for this edition. Its complete contents stay together; save states are managed separately.'
-                    : 'R-Shop checks PPSSPP’s Memory Stick setting using root. Choose this game’s save-state slot from the detected folder, or choose another folder below. Emulator settings and existing saves are not changed.',
+                    ? 'G-Shop finds PPSSPP’s Memory Stick using root. Choose the in-game save folder for this edition. Its complete contents stay together; save states are managed separately.'
+                    : 'G-Shop checks PPSSPP’s Memory Stick setting using root. Choose this game’s save-state slot from the detected folder, or choose another folder below. Emulator settings and existing saves are not changed.',
             style: TextStyle(fontSize: 18, height: 1.4)),
         const SizedBox(height: 16),
         if (_locationInfo != null)

@@ -98,7 +98,7 @@ Source buildLegacyRommSource({
 ///
 /// The token string is the bearer credential that subsequent API calls must
 /// send via `Authorization: Bearer <token>`. The remaining fields describe
-/// the token's identity and lifetime, used by R-Shop to surface "borrowed"
+/// the token's identity and lifetime, used by G-Shop to surface "borrowed"
 /// status, expiry warnings, and revoke buttons in the Sources screen.
 @immutable
 class RommPairResult {
@@ -179,8 +179,8 @@ class RommPairUnknownException extends RommPairingException {
 /// Flow overview:
 /// 1. Server admin creates an API token and clicks "Pair Device" → server
 ///    shows a QR encoding `<server>/pair?code=XXXX-XXXX`.
-/// 2. R-Shop scans the QR (or user types Server + Code manually).
-/// 3. R-Shop calls [exchangeCode] which POSTs the code and receives the
+/// 2. G-Shop scans the QR (or user types Server + Code manually).
+/// 3. G-Shop calls [exchangeCode] which POSTs the code and receives the
 ///    actual bearer token plus metadata.
 /// 4. The token is stored locally; subsequent requests use it directly.
 ///
@@ -346,7 +346,7 @@ class RommPairingService {
       serverUrl: serverUrl,
       token: token,
       tokenId: _asInt(json['id'] ?? json['token_id']),
-      name: json['name']?.toString() ?? 'R-Shop',
+      name: json['name']?.toString() ?? 'G-Shop',
       scopes: scopes,
       userId: _asInt(json['user_id']),
       expiresAt: expiresAt,

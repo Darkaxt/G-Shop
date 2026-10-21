@@ -1,10 +1,10 @@
-# R-Shop — cloud library, handheld first
+# G-Shop — cloud library, handheld first
 
-A fork of [AverageConsumer/R-Shop](https://github.com/AverageConsumer/R-Shop) for keeping a large retro collection in Google Drive and downloading games when you want to play. Keep the controller-first frontend, add richer discovery, and spend your SD space on the games you actually use.
+G-Shop builds on [AverageConsumer/R-Shop](https://github.com/AverageConsumer/R-Shop) for keeping a large retro collection in Google Drive and downloading games when you want to play. Keep the controller-first frontend, add richer discovery, and spend your SD space on the games you actually use.
 
-[Download the latest APK](https://github.com/Darkaxt/R-Shop/releases/latest) · [Add to Obtainium / ObtainX](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Darkaxt/R-Shop) · [Upstream project](https://github.com/AverageConsumer/R-Shop)
+[Download the latest APK](https://github.com/Darkaxt/G-Shop/releases/latest) · [Add to Obtainium / ObtainX](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Darkaxt/G-Shop) · [Upstream project](https://github.com/AverageConsumer/R-Shop)
 
-Production package: `com.darkaxt.rshop` · APK: `app-release.apk` · Android 7.0+ · Current release: **1.9.17**
+Production package: `com.darkaxt.rshop` · APK: `app-release.apk` · Android 7.0+ · Current published release: **1.9.24**; G-Shop transition is in progress
 
 <p align="center">
   <img src="screenshots/thor/gba-artwork-3d-up.png" width="960" alt="R-Shop on AYN Thor: ranked GBA games with box covers, source-attributed scores, cloud badges and a separately textured Mega Man Zero 3 cartridge" />
@@ -14,7 +14,7 @@ Production package: `com.darkaxt.rshop` · APK: `app-release.apk` · Android 7.0
 
 ## What changes from the original?
 
-The original R-Shop provides the controller-first foundation: local libraries, RomM pairing, SMB/FTP/Web sources, downloads, favorites and RetroAchievements. This fork builds on that work rather than replacing it.
+The original R-Shop provides the controller-first foundation. G-Shop retains its attribution and Android update/signing identity while developing a Drive-backed product. Historical source comparisons below describe the upstream baseline; the supported-source transition is tracked in S26, not claimed delivered by this source snapshot.
 
 | Area | Original workflow | Added in this fork |
 | --- | --- | --- |
@@ -107,8 +107,8 @@ The cache image shows the owner's current policy, not a requirement to enable de
 
 ## Install and set up
 
-1. Get `app-release.apk` from this fork's [latest release](https://github.com/Darkaxt/R-Shop/releases/latest), or track `https://github.com/Darkaxt/R-Shop` in Obtainium/ObtainX.
-2. Add your sources in **Settings → My Sources**. Existing local, RomM, SMB, FTP and Web workflows remain available.
+1. Get `app-release.apk` from this fork's [latest release](https://github.com/Darkaxt/G-Shop/releases/latest), or track `https://github.com/Darkaxt/G-Shop` in Obtainium/ObtainX.
+2. Add your Google Drive source in **Settings → My Sources**. S26 supported-source removal is in progress; existing downloaded games and offline operation remain protected.
 3. For Drive, authorize your account and select/map your own folders. Google OAuth application registration is required; the maintainer's private testing registration is not unrestricted public access. See [setup notes](docs/DEVELOPMENT_SETUP.md) when configuring your own clients.
 4. Configure ScreenScraper/IGDB in **Settings → Game metadata** for fresh metadata and ratings. ScreenScraper needs user and authorized application credentials; IGDB needs application credentials. They are not included in the APK. Gathering metadata is separate from refreshing the game catalogue.
 5. Optionally connect shared metadata/ES-DE folders, set cache policy, select save locations and link per-game companions. Root supports emulator-private locations where ordinary access is insufficient; basic library browsing does not require root.
@@ -118,7 +118,7 @@ Updates retain `com.darkaxt.rshop` and its production signing identity. This dif
 
 ## Two-screen browsing and cloud media
 
-R-Shop provides a full-width 4×2 library gallery on the main
+G-Shop provides a full-width 4×2 library gallery on the main
 screen and the selected game's flat/imported 3D media on the second screen.
 Select a game for metadata and launch options; moving to another game restores
 its preview without moving controller focus out of the gallery. Single-screen
@@ -138,25 +138,25 @@ Startup uses the saved collection instead of automatically refreshing it.
 Trailer sound follows **Settings → Audio → Music** (30% by default) and respects
 Sound off. While the trailer plays, launcher music is muted; pausing or leaving
 the preview restores the current music setting. Playback also has a trailer-sound
-toggle. The second-screen window belongs only to R-Shop: launching a ROM hides
+toggle. The second-screen window belongs only to G-Shop: launching a ROM hides
 it without replacing the existing companion app.
 
 ## What is—and is not—synced
 
-- Drive ROM sources are read-only. R-Shop does not upload ROMs or mirror the SD card into Drive.
+- Drive ROM sources are read-only. G-Shop does not upload ROMs or mirror the SD card into Drive.
 - Games download before launch; this is not ROM streaming.
 - Save/companion backups are separately configured, opt-in writes. Late uploads recheck remote conflicts instead of blindly overwriting another device.
 - Removing a managed local game does not remove its cloud ROM. Cache cleanup does not authorize deleting unrelated files.
 - Scores, artwork, BIOS, ROMs, provider credentials and Socket resources are not bundled.
 
-## Move your R-Shop setup to another device
+## Move your G-Shop setup to another device
 
 **Settings → General → Device migration** is included in 1.9.17 and remains
 separate from public configuration sharing.
 
 Choose **Backup**, set a password of at least 12 characters, then share the single
 encrypted `.rshop` file. On the destination, choose **Restore**, select that file
-and unlock it once. R-Shop restores its setup without asking you to re-enter each
+and unlock it once. G-Shop restores its setup without asking you to re-enter each
 provider's API keys. Keep the password somewhere safe: it is not recoverable from
 the archive or the old device.
 
@@ -165,7 +165,7 @@ favorites, emulator/save mappings, metadata/artwork, imported media, patch data,
 managed downloaded games and their recorded associated data. It is a sensitive
 private backup—never attach it to a public issue or commit it to a repository.
 It is not a whole-device backup and does not include unrelated apps, BIOS folders
-or ROMs that R-Shop does not manage.
+or ROMs that G-Shop does not manage.
 
 Android may still require Google account consent, storage access or root approval;
 those device permissions cannot be transferred. Missing imported saves are placed
@@ -176,7 +176,7 @@ unchanged imported saves.
 
 If import is interrupted, reopen Device migration and use **Recovery → Resume**.
 Startup settles the saved setup transaction before normal jobs run. **Restore
-previous** recovers the preceding R-Shop setup; it does not erase games published
+previous** recovers the preceding setup (including R-Shop backups); it does not erase games published
 by migration or undo later emulator gameplay. Public config/recipe exports remain
 credential-free and are not a replacement for this encrypted backup.
 
@@ -186,9 +186,11 @@ Thanks to [AverageConsumer and upstream contributors](https://github.com/Average
 
 [Specification](docs/SPECIFICATION.md) · [Plan](docs/IMPLEMENTATION_PLAN.md) · [Verified status](docs/IMPLEMENTATION_STATUS.md) · [Development setup](docs/DEVELOPMENT_SETUP.md) · [Upstream user guide](docs/USER_GUIDE.md) · [Contributing](CONTRIBUTING.md)
 
+[G-Shop compatibility boundaries](docs/S26_COMPATIBILITY.md)
+
 [Hacks, patches and portable recipes: collection layout](docs/PATCH_COLLECTION_LAYOUT.md)
 
-R-Shop manages content you own or may legally access; it does not host or distribute games. Game artwork and brand marks belong to their respective owners. Included third-party notices remain applicable. Imported Socket resources remain local and are not redistributed in source or APK releases.
+G-Shop manages content you own or may legally access; it does not host or distribute games. Game artwork and brand marks belong to their respective owners. Included third-party notices remain applicable. Imported Socket resources remain local and are not redistributed in source or APK releases.
 
 ## License
 

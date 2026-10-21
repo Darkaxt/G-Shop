@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/utils/friendly_error.dart';
-import 'package:retro_eshop/services/owned_storage.dart';
+import 'package:g_shop/utils/friendly_error.dart';
+import 'package:g_shop/services/owned_storage.dart';
 
 void main() {
   group('getUserFriendlyError', () {

@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:retro_eshop/services/cover_preload_service.dart';
-import 'package:retro_eshop/services/database_service.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/services/image_cache_service.dart';
-import 'package:retro_eshop/utils/image_helper.dart';
+import 'package:g_shop/services/cover_preload_service.dart';
+import 'package:g_shop/services/database_service.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/services/image_cache_service.dart';
+import 'package:g_shop/utils/image_helper.dart';
 
 class _FailingRaCoverDatabase extends DatabaseService {
   @override

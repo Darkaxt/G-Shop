@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/drive/drive_authorization.dart';
+import 'package:g_shop/services/drive/drive_authorization.dart';
 
 class FakeDriveAuthorizationDriver implements DriveAuthorizationDriver {
   String? account = 'account-a';

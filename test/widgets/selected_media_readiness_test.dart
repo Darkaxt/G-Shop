@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/features/game_detail/widgets/cover_section.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/utils/game_metadata.dart';
-import 'package:retro_eshop/widgets/cover_reveal.dart';
-import 'package:retro_eshop/widgets/unboxing_preview.dart';
+import 'package:g_shop/features/game_detail/widgets/cover_section.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/utils/game_metadata.dart';
+import 'package:g_shop/widgets/cover_reveal.dart';
+import 'package:g_shop/widgets/unboxing_preview.dart';
 
 void main() {
   testWidgets('GBA retains its preparation owner when packaging arrives',

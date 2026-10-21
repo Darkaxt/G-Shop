@@ -6,14 +6,14 @@ import 'package:flutter_test/flutter_test.dart';
 // Test the existing native-player boundary, not a replacement preview widget.
 // ignore: depend_on_referenced_packages
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
-import 'package:retro_eshop/features/preview/preview_screen.dart';
-import 'package:retro_eshop/models/preview_settings.dart';
-import 'package:retro_eshop/features/game_detail/widgets/cover_section.dart';
-import 'package:retro_eshop/features/preview/resource_gallery.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/utils/game_metadata.dart';
-import 'package:retro_eshop/widgets/socket_media_renderer.dart';
+import 'package:g_shop/features/preview/preview_screen.dart';
+import 'package:g_shop/models/preview_settings.dart';
+import 'package:g_shop/features/game_detail/widgets/cover_section.dart';
+import 'package:g_shop/features/preview/resource_gallery.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/utils/game_metadata.dart';
+import 'package:g_shop/widgets/socket_media_renderer.dart';
 
 class _Player extends VideoPlayerPlatform {
   final events = StreamController<VideoEvent>();
@@ -52,7 +52,7 @@ void main() {
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    const channel = MethodChannel('com.retro.rshop/preview_view');
+    const channel = MethodChannel('com.darkaxt.gshop/preview_view');
     final messenger = tester.binding.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(channel, (_) async => null);
     addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
@@ -123,7 +123,7 @@ void main() {
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    const channel = MethodChannel('com.retro.rshop/preview_view');
+    const channel = MethodChannel('com.darkaxt.gshop/preview_view');
     final messenger = tester.binding.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(channel, (_) async => null);
     addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
@@ -201,7 +201,7 @@ void main() {
   });
   testWidgets('preview media canvas reaches both display edges',
       (tester) async {
-    const channel = MethodChannel('com.retro.rshop/preview_view');
+    const channel = MethodChannel('com.darkaxt.gshop/preview_view');
     final messenger = tester.binding.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(channel, (_) async => null);
     addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
@@ -229,7 +229,7 @@ void main() {
   });
   testWidgets('pending cover never exposes an unfinished cartridge',
       (tester) async {
-    const channel = MethodChannel('com.retro.rshop/preview_view');
+    const channel = MethodChannel('com.darkaxt.gshop/preview_view');
     final messenger = tester.binding.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(channel, (_) async => null);
     addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
@@ -258,7 +258,7 @@ void main() {
     final original = VideoPlayerPlatform.instance;
     final player = _Player();
     VideoPlayerPlatform.instance = player;
-    const channel = MethodChannel('com.retro.rshop/preview_view');
+    const channel = MethodChannel('com.darkaxt.gshop/preview_view');
     final messenger = tester.binding.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(channel, (call) async => null);
     addTearDown(() async {

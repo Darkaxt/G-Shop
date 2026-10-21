@@ -1,13 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/config/app_config.dart';
-import 'package:retro_eshop/models/config/drive_source_config.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/config/source.dart';
-import 'package:retro_eshop/models/config/system_config.dart';
-import 'package:retro_eshop/services/config_parser.dart';
-import 'package:retro_eshop/services/source_resolver.dart';
+import 'package:g_shop/models/config/app_config.dart';
+import 'package:g_shop/models/config/drive_source_config.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/config/source.dart';
+import 'package:g_shop/models/config/system_config.dart';
+import 'package:g_shop/services/config_parser.dart';
+import 'package:g_shop/services/source_resolver.dart';
 
 void main() {
   const drive = DriveSourceConfig(

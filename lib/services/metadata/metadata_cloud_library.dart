@@ -222,12 +222,12 @@ class MetadataCloudLibrary {
     if (path.isEmpty) {
       var root = await remote.get(rootId);
       if (root == null) {
-        await remote.folder(rootId, null, 'R-Shop Metadata');
+        await remote.folder(rootId, null, 'G-Shop Metadata');
         root = await remote.get(rootId);
       }
       if (root?.kind != 'folder' ||
           root?.parent != null ||
-          root?.name != 'R-Shop Metadata')
+          !{'G-Shop Metadata', 'R-Shop Metadata'}.contains(root?.name))
         throw const FormatException('Metadata root changed');
       await _db.insert('metadata_cloud_folders',
           {'account': accountId, 'path': '', 'file_id': rootId},

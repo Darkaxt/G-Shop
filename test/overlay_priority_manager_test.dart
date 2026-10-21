@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/core/input/input_providers.dart';
+import 'package:g_shop/core/input/input_providers.dart';
 
 void main() {
   late OverlayPriorityManager manager;

@@ -6,16 +6,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:retro_eshop/features/onboarding/onboarding_controller.dart';
-import 'package:retro_eshop/features/settings/config_mode_screen.dart';
-import 'package:retro_eshop/l10n/app_localizations.dart';
-import 'package:retro_eshop/models/config/app_config.dart';
-import 'package:retro_eshop/models/config/source.dart';
-import 'package:retro_eshop/models/config/system_config.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/providers/game_providers.dart';
-import 'package:retro_eshop/services/config_storage_service.dart';
-import 'package:retro_eshop/services/storage_service.dart';
+import 'package:g_shop/features/onboarding/onboarding_controller.dart';
+import 'package:g_shop/features/settings/config_mode_screen.dart';
+import 'package:g_shop/l10n/app_localizations.dart';
+import 'package:g_shop/models/config/app_config.dart';
+import 'package:g_shop/models/config/source.dart';
+import 'package:g_shop/models/config/system_config.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/providers/game_providers.dart';
+import 'package:g_shop/services/config_storage_service.dart';
+import 'package:g_shop/services/storage_service.dart';
 
 class _MemoryConfigStorage extends ConfigStorageService {
   _MemoryConfigStorage(this.config);

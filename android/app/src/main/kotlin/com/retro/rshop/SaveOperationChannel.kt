@@ -6,7 +6,7 @@ import io.flutter.plugin.common.MethodChannel
 internal object SaveOperationChannel {
     private val gate = SaveOperationGate()
     fun attach(messenger: BinaryMessenger, owner: String): MethodChannel =
-        MethodChannel(messenger, "com.retro.rshop/save_operation").also { channel ->
+        MethodChannel(messenger, "com.darkaxt.gshop/save_operation").also { channel ->
             channel.setMethodCallHandler { call, result ->
                 val id = call.argument<String>("id").orEmpty()
                 if (!id.matches(Regex("[a-f0-9]{32}"))) {

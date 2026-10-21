@@ -3,10 +3,10 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/scraped_metadata.dart';
-import 'package:retro_eshop/services/metadata/metadata_provider.dart';
-import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
-import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
+import 'package:g_shop/services/metadata/metadata_provider.dart';
+import 'package:g_shop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:g_shop/services/metadata/metadata_artwork_cache.dart';
 import 'metadata_controls_test.dart'
     show controlsDatabase, ControlsProvider, ControlsArtworkProvider;
 

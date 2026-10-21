@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/models/transfer_record.dart';
-import 'package:retro_eshop/models/retroarch_battery_route.dart';
-import 'package:retro_eshop/services/owned_emulator_launcher.dart';
-import 'package:retro_eshop/services/rom_manager.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/models/transfer_record.dart';
+import 'package:g_shop/models/retroarch_battery_route.dart';
+import 'package:g_shop/services/owned_emulator_launcher.dart';
+import 'package:g_shop/services/rom_manager.dart';
 import 'drive_exact_identity_runtime_test.dart' show exactGame;
 
 class _RomManager extends RomManager {
@@ -122,7 +122,7 @@ void main() {
     await expectLater(launcher.reviewRetroArchPcsxSaves(item, system, '/owned'),
         throwsUnsupportedError);
     expect(calls, hasLength(1));
-    const saveChannel = MethodChannel('com.retro.rshop/save_capture');
+    const saveChannel = MethodChannel('com.darkaxt.gshop/save_capture');
     final captureCalls = <MethodCall>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(saveChannel, (call) async {

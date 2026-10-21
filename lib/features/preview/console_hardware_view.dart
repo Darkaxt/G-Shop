@@ -157,7 +157,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
     _reportInformationMotion();
     // Keep the readiness/motion receipt within Android's log message boundary.
     // The full snapshot still travels through the structured preview bridge.
-    debugPrint('RShopConsoleMotion ${jsonEncode({
+    debugPrint('GShopConsoleMotion ${jsonEncode({
           'system': widget.systemId,
           'geometrySha256': snapshot['geometrySha256'],
           'generation': widget.generation,
@@ -167,13 +167,13 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
           'periodMs': _rotation.duration!.inMilliseconds,
           'reducedMotion': widget.reducedMotion,
         })}');
-    debugPrint('RShopConsolePreview ${jsonEncode(snapshot)}');
+    debugPrint('GShopConsolePreview ${jsonEncode(snapshot)}');
     widget.onReady?.call();
   }
 
   void _reportInformationMotion() {
     if (!widget.informationRotation) return;
-    debugPrint('RShopGameWatchInformationMotion ${jsonEncode({
+    debugPrint('GShopGameWatchInformationMotion ${jsonEncode({
           'hardware': widget.model.hardwareId,
           'foreground': _resumed,
           'running': _rotation.isAnimating,
@@ -317,7 +317,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
     _idle?.cancel();
     _rotation.stop();
     debugPrint(
-        'RShopConsolePreview hidden system=${widget.systemId} rotationRunning=${_rotation.isAnimating}');
+        'GShopConsolePreview hidden system=${widget.systemId} rotationRunning=${_rotation.isAnimating}');
     _rotation.dispose();
     _opening.dispose();
     WidgetsBinding.instance.removeObserver(this);

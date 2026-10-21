@@ -2,7 +2,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/romm_pairing_service.dart';
+import 'package:g_shop/services/romm_pairing_service.dart';
 
 /// Smoke test against a live RomM 4.8+ server.
 ///

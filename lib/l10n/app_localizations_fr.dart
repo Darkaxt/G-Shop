@@ -463,7 +463,7 @@ class LFr extends L {
   }
 
   @override
-  String get appTitle => 'R-Shop';
+  String get appTitle => 'G-Shop';
 
   @override
   String get settings_language => 'Langue';
@@ -1685,7 +1685,7 @@ class LFr extends L {
   String get filter_title => 'FILTRE';
 
   @override
-  String get onboarding_welcomeTitle => 'Bienvenue sur R-Shop';
+  String get onboarding_welcomeTitle => 'Bienvenue sur G-Shop';
 
   @override
   String get onboarding_welcomeSubtitle => 'D\'où viennent tes jeux ?';
@@ -2135,7 +2135,7 @@ class LFr extends L {
       'Entrées en cache, pas des jeux uniques. Les tailles source ne sont pas l’espace SD ; les octets gérés excluent les fichiers non gérés, sauvegardes et BIOS.';
 
   @override
-  String get service_notificationTitle => 'R-Shop';
+  String get service_notificationTitle => 'G-Shop';
 
   @override
   String get service_channelName => 'Téléchargements';

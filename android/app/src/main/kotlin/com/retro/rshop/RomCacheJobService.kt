@@ -32,13 +32,13 @@ open class RomCacheJobService:JobService() {
             EngineOwnedSqflitePlugin.install(runtime)
             val messenger=runtime.dartExecutor.binaryMessenger
             val io=OwnedStorageService(applicationContext);storage=io
-            MethodChannel(messenger,"com.retro.rshop/storage").setMethodCallHandler { call,reply ->
+            MethodChannel(messenger,"com.darkaxt.gshop/storage").setMethodCallHandler { call,reply ->
                 if(call.method.startsWith("owned")) io.handle(call,reply) else reply.notImplemented()
             }
             DriveTokenCacheChannel.attach(applicationContext,messenger)
             channel=RomCacheChannel.attach(applicationContext,messenger,false) { if(stopped)stop() else run() }
             runtime.dartExecutor.executeDartEntrypoint(DartExecutor.DartEntrypoint(loader.findAppBundlePath(),
-                "package:retro_eshop/services/rom_cache_background.dart","romCacheBackground"))
+                "package:g_shop/services/rom_cache_background.dart","romCacheBackground"))
         } catch(_:Exception){finish("startup_unavailable")}
         return true
     }

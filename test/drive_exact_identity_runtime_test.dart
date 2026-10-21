@@ -2,21 +2,21 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/features/game_detail/game_detail_controller.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/config/system_config.dart';
-import 'package:retro_eshop/models/download_item.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/models/transfer_record.dart';
-import 'package:retro_eshop/services/download_queue_manager.dart';
-import 'package:retro_eshop/services/unified_game_service.dart';
-import 'package:retro_eshop/services/rom_manager.dart';
-import 'package:retro_eshop/services/database_service.dart';
-import 'package:retro_eshop/services/transfer_journal.dart';
+import 'package:g_shop/features/game_detail/game_detail_controller.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/config/system_config.dart';
+import 'package:g_shop/models/download_item.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/models/transfer_record.dart';
+import 'package:g_shop/services/download_queue_manager.dart';
+import 'package:g_shop/services/unified_game_service.dart';
+import 'package:g_shop/services/rom_manager.dart';
+import 'package:g_shop/services/database_service.dart';
+import 'package:g_shop/services/transfer_journal.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:retro_eshop/utils/game_merge_helper.dart';
+import 'package:g_shop/utils/game_merge_helper.dart';
 
 GameItem exactGame(String fileId,
         {String account = 'account-a', String name = 'Game.nes'}) =>

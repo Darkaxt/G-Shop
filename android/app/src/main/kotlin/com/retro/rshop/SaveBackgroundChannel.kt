@@ -17,7 +17,7 @@ internal object SaveBackgroundChannel {
     const val JOB_ID = 0x525342
     const val PENDING_JOB_ID = 0x525343
     const val PERIOD_MS = 6L * 60 * 60 * 1000
-    const val NAME = "com.retro.rshop/save_background"
+    const val NAME = "com.darkaxt.gshop/save_background"
     var foreground: MethodChannel? = null
         private set
     private val detached = mutableSetOf<() -> Unit>()

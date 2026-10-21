@@ -5,11 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:retro_eshop/core/input/global_input_wrapper.dart';
-import 'package:retro_eshop/features/settings/migration_settings_screen.dart';
-import 'package:retro_eshop/providers/migration_providers.dart';
-import 'package:retro_eshop/services/config_storage_service.dart';
-import 'package:retro_eshop/services/migration/migration_service.dart';
+import 'package:g_shop/core/input/global_input_wrapper.dart';
+import 'package:g_shop/features/settings/migration_settings_screen.dart';
+import 'package:g_shop/providers/migration_providers.dart';
+import 'package:g_shop/services/config_storage_service.dart';
+import 'package:g_shop/services/migration/migration_service.dart';
 import '../migration_activation_test.dart' show MemorySettings;
 import '../helpers/pump_helpers.dart';
 

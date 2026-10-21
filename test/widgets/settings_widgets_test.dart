@@ -4,19 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:retro_eshop/features/settings/widgets/about_tab.dart';
-import 'package:retro_eshop/features/settings/widgets/device_info_card.dart';
-import 'package:retro_eshop/features/settings/widgets/general_tab.dart';
-import 'package:retro_eshop/features/settings/widgets/settings_switch.dart';
-import 'package:retro_eshop/features/settings/widgets/settings_tabs.dart';
-import 'package:retro_eshop/models/sound_settings.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/services/audio_manager.dart';
-import 'package:retro_eshop/services/device_info_service.dart';
-import 'package:retro_eshop/services/feedback_service.dart';
-import 'package:retro_eshop/services/haptic_service.dart';
-import 'package:retro_eshop/services/storage_service.dart';
-import 'package:retro_eshop/widgets/media_cover_fallback.dart';
+import 'package:g_shop/features/settings/widgets/about_tab.dart';
+import 'package:g_shop/features/settings/widgets/device_info_card.dart';
+import 'package:g_shop/features/settings/widgets/general_tab.dart';
+import 'package:g_shop/features/settings/widgets/settings_switch.dart';
+import 'package:g_shop/features/settings/widgets/settings_tabs.dart';
+import 'package:g_shop/models/sound_settings.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/services/audio_manager.dart';
+import 'package:g_shop/services/device_info_service.dart';
+import 'package:g_shop/services/feedback_service.dart';
+import 'package:g_shop/services/haptic_service.dart';
+import 'package:g_shop/services/storage_service.dart';
+import 'package:g_shop/widgets/media_cover_fallback.dart';
 import '../helpers/pump_helpers.dart';
 
 // ─── Fakes ───────────────────────────────────────────────

@@ -92,7 +92,7 @@ class DownloadForegroundService {
       }
 
       final result = await FlutterForegroundTask.startService(
-        notificationTitle: 'R-Shop',
+        notificationTitle: 'G-Shop',
         notificationText: buildNotificationText(activeCount, queuedCount),
         callback: _startCallback,
       );
@@ -120,7 +120,7 @@ class DownloadForegroundService {
     }
 
     await FlutterForegroundTask.updateService(
-      notificationTitle: 'R-Shop',
+      notificationTitle: 'G-Shop',
       notificationText: text,
     );
   }

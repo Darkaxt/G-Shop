@@ -5,6 +5,32 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+S26 current checkpoint, 2026-10-21: **BLOCKED** on the external supported-source
+boundary question (GSHOP-02): should Google Drive be the sole collection source,
+or should SMB/FTP/Web remain alongside it? The earlier objective names the
+original server/local-only modes but does not distinguish those independent
+integrations. Resolution condition: the owner's source selection. Removing the
+wrong modes would deliver a materially different product. Source removal,
+final integrated/native verification, repository rename and final release cannot
+be accepted before this prerequisite is resolved. No source mode has been removed
+or user data changed. No G-Shop package is installed or published.
+
+Independent authorized preparation is implemented: current product/Dart package
+and symbols, localized text, notification/launcher/splash branding and paired
+native channels, preserving installed IDs, signer, paths, credentials and wire
+ownership markers. Both old/new metadata root names reconnect without replacement;
+legacy encrypted exports remain discoverable and sort by timestamp across names.
+Focused host migration, publication/recovery/ownership and Android configuration
+checks pass; the explicit private live-packet fixture is skipped. Full analysis
+reports zero Dart errors, three existing protected-layer warnings and 165 style
+infos (exit 1), not a clean-analysis claim. Native compilation/device acceptance
+and full S26 release gates remain unsatisfied. Compatibility details are in
+S26_COMPATIBILITY.md; private logs are in D:/Temp/gshop-s26-20261021/reports/.
+
+No implementation stage is ACTIVE while this essential answer is pending.
+Wider S25 remains BLOCKED under the owner's sequencing hold. Its missing criteria
+are retained; neither the G&W delivery nor this preparation completes wider S25.
+
 2026-10-21 delivery reconciliation: revision 131 Game & Watch batch **COMPLETE**.
 Normal public [v1.9.24/code 40](https://github.com/Darkaxt/R-Shop/releases/tag/v1.9.24)
 is delivered from source 58bd9730aae072fdc264810ea53a9dc772e7cafd. Independent
@@ -31,7 +57,7 @@ Both transferred catalogue staging and main disposable work are removed through
 the installed cleanup helper, with zero residuals; originals, authoring inputs,
 reproduction recipes, usable outputs and required evidence are preserved.
 
-Owner-directed transition: **S26 ACTIVE**, sole active stage. Wider **S25 BLOCKED**
+Owner-directed transition initially activated S26; the current source question now parks it as recorded above. Wider **S25 BLOCKED**
 by the owner's explicit sequencing hold, rather than a technical failure. Remaining
 individual-console verification and deliberately held broader cinematic/gallery
 criteria stay in S25_VERIFIED_MODELS.md and S25_PACKAGING_COVERAGE.md. They are

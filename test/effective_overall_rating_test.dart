@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/scraped_metadata.dart';
-import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
+import 'package:g_shop/services/metadata/effective_overall_rating.dart';
 
 void main() {
   final at = DateTime.utc(2026, 10, 3);

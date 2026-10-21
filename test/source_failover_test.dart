@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/game_item.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/game_item.dart';
 
 void main() {
   group('AlternativeSource', () {

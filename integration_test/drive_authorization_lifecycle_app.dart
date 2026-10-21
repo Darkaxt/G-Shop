@@ -5,12 +5,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:retro_eshop/models/config/drive_source_config.dart';
-import 'package:retro_eshop/models/config/source.dart';
-import 'package:retro_eshop/services/config_parser.dart';
-import 'package:retro_eshop/services/drive/drive_api.dart';
-import 'package:retro_eshop/services/drive/drive_authorization.dart';
-import 'package:retro_eshop/services/drive/google_drive_sign_in.dart';
+import 'package:g_shop/models/config/drive_source_config.dart';
+import 'package:g_shop/models/config/source.dart';
+import 'package:g_shop/services/config_parser.dart';
+import 'package:g_shop/services/drive/drive_api.dart';
+import 'package:g_shop/services/drive/drive_authorization.dart';
+import 'package:g_shop/services/drive/google_drive_sign_in.dart';
 
 /// Manually driven real native/API proof. No normal bootstrap, database, queue,
 /// source writes, media requests, token persistence or mock authorization.

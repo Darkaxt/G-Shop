@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/metadata/metadata_provider.dart';
+import 'package:g_shop/services/metadata/metadata_provider.dart';
 
 MetadataLookupRequest _request({
   MetadataRomIdentifier? romIdentifier,

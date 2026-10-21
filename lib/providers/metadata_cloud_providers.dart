@@ -154,7 +154,7 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
           'Metadata rebuild target changed remotely',
           'Metadata rebuild trash was not verified',
           'Metadata root changed',
-          'Not an owned R-Shop metadata object',
+          'Not an owned G-Shop metadata object',
           'Metadata rebuild is incomplete',
           'Metadata version changed remotely',
           'Metadata publication intent changed',
@@ -171,7 +171,7 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
       final sites = trace
           .toString()
           .split('\n')
-          .where((line) => line.contains('package:retro_eshop/'))
+          .where((line) => line.contains('package:g_shop/'))
           .take(4)
           .join('\n');
       if (sites.isNotEmpty) debugPrint('Metadata cloud failure sites:\n$sites');
@@ -304,7 +304,7 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
           'budget': state.budgetBytes
         };
         await _save();
-        await api.folder(_settings['root'] as String, null, 'R-Shop Metadata');
+        await api.folder(_settings['root'] as String, null, 'G-Shop Metadata');
       } finally {
         api.close();
       }

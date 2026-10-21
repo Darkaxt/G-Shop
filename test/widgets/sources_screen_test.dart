@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/features/settings/sources_screen.dart';
-import 'package:retro_eshop/models/config/source.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/services/config_storage_service.dart';
-import 'package:retro_eshop/services/sources_notifier.dart';
-import 'package:retro_eshop/services/storage_service.dart';
+import 'package:g_shop/features/settings/sources_screen.dart';
+import 'package:g_shop/models/config/source.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/services/config_storage_service.dart';
+import 'package:g_shop/services/sources_notifier.dart';
+import 'package:g_shop/services/storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../helpers/pump_helpers.dart';
 

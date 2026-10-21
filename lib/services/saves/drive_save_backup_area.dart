@@ -135,7 +135,7 @@ class DriveSaveBackupAreaApi {
         query: {'fields': _fields},
         body: {
           'id': id,
-          'name': 'R-Shop Save Backups',
+          'name': 'G-Shop Save Backups',
           'mimeType': _folderMime,
           'parents': ['root'],
           'appProperties': _properties

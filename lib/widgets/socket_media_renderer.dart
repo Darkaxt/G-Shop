@@ -353,7 +353,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         pose.unboxing == 1 &&
         !_sceneSettledReported) {
       _sceneSettledReported = true;
-      debugPrint('RShopGameWatchPairSettled ${jsonEncode({
+      debugPrint('GShopGameWatchPairSettled ${jsonEncode({
             'hardware': widget.console?.hardwareId,
             'consoleGeometrySha256':
                 submitted.model.data['consoleGeometrySha256'],

@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/features/game_detail/widgets/screenshots_carousel.dart';
-import 'package:retro_eshop/providers/library_providers.dart';
-import 'package:retro_eshop/providers/metadata_providers.dart';
-import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
-import 'package:retro_eshop/widgets/base_game_card.dart';
-import 'package:retro_eshop/widgets/media_cover_fallback.dart';
+import 'package:g_shop/features/game_detail/widgets/screenshots_carousel.dart';
+import 'package:g_shop/providers/library_providers.dart';
+import 'package:g_shop/providers/metadata_providers.dart';
+import 'package:g_shop/services/metadata/metadata_credentials.dart';
+import 'package:g_shop/widgets/base_game_card.dart';
+import 'package:g_shop/widgets/media_cover_fallback.dart';
 
 import '../metadata_controls_test.dart'
     show ControlsArtworkProvider, MemorySecrets;

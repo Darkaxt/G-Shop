@@ -1,13 +1,13 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/local_cloud_byte_observation.dart';
-import 'package:retro_eshop/models/transfer_record.dart';
-import 'package:retro_eshop/services/database_service.dart';
-import 'package:retro_eshop/services/transfer_journal.dart';
-import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/local_cloud_byte_observation.dart';
+import 'package:g_shop/models/transfer_record.dart';
+import 'package:g_shop/services/database_service.dart';
+import 'package:g_shop/services/transfer_journal.dart';
+import 'package:g_shop/services/metadata/metadata_refresh_jobs.dart';
 
 const _md5 = '7cfdd07889b3295d6a550914ab35e068';
 DriveLocalCloudObservation _observation(

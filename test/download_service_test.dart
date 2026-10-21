@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/download_item.dart';
-import 'package:retro_eshop/services/download_service.dart';
-import 'package:retro_eshop/services/native_smb_service.dart';
+import 'package:g_shop/models/download_item.dart';
+import 'package:g_shop/services/download_service.dart';
+import 'package:g_shop/services/native_smb_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

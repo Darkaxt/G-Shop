@@ -867,7 +867,7 @@ object RootSaveSourceWorker {
                                 if (before[0] != owner.st_dev ||
                                     OwnedStorageNative.identity(folder).take(2) != listOf(owner.st_dev, owner.st_ino))
                                     throw IOException("source_changed")
-                                // The emulator, not root/R-Shop, owns its staged
+                                // The emulator, not root/G-Shop, owns its staged
                                 // replacement. lchown never follows a substituted link.
                                 if (companions == null) Os.lchown("$backing/$leaf", owner.st_uid, owner.st_gid)
                                 else ParcelFileDescriptor.fromFd(opened).use { Os.fchown(it.fileDescriptor, owner.st_uid, owner.st_gid) }

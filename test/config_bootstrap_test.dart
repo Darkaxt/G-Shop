@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/config/app_config.dart';
-import 'package:retro_eshop/models/config/system_config.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/services/config_bootstrap.dart';
+import 'package:g_shop/models/config/app_config.dart';
+import 'package:g_shop/models/config/system_config.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/services/config_bootstrap.dart';
 
 void main() {
   const snesConfig = SystemConfig(

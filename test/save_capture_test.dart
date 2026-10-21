@@ -1,13 +1,13 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/saves/save_capture.dart';
-import 'package:retro_eshop/models/retroarch_battery_route.dart';
-import 'package:retro_eshop/models/pcsx_save_layout.dart';
-import 'package:retro_eshop/models/save_root_configuration.dart';
+import 'package:g_shop/services/saves/save_capture.dart';
+import 'package:g_shop/models/retroarch_battery_route.dart';
+import 'package:g_shop/models/pcsx_save_layout.dart';
+import 'package:g_shop/models/save_root_configuration.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  const channel = MethodChannel('com.retro.rshop/save_capture');
+  const channel = MethodChannel('com.darkaxt.gshop/save_capture');
   final calls = <MethodCall>[];
   late Map<String, Object> response;
   test('GB and GBC expose separate SameBoy battery routes with clock groups',

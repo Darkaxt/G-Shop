@@ -12,36 +12,36 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:retro_eshop/core/input/input.dart';
-import 'package:retro_eshop/core/theme/app_theme.dart';
-import 'package:retro_eshop/features/library/library_screen.dart';
-import 'package:retro_eshop/features/preview/dual_screen_preview_host.dart';
-import 'package:retro_eshop/l10n/app_localizations.dart';
-import 'package:retro_eshop/models/config/app_config.dart';
-import 'package:retro_eshop/models/config/system_config.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/transfer_record.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/providers/game_providers.dart';
-import 'package:retro_eshop/providers/library_providers.dart';
-import 'package:retro_eshop/providers/installed_files_provider.dart';
-import 'package:retro_eshop/providers/metadata_providers.dart';
-import 'package:retro_eshop/providers/preview_providers.dart';
-import 'package:retro_eshop/services/database_service.dart';
-import 'package:retro_eshop/services/library_store.dart';
-import 'package:retro_eshop/services/installation_index.dart';
-import 'package:retro_eshop/services/owned_storage.dart';
-import 'package:retro_eshop/services/drive/drive_transfer_engine.dart';
-import 'package:retro_eshop/services/drive/drive_media.dart';
-import 'package:retro_eshop/services/audio_manager.dart';
-import 'package:retro_eshop/services/device_info_service.dart';
-import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
-import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
-import 'package:retro_eshop/services/socket_media_import.dart';
-import 'package:retro_eshop/services/storage_service.dart';
+import 'package:g_shop/core/input/input.dart';
+import 'package:g_shop/core/theme/app_theme.dart';
+import 'package:g_shop/features/library/library_screen.dart';
+import 'package:g_shop/features/preview/dual_screen_preview_host.dart';
+import 'package:g_shop/l10n/app_localizations.dart';
+import 'package:g_shop/models/config/app_config.dart';
+import 'package:g_shop/models/config/system_config.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/transfer_record.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/providers/game_providers.dart';
+import 'package:g_shop/providers/library_providers.dart';
+import 'package:g_shop/providers/installed_files_provider.dart';
+import 'package:g_shop/providers/metadata_providers.dart';
+import 'package:g_shop/providers/preview_providers.dart';
+import 'package:g_shop/services/database_service.dart';
+import 'package:g_shop/services/library_store.dart';
+import 'package:g_shop/services/installation_index.dart';
+import 'package:g_shop/services/owned_storage.dart';
+import 'package:g_shop/services/drive/drive_transfer_engine.dart';
+import 'package:g_shop/services/drive/drive_media.dart';
+import 'package:g_shop/services/audio_manager.dart';
+import 'package:g_shop/services/device_info_service.dart';
+import 'package:g_shop/services/metadata/metadata_credentials.dart';
+import 'package:g_shop/services/metadata/shared_metadata_store.dart';
+import 'package:g_shop/services/socket_media_import.dart';
+import 'package:g_shop/services/storage_service.dart';
 
-export 'package:retro_eshop/features/preview/preview_screen.dart'
+export 'package:g_shop/features/preview/preview_screen.dart'
     show previewMain;
 
 Future<void> main() async {
@@ -293,12 +293,12 @@ class _PreviewProofState extends ConsumerState<_PreviewProof>
         if (host == null) throw StateError('No selected preview');
         await ref.read(secondaryPreviewProvider).togglePlayback(host);
       } else if (command == 'await-view' || command == 'await-video') {
-        await const MethodChannel('com.retro.rshop/preview')
+        await const MethodChannel('com.darkaxt.gshop/preview')
             .invokeMethod<dynamic>('awaitRendered', {'video': command == 'await-video'});
       } else if (command != 'status') {
         throw ArgumentError('Unknown preview proof action');
       }
-      final diagnostics = await const MethodChannel('com.retro.rshop/preview')
+      final diagnostics = await const MethodChannel('com.darkaxt.gshop/preview')
           .invokeMethod<dynamic>('diagnostics');
       return developer.ServiceExtensionResponse.result(jsonEncode({
         'command': command,

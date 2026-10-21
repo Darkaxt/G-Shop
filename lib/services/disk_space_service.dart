@@ -38,7 +38,7 @@ class StorageInfo {
 }
 
 class DiskSpaceService {
-  static const _channel = MethodChannel('com.retro.rshop/storage');
+  static const _channel = MethodChannel('com.darkaxt.gshop/storage');
 
   static Future<StorageInfo?> getFreeSpace(String path) async {
     if (!Platform.isAndroid) return null;

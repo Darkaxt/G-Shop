@@ -2,7 +2,7 @@ import 'dart:collection';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/ra_api_service.dart';
+import 'package:g_shop/services/ra_api_service.dart';
 
 // ─── Test doubles ────────────────────────────────────────
 

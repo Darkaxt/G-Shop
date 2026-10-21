@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 /// Native admission spans UI/headless Dart engines in the default app process.
 /// Cancellation removes a waiter; it never expires or steals an active owner.
 class SaveOperationAdmission {
-  static const _channel = MethodChannel('com.retro.rshop/save_operation');
+  static const _channel = MethodChannel('com.darkaxt.gshop/save_operation');
   final bool android;
   SaveOperationAdmission({bool? android})
       : android = android ?? Platform.isAndroid;

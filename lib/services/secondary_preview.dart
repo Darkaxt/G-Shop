@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 
 /// One foreground presentation, with no acquisition, auth or installation owner.
 class SecondaryPreview extends ChangeNotifier {
-  static const channel = MethodChannel('com.retro.rshop/preview');
+  static const channel = MethodChannel('com.darkaxt.gshop/preview');
   bool available = false;
   bool _disposed = false;
   Object? _owner;

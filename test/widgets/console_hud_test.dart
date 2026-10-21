@@ -5,10 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/services/storage_service.dart';
-import 'package:retro_eshop/widgets/console_hud.dart';
-import 'package:retro_eshop/widgets/control_button.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/services/storage_service.dart';
+import 'package:g_shop/widgets/console_hud.dart';
+import 'package:g_shop/widgets/control_button.dart';
 import '../helpers/pump_helpers.dart';
 
 Future<StorageService> _createMockStorage({

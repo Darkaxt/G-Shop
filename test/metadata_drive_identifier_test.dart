@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/services/metadata/metadata_provider.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/services/metadata/metadata_provider.dart';
 
 RemoteArtifact artifact(
         {String name = 'Game.sfc',

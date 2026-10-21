@@ -11,14 +11,14 @@ import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/transfer_record.dart';
-import 'package:retro_eshop/services/drive/drive_media.dart';
-import 'package:retro_eshop/services/drive/drive_transfer_engine.dart';
-import 'package:retro_eshop/services/installation_index.dart';
-import 'package:retro_eshop/services/owned_installation_removal.dart';
-import 'package:retro_eshop/services/owned_storage.dart';
-import 'package:retro_eshop/services/transfer_journal.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/transfer_record.dart';
+import 'package:g_shop/services/drive/drive_media.dart';
+import 'package:g_shop/services/drive/drive_transfer_engine.dart';
+import 'package:g_shop/services/installation_index.dart';
+import 'package:g_shop/services/owned_installation_removal.dart';
+import 'package:g_shop/services/owned_storage.dart';
+import 'package:g_shop/services/transfer_journal.dart';
 
 final _status = ValueNotifier('Starting isolated publication probe');
 const _boundaries = [
@@ -48,7 +48,7 @@ class _ReceiptChannel extends MethodChannel {
   final String boundary;
   final Future<void> Function() arm;
   const _ReceiptChannel(this.boundary, this.arm)
-      : super('com.retro.rshop/storage');
+      : super('com.darkaxt.gshop/storage');
 
   @override
   Future<T?> invokeMethod<T>(String method, [dynamic arguments]) async {

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:retro_eshop/features/game_list/widgets/game_grid.dart';
-import 'package:retro_eshop/features/game_list/widgets/game_list_header.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/services/disk_space_service.dart';
-import 'package:retro_eshop/widgets/base_game_card.dart';
+import 'package:g_shop/features/game_list/widgets/game_grid.dart';
+import 'package:g_shop/features/game_list/widgets/game_list_header.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/services/disk_space_service.dart';
+import 'package:g_shop/widgets/base_game_card.dart';
 import '../helpers/pump_helpers.dart';
 
 // ─── Test Fixtures ───────────────────────────────────────

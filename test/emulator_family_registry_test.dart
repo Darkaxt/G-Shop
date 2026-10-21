@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:retro_eshop/services/saves/emulator_family_settings.dart';
+import 'package:g_shop/services/saves/emulator_family_settings.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:retro_eshop/models/emulator_family_registry.dart';
-import 'package:retro_eshop/models/save_emulator_coverage.dart';
-import 'package:retro_eshop/services/saves/save_capture.dart';
+import 'package:g_shop/models/emulator_family_registry.dart';
+import 'package:g_shop/models/save_emulator_coverage.dart';
+import 'package:g_shop/services/saves/save_capture.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -254,7 +254,7 @@ void main() {
     final settings = await EmulatorFamilySettings.open(file: shared);
     shared.writeAsStringSync(file([alias]));
     await settings.reload();
-    const channel = MethodChannel('com.retro.rshop/save_capture');
+    const channel = MethodChannel('com.darkaxt.gshop/save_capture');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       expect(call.arguments, {

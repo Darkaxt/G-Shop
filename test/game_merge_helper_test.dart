@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/utils/game_merge_helper.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/utils/game_merge_helper.dart';
 
 final _nes = SystemModel.supportedSystems.firstWhere((s) => s.id == 'nes');
 final _psx = SystemModel.supportedSystems.firstWhere((s) => s.id == 'psx');

@@ -1,6 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
+import 'package:g_shop/services/metadata/metadata_credentials.dart';
 
 class _MemorySecrets implements MetadataSecretStorage {
   final values = <String, String>{};
@@ -35,7 +35,7 @@ void main() {
     await credentials.saveDeveloper(const ScreenScraperDeveloperCredentials(
       developerId: 'fixture-dev',
       developerPassword: 'fixture-dev-secret',
-      softwareName: 'R-Shop-fixture',
+      softwareName: 'G-Shop-fixture',
     ));
     await credentials.saveUser(const ScreenScraperUserCredentials(
       username: 'fixture-user',
@@ -47,7 +47,7 @@ void main() {
         storage.values.values.any((value) => value.startsWith('{')), isFalse);
     await credentials.removeUser();
     expect(await credentials.readUser(), isNull);
-    expect((await credentials.readDeveloper())!.softwareName, 'R-Shop-fixture');
+    expect((await credentials.readDeveloper())!.softwareName, 'G-Shop-fixture');
     expect('${await credentials.readDeveloper()}', isNot(contains('secret')));
   });
 

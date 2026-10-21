@@ -4,9 +4,9 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:retro_eshop/models/scraped_metadata.dart';
-import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
-import 'package:retro_eshop/services/metadata/metadata_provider.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
+import 'package:g_shop/services/metadata/metadata_artwork_cache.dart';
+import 'package:g_shop/services/metadata/metadata_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'support/metadata_artwork_resource_fixture.dart';

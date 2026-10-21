@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:retro_eshop/models/download_item.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/ra_models.dart';
-import 'package:retro_eshop/models/scraped_metadata.dart';
-import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
-import 'package:retro_eshop/widgets/base_game_card.dart';
+import 'package:g_shop/models/download_item.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/ra_models.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
+import 'package:g_shop/services/metadata/effective_overall_rating.dart';
+import 'package:g_shop/widgets/base_game_card.dart';
 import '../helpers/pump_helpers.dart';
-import 'package:retro_eshop/widgets/media_cover_fallback.dart';
+import 'package:g_shop/widgets/media_cover_fallback.dart';
 
 EffectiveOverallRating score(
     {double value = 90,

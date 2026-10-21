@@ -5,16 +5,16 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/scraped_metadata.dart';
-import 'package:retro_eshop/services/library_store.dart';
-import 'package:retro_eshop/services/library_query.dart';
-import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
-import 'package:retro_eshop/services/metadata/metadata_provider.dart';
-import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
-import 'package:retro_eshop/services/metadata/screenscraper_provider.dart';
-import 'package:retro_eshop/services/metadata/igdb_provider.dart';
-import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
+import 'package:g_shop/services/library_store.dart';
+import 'package:g_shop/services/library_query.dart';
+import 'package:g_shop/services/metadata/metadata_credentials.dart';
+import 'package:g_shop/services/metadata/metadata_provider.dart';
+import 'package:g_shop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:g_shop/services/metadata/screenscraper_provider.dart';
+import 'package:g_shop/services/metadata/igdb_provider.dart';
+import 'package:g_shop/services/metadata/shared_metadata_store.dart';
 
 class _Wire implements HttpClientAdapter {
   final Object response;

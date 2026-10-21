@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/utils/game_merge_helper.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/utils/game_merge_helper.dart';
 
 RemoteArtifact artifact({String version = '1', String file = 'file'}) =>
     RemoteArtifact(

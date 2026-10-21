@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/features/game_detail/widgets/variant_picker_overlay.dart';
-import 'package:retro_eshop/features/game_detail/widgets/version_card.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/services/feedback_service.dart';
+import 'package:g_shop/features/game_detail/widgets/variant_picker_overlay.dart';
+import 'package:g_shop/features/game_detail/widgets/version_card.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/services/feedback_service.dart';
 import '../helpers/pump_helpers.dart';
 
 class _SilentFeedback implements FeedbackService {

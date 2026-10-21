@@ -3,15 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:retro_eshop/features/home/home_view.dart';
-import 'package:retro_eshop/models/config/app_config.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/providers/download_providers.dart';
-import 'package:retro_eshop/providers/game_providers.dart';
-import 'package:retro_eshop/services/audio_manager.dart';
-import 'package:retro_eshop/services/storage_service.dart';
-import 'package:retro_eshop/widgets/quick_menu.dart';
-import 'package:retro_eshop/widgets/exit_confirmation_overlay.dart';
+import 'package:g_shop/features/home/home_view.dart';
+import 'package:g_shop/models/config/app_config.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/providers/download_providers.dart';
+import 'package:g_shop/providers/game_providers.dart';
+import 'package:g_shop/services/audio_manager.dart';
+import 'package:g_shop/services/storage_service.dart';
+import 'package:g_shop/widgets/quick_menu.dart';
+import 'package:g_shop/widgets/exit_confirmation_overlay.dart';
 
 import '../helpers/pump_helpers.dart';
 

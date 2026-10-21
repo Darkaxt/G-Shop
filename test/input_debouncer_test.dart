@@ -1,6 +1,6 @@
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/input_debouncer.dart';
+import 'package:g_shop/services/input_debouncer.dart';
 
 void main() {
   group('canPerformAction', () {

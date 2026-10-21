@@ -21,7 +21,7 @@ class PatchEngineTest {
         val original = folder.newFile().apply { writeBytes(base) }
         val resource = folder.newFile().apply { writeBytes(patch) }
         val output = File(folder.root, "result-${folder.root.list()!!.size}")
-        RShopPatchEngine.apply(format, resource, original, output, resources, emptyList())
+        GShopPatchEngine.apply(format, resource, original, output, resources, emptyList())
         assertArrayEquals(expected, output.readBytes())
         assertArrayEquals(base, original.readBytes())
         assertArrayEquals(patch, resource.readBytes())
@@ -103,7 +103,7 @@ class PatchEngineTest {
         val patch = folder.newFile().apply { writeBytes("PATCH".toByteArray()) }
         val output = File(folder.root, "no-output")
         assertThrows(IllegalArgumentException::class.java) {
-            RShopPatchEngine.apply("ebp", patch, original, output, resources, emptyList())
+            GShopPatchEngine.apply("ebp", patch, original, output, resources, emptyList())
         }
         assertFalse(output.exists())
         assertArrayEquals(bytes(1, 2), original.readBytes())
@@ -125,7 +125,7 @@ class PatchEngineTest {
             writeBytes("PATCH".toByteArray() + bytes(0, 2, 0, 0, 1, value) + "EOF".toByteArray())
         }
         val output = File(folder.root, "ebp-output")
-        RShopPatchEngine.apply("ebp", patch, original, output, resources, listOf("ebp-canonical-base"))
+        GShopPatchEngine.apply("ebp", patch, original, output, resources, listOf("ebp-canonical-base"))
         val expected = before.copyOf().apply { this[0x200] = value.toByte() }
         assertArrayEquals(expected, output.readBytes())
         assertArrayEquals(before, original.readBytes())

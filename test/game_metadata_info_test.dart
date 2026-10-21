@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/game_metadata_info.dart';
+import 'package:g_shop/models/game_metadata_info.dart';
 
 void main() {
   group('GameMetadataInfo', () {

@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/config/drive_source_config.dart';
-import 'package:retro_eshop/models/config/source.dart';
-import 'package:retro_eshop/providers/source_health_providers.dart';
-import 'package:retro_eshop/services/source_provider.dart';
+import 'package:g_shop/models/config/drive_source_config.dart';
+import 'package:g_shop/models/config/source.dart';
+import 'package:g_shop/providers/source_health_providers.dart';
+import 'package:g_shop/services/source_provider.dart';
 
 void main() {
   test('Drive health is checked without producing auto-map platforms',

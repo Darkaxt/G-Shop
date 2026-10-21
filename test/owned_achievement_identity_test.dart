@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/features/library/widgets/library_entry.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/ra_models.dart';
-import 'package:retro_eshop/services/database_service.dart';
+import 'package:g_shop/features/library/widgets/library_entry.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/ra_models.dart';
+import 'package:g_shop/services/database_service.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 GameItem game({String account = 'a', String file = 'f', String version = '1',

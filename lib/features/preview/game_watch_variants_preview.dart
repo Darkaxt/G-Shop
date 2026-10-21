@@ -76,7 +76,7 @@ class GameWatchVariantsPreviewState extends State<GameWatchVariantsPreview> {
             if (result.hasError && !_errorReported) {
               _errorReported = true;
               debugPrint(
-                  'RShopGameWatchVariants import unavailable: ${result.error}');
+                  'GShopGameWatchVariants import unavailable: ${result.error}');
             }
             if (variants == null || variants.isEmpty) {
               // An optional visual catalogue cannot hide the exact primary or the
@@ -156,7 +156,7 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
   }
 
   void _reportSequence() {
-    debugPrint('RShopGameWatchSequence ${jsonEncode({
+    debugPrint('GShopGameWatchSequence ${jsonEncode({
           'settled': _sequence.value == 1,
           'running': _sequence.isAnimating,
           'foreground': _resumed,
@@ -222,7 +222,7 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
       final index = _inspected;
       final model = index == null ? null : widget.variants[index].model;
       final state = index == null ? null : _keys[index].currentState?.snapshot;
-      debugPrint('RShopGameWatchInspection ${jsonEncode({
+      debugPrint('GShopGameWatchInspection ${jsonEncode({
             'hardware': model?.hardwareId,
             'informationVisible': _information,
             'sourceUrl': model == null
@@ -302,7 +302,7 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
     if (_ready.length != widget.variants.length) return;
     _reported = true;
     final size = context.size;
-    debugPrint('RShopGameWatchVariants ${jsonEncode({
+    debugPrint('GShopGameWatchVariants ${jsonEncode({
           'frameRendered': true,
           'expected': widget.variants.length,
           'ready': _ready.length,

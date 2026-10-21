@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/features/game_list/logic/filter_state.dart';
-import 'package:retro_eshop/features/game_list/widgets/filter_overlay.dart';
-import 'package:retro_eshop/l10n/app_localizations.dart';
+import 'package:g_shop/features/game_list/logic/filter_state.dart';
+import 'package:g_shop/features/game_list/widgets/filter_overlay.dart';
+import 'package:g_shop/l10n/app_localizations.dart';
 
 void main() {
   testWidgets('existing filter panel offers Top, independent tags and clear',

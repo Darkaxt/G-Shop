@@ -1,10 +1,10 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/saves/save_capture.dart';
+import 'package:g_shop/services/saves/save_capture.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  const channel = MethodChannel('com.retro.rshop/save_capture');
+  const channel = MethodChannel('com.darkaxt.gshop/save_capture');
   const parent = '/storage/emulated/0/PSP/SAVEDATA';
   const directory = '$parent/ULUS10001DATA00';
   final calls = <MethodCall>[];

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:retro_eshop/models/rom_cache_policy.dart';
-import 'package:retro_eshop/services/rom_cache_store.dart';
+import 'package:g_shop/models/rom_cache_policy.dart';
+import 'package:g_shop/services/rom_cache_store.dart';
 
 void main() {
   sqfliteFfiInit();

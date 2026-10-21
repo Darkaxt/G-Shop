@@ -2,7 +2,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
-import 'package:retro_eshop/services/storage_service.dart';
+import 'package:g_shop/services/storage_service.dart';
 
 class _RejectCompanionWrite extends InMemorySharedPreferencesStore {
   _RejectCompanionWrite() : super.empty();

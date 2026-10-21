@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/providers/installed_files_provider.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/providers/installed_files_provider.dart';
 
 class _CountedId extends RemoteArtifactId {
   static int keyReads = 0;

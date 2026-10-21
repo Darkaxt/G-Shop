@@ -5,11 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/services/storage_service.dart';
-import 'package:retro_eshop/features/settings/widgets/general_tab.dart';
-import 'package:retro_eshop/features/settings/media_settings_screen.dart';
-import 'package:retro_eshop/services/socket_media_import.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/services/storage_service.dart';
+import 'package:g_shop/features/settings/widgets/general_tab.dart';
+import 'package:g_shop/features/settings/media_settings_screen.dart';
+import 'package:g_shop/services/socket_media_import.dart';
 import '../helpers/pump_helpers.dart';
 
 void main() {
@@ -18,7 +18,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     FlutterSecureStorage.setMockInitialValues({});
     final storage = StorageService();
-    const channel = MethodChannel('com.retro.rshop/socket_import');
+    const channel = MethodChannel('com.darkaxt.gshop/socket_import');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel,
             (call) async => call.method == 'startupCleanup' ? false : null);

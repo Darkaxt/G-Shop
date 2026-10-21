@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/scraped_metadata.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
 
 void main() {
   final fetched = DateTime.utc(2026, 9, 8);

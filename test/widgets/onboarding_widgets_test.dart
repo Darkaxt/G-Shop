@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:retro_eshop/features/onboarding/widgets/connection_test_indicator.dart';
+import 'package:g_shop/features/onboarding/widgets/connection_test_indicator.dart';
 import '../helpers/pump_helpers.dart';
 
 void main() {

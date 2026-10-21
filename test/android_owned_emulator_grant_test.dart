@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/owned_emulator_launcher.dart';
+import 'package:g_shop/services/owned_emulator_launcher.dart';
 
 // Host wiring regression, not a substitute for the native launch/restore proof.
 // Dolphin 2606 finishes MainActivity before EmulationActivity opens the ROM, so

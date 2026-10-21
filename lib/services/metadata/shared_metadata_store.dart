@@ -65,7 +65,7 @@ class SharedMetadataStore {
       bool existingOnly = false,
       Future<void> Function()? verifyAccess}) async {
     final access = verifyAccess ?? requireStoragePermission;
-    debugPrint('RShopMetadataStore phase=permission');
+    debugPrint('GShopMetadataStore phase=permission');
     await access();
     final root = directory.absolute;
     if (existingOnly &&
@@ -75,7 +75,7 @@ class SharedMetadataStore {
           'Selected metadata storage is unavailable');
     }
     await root.create(recursive: true);
-    debugPrint('RShopMetadataStore phase=database-open');
+    debugPrint('GShopMetadataStore phase=database-open');
     final db = await (factory ?? databaseFactory).openDatabase(
         p.join(root.path, 'metadata.sqlite'),
         options: OpenDatabaseOptions(
@@ -94,7 +94,7 @@ class SharedMetadataStore {
                   "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name != 'android_metadata' LIMIT 1");
               if (tables.isNotEmpty && applicationId != _applicationId) {
                 throw const FormatException(
-                    'Not an R-Shop shared metadata store');
+                    'Not an G-Shop shared metadata store');
               }
               // A rollback journal remains beside the shared database for
               // recovery; never use memory/off journaling for external storage.
@@ -154,7 +154,7 @@ class SharedMetadataStore {
               if (old < 7) await _installPatchRecipes(db);
               if (old < 8) await _installPlatformIndex(db);
             }));
-    debugPrint('RShopMetadataStore phase=opened');
+    debugPrint('GShopMetadataStore phase=opened');
     return SharedMetadataStore._(root, db, access);
   }
 
@@ -1070,7 +1070,7 @@ class SharedMetadataStore {
               final screenshot = {'ss', 'screenshot'}.contains(media.type);
               if (screenshot && screenshotPublished) continue;
               // A reviewed launcher image remains launcher/manual-owned. Reuse
-              // it in R-Shop, without taking ownership or duplicating a JPG/WebP
+              // it in G-Shop, without taking ownership or duplicating a JPG/WebP
               // with a competing PNG beside it.
               if (await reviewedArtwork(
                       editionId,
@@ -1613,10 +1613,10 @@ class SharedMetadataStore {
     var catalogueRows = 0, recordRows = 0;
     final scopedMedia = <String>{};
     debugPrint(
-        'RShopMetadataRecovery scope=${platformId ?? 'all'} phase=waiting-projection');
+        'GShopMetadataRecovery scope=${platformId ?? 'all'} phase=waiting-projection');
     await destination.transaction((txn) async {
       debugPrint(
-          'RShopMetadataRecovery scope=${platformId ?? 'all'} phase=projection-acquired');
+          'GShopMetadataRecovery scope=${platformId ?? 'all'} phase=projection-acquired');
       // Android's system SQLite need not include JSON1. Decode bounded pages
       // with the existing artifact model, then index the same pinned catalogue
       // once per restore rather than rescanning it for each cached edition.
@@ -1655,7 +1655,7 @@ class SharedMetadataStore {
         await txn.execute('''CREATE INDEX shared_metadata_object ON
           shared_metadata_catalogue(platform, provider, account, file_id)''');
         debugPrint(
-            'RShopMetadataRecovery scope=${platformId ?? 'all'} phase=reading-facts catalogue=$catalogueRows');
+            'GShopMetadataRecovery scope=${platformId ?? 'all'} phase=reading-facts catalogue=$catalogueRows');
         assert(() {
           debugPrint('Shared metadata catalogue indexed: '
               'rows=$catalogueRows elapsedMs=${watch.elapsedMilliseconds}');
@@ -1824,7 +1824,7 @@ class SharedMetadataStore {
           'artworkRows=$artworkRows');
       return true;
     }());
-    debugPrint('RShopMetadataRecovery scope=${platformId ?? 'all'} '
+    debugPrint('GShopMetadataRecovery scope=${platformId ?? 'all'} '
         'elapsedMs=${watch.elapsedMilliseconds} catalogue=$catalogueRows '
         'records=$recordRows receipts=$artworkRows restored=$restored');
     return restored;

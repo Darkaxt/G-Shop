@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/features/game_detail/game_detail_controller.dart';
-import 'package:retro_eshop/features/game_detail/game_detail_state.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/services/download_queue_manager.dart';
-import 'package:retro_eshop/services/rom_manager.dart';
+import 'package:g_shop/features/game_detail/game_detail_controller.dart';
+import 'package:g_shop/features/game_detail/game_detail_state.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/services/download_queue_manager.dart';
+import 'package:g_shop/services/rom_manager.dart';
 
 const local = GameItem(filename: 'Game.nes', displayName: 'Game', url: '');
 const web = ProviderConfig(type: ProviderType.web, priority: 0);

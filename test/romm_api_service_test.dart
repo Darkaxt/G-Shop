@@ -3,9 +3,9 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/game_metadata_info.dart';
-import 'package:retro_eshop/services/romm_api_service.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/game_metadata_info.dart';
+import 'package:g_shop/services/romm_api_service.dart';
 
 // ─── Test doubles ────────────────────────────────────────
 

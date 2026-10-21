@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/providers/library_providers.dart';
-import 'package:retro_eshop/providers/ra_providers.dart';
-import 'package:retro_eshop/services/library_sync_service.dart';
-import 'package:retro_eshop/widgets/sync_badge.dart';
+import 'package:g_shop/providers/library_providers.dart';
+import 'package:g_shop/providers/ra_providers.dart';
+import 'package:g_shop/services/library_sync_service.dart';
+import 'package:g_shop/widgets/sync_badge.dart';
 import '../helpers/pump_helpers.dart';
 
 class _Sync extends LibrarySyncService {

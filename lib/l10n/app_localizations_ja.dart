@@ -442,7 +442,7 @@ class LJa extends L {
   }
 
   @override
-  String get appTitle => 'R-Shop';
+  String get appTitle => 'G-Shop';
 
   @override
   String get settings_language => '言語';
@@ -1637,7 +1637,7 @@ class LJa extends L {
   String get filter_title => 'フィルター';
 
   @override
-  String get onboarding_welcomeTitle => 'R-Shopへようこそ';
+  String get onboarding_welcomeTitle => 'G-Shopへようこそ';
 
   @override
   String get onboarding_welcomeSubtitle => 'ゲームの入手先は？';
@@ -2063,7 +2063,7 @@ class LJa extends L {
       'キャッシュ内の項目数で、重複を除いたゲーム数ではありません。配信元サイズはSD使用量ではなく、管理対象のバイト数には管理外ファイル、セーブ、BIOSは含まれません。';
 
   @override
-  String get service_notificationTitle => 'R-Shop';
+  String get service_notificationTitle => 'G-Shop';
 
   @override
   String get service_channelName => 'ダウンロード';

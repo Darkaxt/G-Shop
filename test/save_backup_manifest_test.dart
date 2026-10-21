@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/save_backup_manifest.dart';
+import 'package:g_shop/models/save_backup_manifest.dart';
 
 SaveBackupBinding binding({
   String account = 'account',

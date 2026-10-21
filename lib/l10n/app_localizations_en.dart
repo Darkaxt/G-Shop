@@ -16,7 +16,7 @@ class LEn extends L {
 
   @override
   String get saveBackup_help =>
-      'Keep save backups in a separate private area of Google Drive. R-Shop can change only backups it creates, not your cloud ROMs. Choose the saves to back up before anything is uploaded.';
+      'Keep save backups in a separate private area of Google Drive. G-Shop can change only backups it creates, not your cloud ROMs. Choose the saves to back up before anything is uploaded.';
 
   @override
   String get saveBackup_authorize => 'Set up Drive backups';
@@ -135,11 +135,11 @@ class LEn extends L {
 
   @override
   String get metadata_sharedStorageHelp =>
-      'Choose a folder to keep game information and artwork outside R-Shop. Existing information is copied, not deleted. It survives uninstall: reconnect your source and choose this folder again to recover it. Account details and downloaded-game records are not backed up here. Set up ES-DE sharing separately.';
+      'Choose a folder to keep game information and artwork outside G-Shop. Existing information is copied, not deleted. It survives uninstall: reconnect your source and choose this folder again to recover it. Account details and downloaded-game records are not backed up here. Set up ES-DE sharing separately.';
 
   @override
   String get metadata_privateStorage =>
-      'No folder selected — saved inside R-Shop only';
+      'No folder selected — saved inside G-Shop only';
 
   @override
   String get metadata_chooseSharedStorage => 'Choose / reconnect shared folder';
@@ -197,7 +197,7 @@ class LEn extends L {
 
   @override
   String get metadata_reviewSaved =>
-      'Your choice was saved. R-Shop will check the match before using its rating.';
+      'Your choice was saved. G-Shop will check the match before using its rating.';
 
   @override
   String get metadata_reviewError =>
@@ -460,7 +460,7 @@ class LEn extends L {
   }
 
   @override
-  String get appTitle => 'R-Shop';
+  String get appTitle => 'G-Shop';
 
   @override
   String get settings_language => 'Language';
@@ -1674,7 +1674,7 @@ class LEn extends L {
   String get filter_title => 'FILTER';
 
   @override
-  String get onboarding_welcomeTitle => 'Welcome to R-Shop';
+  String get onboarding_welcomeTitle => 'Welcome to G-Shop';
 
   @override
   String get onboarding_welcomeSubtitle => 'Where do your games come from?';
@@ -2120,7 +2120,7 @@ class LEn extends L {
       'Cached catalogue entries, not unique games. Source sizes are not SD usage; managed local bytes exclude unmanaged files, saves and BIOS.';
 
   @override
-  String get service_notificationTitle => 'R-Shop';
+  String get service_notificationTitle => 'G-Shop';
 
   @override
   String get service_channelName => 'Downloads';

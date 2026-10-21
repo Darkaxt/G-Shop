@@ -43,11 +43,11 @@ open class SaveBackupJobService : JobService() {
             SaveOperationChannel.attach(messenger, identity)
             val captures = SaveCaptureService(applicationContext)
             capture = captures
-            MethodChannel(messenger, "com.retro.rshop/save_capture")
+            MethodChannel(messenger, "com.darkaxt.gshop/save_capture")
                 .setMethodCallHandler(captures::handle)
             val inspections = OwnedStorageService(applicationContext)
             storage = inspections
-            MethodChannel(messenger, "com.retro.rshop/storage").setMethodCallHandler { call, reply ->
+            MethodChannel(messenger, "com.darkaxt.gshop/storage").setMethodCallHandler { call, reply ->
                 // The same installed/local-copy binding review used by the UI.
                 // No ROM transfer, removal or emulator launch in a backup pass.
                 if (call.method in setOf("ownedInspect", "localCopyInspect", "reviewOwnedRetroArchPcsxSaves")) {
@@ -72,7 +72,7 @@ open class SaveBackupJobService : JobService() {
             }
             runtime.dartExecutor.executeDartEntrypoint(DartExecutor.DartEntrypoint(
                 loader.findAppBundlePath(),
-                "package:retro_eshop/services/saves/save_backup_background.dart",
+                "package:g_shop/services/saves/save_backup_background.dart",
                 "saveBackupBackground"))
         } catch (_: Exception) { finishPass("startup_unavailable") }
         return true

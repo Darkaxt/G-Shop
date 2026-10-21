@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:retro_eshop/features/game_detail/widgets/game_info_card.dart';
-import 'package:retro_eshop/features/game_detail/widgets/version_card.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/game_metadata_info.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/scraped_metadata.dart';
-import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
+import 'package:g_shop/features/game_detail/widgets/game_info_card.dart';
+import 'package:g_shop/features/game_detail/widgets/version_card.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/game_metadata_info.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
+import 'package:g_shop/services/metadata/effective_overall_rating.dart';
 import '../helpers/pump_helpers.dart';
 
 // ─── Test Fixtures ───────────────────────────────────────

@@ -376,7 +376,7 @@ class _RomCacheSettingsState extends ConsumerState<RomCacheSettingsScreen>
         _limits(scoped: false),
         const Text(
             'Never disables age cleanup. Game and storage limits can still rotate ROMs. '
-            'Use is recorded only after a successful launch through R-Shop.'),
+            'Use is recorded only after a successful launch through G-Shop.'),
       ]);
     }
     if (_section == _CacheSection.consoles) {

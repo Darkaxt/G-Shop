@@ -1,12 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:retro_eshop/models/config/drive_source_config.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/services/drive/drive_api.dart';
-import 'package:retro_eshop/services/drive/drive_catalogue.dart';
-import 'package:retro_eshop/services/drive/drive_download_boundary.dart';
-import 'package:retro_eshop/services/drive/drive_media.dart';
+import 'package:g_shop/models/config/drive_source_config.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/services/drive/drive_api.dart';
+import 'package:g_shop/services/drive/drive_catalogue.dart';
+import 'package:g_shop/services/drive/drive_download_boundary.dart';
+import 'package:g_shop/services/drive/drive_media.dart';
 
 DriveFile folder(String id, String parent) => DriveFile(
     id: id, name: id, mimeType: DriveFile.folderMime, parents: [parent]);

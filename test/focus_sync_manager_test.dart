@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/core/input/app_intents.dart';
-import 'package:retro_eshop/core/input/focus_sync_manager.dart';
+import 'package:g_shop/core/input/app_intents.dart';
+import 'package:g_shop/core/input/focus_sync_manager.dart';
 
 void main() {
   late ScrollController scrollController;

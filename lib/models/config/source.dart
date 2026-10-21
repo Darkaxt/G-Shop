@@ -1,7 +1,7 @@
 import 'drive_source_config.dart';
 import 'provider_config.dart';
 
-/// Top-level kinds of content sources R-Shop knows how to talk to.
+/// Top-level kinds of content sources G-Shop knows how to talk to.
 ///
 /// `local` is the device's own filesystem (no network); `web` is an HTTP
 /// directory listing (Myrient and friends). RomM is treated as its own

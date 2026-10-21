@@ -66,8 +66,8 @@ class DownloadProgress {
 }
 
 class DownloadService {
-  static const _zipChannel = MethodChannel('com.retro.rshop/zip');
-  static const _zipProgressChannel = EventChannel('com.retro.rshop/zip_progress');
+  static const _zipChannel = MethodChannel('com.darkaxt.gshop/zip');
+  static const _zipProgressChannel = EventChannel('com.darkaxt.gshop/zip_progress');
 
   final NativeSmbService _smbService;
 

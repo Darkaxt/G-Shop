@@ -1,6 +1,46 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 131, 2026-10-20.
+Authoritative specification, revision 132, 2026-10-21.
+
+S26 implementation contract, 2026-10-21 (already authorized): the G&W gate
+is delivered in normal v1.9.24. S26 is the next authorized implementation stage;
+its current execution status is in IMPLEMENTATION_STATUS.md. Remaining S25 criteria
+are parked only under the owner's sequencing instruction and must resume afterward.
+
+- GSHOP-01: rebrand the maintained product, Dart package, application symbols,
+  user-visible localized strings, notifications, current documentation and fork
+  repository to G-Shop. Retain upstream attribution, license text and historical
+  evidence; do not rewrite facts or remove credit. Keep the existing design and
+  controller/two-screen behavior. Replace the R monogram with an authored G mark.
+- GSHOP-02: remove the original collection integration and standalone local-only
+  setup as requested. The existing source model also contains SMB/FTP/Web; their
+  retention/removal boundary is being clarified with the owner. Do not remove
+  those integrations based on an assumed answer. Downloads, offline play, owned
+  file recovery, saves, metadata, companion launch, imported 3D models, patches
+  and established external integrations remain supported. No S23 acquisition
+  implementation is opened.
+- GSHOP-03: preserve the production application ID, signer, UID, secure-storage
+  namespace, database names/schema contents, configured paths, exact source/game
+  identities, persisted protocol/ownership markers and scheduled Android service
+  component identity. These identifiers form the installed update/data boundary,
+  not current product branding. Native manifest/JNI package ABI remains compatible.
+  Rename internal Dart symbols/package and paired live channel names together;
+  update secondary/background Dart entrypoint package URIs. Never recreate the
+  user's library, revoke access, rename cloud folders or move/delete user files
+  merely to change the product name. New metadata roots may use G-Shop Metadata;
+  existing R-Shop Metadata roots must still validate without mutation.
+- GSHOP-04: preserve existing encrypted migration/rollback format and its legacy
+  import recognition, configuration round trips, OAuth Android package+certificate
+  registration, cloud ownership checks and update/install continuity. Document
+  intentional legacy wire/path exceptions rather than silently breaking them.
+- GSHOP-05: verify complete affected host workflows plus actual signed in-place
+  Thor update, retained settings/data/imports and Drive-backed cached browsing;
+  inspect G-Shop branding, lower-screen rendering and required live integration.
+  Publish one normal final release after all S26 acceptance passes, using the
+  existing signing/release channel and renamed repository, then independently
+  retrieve/version/signature/hash/source verify it against the installed package.
+  No partial rebrand release. A pending scope answer blocks source-removal and
+  final delivery acceptance, not independent authorized preparation.
 
 Owner selector clarification, 2026-10-20: the Game & Watch selection must show
 the supplied multi-console collection as a large rotating 3D scene on the

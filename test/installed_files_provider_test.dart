@@ -4,21 +4,21 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:retro_eshop/models/config/app_config.dart';
-import 'package:retro_eshop/models/config/system_config.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/local_cloud_byte_observation.dart';
-import 'package:retro_eshop/models/transfer_record.dart';
-import 'package:retro_eshop/providers/game_providers.dart';
-import 'package:retro_eshop/providers/installed_files_provider.dart';
-import 'package:retro_eshop/services/database_service.dart';
-import 'package:retro_eshop/services/owned_storage.dart';
-import 'package:retro_eshop/services/transfer_journal.dart';
+import 'package:g_shop/models/config/app_config.dart';
+import 'package:g_shop/models/config/system_config.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/local_cloud_byte_observation.dart';
+import 'package:g_shop/models/transfer_record.dart';
+import 'package:g_shop/providers/game_providers.dart';
+import 'package:g_shop/providers/installed_files_provider.dart';
+import 'package:g_shop/services/database_service.dart';
+import 'package:g_shop/services/owned_storage.dart';
+import 'package:g_shop/services/transfer_journal.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  const channel = MethodChannel('com.retro.rshop/storage');
+  const channel = MethodChannel('com.darkaxt.gshop/storage');
   const filename = 'Fixture.chd';
   const hashes = {
     'md5': '7cfdd07889b3295d6a550914ab35e068',

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/thumbnail_index_service.dart';
+import 'package:g_shop/services/thumbnail_index_service.dart';
 
 void main() {
   group('parseDirectoryListing', () {

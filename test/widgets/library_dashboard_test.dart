@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/features/library/widgets/library_dashboard.dart';
-import 'package:retro_eshop/features/library/widgets/library_entry.dart';
-import 'package:retro_eshop/l10n/app_localizations.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/providers/installed_files_provider.dart';
+import 'package:g_shop/features/library/widgets/library_dashboard.dart';
+import 'package:g_shop/features/library/widgets/library_entry.dart';
+import 'package:g_shop/l10n/app_localizations.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/providers/installed_files_provider.dart';
 
 void main() {
   LibraryEntry entry(String id, {int? bytes, String slug = 'psx'}) =>

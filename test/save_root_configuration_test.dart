@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/save_root_configuration.dart';
+import 'package:g_shop/models/save_root_configuration.dart';
 
 void main() {
   test('Cemu title profile excludes other titles, accounts and system data',

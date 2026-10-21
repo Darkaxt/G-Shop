@@ -4,12 +4,12 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/transfer_record.dart';
-import 'package:retro_eshop/models/owned_removal_record.dart';
-import 'package:retro_eshop/models/local_cloud_byte_observation.dart';
-import 'package:retro_eshop/services/transfer_journal.dart';
-import 'package:retro_eshop/services/rom_cache_store.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/transfer_record.dart';
+import 'package:g_shop/models/owned_removal_record.dart';
+import 'package:g_shop/models/local_cloud_byte_observation.dart';
+import 'package:g_shop/services/transfer_journal.dart';
+import 'package:g_shop/services/rom_cache_store.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 RemoteArtifact _artifact({

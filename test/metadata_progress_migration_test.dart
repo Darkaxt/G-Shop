@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/services/database_service.dart';
-import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/services/database_service.dart';
+import 'package:g_shop/services/metadata/metadata_refresh_jobs.dart';
 import 'metadata_controls_test.dart' show ControlsProvider;
 
 void main() {

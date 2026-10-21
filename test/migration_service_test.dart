@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:retro_eshop/models/config/app_config.dart';
-import 'package:retro_eshop/services/config_storage_service.dart';
-import 'package:retro_eshop/services/migration/migration_service.dart';
-import 'package:retro_eshop/services/migration/migration_maintenance.dart';
+import 'package:g_shop/models/config/app_config.dart';
+import 'package:g_shop/services/config_storage_service.dart';
+import 'package:g_shop/services/migration/migration_service.dart';
+import 'package:g_shop/services/migration/migration_maintenance.dart';
 import 'migration_activation_test.dart' show MemorySettings;
 
 class _InterruptedSettings extends MemorySettings {
@@ -77,6 +77,22 @@ void main() {
         closeDatabase: db.close);
     return (service: service, settings: values, locations: locations);
   }
+
+  test('rebrand discovers old exports and orders both names by timestamp', () async {
+    final source = await setup('rebrand');
+    addTearDown(() async => (await source.service.database).close());
+    final exports = Directory(p.join(source.locations.privateRoot.path, 'exports'));
+    await exports.create(recursive: true);
+    final old = File(p.join(exports.path, 'R-Shop-2026-10-20T10-00-00.rshop'));
+    await old.writeAsBytes([1]);
+    await source.service.initialize();
+    expect(source.service.lastBackup?.path, old.path);
+    final current = File(p.join(exports.path, 'G-Shop-2026-10-21T10-00-00.rshop'));
+    await current.writeAsBytes([2]);
+    await source.service.initialize();
+    expect(source.service.lastBackup?.path, current.path);
+    expect(await old.readAsBytes(), [1]);
+  });
 
   test(
       'complete setup export/import resumes its original interrupted activation',

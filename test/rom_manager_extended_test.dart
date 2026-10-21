@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/services/rom_manager.dart';
-import 'package:retro_eshop/services/database_service.dart';
-import 'package:retro_eshop/services/transfer_journal.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/services/rom_manager.dart';
+import 'package:g_shop/services/database_service.dart';
+import 'package:g_shop/services/transfer_journal.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {

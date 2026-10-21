@@ -35,7 +35,7 @@ internal class SocketImportChannel(context: Context, messenger: BinaryMessenger)
     @Volatile private var session: String? = null
     private var archive: ZipFile? = null
     private var key: ByteArray? = null
-    private val channel = MethodChannel(messenger, "com.retro.rshop/socket_import")
+    private val channel = MethodChannel(messenger, "com.darkaxt.gshop/socket_import")
 
     init {
         channel.setMethodCallHandler { call, result ->

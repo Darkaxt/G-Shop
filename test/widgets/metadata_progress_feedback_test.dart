@@ -4,17 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:retro_eshop/features/settings/metadata_settings_screen.dart';
-import 'package:retro_eshop/features/settings/metadata_progress_feedback.dart';
-import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
-import 'package:retro_eshop/widgets/media_cover_fallback.dart';
-import 'package:retro_eshop/l10n/app_localizations.dart';
-import 'package:retro_eshop/models/scraped_metadata.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/providers/metadata_providers.dart';
-import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
-import 'package:retro_eshop/services/metadata/metadata_provider.dart';
-import 'package:retro_eshop/services/storage_service.dart';
+import 'package:g_shop/features/settings/metadata_settings_screen.dart';
+import 'package:g_shop/features/settings/metadata_progress_feedback.dart';
+import 'package:g_shop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:g_shop/widgets/media_cover_fallback.dart';
+import 'package:g_shop/l10n/app_localizations.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/providers/metadata_providers.dart';
+import 'package:g_shop/services/metadata/metadata_credentials.dart';
+import 'package:g_shop/services/metadata/metadata_provider.dart';
+import 'package:g_shop/services/storage_service.dart';
 import '../metadata_controls_test.dart'
     show controlsDatabase, MemorySecrets, ControlsProvider;
 

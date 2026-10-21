@@ -7,9 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:retro_eshop/services/drive/drive_authorization.dart';
-import 'package:retro_eshop/services/drive/google_drive_sign_in.dart';
-import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
+import 'package:g_shop/services/drive/drive_authorization.dart';
+import 'package:g_shop/services/drive/google_drive_sign_in.dart';
+import 'package:g_shop/services/metadata/metadata_credentials.dart';
 
 import '../test/support/library_migration_fixture.dart';
 
@@ -35,10 +35,10 @@ void main() {
       (tester) async {
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(
-        body: Center(child: Text('R-Shop native foundation checks')),
+        body: Center(child: Text('G-Shop native foundation checks')),
       ),
     ));
-    expect(find.text('R-Shop native foundation checks'), findsOneWidget);
+    expect(find.text('G-Shop native foundation checks'), findsOneWidget);
   });
 
   testWidgets('native SQLite v13 migration and reopen retain legacy identities',

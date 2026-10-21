@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/game_metadata_info.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/services/database_service.dart';
-import 'package:retro_eshop/services/library_store.dart';
-import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/game_metadata_info.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/services/database_service.dart';
+import 'package:g_shop/services/library_store.dart';
+import 'package:g_shop/services/metadata/metadata_refresh_jobs.dart';
 
 /// Shared by the host FFI and actual Android SQLite tests. Only the caller's
 /// test-private temporary database is changed; the normal app DB is not opened.

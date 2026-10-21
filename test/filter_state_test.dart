@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/features/game_list/logic/filter_state.dart';
-import 'package:retro_eshop/features/game_list/logic/game_list_controller.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/utils/game_metadata.dart';
+import 'package:g_shop/features/game_list/logic/filter_state.dart';
+import 'package:g_shop/features/game_list/logic/game_list_controller.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/utils/game_metadata.dart';
 
 void main() {
   test(

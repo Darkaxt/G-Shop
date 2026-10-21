@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/services/source_provider.dart';
+import 'package:g_shop/services/source_provider.dart';
 
 void main() {
   group('SourceConnectionResult', () {

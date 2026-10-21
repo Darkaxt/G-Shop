@@ -4,15 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:retro_eshop/core/input/app_intents.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/transfer_record.dart';
-import 'package:retro_eshop/services/drive/drive_runtime.dart';
-import 'package:retro_eshop/services/drive/drive_media.dart';
-import 'package:retro_eshop/services/library_query.dart';
-import 'package:retro_eshop/providers/rom_status_providers.dart';
-import 'package:retro_eshop/features/game_detail/widgets/drive_recovery_review_dialog.dart';
+import 'package:g_shop/core/input/app_intents.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/transfer_record.dart';
+import 'package:g_shop/services/drive/drive_runtime.dart';
+import 'package:g_shop/services/drive/drive_media.dart';
+import 'package:g_shop/services/library_query.dart';
+import 'package:g_shop/providers/rom_status_providers.dart';
+import 'package:g_shop/features/game_detail/widgets/drive_recovery_review_dialog.dart';
 
 class _Runtime extends DriveRuntime {
   final result = Completer<DriveLocalCloudObservation>();
@@ -108,7 +108,7 @@ void main() {
       expect(find.textContaining('Your files have not been changed'),
           findsOneWidget);
       expect(find.textContaining('Error code:'), findsNothing);
-      expect(find.text('Add to R-Shop'), findsNothing);
+      expect(find.text('Add to G-Shop'), findsNothing);
       await tester.tap(find.text('Technical details'));
       await tester.pumpAndSettle();
       expect(find.text('Error code: ${issue.name}'), findsOneWidget);
@@ -245,12 +245,12 @@ void main() {
     expect(runtime.adoptionCancellation, isNull);
     expect(runtime.cancellation, isNull);
     expect(find.textContaining('Nothing is deleted'), findsOneWidget);
-    await tester.tap(find.text('Add to R-Shop'));
+    await tester.tap(find.text('Add to G-Shop'));
     await tester.pump();
     expect(runtime.adoptionCancellation, isNotNull);
     expect(runtime.cancellation, isNull);
     expect(
-        find.text('Your existing download was added to R-Shop.'), findsNothing);
+        find.text('Your existing download was added to G-Shop.'), findsNothing);
     final identity = NativeFileIdentity(
         volumeId: 'volume',
         fileId: 'inode',
@@ -269,9 +269,9 @@ void main() {
         },
         fileIdentity: identity));
     await tester.pumpAndSettle();
-    expect(find.text('Your existing download was added to R-Shop.'),
+    expect(find.text('Your existing download was added to G-Shop.'),
         findsOneWidget);
-    expect(find.text('Add to R-Shop'), findsNothing);
+    expect(find.text('Add to G-Shop'), findsNothing);
     expect(find.textContaining('Nothing was deleted'), findsOneWidget);
     expect(container.read(romChangeSignalProvider), 1,
         reason:

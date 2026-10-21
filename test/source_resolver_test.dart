@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/config/app_config.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/config/source.dart';
-import 'package:retro_eshop/models/config/system_config.dart';
-import 'package:retro_eshop/services/source_resolver.dart';
+import 'package:g_shop/models/config/app_config.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/config/source.dart';
+import 'package:g_shop/models/config/system_config.dart';
+import 'package:g_shop/services/source_resolver.dart';
 
 void main() {
   group('SourceResolver — RomM auto-map', () {

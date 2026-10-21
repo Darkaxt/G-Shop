@@ -817,7 +817,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
             remoteArtifact: artifact),
         mapping.romRoot!);
     final current = PcsxSaveLayout.decode(
-        await const MethodChannel('com.retro.rshop/storage')
+        await const MethodChannel('com.darkaxt.gshop/storage')
             .invokeMapMethod<String, dynamic>(
                 'reviewOwnedRetroArchPcsxSaves', grant));
     if (!current.containsSelection(mapping.pcsxLayout!, mapping.pcsxCard!)) {

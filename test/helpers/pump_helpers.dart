@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:retro_eshop/l10n/app_localizations.dart';
+import 'package:g_shop/l10n/app_localizations.dart';
 
 /// Wraps widget in MaterialApp for widget tests.
 /// Optionally set [size] to control MediaQuery.size for responsive breakpoints.

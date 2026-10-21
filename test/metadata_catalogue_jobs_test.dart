@@ -4,15 +4,15 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dio/dio.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/services/library_store.dart';
-import 'package:retro_eshop/services/library_query.dart';
-import 'package:retro_eshop/services/drive/drive_catalogue.dart';
-import 'package:retro_eshop/services/drive/drive_api.dart';
-import 'package:retro_eshop/services/drive/drive_media.dart';
-import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
-import 'package:retro_eshop/services/metadata/metadata_provider.dart';
-import 'package:retro_eshop/models/scraped_metadata.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/services/library_store.dart';
+import 'package:g_shop/services/library_query.dart';
+import 'package:g_shop/services/drive/drive_catalogue.dart';
+import 'package:g_shop/services/drive/drive_api.dart';
+import 'package:g_shop/services/drive/drive_media.dart';
+import 'package:g_shop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:g_shop/services/metadata/metadata_provider.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
 
 class _ReviewProvider implements MetadataProvider {
   int calls = 0;

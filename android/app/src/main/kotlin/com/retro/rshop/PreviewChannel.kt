@@ -21,11 +21,11 @@ import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
 import java.security.MessageDigest
 
-/** Owns only the R-Shop non-focusable window. Never manipulates another task. */
+/** Owns only the G-Shop non-focusable window. Never manipulates another task. */
 class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger) :
     DisplayManager.DisplayListener {
     private val displays = activity.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
-    private val channel = MethodChannel(messenger, "com.retro.rshop/preview")
+    private val channel = MethodChannel(messenger, "com.darkaxt.gshop/preview")
     private var presentation: PreviewPresentation? = null
     private var payload: Map<String, Any?>? = null
     private var resumed = true
@@ -184,12 +184,12 @@ class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger)
             val renderer = FlutterEngine(context, null, false)
             renderer.plugins.add(io.flutter.plugins.videoplayer.VideoPlayerPlugin())
             engine = renderer
-            channel = MethodChannel(renderer.dartExecutor.binaryMessenger, "com.retro.rshop/preview_view").also { bridge ->
+            channel = MethodChannel(renderer.dartExecutor.binaryMessenger, "com.darkaxt.gshop/preview_view").also { bridge ->
                 bridge.setMethodCallHandler { call, result ->
                     when (call.method) {
                         "ready" -> {
                             ready = true
-                            Log.i("RShopPreview", "renderer_ready elapsedUs=${(SystemClock.elapsedRealtimeNanos()-startedAt)/1000} showing=$isShowing")
+                            Log.i("GShopPreview", "renderer_ready elapsedUs=${(SystemClock.elapsedRealtimeNanos()-startedAt)/1000} showing=$isShowing")
                             preparation?.let { bridge.invokeMethod("prepare", it) }
                             latest?.let { bridge.invokeMethod("snapshot", it) }
                             if (!isShowing) renderer.lifecycleChannel.appIsPaused()
@@ -197,7 +197,7 @@ class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger)
                         }
                         "prepared" -> {
                             prepared = true
-                            Log.i("RShopPreview", "resources_ready elapsedUs=${(SystemClock.elapsedRealtimeNanos()-startedAt)/1000} showing=$isShowing")
+                            Log.i("GShopPreview", "resources_ready elapsedUs=${(SystemClock.elapsedRealtimeNanos()-startedAt)/1000} showing=$isShowing")
                             result.success(null)
                         }
                         "action" -> { onAction(call.arguments); result.success(null) }
@@ -213,7 +213,7 @@ class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger)
                             val selection = (rendered?.get("identity") as? String)?.let {
                                 MessageDigest.getInstance("SHA-256").digest(it.toByteArray()).joinToString("") { byte -> "%02x".format(byte) }
                             }
-                            Log.i("RShopPreview", "rendered selection=$selection selectionUs=${(SystemClock.elapsedRealtimeNanos()-selectionAt)/1000} model=${(rendered?.get("model") as? Map<*, *>)?.get("frameRendered")} cover=${(rendered?.get("media") as? Map<*, *>)?.get("coverExpected")} label=${(rendered?.get("media") as? Map<*, *>)?.get("labelDecoded")} resources=${(rendered?.get("media") as? Map<*, *>)?.get("resourcesReady")} video=${rendered?.get("videoReady")} playing=${rendered?.get("videoPlaying")} volume=${rendered?.get("videoVolume")} reveal=${rendered?.get("revealStarted")} completed=${rendered?.get("revealCompleted")}")
+                            Log.i("GShopPreview", "rendered selection=$selection selectionUs=${(SystemClock.elapsedRealtimeNanos()-selectionAt)/1000} model=${(rendered?.get("model") as? Map<*, *>)?.get("frameRendered")} cover=${(rendered?.get("media") as? Map<*, *>)?.get("coverExpected")} label=${(rendered?.get("media") as? Map<*, *>)?.get("labelDecoded")} resources=${(rendered?.get("media") as? Map<*, *>)?.get("resourcesReady")} video=${rendered?.get("videoReady")} playing=${rendered?.get("videoPlaying")} volume=${rendered?.get("videoVolume")} reveal=${rendered?.get("revealStarted")} completed=${rendered?.get("revealCompleted")}")
                             val completed = waiters.filter { matches(it) }
                             waiters.removeAll(completed.toSet())
                             completed.forEach { it.result.success(rendered) }

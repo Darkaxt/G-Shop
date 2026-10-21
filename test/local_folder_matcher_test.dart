@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/services/local_folder_matcher.dart';
-import 'package:retro_eshop/services/romm_api_service.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/services/local_folder_matcher.dart';
+import 'package:g_shop/services/romm_api_service.dart';
 
 const _allSystems = SystemModel.supportedSystems;
 

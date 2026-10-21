@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:retro_eshop/services/migration/migration_activation.dart';
+import 'package:g_shop/services/migration/migration_activation.dart';
 
 class MemorySettings implements MigrationSettings {
   Map<String, Object?> preferences = {

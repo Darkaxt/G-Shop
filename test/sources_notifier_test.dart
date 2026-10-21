@@ -2,14 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/config/app_config.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/config/drive_source_config.dart';
-import 'package:retro_eshop/models/config/source.dart';
-import 'package:retro_eshop/models/config/system_config.dart';
-import 'package:retro_eshop/services/config_storage_service.dart';
-import 'package:retro_eshop/services/romm_pairing_service.dart';
-import 'package:retro_eshop/services/sources_notifier.dart';
+import 'package:g_shop/models/config/app_config.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/config/drive_source_config.dart';
+import 'package:g_shop/models/config/source.dart';
+import 'package:g_shop/models/config/system_config.dart';
+import 'package:g_shop/services/config_storage_service.dart';
+import 'package:g_shop/services/romm_pairing_service.dart';
+import 'package:g_shop/services/sources_notifier.dart';
 
 ConfigStorageService _storageInTempDir() {
   final dir = Directory.systemTemp.createTempSync('rshop_sources_test_');

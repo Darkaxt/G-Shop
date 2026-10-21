@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
-import 'package:retro_eshop/services/drive/drive_authorization.dart';
-import 'package:retro_eshop/services/drive/google_drive_sign_in.dart';
+import 'package:g_shop/services/drive/drive_authorization.dart';
+import 'package:g_shop/services/drive/google_drive_sign_in.dart';
 
 class RecordingGooglePlatform extends GoogleSignInPlatform {
   final requests = <AuthorizationRequestDetails>[];
@@ -100,7 +100,7 @@ void main() {
   late DriveAuthorization auth;
   late _RevocationTransport revocation;
   final nativeClears = <String>[];
-  const native = MethodChannel('com.retro.rshop/drive_authorization');
+  const native = MethodChannel('com.darkaxt.gshop/drive_authorization');
   setUp(() {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     FlutterSecureStorage.setMockInitialValues({});

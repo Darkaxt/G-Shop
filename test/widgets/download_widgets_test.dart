@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/download_item.dart';
-import 'package:retro_eshop/models/game_item.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/widgets/download/action_button.dart';
-import 'package:retro_eshop/widgets/download/card_progress_ring.dart';
-import 'package:retro_eshop/widgets/download/progress_bar.dart';
-import 'package:retro_eshop/widgets/download/pulsing_dot.dart';
-import 'package:retro_eshop/widgets/download/status_label.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/download_item.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/widgets/download/action_button.dart';
+import 'package:g_shop/widgets/download/card_progress_ring.dart';
+import 'package:g_shop/widgets/download/progress_bar.dart';
+import 'package:g_shop/widgets/download/pulsing_dot.dart';
+import 'package:g_shop/widgets/download/status_label.dart';
 import '../helpers/pump_helpers.dart';
 
 // ─── Test Fixtures ───────────────────────────────────────

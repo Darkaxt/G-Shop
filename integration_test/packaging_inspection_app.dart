@@ -9,11 +9,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:retro_eshop/core/theme/app_theme.dart';
-import 'package:retro_eshop/features/preview/resource_gallery.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/models/socket_media_model.dart';
-import 'package:retro_eshop/services/socket_media_import.dart';
+import 'package:g_shop/core/theme/app_theme.dart';
+import 'package:g_shop/features/preview/resource_gallery.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/models/socket_media_model.dart';
+import 'package:g_shop/services/socket_media_import.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

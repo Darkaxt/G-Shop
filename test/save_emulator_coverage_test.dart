@@ -1,8 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/save_emulator_coverage.dart';
-import 'package:retro_eshop/services/saves/save_capture.dart';
-import 'package:retro_eshop/models/emulator_family_registry.dart';
+import 'package:g_shop/models/save_emulator_coverage.dart';
+import 'package:g_shop/services/saves/save_capture.dart';
+import 'package:g_shop/models/emulator_family_registry.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 late EmulatorFamilyRegistry _registry;
@@ -54,7 +54,7 @@ void main() {
   test(
       'coverage requests bounded package metadata without paths or credentials',
       () async {
-    const channel = MethodChannel('com.retro.rshop/save_capture');
+    const channel = MethodChannel('com.darkaxt.gshop/save_capture');
     final calls = <MethodCall>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {

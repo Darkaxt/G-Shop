@@ -186,11 +186,11 @@ class ConfigStorageService {
     final jsonString =
         const JsonEncoder.withIndent('  ').convert(config.toJsonWithoutAuth());
     final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/r_shop_config.json');
+    final file = File('${dir.path}/g_shop_config.json');
     await file.writeAsString(jsonString);
     await Share.shareXFiles(
       [XFile(file.path, mimeType: 'application/json')],
-      subject: 'R-Shop Config',
+      subject: 'G-Shop Config',
     );
   }
 }

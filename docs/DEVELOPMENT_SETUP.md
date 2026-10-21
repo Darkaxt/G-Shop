@@ -3,6 +3,15 @@
 Authority: [SPECIFICATION.md](SPECIFICATION.md). This records the S1 development
 environment, not a claim that the on-demand features are integrated or installed.
 
+Current S26 source preparation (2026-10-21): Dart package `g_shop`, product
+name G-Shop. The installed production ID and certificate remain unchanged;
+existing Google/Twitch registrations and credential namespaces are retained.
+No new consent registration is required for a display-name change. The dated
+registration/evidence records below keep their historical names. See
+[S26_COMPATIBILITY.md](S26_COMPATIBILITY.md) for wire/path/component exceptions.
+S26 source-removal scope and final native/release acceptance remain pending;
+current delivered software is independently verified normal v1.9.24.
+
 ## Reproducible local checks
 
 Verified toolchain: Flutter 3.47.2 / Dart 3.13.2, framework `d3b14c8769`.

@@ -6,9 +6,9 @@ import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/save_backup_manifest.dart';
-import 'package:retro_eshop/services/drive/drive_authorization.dart';
-import 'package:retro_eshop/services/saves/drive_save_backup_generation.dart';
+import 'package:g_shop/models/save_backup_manifest.dart';
+import 'package:g_shop/services/drive/drive_authorization.dart';
+import 'package:g_shop/services/saves/drive_save_backup_generation.dart';
 
 class _Auth implements DriveAuthorizationDriver {
   final scopes = <List<String>>[];

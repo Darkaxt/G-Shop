@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/ra_models.dart';
-import 'package:retro_eshop/utils/ra_name_matcher.dart';
+import 'package:g_shop/models/ra_models.dart';
+import 'package:g_shop/utils/ra_name_matcher.dart';
 
 void main() {
   group('RaNameMatcher.normalize', () {

@@ -6,13 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:retro_eshop/core/input/input.dart';
-import 'package:retro_eshop/features/settings/collection_filters_screen.dart';
-import 'package:retro_eshop/models/commercial_release_preference.dart';
-import 'package:retro_eshop/providers/app_providers.dart';
-import 'package:retro_eshop/services/storage_service.dart';
-import 'package:retro_eshop/services/migration/migration_activation.dart';
-import 'package:retro_eshop/services/migration/migration_archive.dart';
+import 'package:g_shop/core/input/input.dart';
+import 'package:g_shop/features/settings/collection_filters_screen.dart';
+import 'package:g_shop/models/commercial_release_preference.dart';
+import 'package:g_shop/providers/app_providers.dart';
+import 'package:g_shop/services/storage_service.dart';
+import 'package:g_shop/services/migration/migration_activation.dart';
+import 'package:g_shop/services/migration/migration_archive.dart';
 import 'helpers/pump_helpers.dart';
 
 void main() {

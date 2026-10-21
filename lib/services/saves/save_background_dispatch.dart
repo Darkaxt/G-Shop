@@ -6,7 +6,7 @@ import 'automatic_save_backups.dart';
 /// One protocol for the UI-owned lane and the native headless entrypoint.
 /// Android owns scheduling and cancellation; Dart owns the durable backup pass.
 class SaveBackgroundDispatch {
-  static const channel = MethodChannel('com.retro.rshop/save_background');
+  static const channel = MethodChannel('com.darkaxt.gshop/save_background');
   static Future<void> schedule(bool enabled) async {
     if (Platform.isAndroid) {
       await channel.invokeMethod<void>('schedule', {'enabled': enabled});

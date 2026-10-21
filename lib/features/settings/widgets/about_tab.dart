@@ -49,19 +49,19 @@ class _SettingsAboutTabState extends ConsumerState<SettingsAboutTab> {
             title: l.settings_github,
             subtitle: l.settings_githubSubtitle,
             onSelect: () => launchUrl(
-                Uri.parse('https://github.com/AverageConsumer/R-Shop')),
+                Uri.parse('https://github.com/Darkaxt/G-Shop')),
           ),
           SettingsEntry.nav(
             icon: Icons.bug_report_outlined,
             title: l.settings_issues,
             subtitle: l.settings_issuesSubtitle,
             onSelect: () => launchUrl(Uri.parse(
-                'https://github.com/AverageConsumer/R-Shop/issues')),
+                'https://github.com/Darkaxt/G-Shop/issues')),
           ),
           SettingsEntry.nav(
             icon: Icons.description_outlined,
             title: MaterialLocalizations.of(context).licensesPageTitle,
-            subtitle: 'Systematic media icons · CC BY 4.0',
+            subtitle: 'Systematic media icons Â· CC BY 4.0',
             onSelect: () => showLicensePage(context: context),
           ),
           SettingsEntry.custom(

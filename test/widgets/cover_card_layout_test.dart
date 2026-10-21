@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/core/theme/app_theme.dart';
-import 'package:retro_eshop/l10n/app_localizations.dart';
-import 'package:retro_eshop/models/download_item.dart';
-import 'package:retro_eshop/models/ra_models.dart';
-import 'package:retro_eshop/widgets/base_game_card.dart';
-import 'package:retro_eshop/widgets/media_cover_fallback.dart';
+import 'package:g_shop/core/theme/app_theme.dart';
+import 'package:g_shop/l10n/app_localizations.dart';
+import 'package:g_shop/models/download_item.dart';
+import 'package:g_shop/models/ra_models.dart';
+import 'package:g_shop/widgets/base_game_card.dart';
+import 'package:g_shop/widgets/media_cover_fallback.dart';
 
 import 'cover_rating_test.dart' show score;
 

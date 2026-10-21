@@ -460,7 +460,7 @@ class LPt extends L {
   }
 
   @override
-  String get appTitle => 'R-Shop';
+  String get appTitle => 'G-Shop';
 
   @override
   String get settings_language => 'Idioma';
@@ -1683,7 +1683,7 @@ class LPt extends L {
   String get filter_title => 'FILTRO';
 
   @override
-  String get onboarding_welcomeTitle => 'Bem-vindo ao R-Shop';
+  String get onboarding_welcomeTitle => 'Bem-vindo ao G-Shop';
 
   @override
   String get onboarding_welcomeSubtitle => 'De onde vêm seus jogos?';
@@ -2131,7 +2131,7 @@ class LPt extends L {
       'Entradas em cache, não jogos únicos. Tamanhos de origem não são uso do SD; bytes locais gerenciados excluem arquivos não gerenciados, saves e BIOS.';
 
   @override
-  String get service_notificationTitle => 'R-Shop';
+  String get service_notificationTitle => 'G-Shop';
 
   @override
   String get service_channelName => 'Downloads';

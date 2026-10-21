@@ -21,7 +21,7 @@ class SocketMediaImport extends ChangeNotifier {
   SocketMediaImport(
       {this.directory,
       this.readOnly = false,
-      this.channel = const MethodChannel('com.retro.rshop/socket_import')});
+      this.channel = const MethodChannel('com.darkaxt.gshop/socket_import')});
   Directory? _root, _active;
   Future<void>? _initializing;
   String? _session;

@@ -6,7 +6,7 @@ import org.emunix.unipatcher.utils.PatchCancellation
 import java.io.File
 
 /** No downloaded executable, checksum bypass or implicit arbitrary patch chain. */
-object RShopPatchEngine {
+object GShopPatchEngine {
     const val REVISION = "6f44fa5522f7606e73adc28f2601ef441c164d96-rshop1"
     @JvmStatic fun apply(format: String, patch: File, base: File, output: File,
             resources: ResourceProvider, preprocessing: List<String>) {

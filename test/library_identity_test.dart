@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/library_identity.dart';
-import 'package:retro_eshop/models/system_model.dart';
-import 'package:retro_eshop/services/library_platform_mapping.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/system_model.dart';
+import 'package:g_shop/services/library_platform_mapping.dart';
 
 RemoteArtifactId artifactId({
   String provider = 'drive',

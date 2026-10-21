@@ -47,7 +47,7 @@ class OwnedStorage {
   static const maxChunkBytes = 64 * 1024;
   final MethodChannel channel;
   const OwnedStorage(
-      {this.channel = const MethodChannel('com.retro.rshop/storage')});
+      {this.channel = const MethodChannel('com.darkaxt.gshop/storage')});
 
   Future<void> requireCacheIdle(InstalledArtifact installation, {String? removalId}) async {
     final idle =
@@ -443,7 +443,7 @@ class OwnedStorageSession {
 
 /// An uncommitted destination copy, NOT an installation. The target is created
 /// exclusively, so an existing file is never truncated. It may be visible to
-/// external file browsers while publishing; R-Shop must use its journal, not
+/// external file browsers while publishing; G-Shop must use its journal, not
 /// filename existence, to expose ready games. No network-data write API exists.
 class OwnedStorageCopy {
   final OwnedStorageSession _source;

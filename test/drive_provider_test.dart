@@ -1,17 +1,17 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:retro_eshop/models/config/drive_source_config.dart';
-import 'package:retro_eshop/models/config/provider_config.dart';
-import 'package:retro_eshop/models/config/source.dart';
-import 'package:retro_eshop/models/config/system_config.dart';
-import 'package:retro_eshop/services/drive/drive_api.dart';
-import 'package:retro_eshop/services/drive/drive_catalogue.dart';
-import 'package:retro_eshop/services/drive/drive_runtime.dart';
-import 'package:retro_eshop/services/providers/drive_provider.dart';
-import 'package:retro_eshop/services/provider_factory.dart';
-import 'package:retro_eshop/services/database_service.dart';
-import 'package:retro_eshop/services/unified_game_service.dart';
+import 'package:g_shop/models/config/drive_source_config.dart';
+import 'package:g_shop/models/config/provider_config.dart';
+import 'package:g_shop/models/config/source.dart';
+import 'package:g_shop/models/config/system_config.dart';
+import 'package:g_shop/services/drive/drive_api.dart';
+import 'package:g_shop/services/drive/drive_catalogue.dart';
+import 'package:g_shop/services/drive/drive_runtime.dart';
+import 'package:g_shop/services/providers/drive_provider.dart';
+import 'package:g_shop/services/provider_factory.dart';
+import 'package:g_shop/services/database_service.dart';
+import 'package:g_shop/services/unified_game_service.dart';
 
 class _Files implements DriveCatalogueApi {
   final List<DriveFile> extraFiles;

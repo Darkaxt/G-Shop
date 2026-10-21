@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:retro_eshop/models/rom_cache_policy.dart';
+import 'package:g_shop/models/rom_cache_policy.dart';
 
 void main() {
   final now = DateTime.utc(2026, 10, 14);
