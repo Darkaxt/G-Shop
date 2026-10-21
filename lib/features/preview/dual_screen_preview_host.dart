@@ -77,6 +77,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
   String? _video, _notice, _sent;
   bool _details = false, _visible = true, _working = false;
   bool _gallery = false;
+  bool _cartridgeInspected = false;
   bool _galleryManual = false;
   bool _galleryLoading = false;
   int _galleryRequest = 0;
@@ -218,6 +219,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     _inspectedHardware = null;
     _hardwareInformationVisible = false;
     _details = false;
+    _cartridgeInspected = false;
     _gallery = false;
     _galleryManual = false;
     _galleryLoading = false;
@@ -276,6 +278,10 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     if (_sceneLaunch.cancel()) return true;
     if (_sceneView && _details) {
       setState(() => _details = false);
+      return true;
+    }
+    if (_sceneView && _cartridgeInspected) {
+      setState(() => _cartridgeInspected = false);
       return true;
     }
     if (_hardwareInformationVisible) {
@@ -434,6 +440,14 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
 
   Future<void> _action(String action, int? variant) async {
     if (!mounted || !_visible) return;
+    if (action == 'media-inspection') {
+      if (_sceneView &&
+          !_sceneLaunch.pending &&
+          (variant == 0 || variant == 1)) {
+        setState(() => _cartridgeInspected = variant == 1);
+      }
+      return;
+    }
     if (action.startsWith('nes-reference:')) {
       if (_sceneLaunch.pending || _selection?.system.id != 'nes') return;
       final style = action.substring('nes-reference:'.length);
@@ -563,6 +577,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
         variant >= 0 &&
         variant < selection.variants.length) {
       controller.selectVariant(variant);
+      _cartridgeInspected = false;
       _nesReferenceStyle =
           NesCartridgeModel.referencesFor(controller.selectedVariant.filename)
               .firstOrNull;
@@ -767,6 +782,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
         'actionIdentity':
             '${controller.selectedVariant.selectionKey}:${controller.selectedVariant.raMatchKey}:${_sceneLaunch.token}',
         'sceneView': _sceneView,
+        'cartridgeInspected': _cartridgeInspected,
         'sceneLaunch': _sceneLaunch.pending
             ? {
                 'token': _sceneLaunch.token,

@@ -226,8 +226,12 @@ class NesLaunchScene {
     return t * t * (3 - 2 * t);
   }
 
-  static bool visible(Map<String, dynamic> surface, SocketMediaPose p) =>
-      p.launch > 0 || !{'console', 'display'}.contains(surface['launchPart']);
+  static bool visible(Map<String, dynamic> surface, SocketMediaPose p) {
+    final part = surface['launchPart'];
+    if (part == 'console' || part == 'display') return p.launch >= .22;
+    if (part == 'box' || part == 'sleeve') return p.launch < .22;
+    return true;
+  }
 
   static double opening(SocketMediaModel model, Map<String, dynamic> surface,
           SocketMediaPose p) =>
@@ -295,12 +299,10 @@ class NesLaunchScene {
     final t = p.launch;
     final introduce = phase(t, 0, .22);
     if (part == 'display') {
-      return vm.Matrix4.translationValues(0, 0, -3 * (1 - introduce))
-        ..multiply(_display(m));
+      return _display(m);
     }
     if (part == 'console') {
-      final matrix = vm.Matrix4.translationValues(0, 0, -3 * (1 - introduce))
-        ..multiply(_hardware(m));
+      final matrix = _hardware(m);
       final profile = m.data['launchHardware'] as Map;
       if ((profile['trayNodes'] as List).contains(surface['node'])) {
         final pivot = _anchor(
@@ -434,12 +436,25 @@ class NesLaunchScene {
 
   static Map<String, dynamic> material(
       Map<String, dynamic> surface, SocketMediaPose p) {
-    final original = surface['material'] as Map<String, dynamic>;
+    final source = surface['material'] as Map<String, dynamic>;
+    final part = surface['launchPart'];
+    final opacity = part == 'console' || part == 'display'
+        ? phase(p.launch, .22, .32)
+        : part == 'box' || part == 'sleeve'
+            ? 1 - phase(p.launch, 0, .22)
+            : 1.0;
+    final color = (source['color'] as List).cast<num>();
+    final original = opacity == 1
+        ? source
+        : <String, dynamic>{
+            ...source,
+            'color': [color[0], color[1], color[2], color[3] * opacity],
+          };
     if ((surface['node'] as String).endsWith('7_LED_0')) {
       final power = phase(p.launch, .76, .82);
       return {
         ...original,
-        'color': [.015 + .8 * power, .004, .003, 1.0],
+        'color': [.015 + .8 * power, .004, .003, opacity],
         'textures': {...original['textures'] as Map}
           ..remove('albedo')
           ..remove('emission'),

@@ -630,8 +630,25 @@ class _PreviewScreenState extends State<PreviewScreen>
                                                     onHardwareInspection: (index) => index == null ? _action('hardware-overview') : _action('hardware-inspect', variant: index),
                                                     onHardwareInformation: (show) => _action(show ? 'hardware-info' : 'hardware-hide-info'),
                                                     initiallySettled: _previewSettled,
-                                                    initialInspectionPart: _inspectedPart,
-                                                    onInspectionChanged: (part) => _inspectedPart = part,
+                                                    initialInspectionPart: system.id == 'nes'
+                                                        ? snapshot['cartridgeInspected'] == true
+                                                            ? 'cartridge'
+                                                            : null
+                                                        : _inspectedPart,
+                                                    onInspectionChanged: (part) {
+                                                      _inspectedPart = part;
+                                                      if (system.id == 'nes' &&
+                                                          snapshot[
+                                                                  'sceneView'] ==
+                                                              true) {
+                                                        _action(
+                                                            'media-inspection',
+                                                            variant: part ==
+                                                                    'cartridge'
+                                                                ? 1
+                                                                : 0);
+                                                      }
+                                                    },
                                                     onReadManual: () {
                                                       _previewSettled = true;
                                                       _inspectedPart =

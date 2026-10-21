@@ -1,7 +1,19 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:g_shop/models/nes_launch_scene.dart';
+import 'package:g_shop/models/socket_media_model.dart';
 import 'package:g_shop/widgets/socket_media_renderer.dart';
+
+class _PendingLaunchScene extends Fake implements NesLaunchScene {
+  final pending = Completer<SocketMediaModel>();
+  @override
+  String get identity => 'pending-launch';
+  @override
+  Future<SocketMediaModel> load() => pending.future;
+}
 
 // RenderObject.debugNeedsPaint always returns false in release builds.
 // Retain the real viewport/layout/paint lifecycle while exercising that contract.
@@ -19,6 +31,20 @@ class _Label extends SingleChildRenderObjectWidget {
 }
 
 void main() {
+  testWidgets('launch preparation never displays its label as a full screen',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+        home: SocketMediaRenderer(
+            format: PhysicalMediaFormat.nes,
+            pose: const SocketMediaPose(),
+            identity: 'pending',
+            title: 'Pending launch',
+            nesLaunchScene: _PendingLaunchScene(),
+            label: const Text('Cartridge label producer'))));
+    expect(find.text('Cartridge label producer'), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('cached shelf label waits for actual painting before capture',
       (tester) async {
     final key = GlobalKey();

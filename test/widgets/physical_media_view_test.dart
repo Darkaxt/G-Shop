@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' show instantiateImageCodec;
@@ -13,15 +14,56 @@ import 'package:g_shop/features/preview/game_watch_preview.dart';
 import 'package:g_shop/widgets/cover_reveal.dart';
 import 'package:g_shop/models/game_item.dart';
 import 'package:g_shop/models/socket_media_model.dart';
+import 'package:g_shop/models/nes_unboxing_scene.dart';
 import 'package:g_shop/models/system_model.dart';
 import 'package:g_shop/utils/game_metadata.dart';
 import '../helpers/socket_media_oracle.dart';
+
+class _PendingNesScene extends Fake implements NesUnboxingScene {
+  final pending = Completer<SocketMediaModel>();
+  @override
+  String get identity => 'pending-inspection';
+  @override
+  int get durationMs => 7300;
+  @override
+  Future<SocketMediaModel> load() => pending.future;
+}
 
 // Host checks cover binding, artwork roles and the existing launch lifecycle.
 // Actual indexed GPU rendering is checked on Android, not inferred from these.
 void main() {
   setUpAll(useSocketOracle);
   tearDownAll(() => SocketMediaModel.importedBundle = null);
+  testWidgets('cartridge inspection reports touch and follows owner Back state',
+      (tester) async {
+    final key = GlobalKey<PhysicalMediaViewState>();
+    final scene = _PendingNesScene();
+    final changes = <String?>[];
+    Widget view(bool? inspected) => MaterialApp(
+        home: PhysicalMediaView(
+            key: key,
+            identity: 'inspection-back',
+            title: 'Inspection',
+            format: PhysicalMediaFormat.nes,
+            nesScene: scene,
+            cartridgeInspected: inspected,
+            onInspectionChanged: changes.add,
+            label: const Text('Label')));
+    await tester.pumpWidget(view(false));
+    key.currentState!.inspectCartridge();
+    await tester.pump();
+    expect(key.currentState!.pose.inspectedPart, 'cartridge');
+    expect(changes, ['cartridge']);
+    await tester.pumpWidget(view(true));
+    await tester.pumpWidget(view(false));
+    expect(key.currentState!.pose.inspectedPart, isNull);
+    expect(changes, ['cartridge'], reason: 'Owner updates do not echo actions');
+    key.currentState!.inspectCartridge();
+    expect(key.currentState!.closeInspection(), isTrue);
+    expect(key.currentState!.closeInspection(), isFalse);
+    expect(changes, ['cartridge', 'cartridge', null]);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('NES inspection pauses, resumes, assembles and resets for launch',
       (tester) async {
     final key = GlobalKey<PhysicalMediaViewState>();

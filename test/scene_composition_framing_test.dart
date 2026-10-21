@@ -52,12 +52,16 @@ Rect _pixels(SocketMediaModel m, SocketMediaPose p, Size size,
   return Rect.fromLTRB(left, top, right, bottom);
 }
 
-void _reserved(Rect rect, Size size) {
+void _withinMargins(Rect rect, Size size) {
   const tolerance = .001;
   expect(rect.left, greaterThanOrEqualTo(size.width * .125 - tolerance));
   expect(rect.right, lessThanOrEqualTo(size.width * .875 + tolerance));
   expect(rect.top, greaterThanOrEqualTo(size.height * .125 - tolerance));
   expect(rect.bottom, lessThanOrEqualTo(size.height * .875 + tolerance));
+}
+
+void _reserved(Rect rect, Size size) {
+  _withinMargins(rect, size);
   expect(math.max(rect.width / size.width, rect.height / size.height),
       greaterThanOrEqualTo(.70),
       reason: 'Actual geometry uses the reserved central area');
@@ -202,34 +206,45 @@ void main() {
       }
     }
     if (launch == null) return;
-    final console = (await ConsoleModel.findNesLaunchTarget('front-loader',
-        modelsDirectory: Directory(launch)))!;
     final display = (await ConsoleModel.findNesLaunchDisplay(
         modelsDirectory: Directory(launch)))!;
-    final scene = await NesLaunchScene(media, console, display).load();
-    const start = SocketMediaPose(unboxing: 1, rx: .12, ry: -.12);
-    for (final size in sizes) {
-      final before = _pixels(m, start, size);
-      final after = _pixels(scene, start, size);
-      expect(after.left, closeTo(before.left, .001));
-      expect(after.top, closeTo(before.top, .001));
-      expect(after.width, closeTo(before.width, .001));
-      for (final progress in [.3, .6, .82]) {
-        _reserved(
-            _pixels(
-                scene,
-                SocketMediaPose(
-                    unboxing: 1, launch: progress, rx: .12, ry: -.12),
-                size),
-            size);
+    for (final target in ['front-loader', 'top-loader']) {
+      final console = (await ConsoleModel.findNesLaunchTarget(target,
+          modelsDirectory: Directory(launch)))!;
+      final scene = await NesLaunchScene(media, console, display).load();
+      const start = SocketMediaPose(unboxing: 1, rx: .12, ry: -.12);
+      for (final size in sizes) {
+        final before = _pixels(m, start, size);
+        final after = _pixels(scene, start, size);
+        expect(after.left, closeTo(before.left, .001));
+        expect(after.top, closeTo(before.top, .001));
+        expect(after.width, closeTo(before.width, .001));
+        for (var step = 1; step <= 82; step++) {
+          _withinMargins(
+              _pixels(
+                  scene,
+                  SocketMediaPose(
+                      unboxing: 1, launch: step / 100, rx: .12, ry: -.12),
+                  size),
+              size);
+        }
+        for (final progress in [.3, .6, .82]) {
+          _reserved(
+              _pixels(
+                  scene,
+                  SocketMediaPose(
+                      unboxing: 1, launch: progress, rx: .12, ry: -.12),
+                  size),
+              size);
+        }
+        final screen = _pixels(
+            scene, const SocketMediaPose(unboxing: 1, launch: 1), size,
+            node: 'SonyCrtScreen');
+        expect(screen.width, greaterThan(size.width));
+        expect(screen.height, greaterThan(size.height),
+            reason:
+                'Deliberate final screen zoom is separate from default framing');
       }
-      final screen = _pixels(
-          scene, const SocketMediaPose(unboxing: 1, launch: 1), size,
-          node: 'SonyCrtScreen');
-      expect(screen.width, greaterThan(size.width));
-      expect(screen.height, greaterThan(size.height),
-          reason:
-              'Deliberate final screen zoom is separate from default framing');
     }
   }, skip: nes == null ? 'Private owner imports are not bundled' : false);
 }

@@ -321,6 +321,10 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       setState(() => _sceneInformation = false);
       return;
     }
+    if (_sceneView &&
+        _physicalMediaKey.currentState?.closeInspection() == true) {
+      return;
+    }
     final controller = _controller;
     if (controller == null) return;
 

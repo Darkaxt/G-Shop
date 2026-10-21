@@ -7,10 +7,12 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 2026-10-21 current execution (specification revision 145): **S26 ACTIVE**, sole
 active stage. The supplied Sony display and NES-101 derivative are integrated in
-the internal signed candidate from `92be9cb`, installed and hash/signer verified
+the internal signed candidate from `25737b6`, installed and hash/signer verified
 with all fourteen database/preferences files unchanged. Native TV/launch acceptance
-is still required. The owner's lower-scene framing refinement is being verified
-before the next cohesive candidate; no intermediate public release.
+is still required. Native default framing is verified for the collector, single
+and three-edition G&W scenes and NES media. Launch-transition defects found in
+that candidate are corrected in source and await a new native check; no
+intermediate public release.
 Authorized scope remains SCENE-01..05 followed by SOCKET-01. **S25 BLOCKED** for
 its remaining wider console/gallery requirements under the owner's explicit
 sequencing hold; resume them after S26. The current ICON/NES-01..06 task is
@@ -72,12 +74,43 @@ source skill 0.1.4 validate and share SHA-256
 `afc820b730046a4ccd4e55add9df0babc08242ee411df324ef780f0786cba031`.
 Evidence is retained in `scene-framing-current-check.log`,
 `scene-framing-focused-checks.log` and `scene-framing-preparation-check.log` under
-the existing task reports. Native rendering/performance/control review of this
-new framing is still an internal advancement blocker for SCENE-01..04 acceptance;
-resolve it with the next complete signed candidate on Thor. Candidate `4e40c97`
-built successfully but predates the full-viewport layout correction, so it is not
-being installed for acceptance. Installed candidate `92be9cb` predates both.
-The owner has finished reviewing and explicitly made Thor available for update.
+the existing task reports. Candidate `25737b6` from run `39651850920` is installed
+on the owner-authorized Thor, with production signer and APK/installed SHA-256
+`2e1849c4496597ee128dc0ba0467159392deb15af25f5acc58cd33ef3170eb56` verified.
+All fourteen database/preferences files are byte-identical across update.
+Native evidence covers Ball's complete box/handheld framing, the three sequential
+DK Jr editions in their shallow arc, inspection and translucent hardware history
+with 120-second slow rotation, restored overview, and the enlarged NES collector
+and carton/sleeve/cartridge view. Controls/title bands remain clear. Recordings
+are raw H.264 with estimated playback timelines, not physical timing/FPS proof.
+The initial video evidence export exhausted its budget on compression spikes;
+the additional periodic-context review covers the complete three-edition sequence.
+Evidence: `reports/native/framing-three-editions-settled.*`,
+`framing-dkjr-inspection.*`, `framing-dkjr-info.*`, `framing-nes-collector.*`,
+`framing-nes-owned-overview.*` and `framing-dkjr-verified-route/visual-context/`
+under the existing task folder. The reanalysis's MP4 timestamps came from the
+same raw remux and remain estimated despite the generic analyzer's timestamp label.
+
+The current native front-loader/Sony workflow reached the actual owned FCEUmm
+game without touch controls, then returned to the same selected game after normal
+RetroArch quit. Its final GPU frame binds the installed front-loader and Sony
+geometry hashes. Native translucent game information remains over the zoomed
+cartridge; this unscripted metadata record has no description or physical-label
+texture, so it retains the previously owner-authorized handwritten sticker.
+This is not evidence of an original retail label or full metadata scrape.
+Recording review found two actual launch defects: preparation exposed the label
+as a full-screen fallback, and arriving hardware clipped before camera withdrawal.
+Both reproduce in focused checks. Source now retains the underlying scene while
+loading, withdraws within a projected envelope before revealing the hardware,
+retires packaging before insertion, and keeps both calibrated bodies/TV framed.
+Back also closes cartridge inspection before leaving the game view, with the main
+owner synchronizing secondary inspection through the existing epoch-bound bridge.
+Actual-vertex front/top checks cover the whole pre-screen-zoom transition; focused
+loading, ownership, lifecycle, inspection and aperture checks pass. Current native
+revalidation of these corrections remains an internal SCENE-01..04 blocker.
+Evidence: `nes-native-transition-repro.log`,
+`nes-native-transition-integrated-check.log`, `nes-inspection-back-final-check.log`
+and `native/framing-nes-first-launch/analysis/` under the same task reports.
 
 S26 NES vertical workflow is implemented in source across ordinary and secondary
 views: persistent scene with translucent game information, cartridge inspection

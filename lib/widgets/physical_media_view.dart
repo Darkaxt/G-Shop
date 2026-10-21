@@ -23,6 +23,8 @@ class PhysicalMediaView extends StatefulWidget {
   final NesUnboxingScene? nesScene;
   final bool resourcesReady;
   final bool informationVisible;
+  final bool? cartridgeInspected;
+  final ValueChanged<String?>? onInspectionChanged;
   const PhysicalMediaView(
       {super.key,
       required this.identity,
@@ -35,6 +37,8 @@ class PhysicalMediaView extends StatefulWidget {
       this.nesScene,
       this.resourcesReady = true,
       this.informationVisible = false,
+      this.cartridgeInspected,
+      this.onInspectionChanged,
       this.reducedMotion = false,
       this.format = PhysicalMediaFormat.gameBoy});
   @override
@@ -136,6 +140,7 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
   @override
   void initState() {
     super.initState();
+    _zoomCartridge = widget.cartridgeInspected == true;
     WidgetsBinding.instance.addObserver(this);
     _unboxing.addStatusListener((s) {
       if (s == AnimationStatus.completed) _configureMotion();
@@ -196,7 +201,19 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
       _gpuReady = false;
       _unboxing.stop();
     }
+    if (widget.cartridgeInspected != null &&
+        oldWidget.cartridgeInspected != widget.cartridgeInspected) {
+      _zoomCartridge = widget.cartridgeInspected!;
+    }
     _configureMotion();
+  }
+
+  bool closeInspection() {
+    if (!_zoomCartridge || _launchHeld) return false;
+    setState(() => _zoomCartridge = false);
+    _configureMotion();
+    widget.onInspectionChanged?.call(null);
+    return true;
   }
 
   void _configureMotion() {
@@ -265,6 +282,7 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
       _unboxing.value = 1;
     });
     _configureMotion();
+    widget.onInspectionChanged?.call(_zoomCartridge ? 'cartridge' : null);
   }
 
   void releaseLaunchHold() {
@@ -283,6 +301,7 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
 
   void replayUnboxing() {
     if (widget.nesScene == null || _completion != null) return;
+    closeInspection();
     _inspection.value = 0;
     _unboxing.reset();
     _configureMotion();

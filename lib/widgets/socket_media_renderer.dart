@@ -552,6 +552,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
       else
         widget.packaging != null ||
                 widget.unboxingScene != null ||
+                widget.nesLaunchScene != null ||
                 widget.console != null ||
                 widget.cartridgeStyle != null
             ? Center(
@@ -1002,27 +1003,7 @@ class SocketMediaGpu {
       final initialSize = rect == null
           ? size
           : Size((rect[2] as num).toDouble(), (rect[3] as num).toDouble());
-      final initialPose = SocketMediaPose(
-          rx: pose.rx,
-          ry: pose.ry,
-          rz: pose.rz,
-          y: pose.y,
-          z: pose.z,
-          opening: pose.opening,
-          unboxing: pose.unboxing,
-          inspectedPart: pose.inspectedPart);
-      final bounds = compositionBounds(model, initialPose, initialSize,
-          fittedUnits(model, initialSize, pose: initialPose));
-      final initialUnits = math.min(initialSize.width * fill / bounds.width,
-          initialSize.height * fill / bounds.height);
       final enter = NesLaunchScene.phase(pose.launch, 0, .22);
-      final initialCenter = Offset(
-          ((rect?[0] as num?)?.toDouble() ?? 0) +
-              initialSize.width / 2 -
-              bounds.center.dx * initialUnits,
-          ((rect?[1] as num?)?.toDouble() ?? 0) +
-              initialSize.height / 2 +
-              bounds.center.dy * initialUnits);
       final workPose = SocketMediaPose(
           rx: pose.rx,
           ry: pose.ry,
@@ -1032,23 +1013,35 @@ class SocketMediaGpu {
           launch: pose.launch.clamp(.22, .82));
       final workBounds = compositionBounds(
           model, workPose, size, fittedUnits(model, size, pose: workPose));
-      final workUnits = math.min(size.width * fill / workBounds.width,
-          size.height * fill / workBounds.height);
+      final currentPose = pose.launch < .22 ? pose : workPose;
+      final currentBounds = compositionBounds(model, currentPose, size,
+          fittedUnits(model, size, pose: currentPose));
+      // Withdraw the camera before revealing the hardware. Interpolate the
+      // projected envelope, retaining every currently visible media corner;
+      // blending two unrelated camera scales clipped the arriving television.
+      final bounds = Rect.lerp(currentBounds, workBounds, enter)!
+          .expandToInclude(currentBounds);
+      final viewport = Size.lerp(initialSize, size, enter)!;
+      final workUnits = math.min(viewport.width * fill / bounds.width,
+          viewport.height * fill / bounds.height);
+      final viewportCenter = Offset.lerp(
+          Offset(((rect?[0] as num?)?.toDouble() ?? 0) + initialSize.width / 2,
+              ((rect?[1] as num?)?.toDouble() ?? 0) + initialSize.height / 2),
+          Offset(size.width / 2, size.height / 2),
+          enter)!;
       final workCenter = Offset(
-          size.width / 2 - workBounds.center.dx * workUnits,
-          size.height / 2 + workBounds.center.dy * workUnits);
+          viewportCenter.dx - bounds.center.dx * workUnits,
+          viewportCenter.dy + bounds.center.dy * workUnits);
       final screenUnits = NesLaunchScene.fittedUnits(
           model,
           const SocketMediaPose(unboxing: 1, launch: 1),
           size.width,
           size.height);
       final screenZoom = NesLaunchScene.phase(pose.launch, .82, 1);
-      final units =
-          (initialUnits * (1 - enter) + workUnits * enter) * (1 - screenZoom) +
-              screenUnits * screenZoom;
+      final units = workUnits * (1 - screenZoom) + screenUnits * screenZoom;
       return cameraProjection(size.width, size.height, units,
-          center: Offset.lerp(Offset.lerp(initialCenter, workCenter, enter),
-              Offset(size.width / 2, size.height / 2), screenZoom));
+          center: Offset.lerp(
+              workCenter, Offset(size.width / 2, size.height / 2), screenZoom));
     }
     final units = fittedUnits(model, size, pose: pose);
     final bounds = compositionBounds(model, pose, size, units);

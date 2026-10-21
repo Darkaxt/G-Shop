@@ -119,6 +119,27 @@ void main() {
   });
 
   test(
+      'hardware appears after camera withdrawal and packaging retires before insertion',
+      () async {
+    final m = await load('nintendo-3-gray');
+    final hardware = m.surfaces.firstWhere((s) => s['launchPart'] == 'console');
+    final box = m.surfaces.firstWhere((s) => s['launchPart'] == 'box');
+    expect(NesLaunchScene.visible(hardware, const SocketMediaPose(launch: .21)),
+        isFalse);
+    expect(NesLaunchScene.visible(hardware, const SocketMediaPose(launch: .22)),
+        isTrue);
+    expect(NesLaunchScene.visible(box, const SocketMediaPose(launch: .22)),
+        isFalse);
+    final faded =
+        NesLaunchScene.material(hardware, const SocketMediaPose(launch: .27));
+    expect(faded['color'][3], closeTo(.5, .000001));
+    expect(
+        NesLaunchScene.material(
+            hardware, const SocketMediaPose(launch: .35))['color'],
+        hardware['material']['color']);
+  }, skip: absent);
+
+  test(
       'launch uses the supplied calibrated curved TV, not a display placeholder',
       () async {
     final m = await load('nintendo-3-gray');

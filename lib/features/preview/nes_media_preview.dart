@@ -17,6 +17,8 @@ class NesMediaPreview extends StatefulWidget {
   final bool reducedMotion;
   final bool resourcesReady;
   final bool informationVisible;
+  final bool? cartridgeInspected;
+  final ValueChanged<String?>? onInspectionChanged;
   final GlobalKey<PhysicalMediaViewState>? physicalMediaKey;
   final VoidCallback? onReady;
   final ValueChanged<String?>? onResolved;
@@ -32,6 +34,8 @@ class NesMediaPreview extends StatefulWidget {
       required this.reducedMotion,
       this.resourcesReady = true,
       this.informationVisible = false,
+      this.cartridgeInspected,
+      this.onInspectionChanged,
       this.onReady,
       this.onResolved,
       this.onResolving,
@@ -137,6 +141,8 @@ class _NesMediaPreviewState extends State<NesMediaPreview> {
         nesScene: scene,
         resourcesReady: widget.resourcesReady,
         informationVisible: widget.informationVisible,
+        cartridgeInspected: widget.cartridgeInspected,
+        onInspectionChanged: widget.onInspectionChanged,
         inspectInside: _inspectInside,
         label: widget.label,
         labelIdentity: widget.labelIdentity,

@@ -321,6 +321,10 @@ class CoverSectionState extends State<CoverSection> {
         NesMediaPreview(
             compact: widget.scenePresentation,
             informationVisible: widget.gameInformationVisible,
+            cartridgeInspected: widget.onInspectionChanged == null
+                ? null
+                : widget.initialInspectionPart == 'cartridge',
+            onInspectionChanged: widget.onInspectionChanged,
             key: ValueKey(game.selectionKey),
             filename: game.filename,
             identity: game.selectionKey,
