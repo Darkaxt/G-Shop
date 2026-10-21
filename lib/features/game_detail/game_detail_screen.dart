@@ -680,6 +680,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       handedOff = true;
       if (token != null) _sceneLaunch.handedOff(token);
     } catch (error) {
+      if (token != null) _sceneLaunch.failed(token);
       if (!mounted) return;
       final code =
           error is PlatformException ? error.code : 'installation_unavailable';

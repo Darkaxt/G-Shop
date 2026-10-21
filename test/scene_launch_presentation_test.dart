@@ -3,6 +3,34 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:g_shop/models/scene_launch_presentation.dart';
 
 void main() {
+  test('native handoff rejection ends committing and admits a fresh attempt', () {
+    final scene = SceneLaunchPresentation();
+    final token = scene.begin(identity: 'nes:owned-a', consoleId: 'front-loader');
+    scene.ready(token);
+    scene.animate(token);
+    scene.rendered(token);
+    expect(scene.commit(token), isTrue);
+    expect(scene.cancel(), isFalse);
+    expect(scene.failed(token), isTrue);
+    expect(scene.phase, SceneLaunchPhase.failed);
+    expect(scene.pending, isFalse);
+    final next = scene.begin(identity: 'nes:owned-a', consoleId: 'top-loader');
+    expect(scene.failed(token), isFalse);
+    expect(scene.token, next);
+    scene.dispose();
+  });
+
+  test('late native failure cannot replace an acknowledged handoff', () {
+    final scene = SceneLaunchPresentation();
+    final token = scene.begin(identity: 'nes:owned-a', consoleId: 'front-loader');
+    scene.unavailable(token);
+    scene.commitWithoutAnimation(token);
+    scene.handedOff(token);
+    expect(scene.failed(token), isFalse);
+    expect(scene.phase, SceneLaunchPhase.handedOff);
+    scene.dispose();
+  });
+
   test('compatible console choice binds once during preparation', () {
     final launch = SceneLaunchPresentation();
     final token = launch.begin(identity: 'selected-rom', consoleId: null);

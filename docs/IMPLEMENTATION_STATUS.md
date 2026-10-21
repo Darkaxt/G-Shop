@@ -7,16 +7,17 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 2026-10-21 current execution (specification revision 146): **S26 ACTIVE**, sole
 active stage. The supplied Sony display and NES-101 derivative are integrated in
-the internal signed candidate from `25737b6`, installed and hash/signer verified
+the internal signed candidate from `68bed85`, installed and hash/signer verified
 with all fourteen database/preferences files unchanged. Native TV/launch acceptance
 is still required. Native default framing is verified for the collector, single
 and three-edition G&W scenes and NES media. Launch-transition defects found in
-that candidate are corrected in source and await a new native check; no
+the preceding candidate are corrected in this build and await a new native check; no
 intermediate public release.
 The owner's subsequent reversed-arc/direct-tap and idle tutorial/trivia refinements
-are integrated in source and pass focused checks; their native acceptance remains
-required. This does not reuse the earlier forward-center screenshot as proof of
-the corrected arc.
+are integrated and verified on Thor for the three-edition overview, direct model
+inspection, translucent history/slow rotation, Back, idle appearance and primary
+controller reset. This does not reuse the earlier forward-center screenshot as
+proof of the corrected arc. The remaining three-system workflow is unfinished.
 Authorized scope remains SCENE-01..05 followed by SOCKET-01. **S25 BLOCKED** for
 its remaining wider console/gallery requirements under the owner's explicit
 sequencing hold; resume them after S26. The current ICON/NES-01..06 task is
@@ -140,8 +141,57 @@ Source and installed integration skill 0.1.5 validate and share SHA-256
 `fbe941348df860bbeab4cc96a3d7f9d971bdbcd59b06f39153cf1f7b3d7752f8`;
 the changed installed clauses were reread. Signed CI run `39661548469` succeeded
 for source `6ac1e67`; that candidate predates revision 146 and is retained in CI,
-not installed as proof of these subsequent changes. The combined candidate still
-needs signing/package/install verification and the current native workflow checks.
+not installed as proof of these subsequent changes. Combined source `68bed85`
+passed signed run `39665810102`; its version 1.10.2/code 43 APK and installed
+package share SHA-256
+`766da6285c07ea5631d999cba452f6a9121373d2763fef535938f641e6d9996b`.
+The package check verifies BUILDINFO/source, production signer, approved icon
+master/15 packaged icons and private-payload absence. All fourteen database and
+preference files are byte-identical across installation. This is an internal
+candidate; no intermediate public release was made.
+Current native captures show the rear-center three-edition arc without magnifier
+icons. Tapping the actual handheld immediately opens inspection; Info retains the
+visible model under its translucent history panel with a 120-second rotation.
+B closes Info and inspection in order. The first measured idle appearance follows
+25,005,542 application microseconds. A harmless primary-display controller key
+clears it immediately; the next message appears after a fresh 25,002,784
+microseconds, rather than continuing the prior idle clock. Info suppresses hints.
+Background/resume observations verify foreground false/true and all three GPU
+frames settled after restoration. The earlier `arc-hints-dkjr-settled` watcher
+missed the initial completion and subsequently captured the background transition;
+its screenshot is not foreground acceptance. The separate resumed/visible captures
+are the foreground evidence. The search recording mostly shows the IME, then the
+settled rotating arc; it does not prove the hidden extraction sequence. Existing
+prior unboxing evidence remains separate from these layout/input checks.
+Evidence: `candidate-68bed85-package-verification.json`,
+`candidate-68bed85-install.json`, `candidate-68bed85-data-hashes.json`,
+`native/arc-hints-dkjr-visible-down.png`, `arc-hints-idle-first.*`,
+`arc-hints-primary-controller-reset.*`, `arc-hints-controller-cleared-down.png`,
+`arc-hints-direct-model-inspection.*`, `arc-hints-info-panel.*`,
+`arc-hints-inspection-back.*` and `arc-hints-resumed.*` under the task folder.
+
+The combined candidate's next owned NES attempt rendered the corrected
+front-loader/Sony transition and its actual final GPU frame, then the native
+launcher returned `io_error`; no emulator process started. Provider query and
+full read subsequently validate the same installation identity and exact
+15,289-byte archive checksum. That observation does not explain or waive the
+handoff error. The recording shows preparation retaining the physical scene
+rather than the former full-screen label, and hardware arriving within the
+withdrawn camera before intentional screen entry. Native handoff acceptance is
+still unsatisfied. A separate recovery defect is reproducible: an actual native
+rejection left the presentation in committing. Both owners now report that error
+against the same token, release the pending presentation and admit a fresh user
+attempt without treating an acknowledged handoff as cancellable. Focused
+rejection/stale-token/acknowledged-handoff, preview and idle checks pass; private
+geometry checks are unchanged and were explicitly skipped in this run. Native
+read failures now emit only the coarse validation phase, exception type and
+numeric errno, with no ROM path, account or grant identifier. This diagnostic
+and recovery patch still require the next signed build/native verification.
+Evidence: `native/scene-nes-current-owned-normal/analysis/`,
+`native/scene-nes-current-normal-outcome.log`, `nes-owned-provider-read.json`,
+`nes-owned-read-only-identity.log`, `nes-native-handoff-rejection-repro.log` and
+`nes-handoff-failure-integrated-check.log`. The original diagnostic observer was
+stopped after the actual failed native result; it is not counted as success.
 
 S26 NES vertical workflow is implemented in source across ordinary and secondary
 views: persistent scene with translucent game information, cartridge inspection

@@ -9,7 +9,8 @@ enum SceneLaunchPhase {
   animating,
   committing,
   handedOff,
-  cancelled
+  cancelled,
+  failed
 }
 
 /// Presentation gates for the existing owned-ROM launcher. This never opens a
@@ -159,6 +160,17 @@ class SceneLaunchPresentation extends ChangeNotifier {
     if (_token != token || _phase != SceneLaunchPhase.committing) return;
     _phase = SceneLaunchPhase.handedOff;
     notifyListeners();
+  }
+
+  /// Only the owner reports an actual launch error. A user cannot cancel a
+  /// committing native call, but its rejection must release presentation state.
+  bool failed(int token) {
+    if (_token != token || !pending) return false;
+    _phase = SceneLaunchPhase.failed;
+    _lastConfirm = null;
+    _finishUnresolved();
+    notifyListeners();
+    return true;
   }
 
   bool cancel() {

@@ -590,6 +590,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     }
     setState(() => _working = true);
     final generation = _generation;
+    int? launchToken;
     try {
       if (action == 'launch' && controller.canOpenSelected) {
         if (_sceneView) {
@@ -599,7 +600,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
           });
         }
         final cinematic = _sceneView && selection.system.id == 'nes';
-        final token = cinematic
+        final token = launchToken = cinematic
             ? _sceneLaunch.begin(
                 identity:
                     '${selection.identity}:${controller.selectedVariant.selectionKey}',
@@ -695,6 +696,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
         }
       }
     } catch (error) {
+      if (launchToken != null) _sceneLaunch.failed(launchToken);
       debugPrint('GShopPreviewAction ${jsonEncode({
             'action': action,
             'system': selection.system.id,

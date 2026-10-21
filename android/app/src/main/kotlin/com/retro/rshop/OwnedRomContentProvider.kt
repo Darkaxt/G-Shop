@@ -550,6 +550,7 @@ class OwnedRomContentProvider : ContentProvider() {
             requiredStandaloneWua: Boolean = false, requiredStandaloneNds: Boolean = false,
             requiredCartridgePlatform: String? = null): ParcelFileDescriptor {
             var root = -1; var parent = -1; var file = -1; var checkedRoot = -1; var checkedParent = -1
+            var phase = "manifest"
             try {
                 val saved = manifest(context, uri, bundleOwner, requiredArchivePlatform,
                     requiredStandaloneChd, requiredStandaloneWua, requiredStandaloneNds, requiredCartridgePlatform)
@@ -561,10 +562,14 @@ class OwnedRomContentProvider : ContentProvider() {
                     throw FileNotFoundException("Invalid installation path")
                 }
                 val directory = pieces.dropLast(1).joinToString("/")
+                phase = "root"
                 root = OwnedStorageNative.openRoot(rootPath)
+                phase = "parent"
                 parent = if (directory.isEmpty()) OwnedStorageNative.openRoot(rootPath)
                     else OwnedStorageNative.openDirectory(root, directory, false)
+                phase = "file"
                 file = OwnedStorageNative.openFile(parent, pieces.last(), false, false)
+                phase = "identity"
                 val expected = saved.getJSONObject("fileIdentity")
                 val timestamp = expected.getString("modifiedAt")
                 if (!timestamp.endsWith("Z") || timestamp.length < 20) {
@@ -581,6 +586,7 @@ class OwnedRomContentProvider : ContentProvider() {
                 }
                 val platform = saved.optString("_validatedArchivePlatformId")
                 if (platform.isNotEmpty()) {
+                    phase = "archive"
                     val path = "/proc/self/fd/$file"
                     if (platform == "gamegear") OwnedGameGearZip.validate(path)
                     else if (platform in setOf("megadrive", "mastersystem", "sg1000")) OwnedGameGearZip.validate(path, platform)
@@ -590,6 +596,7 @@ class OwnedRomContentProvider : ContentProvider() {
                         throw FileNotFoundException("Archive changed during validation")
                     }
                 }
+                phase = "path-recheck"
                 checkedRoot = OwnedStorageNative.openRoot(rootPath)
                 checkedParent = if (directory.isEmpty()) OwnedStorageNative.openRoot(rootPath)
                     else OwnedStorageNative.openDirectory(checkedRoot, directory, false)
@@ -602,6 +609,7 @@ class OwnedRomContentProvider : ContentProvider() {
                     throw FileNotFoundException("Installation path changed")
                 }
                 // Recheck durable ownership after opening the pinned object.
+                phase = "owner-recheck"
                 if (!sameJson(manifest(context, uri, bundleOwner, requiredArchivePlatform,
                         requiredStandaloneChd, requiredStandaloneWua, requiredStandaloneNds, requiredCartridgePlatform), saved)) {
                     throw FileNotFoundException("Installation ownership changed")
@@ -609,7 +617,14 @@ class OwnedRomContentProvider : ContentProvider() {
                 val result = ParcelFileDescriptor.adoptFd(file)
                 file = -1
                 return result
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                // Bounded diagnostics only: never expose ROM paths, IDs or
+                // exception messages that may contain private account data.
+                val nativeErrno = Regex("^owned_storage:(\\d+)$")
+                    .matchEntire(error.message.orEmpty())?.groupValues?.get(1)
+                android.util.Log.w("GShopOwnedRead", JSONObject()
+                    .put("phase", phase).put("errorType", error.javaClass.simpleName)
+                    .put("nativeErrno", nativeErrno ?: JSONObject.NULL).toString())
                 throw FileNotFoundException("Owned ROM unavailable")
             } finally {
                 for (fd in listOf(file, checkedParent, checkedRoot, parent, root)) {
