@@ -5,14 +5,19 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-21 current execution (specification revision 146): **S26 ACTIVE**, sole
+2026-10-22 current execution (specification revision 147): **S26 ACTIVE**, sole
 active stage. The supplied Sony display and NES-101 derivative are integrated in
-the internal signed candidate from `68bed85`, installed and hash/signer verified
-with all fourteen database/preferences files unchanged. Native TV/launch acceptance
-is still required. Native default framing is verified for the collector, single
-and three-edition G&W scenes and NES media. Launch-transition defects found in
-the preceding candidate are corrected in this build and await a new native check; no
-intermediate public release.
+the internal signed candidate from `44fdd8e`, installed and hash/signer verified
+with all fourteen database/preferences files unchanged. Native default framing
+is verified for the collector, single and three-edition G&W scenes and NES media.
+The corrected front-loader/Sony path reaches the real owned game; B, background
+and selection cancellation and the NES-101 double-A skip are observed on Thor.
+The newly diagnosed database-reader contention is corrected in source and still
+requires its signed/native check. Full NES-101 animation and the remaining
+three-system acceptance criteria remain open; no intermediate public release.
+The owner's slight information-panel blur is integrated into game information
+and hardware history; focused viewport/scroll/close and rotation/Back checks pass.
+Its signed/native visual check remains open.
 The owner's subsequent reversed-arc/direct-tap and idle tutorial/trivia refinements
 are integrated and verified on Thor for the three-edition overview, direct model
 inspection, translucent history/slow rotation, Back, idle appearance and primary
@@ -170,15 +175,15 @@ Evidence: `candidate-68bed85-package-verification.json`,
 `arc-hints-direct-model-inspection.*`, `arc-hints-info-panel.*`,
 `arc-hints-inspection-back.*` and `arc-hints-resumed.*` under the task folder.
 
-The combined candidate's next owned NES attempt rendered the corrected
+The `68bed85` candidate's next owned NES attempt rendered the corrected
 front-loader/Sony transition and its actual final GPU frame, then the native
 launcher returned `io_error`; no emulator process started. Provider query and
 full read subsequently validate the same installation identity and exact
 15,289-byte archive checksum. That observation does not explain or waive the
 handoff error. The recording shows preparation retaining the physical scene
 rather than the former full-screen label, and hardware arriving within the
-withdrawn camera before intentional screen entry. Native handoff acceptance is
-still unsatisfied. A separate recovery defect is reproducible: an actual native
+withdrawn camera before intentional screen entry. Native handoff acceptance
+was unsatisfied at that observation. A separate recovery defect is reproducible: an actual native
 rejection left the presentation in committing. Both owners now report that error
 against the same token, release the pending presentation and admit a fresh user
 attempt without treating an acknowledged handoff as cancellable. Focused
@@ -192,6 +197,69 @@ Evidence: `native/scene-nes-current-owned-normal/analysis/`,
 `nes-owned-read-only-identity.log`, `nes-native-handoff-rejection-repro.log` and
 `nes-handoff-failure-integrated-check.log`. The original diagnostic observer was
 stopped after the actual failed native result; it is not counted as success.
+
+Subsequent actual `68bed85` attempts reach the owned FCEUmm game without touch
+controls, then return through normal RetroArch quit. B, Android HOME/background
+and changing selection cancel the uncommitted token. Two additional A events
+skip the same attempt using the randomly chosen NES-101, with its actual final
+GPU frame preceding handoff. These positive paths do not close the earlier I/O
+failure. Evidence: `scene-nes-reproduction-after-settled-sync*`,
+`scene-nes-current-live-emulator-up.png`, `scene-nes-current-cancel.*`,
+`scene-nes-current-skip*`, `scene-nes-current-background-cancel.*` and
+`scene-nes-current-selection-cancel.*` under `reports/native/`.
+
+Signed run `39672194523` passes for `44fdd8e`; production signer/source/icons and
+installed APK SHA-256
+`99699baefcdbbb133d9303963c921bf32f8c3790c71b054eedc9b76f44998752`
+verify, preserving all fourteen database/preference files across installation.
+Its diagnostics reproduce the provider failure while normal NES discovery is
+running: phase `manifest`, exception `SQLiteDatabaseLockedException`. Discovery
+uses a long exclusive transaction, so the independent native read cannot obtain
+its snapshot in rollback-journal mode. This identifies the earlier generic I/O
+error; the ROM remains unchanged. The earlier successful provider read was
+followed by this failed observation, retained in `nes-owned-provider-read.json`.
+The installed sqflite Android 2.4.3 source supports the application manifest's
+`com.tekartik.sqflite.wal_enabled` option on every writable UI/headless connection.
+That option is now enabled in source. Native provider connections remain read-only;
+no timeout, retry, ownership bypass or job cancellation is introduced.
+A task-only Android SQLite proof reproduces the blocked rollback reader and
+verifies that WAL permits the independent reader during an exclusive writer,
+hides its uncommitted update and reveals the update after commit. It touches only
+two synthetic databases under the exact task-owned Android folder. Host-wide
+regressions and the signed package/real-provider concurrent-read check remain
+required before accepting this correction. Evidence: `native-db-reader-proof.log`,
+`NativeDbReaderProof.java`, `candidate-44fdd8e-*.json` and
+`native/scene-44-library-mounted.log`. The task-only probe binaries/databases are
+collected under `/storage/emulated/0/GShopSceneLaunch-20261021-db-proof` and then
+removed by exact helper transaction `7d33a37aa36f96fb5a747d5c2733b650`: all six
+reviewed entries/39,333 bytes, with source and diagnosis reports retained on the
+host. The wider host run also exposed an older unboxing scheduler test still
+tapping the removed magnifier key. It now taps the actual hardware widget while
+preserving readiness, sequencing, lifecycle and inspection assertions; the focused
+real-model rerun passes. The full host run completed with two failures: that stale
+locator and category navigation waiting for all animation on a pushed Patches
+route. The retained widget tree identifies the latter's active model-loading
+spinner, separate from the navigation acceptance and outside the library's muted
+TickerMode. The test now joins the actual route appearance and completed route
+transition. The complete discovery/navigation file passes, retaining all conditional
+category and controller assertions; no production navigation change was made.
+Evidence: `native-reader-wal-full-host-suite.log`,
+`blur-and-suite-regressions.log`, `category-navigation-file-diagnostic.log` and
+`category-navigation-state-check.log`. The unchanged passing full-run results
+remain applicable; this does not relabel the original failed run as passing.
+
+Revision 147 adds a 3-logical-pixel backdrop blur inside each information panel's
+rounded clip. Game metadata and G&W hardware history retain sharp text/buttons,
+scrolling, opacity, slow rotation and Reduced Motion. Focused checks pass at Thor's
+logical lower viewport and a 360x640 ordinary viewport, including enlarged text
+and close/scroll controls; existing history rotation/Back checks also pass. Native
+rendered appearance remains required on the next signed candidate. Source and
+installed integration skill 0.1.6 both validate with matching SHA-256
+`545950ccce1764380dc6a12a4bd72a111f7ab4e2253c582032b82c0ce6edd842`;
+the installed updated instructions were reread. No additional stage or release.
+Focused static analysis reports no errors/warnings and one existing test-style
+info (`curly_braces_in_flow_control_structures`); its exit status is 1 because
+Flutter treats that info as an issue. Evidence: `blur-and-regression-analysis.log`.
 
 S26 NES vertical workflow is implemented in source across ordinary and secondary
 views: persistent scene with translucent game information, cartridge inspection

@@ -1,6 +1,6 @@
 # Console presentation, resource and validation contract
 
-Owner-approved integration requirements, 2026-10-21. Included by
+Owner-approved integration requirements, updated 2026-10-22. Included by
 [SPECIFICATION.md](SPECIFICATION.md); that specification and later explicit owner
 instructions govern scope. This contract applies when a console integration is
 authorized. It does not activate every console or another implementation stage.
@@ -117,7 +117,9 @@ cartridge-then-booklet extraction, closed box and settled composition.
 Zoom/inspect the selected cartridge or handheld. The corner Info action opens
 game metadata over it; console/device inspection exposes hardware history where
 available. Use a partially translucent, scrollable panel with the model visible
-and slowly rotating underneath. Reduced Motion stops rotation. B closes info/
+and slowly rotating underneath. Slightly blur only the scene behind the rounded
+panel, keeping panel text/buttons sharp and the scene outside clear. Reduced
+Motion stops rotation. B closes info/
 inspection before leaving the game. Do not restore permanent white edition labels
 or a separate ordinary Resources/trailers/images browser. Retain useful resource,
 manual, emulator, variant and save actions contextually or in settings.

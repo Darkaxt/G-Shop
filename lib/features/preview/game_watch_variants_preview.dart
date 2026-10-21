@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/game_watch_hardware_info.dart';
 import '../../models/game_watch_unboxing_scene.dart';
@@ -401,42 +402,50 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
         bottom: 12,
         child: ConstrainedBox(
             constraints: BoxConstraints(maxHeight: math.max(64, height - 72)),
-            child: Material(
-                key: const ValueKey('gamewatch-hardware-information'),
-                color: const Color(0xB3161113),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: Color(0x40FFFFFF))),
-                clipBehavior: Clip.antiAlias,
-                child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(info?.title ?? _label(index),
-                              style: const TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 8),
-                          Text(_label(index),
-                              style: const TextStyle(color: Colors.white70)),
-                          if (info?.released case final released?) ...[
-                            const SizedBox(height: 6),
-                            Text('Released $released'),
-                          ],
-                          const SizedBox(height: 12),
-                          Text(
-                              info?.summary ??
-                                  'This reference has no matching entry for this hardware edition.',
-                              style:
-                                  const TextStyle(fontSize: 14, height: 1.45)),
-                          const SizedBox(height: 12),
-                          TextButton.icon(
-                              onPressed:
-                                  widget.onReference ?? () => _source(info),
-                              icon: const Icon(Icons.open_in_new, size: 17),
-                              label: const Text('NintendoGameAndWatch.com')),
-                        ])))));
+            child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                    child: Material(
+                        key: const ValueKey('gamewatch-hardware-information'),
+                        color: const Color(0xB3161113),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: const BorderSide(color: Color(0x40FFFFFF))),
+                        clipBehavior: Clip.antiAlias,
+                        child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(info?.title ?? _label(index),
+                                      style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w600)),
+                                  const SizedBox(height: 8),
+                                  Text(_label(index),
+                                      style: const TextStyle(
+                                          color: Colors.white70)),
+                                  if (info?.released case final released?) ...[
+                                    const SizedBox(height: 6),
+                                    Text('Released $released'),
+                                  ],
+                                  const SizedBox(height: 12),
+                                  Text(
+                                      info?.summary ??
+                                          'This reference has no matching entry for this hardware edition.',
+                                      style: const TextStyle(
+                                          fontSize: 14, height: 1.45)),
+                                  const SizedBox(height: 12),
+                                  TextButton.icon(
+                                      onPressed: widget.onReference ??
+                                          () => _source(info),
+                                      icon: const Icon(Icons.open_in_new,
+                                          size: 17),
+                                      label: const Text(
+                                          'NintendoGameAndWatch.com')),
+                                ])))))));
   }
 
   @override

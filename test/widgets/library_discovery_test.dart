@@ -257,7 +257,8 @@ void main() {
             builder: (context) => MediaQuery(
                 data: MediaQuery.of(context).copyWith(disableAnimations: true),
                 // Category navigation does not verify the unavailable host GPU.
-                child: const TickerMode(enabled: false, child: LibraryScreen()))))));
+                child: const TickerMode(
+                    enabled: false, child: LibraryScreen()))))));
     await tester.pumpAndSettle();
     Future<void> console(String label) async {
       final tabs = tester.widget<LibraryTabs>(
@@ -332,7 +333,16 @@ void main() {
     await tester.tap(find.descendant(
         of: find.byKey(const ValueKey('library-category-tabs')),
         matching: find.text('PATCHES')));
-    await tester.pumpAndSettle();
+    while (find.byType(PatchLibraryScreen).evaluate().isEmpty) {
+      await tester.pump();
+    }
+    final patchRoute =
+        ModalRoute.of(tester.element(find.byType(PatchLibraryScreen)))!;
+    // Join the navigation being tested, not the new route's model-loading
+    // spinner: the host GPU is unavailable and that is separate acceptance.
+    while (!patchRoute.animation!.isCompleted) {
+      await tester.pump(const Duration(microseconds: 16667));
+    }
     expect(find.byType(PatchLibraryScreen), findsOneWidget,
         reason: 'Dynamic index 2 opens Patches, not the omitted Hacks tab');
     Navigator.of(tester.element(find.byType(PatchLibraryScreen))).pop();

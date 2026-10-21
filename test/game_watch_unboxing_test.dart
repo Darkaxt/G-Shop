@@ -347,7 +347,7 @@ void main() {
     progress = key.currentState!.snapshot['sequenceProgress'] as List;
     expect(progress.first, 1);
     expect(progress.last, greaterThan(0));
-    await tester.tap(find.byKey(const ValueKey('gamewatch-inspect-1')));
+    await tester.tap(find.byType(ConsoleHardwareView).at(1));
     await tester.pump();
     expect(key.currentState!.snapshot['sequenceSettled'], isTrue);
     expect(key.currentState!.snapshot['inspectedIndex'], 1);

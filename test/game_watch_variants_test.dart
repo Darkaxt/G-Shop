@@ -436,6 +436,15 @@ void main() {
     final panel = tester.widget<Material>(
         find.byKey(const ValueKey('gamewatch-hardware-information')));
     expect(panel.color!.a, allOf(greaterThan(.5), lessThan(.9)));
+    final backdrop = find.ancestor(
+        of: find.byKey(const ValueKey('gamewatch-hardware-information')),
+        matching: find.byType(BackdropFilter));
+    expect(backdrop, findsOneWidget);
+    expect(find.ancestor(of: backdrop, matching: find.byType(ClipRRect)),
+        findsOneWidget,
+        reason: 'History blur stays inside the rounded panel');
+    expect(find.byType(ImageFiltered), findsNothing,
+        reason: 'History text and actions are not blurred');
     expect(states.first.snapshot['informationRotation'], isTrue);
     expect(states.first.snapshot['rotationPeriodMs'], 120000);
     expect(states.first.snapshot['rotationRunning'], isFalse,

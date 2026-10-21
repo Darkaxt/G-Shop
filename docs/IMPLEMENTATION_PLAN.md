@@ -1,6 +1,10 @@
 # Staged implementation plan
 
-Current execution, 2026-10-21: **S26 ACTIVE**, sole active stage. Revision 146
+Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 147
+adds a slight rounded-panel backdrop blur to game information and hardware
+history, retaining sharp text/buttons, slow rotation and Info/Back semantics.
+Verify this with the next signed candidate alongside the native reader fix.
+Revision 146
 reverses the edition arc so its center is farther back, removes magnifier buttons
 and retains direct model taps. Verify this with the corrected NES launch candidate
 in the same authorized stage; preserve the existing running build observation.

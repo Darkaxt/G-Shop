@@ -1,6 +1,13 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 146, 2026-10-21.
+Authoritative specification, revision 147, 2026-10-22.
+
+Owner information-panel refinement, 2026-10-22: slightly blur the scene beneath
+the translucent game-information and hardware-history panels. Clip the backdrop
+effect to each rounded panel; keep its text/buttons sharp and the surrounding
+scene clear. Preserve slow rotation, Reduced Motion and existing Info/Back
+behavior. Record in CI-04 and the integration skill; verify the rendered panel
+on the signed native candidate within the same ACTIVE S26 stage.
 
 Owner arc/interaction correction, 2026-10-21: the shallow multi-edition arc opens
 toward the viewer, with the central edition slightly behind the outer editions.

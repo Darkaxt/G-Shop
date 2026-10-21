@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.5"
+  version: "0.1.6"
 ---
 
 # G-Shop Console Integration
@@ -65,7 +65,8 @@ actionable binding defects rather than manufacturing external blockers.
   the camera around the composition and recalibrate zoom to the moved screen.
 - Game browsing: actual box/contents and applicable sleeve/case/booklet, proper
   sequential extraction, selected materials/labels, zoom and translucent info over
-  slow rotation. Keep useful contextual actions.
+  slow rotation. Slightly blur the scene beneath the rounded information panel;
+  keep text/buttons sharp and the scene outside clear. Keep useful contextual actions.
 - Wired props: correct controller/plug/contact and edition-specific cable length.
   Calibrate scale and measure transformed curve arc length. Receipt target,
   measurement, reference and uncertainty; inspect bends, crossings and grounding.
