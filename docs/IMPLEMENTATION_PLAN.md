@@ -14,6 +14,14 @@ and close with one normal release plus independent package/installed verificatio
 No intermediate S26 release. No later-stage work opens while S26 is ACTIVE.
 Historical revision checkpoints below are superseded by this current state.
 
+Revision 141 adds the owner's reusable CI-01..08 console contract, hard required
+resource gate and shared physical scale. Apply those constraints within the same
+authorized stage: stop dependent console implementation for a required resource
+gap until the owner supplies it, approves the concrete workaround or accepts the
+specific limitation. Record actual dimensions/uncertainty and per-edition curved
+cable measurements. The installed integration skill guides execution/review;
+it does not open another stage or activate wider console work.
+
 Revision 137 assigns the owner-authorized continuation to S26's remaining
 extension: SCENE-01..05 followed by SOCKET-01 as its last implementation/review
 step. S25 current ICON/NES delivery remains ACTIVE. S26 extension is NOT STARTED;

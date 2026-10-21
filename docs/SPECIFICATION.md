@@ -1,6 +1,32 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 138, 2026-10-21.
+Authoritative specification, revision 141, 2026-10-21.
+
+Owner reusable console-integration instruction, 2026-10-21: the included
+[CONSOLE_INTEGRATION_CONTRACT.md](CONSOLE_INTEGRATION_CONTRACT.md), CI-01..08,
+registers the shared box-gallery, lower-composition, per-game animation, physical
+scale/cable, launch and validation requirements for each authorized console.
+The reusable skill describes how to execute/review this contract; it does not
+supersede the specification or activate broader console work. Existing S26
+SCENE-01..05 and SOCKET-01 remain in their authorized order.
+
+Owner missing-resource gate, 2026-10-21: if any required model, custom cartridge,
+artwork or other integration resource is absent/invalid or cannot be bound
+faithfully, pause that affected integration. Resume dependent implementation only
+when the owner provides the resource, explicitly approves a concrete workaround
+or acknowledges the specific limitation. Record the gap and decision against the
+blocked acceptance criterion. No generic substitute, silent omission, partial
+acceptance or release. Runtime missing-file/direct-launch handling does not waive
+this implementation gate. Internally resolvable validation/binding work remains
+actionable diagnosis, rather than an invented external impediment.
+
+Owner shared-scale clarification, 2026-10-21: models sitting alongside one another
+must use real physical dimensions where obtainable, in one common scene scale.
+Apply this to consoles, handhelds, boxes, cartridges, controllers and other props;
+move/fit the camera around the composition rather than independently enlarging
+each object to an equal display size. Record dimension sources and uncertainty.
+Individual gallery cards may retain independent framing, because they do not
+assert a shared physical arrangement. CI-05 defines the corresponding review.
 
 Owner S26 closure instruction, 2026-10-21: register the authorized three-system
 3D interaction and the Socket dependency/attribution evaluation as the remaining
@@ -49,6 +75,14 @@ not permission to interrupt unfinished current acceptance or release partial wor
   port 1, the controller flat on the shared ground centered directly in front of
   the console, and only the cable routed in a tidy loop at the right; retain the
   source collector. This includes the owner's placement clarification.
+- Owner cable refinement, 2026-10-21: use realistic controller cable lengths,
+  measured along the curved centerline at the hardware's physical model scale.
+  Keep the controller centered in front and coil the slack on the right. The
+  front-loader uses a nominal 230 cm exposed cable, based on a reported original
+  controller measurement of about 227 cm; this is a modeling reference rather
+  than a factory tolerance claim. Retain the target, measured length, scale basis
+  and reference in the private authoring receipt. Other wired bodies need their
+  own applicable hardware reference rather than inheriting a miniature lead.
 - SCENE-04: choose randomly among available validated compatible console models
   for that launch. Hold the chosen model/slot/pose stable throughout the attempt;
   exclude incompatible cartridges, decorative collector scenes and unavailable

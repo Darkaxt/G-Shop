@@ -5,7 +5,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-21 current execution (specification revision 138): **S26 ACTIVE**, sole
+2026-10-21 current execution (specification revision 141): **S26 ACTIVE**, sole
 active stage, authorized SCENE-01..05 followed by SOCKET-01. **S25 BLOCKED** for
 its remaining wider console/gallery requirements under the owner's explicit
 sequencing hold; resume them after S26. The current ICON/NES-01..06 task is
@@ -66,16 +66,43 @@ activation. The prior twelve-file draft has a defined recovery location until
 native acceptance; original model imports remain unchanged. The corrected model
 also passes actual vertex centering/support-plane and all-shell aperture checks.
 Focused scene/widget/readiness/lifecycle/audio and all-carton/shell loader checks
-pass for the current NES source. Analysis has no errors; the existing protected
-render-layer warning and style advice remain. Prepare an internal signed candidate
-from this source for the actual native workflow, without publishing a release.
+pass for candidate source `29270bc`. Analysis of that source has no errors; the
+existing protected render-layer warning and style advice remain. Internal signed
+candidate 1.10.2/code 43 from run `39627621791` is installed on Thor; package,
+production signer and installed SHA-256
+`5ec325bc3233b4844939d02af31823e0779e83cbe292aaff86713b8a6e70d4b4`
+match. All fourteen database/preferences files are byte-identical across update.
+This is preparation for native acceptance, not a public release or scene proof.
+
+Owner cable/scale refinement: the initial centered cable measured 62.65 nominal
+source cm. A new front-loader derivative measures 229.997 cm along the curved
+centerline, with three turns on the right and the same centered controller. Its
+Blender render/conversion are inspected; it is not yet activated on Thor. The
+NES-101 derivative preserves its actual separate dust flap and dogbone, with a
+verified source-animation conversion. New compatible-selection/vertical-insertion
+wiring is in progress and has not yet passed its integrated checks. Earlier
+candidate checks do not validate these subsequent changes. Shared physical scale
+and each wired edition's own cable reference remain required acceptance work.
+
+The reusable console contract CI-01..08 is now versioned in
+`CONSOLE_INTEGRATION_CONTRACT.md`, with source skill under
+`docs/agent-skills/gshop-console-integration/`. The installed Codex skill's
+SKILL.md and UI metadata match the versioned source hashes and pass the installed
+validator. It covers the upper NintAndBox gallery, lower composition, per-game
+sequence, information/launch, physical scale/cables and real-device validation.
+CI-01 is a hard resource gate: pause the affected integration for a required
+missing/invalid/unbound resource until the owner supplies it, approves a concrete
+workaround or explicitly acknowledges that limitation. No silent substitute or
+incomplete-resource acceptance. Applicable unresolved resource bindings must be
+audited against this gate before dependent implementation/acceptance continues.
 
 Native NES scene/handoff/interrupt/Info verification remains required. The second
 compatible console/random pool, GBA and G&W adaptations, fallback/lifecycle
 acceptance and SOCKET-01 remain current S26 advancement blockers. The new scene
 entry is enabled only for NES while proving that vertical workflow; GBA/G&W retain
 their existing behavior until their same-stage adaptation. No S26 extension
-release or native candidate has been produced yet. Diagnostics and private source
+release has been published. The internal candidate is not native-accepted yet.
+Diagnostics and private source
 receipts are under `D:/Temp/gshop-scene-launch-20261021/reports/`.
 
 S26 extension acceptance remaining: unified scene information/actions, direct

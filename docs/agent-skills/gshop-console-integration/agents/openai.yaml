@@ -1,0 +1,4 @@
+interface:
+  display_name: "G-Shop Console Integration"
+  short_description: "Integrate and validate G-Shop 3D console scenes"
+  default_prompt: "Use $gshop-console-integration to integrate and validate this console against G-Shop's resource and presentation contract."
