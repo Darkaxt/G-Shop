@@ -7,7 +7,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 2026-10-22 current execution (specification revision 149): **S26 ACTIVE**, sole
 active stage. The supplied Sony display and NES-101 derivative are integrated in
-the internal signed candidate from `4be05b9`, installed and hash/signer verified
+the internal signed candidate from `9bc449a`, installed and hash/signer verified
 with all sixteen database/preferences files unchanged across that update. Native default framing
 is verified for the collector, single and three-edition G&W scenes and NES media.
 The corrected front-loader/Sony path reaches the real owned game; B, background
@@ -17,10 +17,12 @@ candidate's global WAL setting conflicted with shared metadata's rollback journa
 `4be05b9` scopes WAL to the private database. Native read-back confirms private WAL
 and shared DELETE, successful scoped recovery and the owned read completing before
 discovery finishes. Focused checks and the completed full host suite pass for
-that source. The owner's recurring library-loading report is an internal
-advancement blocker: native discovery takes 33 seconds after metadata readiness.
-Root-cause diagnosis/fix and native revalidation are required before starting NES
-resource collection. IGDB credentials are saved on Thor; no new credentials or
+that source. The owner's recurring library-loading regression is resolved on
+the signed internal candidate: first NES entry drops from 40.541 to 6.944 seconds
+(including 5.202 seconds of scoped recovery), and warm entry from 33.069 to 1.706
+seconds. Both retain all 9,831 entries and join an actual rendered carton frame;
+screenshots are reviewed on both displays. This clears the loading prerequisite
+for upstream work, not unfinished artwork/model acceptance. IGDB credentials are saved on Thor; no new credentials or
 lookup job were requested/started during the read-only coverage investigation.
 The loading regression reproduces on an unchanged 385-game fixture: discovery
 evaluates the whole ranking/filter selection four times and hydrates unused
@@ -28,11 +30,17 @@ metadata. The correction materializes that same selection once inside its
 transaction and pages compact results by position; exact bindings, counts,
 release/Top/filter/manual-order semantics and cancellation cleanup are preserved.
 The regression and focused bulk-query, migration, controller and UI resource
-workflows pass. Actual Thor timing/re-entry verification is still required; do
-not call the native loading defect fixed from these host results. Evidence:
-`library-loading-before.log` and `library-loading-integration-checks.log` under
-the existing scene-launch reports. The full-suite result above predates this
-query correction and is not its acceptance evidence.
+workflows and source analysis pass. Native evidence is retained in
+`scene-9bc-library-cold.json`, `scene-9bc-library-warm.json` and their paired
+screenshots, alongside `library-loading-before.log` and
+`library-loading-integration-checks.log` under the existing scene-launch reports.
+The full-suite result above predates this query correction; focused checks and
+the actual device workflow verify the changed path. Candidate SHA-256 is
+`267723552c659cbb11f06718c1794a6d1abaf79866b4daa076f8ea0d2cb083b3`, identical
+to Thor's installed APK, with the existing production signer, approved icons,
+private-payload absence and all sixteen database/preferences files preserved.
+Read-back retains private WAL and shared DELETE. The resource-incomplete first
+unranked item shown in the lower view does not pass model/artwork acceptance.
 Full NES-101 animation and the remaining
 three-system acceptance criteria remain open; no intermediate public release.
 The owner's slight information-panel blur is integrated into game information
