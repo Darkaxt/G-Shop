@@ -5,8 +5,9 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-21 current execution (specification revision 141): **S26 ACTIVE**, sole
-active stage, authorized SCENE-01..05 followed by SOCKET-01. **S25 BLOCKED** for
+2026-10-21 current execution (specification revision 142): **S26 BLOCKED** on
+CI-01's external-display resource decision; no implementation stage is ACTIVE.
+Authorized scope remains SCENE-01..05 followed by SOCKET-01. **S25 BLOCKED** for
 its remaining wider console/gallery requirements under the owner's explicit
 sequencing hold; resume them after S26. The current ICON/NES-01..06 task is
 COMPLETE and delivered; this does not claim wider S25 completion.
@@ -60,10 +61,10 @@ and control-contract diagnostics, not native workflow acceptance. The owner's
 corrected layout centers the grounded controller directly in front of the console
 and routes only the cable at the right. Its Blender render and converted geometry
 are inspected; source authoring retains the exact placement in provenance.
-The twelve private launch files on Thor now use the centered controller through
-verified transfer `3c2cf6ae42a74b8b94ee8cceb918cffc` and exact hash-checked
-activation. The prior twelve-file draft has a defined recovery location until
-native acceptance; original model imports remain unchanged. The corrected model
+The twelve private launch files on Thor now use the centered controller and
+229.997 cm cable through verified transfer `fe4f16f4dc064b18b678fa7070fd1af7`
+and exact hash-checked activation. Prior twelve-file drafts have defined recovery
+locations until native acceptance; original model imports remain unchanged. The corrected model
 also passes actual vertex centering/support-plane and all-shell aperture checks.
 Focused scene/widget/readiness/lifecycle/audio and all-carton/shell loader checks
 pass for candidate source `29270bc`. Analysis of that source has no errors; the
@@ -77,8 +78,8 @@ This is preparation for native acceptance, not a public release or scene proof.
 Owner cable/scale refinement: the initial centered cable measured 62.65 nominal
 source cm. A new front-loader derivative measures 229.997 cm along the curved
 centerline, with three turns on the right and the same centered controller. Its
-Blender render/conversion are inspected; it is not yet activated on Thor. The
-NES-101 derivative preserves its actual separate dust flap and dogbone, with a
+Blender render/conversion are inspected and exact installed hashes are verified.
+The NES-101 derivative preserves its actual separate dust flap and dogbone, with a
 verified source-animation conversion. New compatible-selection/vertical-insertion
 wiring is in progress and has not yet passed its integrated checks. Earlier
 candidate checks do not validate these subsequent changes. Shared physical scale
@@ -96,6 +97,38 @@ workaround or explicitly acknowledges that limitation. No silent substitute or
 incomplete-resource acceptance. Applicable unresolved resource bindings must be
 audited against this gate before dependent implementation/acceptance continues.
 
+Revision 142 gallery correction is committed/pushed as `4457712`: G&W removes
+its -0.20-radian idle override and uses GBA's shared -0.70-radian rest pose, while
+retaining the selected +/-30-degree sweep and halo. The focused widget regression
+passes for idle and app/system Reduced Motion without remounting the model.
+Source/installed skill 0.1.1 SKILL.md and UI metadata hashes match and validation
+passes. This is source/skill verification; installed candidate 43 predates this
+change, so actual native gallery parity and final release remain unsatisfied.
+
+CI-01 external blocker: SCENE-03's NES external display is absent from the four
+supplied console scenes and cartridge/accessory package. The existing four-cuboid
+display in `NesLaunchScene` is an authored diagnostic placeholder, not an accepted
+TV resource, and lacks proper support/connection detail. The owner has been shown
+`reports/nes-display-placeholder-review.png` and asked to supply a model, approve
+a proper Blender-authored period CRT with documented approximate dimensions, or
+acknowledge the corrected generic-display limitation. Resume dependent NES work
+only after that decision. This blocks NES visual acceptance, dependent three-system
+adaptation/reconciliation and final release. No workaround has been accepted.
+
+Latest NES diagnostic: the original media watcher completed with actual 10-Yard
+Fight readiness. Candidate 43 emitted an actual final scene frame using installed
+front-loader geometry `507be1f8...`, then owned native-handoff completed; the
+captured running RetroArch game has no touch overlay. The launch-start watcher
+mistakenly expected nonexistent phase `presenting` rather than `animating`; its
+exact owned logcat process was terminated after recording observation failure.
+Its original session exited with failure, not visual acceptance. Logs and game
+pixels are retained, but animation appearance/interrupt/Info still need review.
+Separately, Blender BVH checks against all eight actual console meshes found
+cartridge/front-lip intersections during NES-101 insertion for all five standard
+styles. This is an internal geometry/calibration blocker, not grounds to weaken
+the aperture test or claim that the hardware is ready. Uncommitted pool/scale
+work and private derivatives remain preserved pending continued integration.
+
 Native NES scene/handoff/interrupt/Info verification remains required. The second
 compatible console/random pool, GBA and G&W adaptations, fallback/lifecycle
 acceptance and SOCKET-01 remain current S26 advancement blockers. The new scene
@@ -110,8 +143,8 @@ launch with compatible stable random model choice, generation-correct startup,
 double-A skip and B/Back cancellation, complete native G&W/NES/GBA workflows,
 resource-incomplete behavior, then Socket importer/provenance/attribution review
 and one final independently verified release. These are current advancement
-blockers while implementation proceeds; no external impediment or tracked
-deferral is established. Historical Drive-only/rebranding delivery below remains
+blockers; the specific CI-01 external impediment above parks dependent work.
+No tracked deferral is established. Historical Drive-only/rebranding delivery below remains
 verified for that earlier S26 scope, not completion of the extension.
 
 2026-10-21 historical S26 Drive/rebranding delivery: completed scope, normal public

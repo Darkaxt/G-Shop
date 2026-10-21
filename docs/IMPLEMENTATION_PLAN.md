@@ -1,6 +1,7 @@
 # Staged implementation plan
 
-Current execution, 2026-10-21: **S26 ACTIVE**, sole active stage; current
+Current execution, 2026-10-21: **S26 BLOCKED** on the CI-01 external-display
+resource decision; no implementation stage is ACTIVE. Current
 ICON/NES-01..06 task delivered and verified as normal v1.10.1/code 42, including
 exact cleanup. Wider **S25 BLOCKED** only by the owner's sequencing hold.
 
@@ -13,6 +14,18 @@ perform SOCKET-01 last, based on the final actual resource/provenance inventory,
 and close with one normal release plus independent package/installed verification.
 No intermediate S26 release. No later-stage work opens while S26 is ACTIVE.
 Historical revision checkpoints below are superseded by this current state.
+
+Revision 142 also aligns G&W carton idle/Reduced Motion orientation with GBA;
+the focused regression passes and skill 0.1.1 is installed with source parity.
+Actual native gallery acceptance awaits a cohesive updated candidate. The
+supplied NES packages contain no television. The current diagnostic display is
+an authored placeholder, not an accepted resource: pause dependent NES work until
+the owner supplies a TV, approves building a proper CRT, or accepts the specific
+generic-display limitation. The question and concrete placeholder render are
+recorded in the current chat. The NES-first workflow remains a prerequisite for
+the GBA/G&W adaptation; do not bypass it by activating those paths while parked.
+Return to S26 when the decision resolves CI-01. Internal NES-101 slot collision
+repair and remaining acceptance work stay required; parking does not accept them.
 
 Revision 141 adds the owner's reusable CI-01..08 console contract, hard required
 resource gate and shared physical scale. Apply those constraints within the same
