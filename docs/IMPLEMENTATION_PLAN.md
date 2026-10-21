@@ -1,6 +1,10 @@
 # Staged implementation plan
 
-Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 149
+Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 150
+requires default ranked-prefix ordering and score-policy parity in the ordinary
+NES/GBA console browser and main Library. Resolve missing NES rating inputs
+through the existing upstream workflow; verify actual native order and badges.
+Revision 149
 prioritizes the recurring native library-loading regression before NES resource
 collection: preserve exact discovery semantics, remove the measured underlying
 work and verify actual Thor entry and focused resource/correctness checks.

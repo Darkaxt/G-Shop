@@ -5,7 +5,22 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-22 current execution (specification revision 149): **S26 ACTIVE**, sole
+2026-10-22 current execution (specification revision 150): **S26 ACTIVE**, sole
+active stage. The owner identified NES/GBA sorting and scoring parity. The main
+Library already requests the canonical Top 100 prefix; the ordinary console
+browser omitted that option. It now requests the same prefix without filtering
+out the alphabetical tail. Actual controller/query regressions reproduce the
+old alphabetical order for both NES and GBA and pass with the correction,
+including the 100-game cap, unrated/low-vote tail, explicit Top filter and
+publication-driven reorder. Focused query/controller/console/Library checks
+and source analysis pass. Native order/badge acceptance remains open. The
+normal ratings-only NES operation was started once on Thor; job 104 is running
+with accepted matching inputs, rather than blindly scraping all 9,831 titles.
+Its completion, Drive publication and recovered rendered scores remain required.
+No intermediate public release. Evidence: `console-default-order-before.log`,
+`console-default-order-checks.log`, `console-default-order-analysis.log` and
+`nes-ratings-job-private.json` under the scene-launch reports.
+The existing scene workflow remains in the same sole
 active stage. The supplied Sony display and NES-101 derivative are integrated in
 the internal signed candidate from `9bc449a`, installed and hash/signer verified
 with all sixteen database/preferences files unchanged across that update. Native default framing

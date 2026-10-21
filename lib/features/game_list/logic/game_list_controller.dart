@@ -494,6 +494,9 @@ class GameListController extends ChangeNotifier {
                   tags: filters.selectedTags,
                   genres: filters.selectedGenres,
                   top: filters.top,
+                  // Match the main Library: feature the canonical Top 100,
+                  // retaining the full alphabetical tail and explicit filters.
+                  featuredTop: 100,
                   ratingOrder: filters.ratingOrder,
                   matchAllTags: filters.matchAllTags),
               orderedKeys: keys,

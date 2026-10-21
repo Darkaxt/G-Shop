@@ -1414,6 +1414,81 @@ void main() {
     }
   });
 
+  for (final platform in ['nes', 'gba']) {
+    test('$platform console defaults to ranked Top 100 then alphabetical tail',
+        () async {
+      for (var n = 1; n <= 105; n++) {
+        await seed(n,
+            platform: platform,
+            score: n == 104 ? null : n / 2,
+            votes: n == 105 ? 1 : 100,
+            ratingKind: RatingKind.communityAggregate);
+      }
+      final games = [
+        for (var n = 1; n <= 105; n++)
+          GameItem(filename: 'Game $n.7z', displayName: 'Game $n', url: '')
+      ];
+      final system =
+          SystemModel.supportedSystems.singleWhere((s) => s.id == platform);
+      final controller = GameListController(
+          system: system,
+          targetFolder: '/nonexistent/$platform',
+          systemConfig: SystemConfig(
+              id: platform,
+              name: system.name,
+              targetFolder: '/nonexistent/$platform',
+              providers: const []),
+          databaseService: _ConsoleCacheDatabase(db, games),
+          storage: _FreshFilterStorage(),
+          installedFilenames: const {},
+          releasePreference: const CommercialReleasePreference(),
+          prepareMetadata: () async {});
+      addTearDown(controller.dispose);
+      await waitUntilLoaded(controller);
+      await controller.discoverySettled;
+      List<String> filenames() => [
+            for (final group in controller.state.filteredGroups)
+              controller.state.filteredGroupedGames[group]!.first.filename
+          ];
+      expect(filenames(), [
+        for (var n = 103; n >= 4; n--) 'Game $n.7z',
+        'Game 1.7z',
+        'Game 104.7z',
+        'Game 105.7z',
+        'Game 2.7z',
+        'Game 3.7z'
+      ]);
+      expect(controller.state.discovery!.featuredRanks, hasLength(100));
+      expect(controller.state.discovery!.rankedGames, 103);
+      expect(controller.state.discovery!.collectionGames, 105);
+      controller.setTopFilter(10);
+      await controller.discoverySettled;
+      expect(filenames(), [for (var n = 103; n >= 94; n--) 'Game $n.7z']);
+      controller.clearFilters();
+      await controller.discoverySettled;
+      expect(filenames(), hasLength(105));
+      final best = (await store.metadata(
+          (await query.cachedMetadata('Game 1.7z', platform))!.editionId!,
+          'igdb'))!;
+      await store.putMetadata(MetadataRecord.fromJson({
+        ...best.toJson(),
+        'refreshGeneration': 2,
+        'ratings':
+            best.ratings.map((r) => {...r.toJson(), 'rawValue': 99}).toList()
+      }));
+      controller.refreshDiscovery();
+      await controller.discoverySettled;
+      expect(filenames().first, 'Game 1.7z');
+      expect(filenames(), hasLength(105));
+      expect(
+          (await query.cachedMetadata('Game 1.7z', platform))!
+              .overallRating!
+              .rating
+              .normalizedValue,
+          99);
+    });
+  }
+
   for (final operation in ['details', 'ratings', 'covers']) {
     test('exact $operation reads leave unrelated projection work pending',
         () async {

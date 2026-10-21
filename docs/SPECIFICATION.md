@@ -1,6 +1,15 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 149, 2026-10-22.
+Authoritative specification, revision 150, 2026-10-22.
+
+Owner NES/GBA sorting and score parity, 2026-10-22: apply the established
+default Top 100 canonical ranked prefix followed by the alphabetical tail to
+the ordinary console browser as well as the main Library. Preserve explicit
+Top/rating filters, release preferences, exact bindings and the full unrated
+tail. NES and GBA use the same accepted score policy and source-labelled badges;
+missing NES rating inputs must be resolved through the upstream workflow,
+not invented labels or browse-triggered scraping. Verify both console scopes,
+publication refresh and actual native order/badges within the existing S26.
 
 Owner library-loading regression, 2026-10-22: resolve the recurring long native
 library entry before starting NES resource collection. Current evidence shows
