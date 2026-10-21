@@ -5,6 +5,82 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-21 delivery reconciliation: revision 131 Game & Watch batch **COMPLETE**.
+Normal public [v1.9.24/code 40](https://github.com/Darkaxt/R-Shop/releases/tag/v1.9.24)
+is delivered from source 58bd9730aae072fdc264810ea53a9dc772e7cafd. Independent
+public retrieval verifies APK, BUILDINFO, SHA256SUMS, version, production signing,
+source and private-payload exclusion. Public and installed Thor APK SHA-256 both
+are 16fe2b45cf75a6738322ea32fe0dfa5d4fe424f19f20802310edaf79c306933b.
+The native selector, motion, lifecycle and per-game acceptance below applies to
+that exact package. All 53 owned ROM revisions / 51 game labels are represented;
+no owned physical design is missing. Integrated assets: 63 handheld variants,
+60 cartons and one Diskun case. Autoslalom and modern Zelda visual alternates
+have no package import; they are not uncovered owned classic games.
+
+The full private NintAndBox catalogue is accepted at
+E:/R-Shop Reference Assets/NintAndBox/2026-03/3D-Boxes: all 2,527 archive editions,
+packed editable Blender sources, real Open/Close clips, source provenance and
+portable reproduction inputs. Current exports have zero Khronos errors/warnings;
+editable animation and visual acceptance receipts reconcile every edition.
+Main independently hashes every GLB/Blend and current visual evidence (5,275
+files), inspects the completed all-file delivery receipt and opens eight packed
+Blender samples; this is not a second full ancillary-file hash pass. Five rejected
+artwork orientations are corrected and freshly reviewed. Permanent-copy receipt:
+de6e44de71c438c7ed734a8951fbbd9c601a23072bd943782b3871c2d28f370d.
+Both transferred catalogue staging and main disposable work are removed through
+the installed cleanup helper, with zero residuals; originals, authoring inputs,
+reproduction recipes, usable outputs and required evidence are preserved.
+
+Owner-directed transition: **S26 ACTIVE**, sole active stage. Wider **S25 BLOCKED**
+by the owner's explicit sequencing hold, rather than a technical failure. Remaining
+individual-console verification and deliberately held broader cinematic/gallery
+criteria stay in S25_VERIFIED_MODELS.md and S25_PACKAGING_COVERAGE.md. They are
+not accepted, removed or deferred into S26. Resume after owner-prioritized S26;
+S26 does not depend on those remaining model checks. S26 acceptance remains
+unresolved: supported-source removal/migration, G-Shop naming, data/update/OAuth
+preservation and retained integrations, then one verified final release. No S26
+product behavior is claimed yet. Private detailed evidence remains outside Git.
+
+Historical checkpoints below retain original dates; this current state supersedes
+their pending delivery and stage statements.
+
+Revision 131 signed native acceptance, 2026-10-20: source 58bd9730, signed
+1.9.24+40, is installed on Thor as a data-preserving update with UID 10167.
+Installed APK SHA-256 matches the verified CI package. The secondary-screen
+selector now opens at the .85-radian elevated camera by default, retains all
+63 authored device placements and hides only Display_board. Its compact native
+receipt confirms the exact imported geometry, a rendered GPU frame and active
+40-second turntable. The passive recording's 649 decoded frames show continuous
+rotation without flash, near-black or abrupt-change events; all exported contact
+sheets are inspected, with no truncated evidence. Raw H.264 timeline estimates
+are not device timing measurements. Native Settings -> Reduced motion retains
+the rendered collection and stops its turntable; restoring the original setting
+restores rotation. Leaving the app hides the presentation and returning reloads
+the matching scene. The selector acceptance blocker below is
+resolved; the earlier flat/upright-grid diagnostics are historical and superseded.
+
+Both Helmet ROM selections retain separate selected identity and use the same
+documented exterior/carton in real Thor frames. Refined single/multi-screen
+models, Crystal apertures, multi-edition settled views, photographic Panorama
+inspection, translucent slow information rotation and return to the prior manual
+pose pass their applicable signed native checks. Actual sequential three-edition
+SMB unboxing and retained left-opening carton/tray extraction are inspected on
+recordings. Those per-game paths are unchanged between the inspected 28137b1
+candidate and final 58bd9730; the final changes affect the collection camera and
+its readiness receipt. Host acceptance covers the real collection/handheld
+imports, camera defaults, revision binding, readiness and motion ownership.
+
+All current-batch catalogue and release gates pass as recorded above.
+
+Current-batch design assessment: the collection reuses the existing preview
+renderer, turntable, lifecycle and Reduced Motion ownership. Its strict imported
+scene predicate selects the elevated camera and bounded collection budgets;
+ordinary hardware behavior remains unchanged. No additional consolidation is
+required for this batch's acceptance. The final source diff from the inspected
+per-game candidate confirms those per-game paths are unchanged.
+
+Earlier selector investigation checkpoints (superseded where stated above):
+
 Revision 131 camera reconciliation: the source is a horizontal collection with
 standing tabletop devices. Rotating the entire grid upright would also tilt those
 devices away from the viewer. The actual elevated-camera diagnostic on Thor shows

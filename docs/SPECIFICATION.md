@@ -41,9 +41,10 @@ stopping boundary or new owner approval is introduced.
 Owner full carton catalogue correction, 2026-10-20: prepare every box edition
 in the NintAndBox 2026-03 archive, not merely regional representatives. The
 purpose is a reusable private 3D box library from which app integration can
-select editions later. The current census has 2,528 edition folders across eight
-platforms, including 85 Game & Watch and 2,443 other editions; verify and reconcile
-the actual inputs rather than treating that snapshot as a completion target.
+select editions later. The verified census has 2,527 genuine edition folders
+across eight platforms, including 85 Game & Watch and 2,442 other editions;
+the earlier 2,528 snapshot included a metadata directory. Verify and reconcile
+the actual inputs rather than treating a snapshot as a completion target.
 Resume the same explicitly requested agent for bounded repetitive asset work,
 with editable packed Blender sources, self-contained GLBs, opening/closing
 animations, exact scan provenance and per-edition conversion/verification status.
