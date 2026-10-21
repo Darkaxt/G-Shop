@@ -13,6 +13,7 @@ import '../../models/socket_media_model.dart';
 import 'nes_launch_preview.dart';
 import 'nes_console_selector.dart';
 import 'scene_preview_layout.dart';
+import 'scene_idle_hints.dart';
 import '../../models/preview_settings.dart';
 import '../../models/system_model.dart';
 import '../../services/socket_media_import.dart';
@@ -49,6 +50,7 @@ class _PreviewScreenState extends State<PreviewScreen>
   Timer? _slideshow;
   String? _videoPath;
   bool _paused = false;
+  int _activityRevision = 0;
   bool? _manualPlayback;
   bool? _reportedPlaying;
   int? _reportedEpoch;
@@ -155,6 +157,14 @@ class _PreviewScreenState extends State<PreviewScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     bridge.setMethodCallHandler((call) async {
+      if (call.method == 'userActivity') {
+        if (_snapshot != null &&
+            (call.arguments as Map?)?['actionEpoch'] ==
+                _snapshot?['actionEpoch']) {
+          setState(() => _activityRevision++);
+        }
+        return;
+      }
       if (call.method == 'prepare') {
         await _prepareResources(
             (call.arguments as Map).cast<String, dynamic>());
@@ -416,6 +426,25 @@ class _PreviewScreenState extends State<PreviewScreen>
         if (variant != null) 'variant': variant
       }));
 
+  Widget _withIdleHints(Map<String, dynamic> snapshot, Widget child,
+          {required bool enabled, bool collector = false}) =>
+      SceneIdleHints(
+          identity: '${snapshot['identity']}:${snapshot['filename'] ?? ''}',
+          activityRevision: _activityRevision,
+          enabled: enabled &&
+              !_paused &&
+              snapshot['mediaLoading'] != true &&
+              snapshot['details'] != true &&
+              snapshot['hardwareInformationVisible'] != true &&
+              snapshot['gallery'] != true &&
+              snapshot['sceneLaunch'] == null,
+          hints: SceneIdleHints.forView(snapshot['system'] as String,
+              collector: collector,
+              inspecting: snapshot['inspectedHardware'] != null,
+              canLaunch: snapshot['sceneView'] == true &&
+                  snapshot['canLaunch'] == true),
+          child: child);
+
   @override
   Widget build(BuildContext context) {
     final snapshot = _snapshot;
@@ -432,20 +461,24 @@ class _PreviewScreenState extends State<PreviewScreen>
         return const Scaffold(
             body: Center(child: Text('Console model unavailable')));
       return Scaffold(
-          body: system.id == 'nes'
-              ? NesConsoleSelector(
-                  collection: model,
-                  hardwareKey: _consoleKey,
-                  reducedMotion: snapshot['reducedMotion'] == true,
-                  onReady: () =>
-                      unawaited(_rendered(snapshot['revision'] as int)))
-              : ConsoleHardwareView(
-                  key: _consoleKey,
-                  model: model,
-                  title: snapshot['title'] as String,
-                  onReady: () =>
-                      unawaited(_rendered(snapshot['revision'] as int)),
-                  reducedMotion: snapshot['reducedMotion'] == true));
+          body: _withIdleHints(
+              snapshot,
+              system.id == 'nes'
+                  ? NesConsoleSelector(
+                      collection: model,
+                      hardwareKey: _consoleKey,
+                      reducedMotion: snapshot['reducedMotion'] == true,
+                      onReady: () =>
+                          unawaited(_rendered(snapshot['revision'] as int)))
+                  : ConsoleHardwareView(
+                      key: _consoleKey,
+                      model: model,
+                      title: snapshot['title'] as String,
+                      onReady: () =>
+                          unawaited(_rendered(snapshot['revision'] as int)),
+                      reducedMotion: snapshot['reducedMotion'] == true),
+              enabled: true,
+              collector: true));
     }
     final game = GameItem(
         filename: snapshot['filename'] as String,
@@ -481,300 +514,318 @@ class _PreviewScreenState extends State<PreviewScreen>
       }
     }
     return Scaffold(
-        body: Container(
-            decoration:
-                const BoxDecoration(gradient: AppTheme.backgroundGradient),
-            child: Stack(fit: StackFit.expand, children: [
-              if (background != null)
-                ImageFiltered(
-                    imageFilter: ui.ImageFilter.blur(
-                        sigmaX: prefs.blur, sigmaY: prefs.blur),
-                    child: Opacity(
-                        opacity:
-                            details ? prefs.brightness * .35 : prefs.brightness,
-                        child: background)),
-              if (player != null && player.value.isInitialized)
-                Positioned(
-                    right: 16,
-                    top: 16,
-                    child: ValueListenableBuilder<VideoPlayerValue>(
-                        valueListenable: player,
-                        builder: (context, value, child) =>
-                            IconButton.filledTonal(
-                                tooltip: value.isPlaying
-                                    ? 'Pause video'
-                                    : 'Play video',
-                                onPressed: () {
-                                  _manualPlayback = !value.isPlaying;
-                                  if (_manualPlayback!) {
-                                    unawaited(player.play());
-                                  } else {
-                                    unawaited(player.pause());
-                                  }
-                                },
-                                icon: Icon(value.isPlaying
-                                    ? Icons.pause
-                                    : Icons.play_arrow)))),
-              SafeArea(
-                  child: Padding(
-                      padding: EdgeInsets.symmetric(
-                          vertical: gallery || composition ? 0 : 24),
-                      child: ScenePreviewLayout(
-                        composition: composition,
-                        header: !gallery &&
-                                !(composition &&
-                                    snapshot['inspectedHardware'] is int)
-                            ? Column(mainAxisSize: MainAxisSize.min, children: [
-                                Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 24),
-                                    child: Text(game.displayName,
-                                        key: const ValueKey(
-                                            'preview-game-title'),
-                                        maxLines: 2,
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                            fontSize: 26,
-                                            fontWeight: FontWeight.w600))),
-                                Text(system.name,
-                                    style:
-                                        const TextStyle(color: Colors.white70)),
-                                const SizedBox(height: 12),
-                              ])
-                            : null,
-                        content: snapshot['gallery'] == true
-                            ? snapshot['galleryLoading'] == true
-                                ? const Center(
-                                    child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                        CircularProgressIndicator(),
-                                        SizedBox(height: 16),
-                                        Text('Loading resources…')
-                                      ]))
-                                : ResourceGallery(
-                                    initialView: snapshot['galleryManual'] == true
-                                        ? ResourceView.manual
-                                        : null,
-                                    initiallyOpening:
-                                        snapshot['galleryManual'] == true,
-                                    reducedMotion:
-                                        snapshot['reducedMotion'] == true,
-                                    key: _galleryKey,
-                                    identity: snapshot['identity'] as String,
-                                    title: game.displayName,
-                                    systemId: system.id,
-                                    filename: game.filename,
-                                    contentTags:
-                                        (snapshot['contentTags'] as List? ??
-                                                const [])
-                                            .cast<String>(),
-                                    region: GameMetadata.parse(game.filename)
-                                        .region
-                                        .name,
-                                    dualMode:
-                                        snapshot['gbcDualMode'] as String?,
-                                    importedModels: snapshot['threeD'] == true,
-                                    volume: _volume,
-                                    resources: {
-                                      for (final entry
-                                          in (snapshot['galleryResources']
-                                                      as Map? ??
-                                                  {})
-                                              .entries)
-                                        entry.key as String:
-                                            (entry.value as List)
-                                                .cast<String>(),
-                                      if (snapshot['cover'] != null)
-                                        'cover-preview': [
-                                          snapshot['cover'] as String
-                                        ],
-                                      if (snapshot['label'] != null)
-                                        'support-texture': [
-                                          snapshot['label'] as String
-                                        ],
-                                      'screenshot': screenshots,
-                                      if (snapshot['video'] != null)
-                                        'video': [
-                                          Uri.file(snapshot['video'] as String)
-                                              .toString()
-                                        ],
+        body: _withIdleHints(
+            snapshot,
+            Container(
+                decoration:
+                    const BoxDecoration(gradient: AppTheme.backgroundGradient),
+                child: Stack(fit: StackFit.expand, children: [
+                  if (background != null)
+                    ImageFiltered(
+                        imageFilter: ui.ImageFilter.blur(
+                            sigmaX: prefs.blur, sigmaY: prefs.blur),
+                        child: Opacity(
+                            opacity: details
+                                ? prefs.brightness * .35
+                                : prefs.brightness,
+                            child: background)),
+                  if (player != null && player.value.isInitialized)
+                    Positioned(
+                        right: 16,
+                        top: 16,
+                        child: ValueListenableBuilder<VideoPlayerValue>(
+                            valueListenable: player,
+                            builder: (context, value, child) =>
+                                IconButton.filledTonal(
+                                    tooltip: value.isPlaying
+                                        ? 'Pause video'
+                                        : 'Play video',
+                                    onPressed: () {
+                                      _manualPlayback = !value.isPlaying;
+                                      if (_manualPlayback!) {
+                                        unawaited(player.play());
+                                      } else {
+                                        unawaited(player.pause());
+                                      }
                                     },
-                                    onClose: () => _action('preview'),
-                                    onPlayingChanged: (playing) => unawaited(bridge
-                                            .invokeMethod<void>('playing', {
-                                          'actionEpoch':
-                                              snapshot['actionEpoch'],
-                                          'video': snapshot['video'],
-                                          'playing': playing
-                                        })))
-                            : details && snapshot['sceneView'] != true
-                                ? Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                                    child: _details(snapshot))
-                                : GestureDetector(
-                                    onTap: snapshot['sceneView'] == true ? null : () => _action('details'),
-                                    child: prefs.modelVisible && snapshot['mediaLoading'] == true && snapshot['cover'] == null
-                                        ? const Center(child: CircularProgressIndicator(key: ValueKey('preview-loading-cover')))
-                                        : prefs.modelVisible
-                                            ? IgnorePointer(
-                                                ignoring: snapshot['sceneView'] == true && (details || snapshot['sceneLaunch'] != null),
-                                                child: CoverSection(
-                                                    onNesReferenceChanged: (style) => _action('nes-reference:${style ?? 'none'}'),
-                                                    scenePresentation: snapshot['sceneView'] == true,
-                                                    gameInformationVisible: details,
-                                                    showGameWatchVariants: true,
-                                                    onHardwareReference: () => _action('hardware-source'),
-                                                    inspectedHardware: snapshot['inspectedHardware'] as int?,
-                                                    hardwareInformationVisible: snapshot['hardwareInformationVisible'] == true,
-                                                    onHardwareInspection: (index) => index == null ? _action('hardware-overview') : _action('hardware-inspect', variant: index),
-                                                    onHardwareInformation: (show) => _action(show ? 'hardware-info' : 'hardware-hide-info'),
-                                                    initiallySettled: _previewSettled,
-                                                    initialInspectionPart: system.id == 'nes'
-                                                        ? snapshot['cartridgeInspected'] == true
-                                                            ? 'cartridge'
-                                                            : null
-                                                        : _inspectedPart,
-                                                    onInspectionChanged: (part) {
-                                                      _inspectedPart = part;
-                                                      if (system.id == 'nes' &&
-                                                          snapshot[
-                                                                  'sceneView'] ==
-                                                              true) {
-                                                        _action(
-                                                            'media-inspection',
-                                                            variant: part ==
-                                                                    'cartridge'
-                                                                ? 1
-                                                                : 0);
-                                                      }
-                                                    },
-                                                    onReadManual: () {
-                                                      _previewSettled = true;
-                                                      _inspectedPart =
-                                                          'booklet';
-                                                      _action('manual');
-                                                    },
-                                                    key: _coverKey,
-                                                    game: game,
-                                                    system: system,
-                                                    coverUrls: const [],
-                                                    cachedUrl: snapshot['cover'] as String?,
-                                                    physicalLabelUrl: snapshot['label'] as String?,
-                                                    gbcDualMode: snapshot['gbcDualMode'] as String?,
-                                                    contentTags: (snapshot['contentTags'] as List? ?? const []).cast<String>(),
-                                                    packagingResources: {
-                                                      for (final entry
-                                                          in (snapshot['galleryResources']
-                                                                      as Map? ??
-                                                                  {})
-                                                              .entries)
-                                                        entry.key as String:
-                                                            (entry.value
+                                    icon: Icon(value.isPlaying
+                                        ? Icons.pause
+                                        : Icons.play_arrow)))),
+                  SafeArea(
+                      child: Padding(
+                          padding: EdgeInsets.symmetric(
+                              vertical: gallery || composition ? 0 : 24),
+                          child: ScenePreviewLayout(
+                            composition: composition,
+                            header: !gallery &&
+                                    !(composition &&
+                                        snapshot['inspectedHardware'] is int)
+                                ? Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                        Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 24),
+                                            child: Text(game.displayName,
+                                                key: const ValueKey(
+                                                    'preview-game-title'),
+                                                maxLines: 2,
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(
+                                                    fontSize: 26,
+                                                    fontWeight:
+                                                        FontWeight.w600))),
+                                        Text(system.name,
+                                            style: const TextStyle(
+                                                color: Colors.white70)),
+                                        const SizedBox(height: 12),
+                                      ])
+                                : null,
+                            content: snapshot['gallery'] == true
+                                ? snapshot['galleryLoading'] == true
+                                    ? const Center(
+                                        child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                            CircularProgressIndicator(),
+                                            SizedBox(height: 16),
+                                            Text('Loading resources…')
+                                          ]))
+                                    : ResourceGallery(
+                                        initialView:
+                                            snapshot['galleryManual'] == true
+                                                ? ResourceView.manual
+                                                : null,
+                                        initiallyOpening:
+                                            snapshot['galleryManual'] == true,
+                                        reducedMotion:
+                                            snapshot['reducedMotion'] == true,
+                                        key: _galleryKey,
+                                        identity:
+                                            snapshot['identity'] as String,
+                                        title: game.displayName,
+                                        systemId: system.id,
+                                        filename: game.filename,
+                                        contentTags:
+                                            (snapshot['contentTags'] as List? ??
+                                                    const [])
+                                                .cast<String>(),
+                                        region:
+                                            GameMetadata.parse(game.filename)
+                                                .region
+                                                .name,
+                                        dualMode:
+                                            snapshot['gbcDualMode'] as String?,
+                                        importedModels:
+                                            snapshot['threeD'] == true,
+                                        volume: _volume,
+                                        resources: {
+                                          for (final entry
+                                              in (snapshot['galleryResources']
+                                                          as Map? ??
+                                                      {})
+                                                  .entries)
+                                            entry.key as String:
+                                                (entry.value as List)
+                                                    .cast<String>(),
+                                          if (snapshot['cover'] != null)
+                                            'cover-preview': [
+                                              snapshot['cover'] as String
+                                            ],
+                                          if (snapshot['label'] != null)
+                                            'support-texture': [
+                                              snapshot['label'] as String
+                                            ],
+                                          'screenshot': screenshots,
+                                          if (snapshot['video'] != null)
+                                            'video': [
+                                              Uri.file(snapshot['video']
+                                                      as String)
+                                                  .toString()
+                                            ],
+                                        },
+                                        onClose: () => _action('preview'),
+                                        onPlayingChanged: (playing) =>
+                                            unawaited(bridge.invokeMethod<void>('playing', {
+                                              'actionEpoch':
+                                                  snapshot['actionEpoch'],
+                                              'video': snapshot['video'],
+                                              'playing': playing
+                                            })))
+                                : details && snapshot['sceneView'] != true
+                                    ? Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: _details(snapshot))
+                                    : GestureDetector(
+                                        onTap: snapshot['sceneView'] == true ? null : () => _action('details'),
+                                        child: prefs.modelVisible && snapshot['mediaLoading'] == true && snapshot['cover'] == null
+                                            ? const Center(child: CircularProgressIndicator(key: ValueKey('preview-loading-cover')))
+                                            : prefs.modelVisible
+                                                ? IgnorePointer(
+                                                    ignoring: snapshot['sceneView'] == true && (details || snapshot['sceneLaunch'] != null),
+                                                    child: CoverSection(
+                                                        onNesReferenceChanged: (style) => _action('nes-reference:${style ?? 'none'}'),
+                                                        scenePresentation: snapshot['sceneView'] == true,
+                                                        gameInformationVisible: details,
+                                                        showGameWatchVariants: true,
+                                                        onHardwareReference: () => _action('hardware-source'),
+                                                        inspectedHardware: snapshot['inspectedHardware'] as int?,
+                                                        hardwareInformationVisible: snapshot['hardwareInformationVisible'] == true,
+                                                        onHardwareInspection: (index) => index == null ? _action('hardware-overview') : _action('hardware-inspect', variant: index),
+                                                        onHardwareInformation: (show) => _action(show ? 'hardware-info' : 'hardware-hide-info'),
+                                                        initiallySettled: _previewSettled,
+                                                        initialInspectionPart: system.id == 'nes'
+                                                            ? snapshot['cartridgeInspected'] == true
+                                                                ? 'cartridge'
+                                                                : null
+                                                            : _inspectedPart,
+                                                        onInspectionChanged: (part) {
+                                                          _inspectedPart = part;
+                                                          if (system.id ==
+                                                                  'nes' &&
+                                                              snapshot[
+                                                                      'sceneView'] ==
+                                                                  true) {
+                                                            _action(
+                                                                'media-inspection',
+                                                                variant: part ==
+                                                                        'cartridge'
+                                                                    ? 1
+                                                                    : 0);
+                                                          }
+                                                        },
+                                                        onReadManual: () {
+                                                          _previewSettled =
+                                                              true;
+                                                          _inspectedPart =
+                                                              'booklet';
+                                                          _action('manual');
+                                                        },
+                                                        key: _coverKey,
+                                                        game: game,
+                                                        system: system,
+                                                        coverUrls: const [],
+                                                        cachedUrl: snapshot['cover'] as String?,
+                                                        physicalLabelUrl: snapshot['label'] as String?,
+                                                        gbcDualMode: snapshot['gbcDualMode'] as String?,
+                                                        contentTags: (snapshot['contentTags'] as List? ?? const []).cast<String>(),
+                                                        packagingResources: {
+                                                          for (final entry
+                                                              in (snapshot['galleryResources']
+                                                                          as Map? ??
+                                                                      {})
+                                                                  .entries)
+                                                            entry.key
+                                                                as String: (entry
+                                                                        .value
                                                                     as List)
                                                                 .cast<String>()
-                                                    },
-                                                    metadata: GameMetadata.parse(game.filename),
-                                                    physicalMediaEnabled: snapshot['threeD'] == true,
-                                                    physicalMediaKey: _physicalKey,
-                                                    reducedMotion: snapshot['reducedMotion'] == true,
-                                                    resourcesReady: snapshot['mediaLoading'] != true && (_videoPath == null || _video?.value.isInitialized == true),
-                                                    onReady: () => unawaited(_rendered(snapshot['revision'] as int, revealStarted: true)),
-                                                    onRevealed: () {
-                                                      _previewSettled = true;
-                                                      unawaited(_rendered(
-                                                          snapshot['revision']
-                                                              as int,
-                                                          revealCompleted:
-                                                              true));
-                                                    },
-                                                    showPresentationControls: false))
-                                            : const Center(child: Icon(Icons.touch_app_outlined, size: 48))),
-                        footer: !details &&
-                                !gallery &&
-                                snapshot['sceneView'] != true
-                            ? Text(
-                                system.id == 'gameandwatch' &&
-                                        snapshot['threeD'] == true
-                                    ? (snapshot['inspectedHardware'] == null
-                                        ? 'Tap a model to inspect'
-                                        : 'Select for hardware information')
-                                    : 'Select for details',
-                                style: TextStyle(color: Colors.white70))
-                            : null,
-                      ))),
-              if (!gallery &&
-                  snapshot['sceneView'] == true &&
-                  snapshot['sceneLaunch'] == null)
-                Positioned(
-                    left: 16,
-                    top: 16,
-                    child: IconButton.filledTonal(
-                        tooltip: 'Game information',
-                        onPressed: () {
-                          _physicalKey.currentState?.inspectCartridge();
-                          _action('details');
-                        },
-                        icon: const Icon(Icons.info_outline))),
-              if (snapshot['sceneView'] == true && details)
-                GameSceneInformation(
-                    title: game.displayName,
-                    referenceNote:
-                        'Box and cartridge models are reference editions. Physical releases can differ.',
-                    summary: snapshot['summary'] as String?,
-                    credits: snapshot['credits'] as String?,
-                    genres: snapshot['genres'] as String?,
-                    score: snapshot['scoreLabel'] as String?,
-                    onClose: () => _action('close')),
-              if (_launchScene != null &&
-                  snapshot['sceneLaunch'] is Map &&
-                  (snapshot['sceneLaunch'] as Map)['visualAvailable'] == true)
-                Positioned.fill(
-                    child: NesLaunchPreview(
-                        key: ValueKey('nes-launch:${_launchPreparingToken!}'),
-                        token: _launchPreparingToken!,
-                        scene: _launchScene!,
-                        initialPose: _launchInitialPose!,
-                        label: _launchLabel!,
-                        labelIdentity: _launchLabelIdentity,
+                                                        },
+                                                        metadata: GameMetadata.parse(game.filename),
+                                                        physicalMediaEnabled: snapshot['threeD'] == true,
+                                                        physicalMediaKey: _physicalKey,
+                                                        reducedMotion: snapshot['reducedMotion'] == true,
+                                                        resourcesReady: snapshot['mediaLoading'] != true && (_videoPath == null || _video?.value.isInitialized == true),
+                                                        onReady: () => unawaited(_rendered(snapshot['revision'] as int, revealStarted: true)),
+                                                        onRevealed: () {
+                                                          _previewSettled =
+                                                              true;
+                                                          unawaited(_rendered(
+                                                              snapshot[
+                                                                      'revision']
+                                                                  as int,
+                                                              revealCompleted:
+                                                                  true));
+                                                        },
+                                                        showPresentationControls: false))
+                                                : const Center(child: Icon(Icons.touch_app_outlined, size: 48))),
+                            footer: !composition &&
+                                    !details &&
+                                    !gallery &&
+                                    snapshot['sceneView'] != true
+                                ? Text(
+                                    system.id == 'gameandwatch' &&
+                                            snapshot['threeD'] == true
+                                        ? (snapshot['inspectedHardware'] == null
+                                            ? 'Tap a model to inspect'
+                                            : 'Select for hardware information')
+                                        : 'Select for details',
+                                    style: TextStyle(color: Colors.white70))
+                                : null,
+                          ))),
+                  if (!gallery &&
+                      snapshot['sceneView'] == true &&
+                      snapshot['sceneLaunch'] == null)
+                    Positioned(
+                        left: 16,
+                        top: 16,
+                        child: IconButton.filledTonal(
+                            tooltip: 'Game information',
+                            onPressed: () {
+                              _physicalKey.currentState?.inspectCartridge();
+                              _action('details');
+                            },
+                            icon: const Icon(Icons.info_outline))),
+                  if (snapshot['sceneView'] == true && details)
+                    GameSceneInformation(
                         title: game.displayName,
-                        phase: SceneLaunchPhase.values.byName(
-                            (snapshot['sceneLaunch'] as Map)['phase']
-                                as String),
-                        skip: (snapshot['sceneLaunch'] as Map)['skip'] == true,
-                        reducedMotion: snapshot['reducedMotion'] == true,
-                        onPrepared: (ready) => _action(
-                            ready ? 'launch-ready' : 'launch-unavailable',
-                            variant: _launchPreparingToken),
-                        onFinished: () => _action('launch-finished',
-                            variant: _launchPreparingToken),
-                        onCancel: () => _action('launch-cancel',
-                            variant: _launchPreparingToken),
-                        onSkip: () => _action('launch-skip', variant: _launchPreparingToken))),
-              if (!gallery &&
-                  !details &&
-                  snapshot['sceneView'] != true &&
-                  system.id == 'gba') ...[
-                if (snapshot['scoreLabel'] is String)
-                  Positioned(
-                      left: 20,
-                      bottom: 20,
-                      child: _cornerBadge(
-                          key: const ValueKey('preview-score'),
-                          text: snapshot['scoreLabel'] as String)),
-                Positioned(
-                    right: 20,
-                    bottom: 20,
-                    child: _cornerBadge(
-                        key: const ValueKey('preview-availability'),
-                        icon: snapshot['installed'] == true
-                            ? Icons.sd_card
-                            : Icons.cloud_download_outlined,
-                        text: snapshot['installed'] == true
-                            ? 'On device'
-                            : 'In Drive')),
-              ],
-            ])));
+                        referenceNote:
+                            'Box and cartridge models are reference editions. Physical releases can differ.',
+                        summary: snapshot['summary'] as String?,
+                        credits: snapshot['credits'] as String?,
+                        genres: snapshot['genres'] as String?,
+                        score: snapshot['scoreLabel'] as String?,
+                        onClose: () => _action('close')),
+                  if (_launchScene != null &&
+                      snapshot['sceneLaunch'] is Map &&
+                      (snapshot['sceneLaunch'] as Map)['visualAvailable'] ==
+                          true)
+                    Positioned.fill(
+                        child: NesLaunchPreview(
+                            key: ValueKey(
+                                'nes-launch:${_launchPreparingToken!}'),
+                            token: _launchPreparingToken!,
+                            scene: _launchScene!,
+                            initialPose: _launchInitialPose!,
+                            label: _launchLabel!,
+                            labelIdentity: _launchLabelIdentity,
+                            title: game.displayName,
+                            phase: SceneLaunchPhase.values.byName(
+                                (snapshot['sceneLaunch'] as Map)['phase']
+                                    as String),
+                            skip: (snapshot['sceneLaunch'] as Map)['skip'] ==
+                                true,
+                            reducedMotion: snapshot['reducedMotion'] == true,
+                            onPrepared: (ready) => _action(
+                                ready ? 'launch-ready' : 'launch-unavailable',
+                                variant: _launchPreparingToken),
+                            onFinished: () =>
+                                _action('launch-finished', variant: _launchPreparingToken),
+                            onCancel: () => _action('launch-cancel', variant: _launchPreparingToken),
+                            onSkip: () => _action('launch-skip', variant: _launchPreparingToken))),
+                  if (!gallery &&
+                      !details &&
+                      snapshot['sceneView'] != true &&
+                      system.id == 'gba') ...[
+                    if (snapshot['scoreLabel'] is String)
+                      Positioned(
+                          left: 20,
+                          bottom: 20,
+                          child: _cornerBadge(
+                              key: const ValueKey('preview-score'),
+                              text: snapshot['scoreLabel'] as String)),
+                    Positioned(
+                        right: 20,
+                        bottom: 20,
+                        child: _cornerBadge(
+                            key: const ValueKey('preview-availability'),
+                            icon: snapshot['installed'] == true
+                                ? Icons.sd_card
+                                : Icons.cloud_download_outlined,
+                            text: snapshot['installed'] == true
+                                ? 'On device'
+                                : 'In Drive')),
+                  ],
+                ])),
+            enabled: composition));
   }
 
   Widget _cornerBadge(

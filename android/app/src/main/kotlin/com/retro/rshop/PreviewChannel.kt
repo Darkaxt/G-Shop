@@ -118,6 +118,9 @@ class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger)
     }
     fun resume() { resumed = true; prepare(); show() }
     fun pause() { resumed = false; dismiss() }
+    fun userInteraction() {
+        if (enabled && resumed && payload != null) presentation?.userInteraction()
+    }
     private fun changed() {
         channel.invokeMethod("availability", display() != null)
         if (display() == null) dismiss(release = true) else { prepare(); show() }
@@ -236,6 +239,10 @@ class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger)
         fun togglePlayback(result: MethodChannel.Result) {
             channel?.invokeMethod("togglePlayback", mapOf("actionEpoch" to latest?.get("actionEpoch")), result)
                 ?: result.error("preview_hidden", "Preview is hidden", null)
+        }
+        fun userInteraction() {
+            if (ready && latest != null) channel?.invokeMethod("userActivity",
+                mapOf("actionEpoch" to latest?.get("actionEpoch")))
         }
         fun hideRenderer() {
             latest?.let { onPlaying(mapOf("actionEpoch" to it["actionEpoch"], "video" to it["video"], "playing" to false)) }

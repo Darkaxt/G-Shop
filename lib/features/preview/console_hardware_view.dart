@@ -273,15 +273,16 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
                   child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: widget.onInspect,
-                      onDoubleTap: widget.model.canOpen
-                          ? () {
-                              if (_opening.value < .5) {
-                                _opening.forward();
-                              } else {
-                                _opening.reverse();
-                              }
-                            }
-                          : null,
+                      onDoubleTap:
+                          widget.onInspect == null && widget.model.canOpen
+                              ? () {
+                                  if (_opening.value < .5) {
+                                    _opening.forward();
+                                  } else {
+                                    _opening.reverse();
+                                  }
+                                }
+                              : null,
                       onScaleStart: (_) => _startZoom = _zoom,
                       onScaleUpdate: (event) => setState(() {
                             _yaw += event.focalPointDelta.dx * .012;

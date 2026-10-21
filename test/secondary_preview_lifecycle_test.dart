@@ -255,6 +255,46 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('primary input resets only the current secondary idle hints',
+      (tester) async {
+    const channel = MethodChannel('com.darkaxt.gshop/preview_view');
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (_) async => null);
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+    Future<void> send(String method, Map<String, dynamic> value) async {
+      await messenger.handlePlatformMessage(
+          channel.name,
+          const StandardMethodCodec()
+              .encodeMethodCall(MethodCall(method, value)),
+          (_) {});
+      await tester.pump();
+    }
+
+    await tester.pumpWidget(const MaterialApp(home: PreviewScreen()));
+    await send('snapshot', {
+      'revision': 1,
+      'identity': 'idle-preview',
+      'actionEpoch': 7,
+      'system': 'nes',
+      'filename': 'Fixture.nes',
+      'title': 'Fixture',
+      'mediaLoading': false,
+      'threeD': true,
+      'settings': const PreviewSettings().toJson(),
+    });
+    await tester.pump(const Duration(seconds: 24));
+    await send('userActivity', {'actionEpoch': 6});
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byKey(const ValueKey('scene-idle-hint')), findsOneWidget,
+        reason: 'An old presentation cannot reset the current hint');
+    await send('userActivity', {'actionEpoch': 7});
+    expect(find.byKey(const ValueKey('scene-idle-hint')), findsNothing);
+    await tester.pump(const Duration(seconds: 24));
+    expect(find.byKey(const ValueKey('scene-idle-hint')), findsNothing);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byKey(const ValueKey('scene-idle-hint')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('pending cover never exposes an unfinished cartridge',
       (tester) async {
     const channel = MethodChannel('com.darkaxt.gshop/preview_view');

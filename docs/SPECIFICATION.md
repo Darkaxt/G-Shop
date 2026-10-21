@@ -1,6 +1,23 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 145, 2026-10-21.
+Authoritative specification, revision 146, 2026-10-21.
+
+Owner arc/interaction correction, 2026-10-21: the shallow multi-edition arc opens
+toward the viewer, with the central edition slightly behind the outer editions.
+Do not bow the center toward the viewer or enlarge that model to imply priority.
+Remove floating magnifier buttons from the overview; tapping a model itself
+enters inspection. Retain edition identity, sequential unboxing, separate gestures,
+reserved edge areas and the existing inspection/history controls. Register this
+in CI-03/04 and the integration skill, then verify actual native appearance.
+
+Owner idle tutorial/trivia request, 2026-10-21: after 20–30 seconds without human
+input, show a subtle bottom-margin “Did you know?” message. Use 25 seconds and
+rotate contextual control hints and established hardware/game trivia while idle.
+Touch, held gestures, controller input on either display and selection changes
+hide it and restart the idle period. Suppress it during information, resources,
+launch and backgrounding. Keep the full model viewport and controls clear; no
+new buttons, unsolicited overlays, network fetches or effect on launch ownership.
+The explicit presentation timer is not synchronization/completion control.
 
 Owner lower-scene framing clarification, 2026-10-21: reserve approximately
 10–15% at each edge for text and buttons. Fit the complete default composition

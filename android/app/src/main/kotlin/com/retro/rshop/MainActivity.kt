@@ -245,6 +245,11 @@ class MainActivity : FlutterActivity() {
         preview?.resume()
     }
 
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        preview?.userInteraction()
+    }
+
     override fun onPause() {
         preview?.pause()
         super.onPause()

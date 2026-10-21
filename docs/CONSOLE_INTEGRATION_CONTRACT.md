@@ -67,6 +67,15 @@ props and original scenes; hide only specifically approved staging objects, such
 as Game & Watch's display table/board. Add editions in a shallow semicircle, with
 readable silhouettes and consistent relative scale, rather than an arbitrary row.
 Keep labels out of the overview; show edition names and information on inspection.
+The arc opens toward the viewer: the central edition sits slightly farther back,
+with the outer editions forward. Do not enlarge the central model for priority.
+Tap the model itself to inspect it; no floating magnifier icons or extra overview
+buttons. Keep the direct hit areas accessible and retain inspection/history controls.
+After 25 seconds unattended, use the reserved bottom space for a quiet “Did you
+know?” tutorial hint or sourced trivia. Rotate messages while idle. Any touch or
+controller activity on either display restarts the wait; selection, information,
+launch, resources and backgrounding suppress stale hints. Preserve model size,
+control hit areas, offline behavior and Reduced Motion; add no hint buttons.
 
 Default camera framing reserves **10–15% on each edge for text and buttons**:
 target a centered 75% width/height composition rectangle (12.5% margins). Fit the

@@ -5,7 +5,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-21 current execution (specification revision 145): **S26 ACTIVE**, sole
+2026-10-21 current execution (specification revision 146): **S26 ACTIVE**, sole
 active stage. The supplied Sony display and NES-101 derivative are integrated in
 the internal signed candidate from `25737b6`, installed and hash/signer verified
 with all fourteen database/preferences files unchanged. Native TV/launch acceptance
@@ -13,6 +13,10 @@ is still required. Native default framing is verified for the collector, single
 and three-edition G&W scenes and NES media. Launch-transition defects found in
 that candidate are corrected in source and await a new native check; no
 intermediate public release.
+The owner's subsequent reversed-arc/direct-tap and idle tutorial/trivia refinements
+are integrated in source and pass focused checks; their native acceptance remains
+required. This does not reuse the earlier forward-center screenshot as proof of
+the corrected arc.
 Authorized scope remains SCENE-01..05 followed by SOCKET-01. **S25 BLOCKED** for
 its remaining wider console/gallery requirements under the owner's explicit
 sequencing hold; resume them after S26. The current ICON/NES-01..06 task is
@@ -111,6 +115,33 @@ revalidation of these corrections remains an internal SCENE-01..04 blocker.
 Evidence: `nes-native-transition-repro.log`,
 `nes-native-transition-integrated-check.log`, `nes-inspection-back-final-check.log`
 and `native/framing-nes-first-launch/analysis/` under the same task reports.
+
+Revision 146 reverses the multi-edition arc so its center sits farther back and
+the outer editions come forward. It removes magnifier icons and artificial
+central scale priority. Direct model taps enter inspection immediately; the
+opening double-tap gesture remains in the inspector, so it no longer delays an
+overview tap. Updated checks exercise actual model taps, preserve separate model
+gestures and verify the rear-center layout.
+The same scene now offers contextual tutorial/trivia messages after 25 idle
+seconds, rotating at that explicit presentation interval. Touch/held gestures,
+controller keys, selection and epoch-bound primary-display input reset the hint.
+Information, resources, launch and backgrounding suppress it. The text occupies
+the reserved bottom space without changing the model viewport or adding controls;
+the permanent overview instruction is replaced by the idle hint. Facts are local
+hardware-reference facts, with no new network acquisition. Tests cover the real
+PreviewScreen bridge path, reject stale activity epochs, and verify timing,
+interaction, lifecycle, suppression and viewport bounds. A paused-binding test
+initially inspected a tree whose frames were deliberately suspended; it now
+delivers the widget's actual lifecycle callback while keeping the test renderer
+available, matching existing lifecycle tests. No runtime workaround was added.
+Evidence: `gamewatch-arc-direction-repro.log`,
+`gamewatch-direct-inspection-check.log`, `scene-idle-and-reversed-arc-final-check.log`.
+Source and installed integration skill 0.1.5 validate and share SHA-256
+`fbe941348df860bbeab4cc96a3d7f9d971bdbcd59b06f39153cf1f7b3d7752f8`;
+the changed installed clauses were reread. Signed CI run `39661548469` succeeded
+for source `6ac1e67`; that candidate predates revision 146 and is retained in CI,
+not installed as proof of these subsequent changes. The combined candidate still
+needs signing/package/install verification and the current native workflow checks.
 
 S26 NES vertical workflow is implemented in source across ordinary and secondary
 views: persistent scene with translucent game information, cartridge inspection

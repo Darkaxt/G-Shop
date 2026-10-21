@@ -455,7 +455,7 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
           for (var i = 0; i < count; i++)
             Builder(builder: (context) {
               // Primary stays first in identity/catalogue order and occupies the
-              // forward centre of the arc; alternates retain their relative order.
+              // rear centre of the arc; the outer editions come toward the viewer.
               final centre = (count - 1) ~/ 2;
               final slot = i == 0
                   ? centre
@@ -470,7 +470,7 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
                           2 *
                           math.sin(angle) /
                           math.sin(.95));
-              final y = arc.top + arc.height * (.39 + .20 * math.cos(angle));
+              final y = arc.top + arc.height * (.69 - .20 * math.cos(angle));
               final overview = count == 1
                   ? Rect.fromLTWH(0, 0, width, height)
                   : Rect.fromCenter(
@@ -516,30 +516,16 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
                                         reducedMotion: widget.reducedMotion,
                                         informationRotation:
                                             inspected == i && _information,
-                                        stagingYaw: inspected == null && count > 1
-                                            ? .2 - angle * .35
-                                            : 0,
-                                        stagingScale:
+                                        stagingYaw:
                                             inspected == null && count > 1
-                                                ? .90 + .10 * math.cos(angle)
-                                                : 1,
+                                                ? .2 - angle * .35
+                                                : 0,
                                         onInspect: inspected == null
                                             ? () => _inspect(i)
                                             : null,
                                         transparentBackground: true,
-                                        onReady: () => _rendered(i, generation)))),
-                            if (inspected == null)
-                              Positioned(
-                                  right: 0,
-                                  top: 0,
-                                  child: IconButton(
-                                      key: ValueKey('gamewatch-inspect-$i'),
-                                      tooltip: 'Inspect ${_label(i)}',
-                                      constraints: const BoxConstraints(
-                                          minWidth: 44, minHeight: 44),
-                                      onPressed: () => _inspect(i),
-                                      icon:
-                                          const Icon(Icons.zoom_in, size: 21))),
+                                        onReady: () =>
+                                            _rendered(i, generation)))),
                           ]))));
             }),
           if (inspected != null) ...[

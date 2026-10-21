@@ -21,6 +21,7 @@ import '../../models/nes_launch_scene.dart';
 import '../../models/scene_launch_presentation.dart';
 import '../../models/socket_media_model.dart';
 import '../preview/nes_launch_preview.dart';
+import '../preview/scene_idle_hints.dart';
 import '../preview/dual_screen_preview_host.dart' show previewRouteObserver;
 import 'widgets/game_scene_information.dart';
 import '../../models/config/provider_config.dart';
@@ -1404,88 +1405,97 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           List<String> coverUrls,
           bool favorite,
           bool resourcesReady) =>
-      Stack(fit: StackFit.expand, children: [
-        Padding(
-            padding: const EdgeInsets.only(top: 64),
-            child: IgnorePointer(
-                ignoring: _sceneInformation || _sceneLaunch.pending,
-                child: CoverSection(
-                    key: _coverSectionKey,
-                    game: game,
-                    system: widget.system,
-                    coverUrls: coverUrls,
-                    metadata: fileMetadata,
-                    isFavorite: favorite,
-                    isInstalled: state.isVariantInstalled,
-                    hasThumbnail: game.hasThumbnail,
-                    physicalMediaKey: _physicalMediaKey,
-                    physicalMediaEnabled: true,
-                    gameInformationVisible: _sceneInformation,
-                    showGameWatchVariants: true,
-                    showPresentationControls: false,
-                    scenePresentation: true,
-                    reducedMotion:
-                        ref.watch(mediaPresentationProvider).reducedMotion,
-                    resourcesReady: resourcesReady,
-                    physicalLabelUrl: metadata?.cachedSupportTexture,
-                    gbcDualMode: metadata?.gbcDualMode,
-                    contentTags: metadata?.contentTags ?? const [],
-                    cachedUrl: metadata?.cachedCover ?? game.cachedCoverUrl,
-                    packagingResources: metadata?.editionId == null
-                        ? const {}
-                        : ref
-                                .watch(editionGalleryMediaProvider(
-                                    metadata!.editionId!))
-                                .valueOrNull ??
-                            const {},
-                    galleryResources: () => _galleryResources(metadata),
-                    galleryVolume: _galleryVolume,
-                    onGalleryPlaying:
-                        ref.read(audioManagerProvider).setPreviewPlaying))),
-        Positioned(
-            top: 16,
-            left: 72,
-            right: 72,
-            child: Text(game.displayName,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                style: Theme.of(context).textTheme.titleLarge)),
-        Positioned(
-            top: 8,
-            left: 16,
-            child: IconButton.filledTonal(
-                tooltip: 'Game information',
-                onPressed: () {
-                  _physicalMediaKey.currentState?.inspectCartridge();
-                  setState(() => _sceneInformation = true);
-                },
-                icon: const Icon(Icons.info_outline))),
-        Positioned(
-            top: 8,
-            right: 16,
-            child: IconButton.filledTonal(
-                tooltip: controller.canOpenSelected ? 'Play' : 'Download',
-                onPressed: _openingOwnedRom
-                    ? null
-                    : () => controller.canOpenSelected
-                        ? unawaited(_openOwnedRom())
-                        : controller.performAction(),
-                icon: Icon(controller.canOpenSelected
-                    ? Icons.play_arrow
-                    : Icons.download))),
-        if (_sceneInformation)
-          GameSceneInformation(
-              title: game.displayName,
-              referenceNote:
-                  'Box and cartridge models are reference editions. Physical releases can differ.',
-              summary: metadata?.summary,
-              genres: metadata?.genres,
-              credits: metadata?.creditsLine,
-              score: metadata?.overallRating == null
-                  ? null
-                  : '${metadata!.overallRating!.rating.sourceLabel} ${metadata.overallRating!.rating.normalizedValue.toStringAsFixed(1)}/100',
-              onClose: () => setState(() => _sceneInformation = false)),
-      ]);
+      SceneIdleHints(
+          identity: game.selectionKey,
+          hints: SceneIdleHints.forView(widget.system.id,
+              canLaunch: controller.canOpenSelected),
+          enabled: resourcesReady &&
+              !_sceneInformation &&
+              !_sceneLaunch.pending &&
+              !_openingOwnedRom &&
+              !state.isOverlayOpen,
+          child: Stack(fit: StackFit.expand, children: [
+            Padding(
+                padding: const EdgeInsets.only(top: 64),
+                child: IgnorePointer(
+                    ignoring: _sceneInformation || _sceneLaunch.pending,
+                    child: CoverSection(
+                        key: _coverSectionKey,
+                        game: game,
+                        system: widget.system,
+                        coverUrls: coverUrls,
+                        metadata: fileMetadata,
+                        isFavorite: favorite,
+                        isInstalled: state.isVariantInstalled,
+                        hasThumbnail: game.hasThumbnail,
+                        physicalMediaKey: _physicalMediaKey,
+                        physicalMediaEnabled: true,
+                        gameInformationVisible: _sceneInformation,
+                        showGameWatchVariants: true,
+                        showPresentationControls: false,
+                        scenePresentation: true,
+                        reducedMotion:
+                            ref.watch(mediaPresentationProvider).reducedMotion,
+                        resourcesReady: resourcesReady,
+                        physicalLabelUrl: metadata?.cachedSupportTexture,
+                        gbcDualMode: metadata?.gbcDualMode,
+                        contentTags: metadata?.contentTags ?? const [],
+                        cachedUrl: metadata?.cachedCover ?? game.cachedCoverUrl,
+                        packagingResources: metadata?.editionId == null
+                            ? const {}
+                            : ref
+                                    .watch(editionGalleryMediaProvider(
+                                        metadata!.editionId!))
+                                    .valueOrNull ??
+                                const {},
+                        galleryResources: () => _galleryResources(metadata),
+                        galleryVolume: _galleryVolume,
+                        onGalleryPlaying:
+                            ref.read(audioManagerProvider).setPreviewPlaying))),
+            Positioned(
+                top: 16,
+                left: 72,
+                right: 72,
+                child: Text(game.displayName,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    style: Theme.of(context).textTheme.titleLarge)),
+            Positioned(
+                top: 8,
+                left: 16,
+                child: IconButton.filledTonal(
+                    tooltip: 'Game information',
+                    onPressed: () {
+                      _physicalMediaKey.currentState?.inspectCartridge();
+                      setState(() => _sceneInformation = true);
+                    },
+                    icon: const Icon(Icons.info_outline))),
+            Positioned(
+                top: 8,
+                right: 16,
+                child: IconButton.filledTonal(
+                    tooltip: controller.canOpenSelected ? 'Play' : 'Download',
+                    onPressed: _openingOwnedRom
+                        ? null
+                        : () => controller.canOpenSelected
+                            ? unawaited(_openOwnedRom())
+                            : controller.performAction(),
+                    icon: Icon(controller.canOpenSelected
+                        ? Icons.play_arrow
+                        : Icons.download))),
+            if (_sceneInformation)
+              GameSceneInformation(
+                  title: game.displayName,
+                  referenceNote:
+                      'Box and cartridge models are reference editions. Physical releases can differ.',
+                  summary: metadata?.summary,
+                  genres: metadata?.genres,
+                  credits: metadata?.creditsLine,
+                  score: metadata?.overallRating == null
+                      ? null
+                      : '${metadata!.overallRating!.rating.sourceLabel} ${metadata.overallRating!.rating.normalizedValue.toStringAsFixed(1)}/100',
+                  onClose: () => setState(() => _sceneInformation = false)),
+          ]));
 
   Widget _buildLandscapeLayout(
     Responsive rs,

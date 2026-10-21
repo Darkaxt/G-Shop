@@ -1,6 +1,12 @@
 # Staged implementation plan
 
-Current execution, 2026-10-21: **S26 ACTIVE**, sole active stage. Revision 145
+Current execution, 2026-10-21: **S26 ACTIVE**, sole active stage. Revision 146
+reverses the edition arc so its center is farther back, removes magnifier buttons
+and retains direct model taps. Verify this with the corrected NES launch candidate
+in the same authorized stage; preserve the existing running build observation.
+It also adds contextual tutorial/trivia messages after 25 idle seconds, reset by
+human input on either display and suppressed by information/launch/backgrounding.
+Revision 145
 adds the owner's lower-scene framing correction: fit the default composition
 inside 12.5% margins for text/buttons, preserving relative scale and upper cards.
 Implement and verify this within SCENE-01..04; the final screen zoom remains

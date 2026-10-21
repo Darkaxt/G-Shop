@@ -325,11 +325,14 @@ void main() {
         tester.getRect(find.byType(ConsoleHardwareView).at(i))
     ];
     expect(rects[0].center.dx, closeTo(1240 / (369 / 160) / 2, .001));
-    expect(rects[0].center.dy, greaterThan(rects[1].center.dy));
-    expect(rects[0].center.dy, greaterThan(rects[2].center.dy));
+    expect(rects[0].center.dy, lessThan(rects[1].center.dy));
+    expect(rects[0].center.dy, lessThan(rects[2].center.dy));
     expect(views[1].stagingYaw, greaterThan(.2));
     expect(views[2].stagingYaw, lessThan(.2));
-    expect(views[0].stagingScale, greaterThan(views[1].stagingScale));
+    expect(views.every((v) => v.stagingScale == 1), isTrue);
+    expect(find.byIcon(Icons.zoom_in), findsNothing);
+    expect(find.byType(IconButton), findsNothing,
+        reason: 'Inspect the model directly without floating overview buttons');
     final ordered = rects.toList()..sort((a, b) => a.left.compareTo(b.left));
     var edge = 0.0;
     for (final rect in ordered) {
@@ -407,7 +410,7 @@ void main() {
         .stateList<ConsoleHardwareViewState>(find.byType(ConsoleHardwareView))
         .toList();
     expect(find.text('Multi Screen'), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('gamewatch-inspect-0')));
+    await tester.tap(find.byType(ConsoleHardwareView).at(0));
     await tester.pump();
     expect(inspected, 0);
     expect(find.text('Multi Screen'), findsOneWidget);
@@ -471,7 +474,7 @@ void main() {
                 find.byType(ConsoleHardwareView))
             .toList(),
         states);
-    await tester.tap(find.byKey(const ValueKey('gamewatch-inspect-1')));
+    await tester.tap(find.byType(ConsoleHardwareView).at(1));
     await tester.pump();
     await tester
         .tap(find.byKey(const ValueKey('gamewatch-information-toggle')));
