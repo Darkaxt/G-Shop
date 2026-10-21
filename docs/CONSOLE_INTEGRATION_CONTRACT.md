@@ -68,6 +68,14 @@ as Game & Watch's display table/board. Add editions in a shallow semicircle, wit
 readable silhouettes and consistent relative scale, rather than an arbitrary row.
 Keep labels out of the overview; show edition names and information on inspection.
 
+An external TV sharing the console's support level sits **beside the console**,
+as in the supplied TV/NES reference composition. Do not place the console directly
+in front of the same-level screen. Keep the full screen and insertion path clear
+from the actual launch camera, retain common physical scale/grounding, and fit the
+camera around both objects. The controller remains centered in front of its own
+console, with its cable at the right; moving the television does not move the pad
+to the television's center. Recalibrate the final screen zoom after placement.
+
 When browsing a game, show its valid physical editions together in a shallow arc.
 Use associated boxes behind the handhelds/media, with the extracted device/media
 resting in front. Keep one exact primary binding and distinguish visual-only

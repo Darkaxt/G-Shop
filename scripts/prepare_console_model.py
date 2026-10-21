@@ -25,8 +25,10 @@ def main():
     parser.add_argument('--rom-set', help='Exact supplied Game & Watch MAME set')
     parser.add_argument('--edition-id', help='Exact NES carton catalogue edition ID')
     parser.add_argument('--cartridge-style', help='Explicit NES cartridge reference identity')
-    parser.add_argument('--launch-target', choices=('nes-front-loader',),
+    parser.add_argument('--launch-target', choices=('nes-front-loader', 'nes-top-loader'),
                         help='Inspected NES launch derivative with source-bound calibration')
+    parser.add_argument('--launch-display', action='store_true',
+                        help='Inspected supplied NES external display with physical screen anchors')
     parser.add_argument('--scratch-directory', type=Path,
                         help='Owned scratch for GLBs requiring unique Blender material names')
     parser.add_argument('--visual-variant-id', help='Explicit visual-only hardware edition; no ROM binding')
@@ -62,6 +64,14 @@ def main():
     if gltf.get('skins') or gltf.get('animations') and not (args.rom_set or args.visual_variant_id or args.edition_id or args.cartridge_style or args.launch_target):
         raise ValueError('This adapter preserves static console display scenes only')
     launch = gltf.get('extras', {}).get('launchHardware')
+    display = gltf.get('extras', {}).get('launchDisplay')
+    if args.launch_display and (args.system != 'nes' or args.launch_target or
+            args.rom_set or args.visual_variant_id or args.edition_id or
+            args.cartridge_style or not isinstance(display, dict) or
+            display.get('schema') != 1 or display.get('target') != 'sony-kv1300e' or
+            display.get('sourceUnits') != 'centimetres' or
+            display.get('physicalWidthCm') != 47.4):
+        raise ValueError('Expected the source-bound Sony external display')
     if args.launch_target and (args.system != 'nes' or args.rom_set or
             args.visual_variant_id or args.edition_id or args.cartridge_style or
             not isinstance(launch, dict) or launch.get('schema') != 1 or
@@ -530,8 +540,8 @@ def main():
         manifest['sourceReference']['controlRegistration'] = gltf['extras']['controlRegistration']
     if args.launch_target:
         nodes = {s['node'] for s in surfaces}
-        required = [launch['lidNode'], launch['powerLedNode'],
-                    *launch['trayNodes'], *launch['controllerNodes']]
+        required = [launch['lidNode'], *launch['trayNodes'], *launch['controllerNodes']]
+        required += [launch[key] for key in ('powerLedNode', 'powerNode') if launch.get(key)]
         if any(name not in nodes for name in required):
             raise ValueError('Launch calibration references absent source geometry')
         pivot = launch['lidPivot']
@@ -548,6 +558,18 @@ def main():
             'sha256': launch['sourceSha256'],
         }]
         manifest['sourceReference']['adaptation'] = launch['adaptation']
+    if args.launch_display:
+        if display['screenNode'] not in {s['node'] for s in surfaces}:
+            raise ValueError('Display calibration references absent screen geometry')
+        manifest['launchDisplay'] = {
+            **display, 'sourceScale': scale, 'sourceCenter': list(center),
+            'geometrySha256': manifest['geometrySha256'],
+        }
+        manifest['sourceReference']['parents'] = [{
+            'author': display['sourceAuthor'], 'url': display['sourceUrl'],
+            'sha256': display['sourceSha256'],
+        }]
+        manifest['sourceReference']['adaptation'] = display['adaptation']
     args.output.mkdir(parents=True)
     (args.output/'model.mesh').write_bytes(payload)
     (args.output/'model.json').write_text(json.dumps(manifest, indent=2), encoding='utf8')

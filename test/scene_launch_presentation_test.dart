@@ -3,6 +3,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:g_shop/models/scene_launch_presentation.dart';
 
 void main() {
+  test('compatible console choice binds once during preparation', () {
+    final launch = SceneLaunchPresentation();
+    final token = launch.begin(identity: 'selected-rom', consoleId: null);
+    expect(launch.selectConsole(token, 'nes-top-loader'), isTrue);
+    expect(launch.selectConsole(token, 'nes-front-loader'), isFalse);
+    expect(launch.consoleId, 'nes-top-loader');
+    launch.cancel();
+    expect(launch.selectConsole(token, 'nes-front-loader'), isFalse);
+    launch.dispose();
+  });
   test('the save-check boundary waits for resources and the actual final frame',
       () async {
     final scene = SceneLaunchPresentation();

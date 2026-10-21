@@ -44,6 +44,7 @@ class CoverSection extends StatefulWidget {
   final Map<String, List<String>> packagingResources;
   final VoidCallback? onReadManual;
   final ValueChanged<String?>? onInspectionChanged;
+  final ValueChanged<String?>? onNesReferenceChanged;
   final String? initialInspectionPart;
   final bool initiallySettled;
   final bool showGameWatchVariants;
@@ -81,6 +82,7 @@ class CoverSection extends StatefulWidget {
     this.packagingResources = const {},
     this.onReadManual,
     this.onInspectionChanged,
+    this.onNesReferenceChanged,
     this.initialInspectionPart,
     this.initiallySettled = false,
     this.showGameWatchVariants = false,
@@ -330,7 +332,8 @@ class CoverSectionState extends State<CoverSection> {
             resourcesReady: widget.resourcesReady &&
                 (widget.physicalLabelUrl == null || label != null),
             physicalMediaKey: widget.physicalMediaKey,
-            onResolved: () {
+            onResolved: (style) {
+              widget.onNesReferenceChanged?.call(style);
               if (!_physicalResolved.isCompleted)
                 _physicalResolved.complete(true);
             },

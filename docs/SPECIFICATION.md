@@ -1,6 +1,24 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 142, 2026-10-21.
+Authoritative specification, revision 144, 2026-10-21.
+
+Owner TV-placement correction, 2026-10-21: place the external television beside
+the console when they share a support level, as in the supplied TV/NES composition.
+Do not put the console directly in front of the same-level screen. Keep real
+relative scale, common grounding, the controller centered in front of its console
+and its cable at the right. Fit the camera to the complete composition and zoom
+to the actual repositioned screen. CI-03 and the installed skill register this
+rule; verify both screen visibility and insertion access from the launch camera.
+
+Owner external-display resolution, 2026-10-21: two downloaded TV models are
+provided for independent review/selection. Use the supplied Sony KV-1300E model
+for the NES launch derivative after validation; preserve both original files,
+source attribution and original collection scenes. Calibrate uniform shared scale
+against the Sony service manual's 474 mm cabinet width; record the supplied
+model's other dimensional differences rather than distorting it or claiming
+factory accuracy. Its actual curved screen supplies power/zoom anchors. The TV
+resource absence is resolved; S26 resumes as the sole ACTIVE stage. All remaining
+integration/native acceptance and the final single-release gate still apply.
 
 Owner gallery correction, 2026-10-21: G&W carton cards must use the same GBA
 resting orientation as well as its selected sweep/glow. Remove the flatter

@@ -19,7 +19,7 @@ class NesMediaPreview extends StatefulWidget {
   final bool informationVisible;
   final GlobalKey<PhysicalMediaViewState>? physicalMediaKey;
   final VoidCallback? onReady;
-  final VoidCallback? onResolved;
+  final ValueChanged<String?>? onResolved;
   final VoidCallback? onResolving;
   final bool compact;
   const NesMediaPreview(
@@ -121,7 +121,7 @@ class _NesMediaPreviewState extends State<NesMediaPreview> {
     if (_resolvedGeneration == generation) return;
     _resolvedGeneration = generation;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _generation == generation) widget.onResolved?.call();
+      if (mounted && _generation == generation) widget.onResolved?.call(_style);
     });
   }
 

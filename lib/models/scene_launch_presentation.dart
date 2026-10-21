@@ -37,7 +37,7 @@ class SceneLaunchPresentation extends ChangeNotifier {
       _phase == SceneLaunchPhase.animating;
   bool get pending => canInterrupt || _phase == SceneLaunchPhase.committing;
 
-  int begin({required String identity, required String consoleId}) {
+  int begin({required String identity, required String? consoleId}) {
     if (pending) throw StateError('A scene launch is already pending');
     _finishUnresolved();
     _token = ++_sequence;
@@ -51,6 +51,17 @@ class SceneLaunchPresentation extends ChangeNotifier {
     _visualAvailable = true;
     notifyListeners();
     return _token!;
+  }
+
+  /// Bind the validated compatible choice once during resource preparation.
+  bool selectConsole(int token, String consoleId) {
+    if (_token != token ||
+        _phase != SceneLaunchPhase.preparing ||
+        _consoleId != null ||
+        consoleId.isEmpty) return false;
+    _consoleId = consoleId;
+    notifyListeners();
+    return true;
   }
 
   bool ready(int token) {

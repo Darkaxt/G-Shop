@@ -15,6 +15,7 @@ class ConsoleModel {
   final String? visualVariantId;
   final bool isCollectionOverview;
   final String? retailEditionId;
+  final String? launchTarget;
   String get hardwareId =>
       romSet == null ? visualVariantId ?? '' : _physicalRomSet(romSet!);
   final bool canOpen;
@@ -25,6 +26,7 @@ class ConsoleModel {
       this.visualVariantId,
       this.isCollectionOverview = false,
       this.retailEditionId,
+      this.launchTarget,
       this.canOpen = false,
       this.isBox = false,
       this.openingDurationMs = 2000});
@@ -369,7 +371,7 @@ class ConsoleModel {
   /// and uncalibrated reference bodies cannot enter the random launch pool.
   static Future<ConsoleModel?> findNesLaunchTarget(String target,
       {Directory? modelsDirectory}) async {
-    if (target != 'front-loader') {
+    if (!{'front-loader', 'top-loader'}.contains(target)) {
       throw const FormatException('Unknown calibrated NES launch target');
     }
     if (modelsDirectory == null && !Platform.isAndroid) return null;
@@ -387,6 +389,28 @@ class ConsoleModel {
     if (data['launchHardware']?['target'] != 'nes-$target' ||
         data['overviewGeometry'] == true) {
       throw const FormatException('Launch hardware identity differs');
+    }
+    return ConsoleModel._('nes', dir, sha256.convert(bytes).toString(),
+        launchTarget: target);
+  }
+
+  static Future<ConsoleModel?> findNesLaunchDisplay(
+      {Directory? modelsDirectory}) async {
+    if (modelsDirectory == null && !Platform.isAndroid) return null;
+    final root =
+        modelsDirectory ?? Directory('/storage/emulated/0/RShop/models');
+    final dir = Directory('${root.path}/consoles/nes/launch/display');
+    final file = File('${dir.path}/model.json');
+    if (!await file.exists()) return null;
+    if (await file.length() > 1024 * 1024) {
+      throw const FormatException(
+          'Launch display manifest exceeds import size');
+    }
+    final bytes = await file.readAsBytes();
+    final data = jsonDecode(utf8.decode(bytes));
+    if (data['launchDisplay']?['target'] != 'sony-kv1300e' ||
+        data['overviewGeometry'] == true) {
+      throw const FormatException('Launch display identity differs');
     }
     return ConsoleModel._('nes', dir, sha256.convert(bytes).toString());
   }

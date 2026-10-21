@@ -1,7 +1,7 @@
 # Staged implementation plan
 
-Current execution, 2026-10-21: **S26 BLOCKED** on the CI-01 external-display
-resource decision; no implementation stage is ACTIVE. Current
+Current execution, 2026-10-21: **S26 ACTIVE**, sole active stage. The owner supplied
+two TV models, resolving the CI-01 external-display absence. Current
 ICON/NES-01..06 task delivered and verified as normal v1.10.1/code 42, including
 exact cleanup. Wider **S25 BLOCKED** only by the owner's sequencing hold.
 
@@ -14,6 +14,17 @@ perform SOCKET-01 last, based on the final actual resource/provenance inventory,
 and close with one normal release plus independent package/installed verification.
 No intermediate S26 release. No later-stage work opens while S26 is ACTIVE.
 Historical revision checkpoints below are superseded by this current state.
+
+Revision 143 resumes the NES workflow with the selected supplied Sony KV-1300E
+TV; preserve both originals and derive calibrated screen/scale/ground anchors.
+No external TV-resource impediment remains. Conversion, integrated geometry,
+native scene/handoff/interrupt/Info and the other S26 criteria still require
+verification. The earlier pause below records its original unresolved condition.
+
+Revision 144 moves a same-level external television beside the console. Keep
+the screen/insertion clear and the controller centered on its own console;
+preserve shared physical scale/grounding and refit/re-anchor the camera. Register
+the rule in CI-03 and the installed skill, then verify actual native composition.
 
 Revision 142 also aligns G&W carton idle/Reduced Motion orientation with GBA;
 the focused regression passes and skill 0.1.1 is installed with source parity.

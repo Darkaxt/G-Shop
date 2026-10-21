@@ -86,14 +86,23 @@ def main():
     body = [case.matrix_world @ v.co for v in case.data.vertices]
     jack = Vector((0, max(p.y for p in body) - .08,
                    (max(p.z for p in body) + min(p.z for p in body)) / 2))
-    cable_path = [
-        (6.54, -14.28, 2.92), (9.0, -15.6, 1.7),
-        (15.0, -15.5, floor + .22), (22, -14.0, floor + .18),
-        (25.0, -9.0, floor + .18), (22.0, -3.5, floor + .18),
-        (16.5, -5.0, floor + .18), (15.5, -12.5, floor + .18),
-        (10.5, -17.0, floor + .18), (3.5, -17.7, floor + .22),
-        (jack.x, jack.y + 1.35, jack.z), tuple(jack),
-    ]
+    # Nominal 2.3 m exposed cable, using the console's source cm scale. Keep
+    # the controller centered and place the slack in three loose turns right.
+    # A raised lead crosses above the coil, rather than intersecting its tube.
+    def cable_route(radius):
+        start_x = 30 - radius
+        path = [(6.54, -14.28, 2.92), (10, -16, 1.4),
+                (15.5, -15, floor + 1.1),
+                (start_x - .55, -10, floor + .95)]
+        for i in range(73):
+            theta = math.pi + i * math.tau * 3 / 72
+            r = radius + .6 * i * 3 / 72
+            path.append((30 + r * math.cos(theta),
+                         -10 + .75 * r * math.sin(theta), floor + .18))
+        path.extend([(16, -16, floor + .18), (10, -17, floor + .18),
+                     (3.5, -16.7, floor + .35),
+                     (jack.x, jack.y + 1.35, jack.z), tuple(jack)])
+        return path
     cable_material = cord.data.materials[0]
     cord_name = cord.name
     bpy.data.objects.remove(cord, do_unlink=True)
@@ -103,25 +112,45 @@ def main():
     curve.bevel_depth = .18
     curve.bevel_resolution = 2
     curve.use_fill_caps = True
-    spline = curve.splines.new('BEZIER')
-    spline.bezier_points.add(len(cable_path) - 1)
-    for point, position in zip(spline.bezier_points, cable_path):
-        point.co = position
-        point.handle_left_type = point.handle_right_type = 'AUTO'
     cord = bpy.data.objects.new(cord_name, curve)
     bpy.context.collection.objects.link(cord)
     curve.materials.append(cable_material)
-    bpy.context.view_layer.update()
-    # Automatic handles can dip a cable below the support plane between knots.
-    # Bound the Bezier control hull, rather than clipping the resulting tube.
-    for point in spline.bezier_points:
-        left, right_handle = point.handle_left.copy(), point.handle_right.copy()
-        for handle in (left, right_handle):
-            handle.z = max(floor + .18, handle.z)
-            if abs(point.co.z - (floor + .18)) < 1e-6:
-                handle.z = point.co.z
-        point.handle_left_type = point.handle_right_type = 'FREE'
-        point.handle_left, point.handle_right = left, right_handle
+
+    def fit_route(radius):
+        path = cable_route(radius)
+        curve.splines.clear()
+        spline = curve.splines.new('BEZIER')
+        spline.bezier_points.add(len(path) - 1)
+        for point, position in zip(spline.bezier_points, path):
+            point.co = position
+            point.handle_left_type = point.handle_right_type = 'AUTO'
+        bpy.context.view_layer.update()
+        # The convex hull bounds every Bezier segment above the support plane.
+        for point in spline.bezier_points:
+            handles = [point.handle_left.copy(), point.handle_right.copy()]
+            for handle in handles:
+                handle.z = max(floor + .18, handle.z)
+                if abs(point.co.z - (floor + .18)) < 1e-6:
+                    handle.z = point.co.z
+            point.handle_left_type = point.handle_right_type = 'FREE'
+            point.handle_left, point.handle_right = handles
+        return spline, path
+
+    low_radius, high_radius = 6.0, 18.0
+    target_length = 230.0
+    while high_radius - low_radius > .000001:
+        radius = (low_radius + high_radius) / 2
+        spline, cable_path = fit_route(radius)
+        length = spline.calc_length(resolution=256)
+        if abs(length - target_length) < .005:
+            break
+        if length < target_length:
+            low_radius = radius
+        else:
+            high_radius = radius
+    measured_length = spline.calc_length(resolution=512)
+    if abs(measured_length - target_length) > .05:
+        raise ValueError('Cable centerline does not meet its physical length')
     bpy.ops.object.select_all(action='DESELECT')
     cord.select_set(True)
     bpy.context.view_layer.objects.active = cord
@@ -183,6 +212,12 @@ def main():
         'controllerLayout': {'groundZ': floor, 'jack': list(jack),
                              'cablePath': cable_path, 'cableSide': 'right',
                              'controllerPosition': 'centered-front',
+                             'nominalCableLengthCm': target_length,
+                             'measuredCableLengthCm': measured_length,
+                             'cableDiameterCm': .36, 'coilTurns': 3,
+                             'lengthMeasurement': 'Bezier centerline arc length; nominal console source cm scale',
+                             'lengthReference': 'https://tasvideos.org/Forum/Topics/13185',
+                             'lengthReferenceNote': 'Owner reports 7 ft 5.5 in (227.33 cm); 230 cm is a rounded modeling target, not a factory tolerance claim',
                              'controllerBottomZ': controller_bottom,
                              'cableBottomZ': cable_bottom},
         'lidPivot': list(pivot), 'lidOpenRadians': -angle,
@@ -197,7 +232,7 @@ def main():
         'sourceSha256': source_hash,
         'sourceAuthor': 'Rusty Hardy',
         'sourceUrl': 'https://sketchfab.com/3d-models/ad1ba0a577c44f47be224084eea5965d',
-        'adaptation': 'Matching player-1 plug retained; controller levelled onto ground centred in front; cable rerouted to right; calibrated reversible front lid; original collector and textures retained',
+        'adaptation': 'Matching player-1 plug retained; controller levelled onto ground centred in front; measured nominal 2.3m cable loosely coiled to right; calibrated reversible front lid; original collector and textures retained',
     }
     args.output.mkdir(parents=True)
     scene.frame_set(1)

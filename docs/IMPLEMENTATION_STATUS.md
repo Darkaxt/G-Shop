@@ -5,8 +5,9 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-21 current execution (specification revision 142): **S26 BLOCKED** on
-CI-01's external-display resource decision; no implementation stage is ACTIVE.
+2026-10-21 current execution (specification revision 144): **S26 ACTIVE**, sole
+active stage. The owner supplied two TV models, resolving the external-display
+absence; the selected Sony derivative is undergoing conversion/integration.
 Authorized scope remains SCENE-01..05 followed by SOCKET-01. **S25 BLOCKED** for
 its remaining wider console/gallery requirements under the owner's explicit
 sequencing hold; resume them after S26. The current ICON/NES-01..06 task is
@@ -85,6 +86,30 @@ wiring is in progress and has not yet passed its integrated checks. Earlier
 candidate checks do not validate these subsequent changes. Shared physical scale
 and each wired edition's own cable reference remain required acceptance work.
 
+Current host integration supersedes those draft geometry results: the supplied
+Sony KV-1300E is converted with its separate curved screen and preserved source
+textures/credits. Uniform width calibration uses the service manual's 474 mm;
+other dimensions remain approximations. The owner corrected its layout to stand
+beside the console at the same support level. CI-03 and installed skill 0.1.2
+record that rule; source/installed hashes and validators agree. The app now loads
+this exact private display, binds its generation across engines, fits the complete
+composition from transformed geometry and zooms to the moved screen. The original
+four-cuboid placeholder is removed. Current Blender review is retained as
+`nes-sony-tv-beside-console.png`; this is authoring review, not device acceptance.
+
+NES-101's insertion axis is calibrated 0.05 cm rearward of the dust-flap center.
+The original meshes are retained. Independent Blender BVH and actual imported
+triangle-intersection checks clear all five standard shell styles over insertion;
+the former flap-AABB inset was not the actual opening geometry. Its matching USA
+dogbone lead now measures 229.978 cm at the shared physical scale, using a separate
+firsthand US NES-039 reference; 5,185 curve samples show no nonadjacent overlaps.
+The completed host composition/choice/frame-ownership, loader, widget/readiness
+and lifecycle checks pass, with three existing private-oracle skips. An observed
+128-surface limit rejected the larger AVE composition after adding the TV; NES
+launches now use the existing bounded 192-surface paired-scene allowance. Ordinary
+hardware keeps its original bound. The subsequent owner placement regression is
+being checked; no new candidate/device acceptance or final release is implied.
+
 The reusable console contract CI-01..08 is now versioned in
 `CONSOLE_INTEGRATION_CONTRACT.md`, with source skill under
 `docs/agent-skills/gshop-console-integration/`. The installed Codex skill's
@@ -105,15 +130,20 @@ Source/installed skill 0.1.1 SKILL.md and UI metadata hashes match and validatio
 passes. This is source/skill verification; installed candidate 43 predates this
 change, so actual native gallery parity and final release remain unsatisfied.
 
-CI-01 external blocker: SCENE-03's NES external display is absent from the four
+CI-01 historical external blocker, now resolved by the owner's supplied TV models:
+SCENE-03's NES external display was absent from the four
 supplied console scenes and cartridge/accessory package. The existing four-cuboid
 display in `NesLaunchScene` is an authored diagnostic placeholder, not an accepted
 TV resource, and lacks proper support/connection detail. The owner has been shown
 `reports/nes-display-placeholder-review.png` and asked to supply a model, approve
 a proper Blender-authored period CRT with documented approximate dimensions, or
 acknowledge the corrected generic-display limitation. Resume dependent NES work
-only after that decision. This blocks NES visual acceptance, dependent three-system
-adaptation/reconciliation and final release. No workaround has been accepted.
+only after that decision. The owner then supplied the Sony KV-1300E and generic
+TV/NES GLBs and authorized selecting either. Blender review selects Sony's separate
+curved screen and detailed casing; original sources are preserved. The author's
+identity and SHA-256 are retained in private receipts. The service manual supplies
+the 474 mm width anchor; other dimensions remain model-derived approximations.
+This resolves resource absence, not conversion, native acceptance or final release.
 
 Latest NES diagnostic: the original media watcher completed with actual 10-Yard
 Fight readiness. Candidate 43 emitted an actual final scene frame using installed
@@ -143,7 +173,7 @@ launch with compatible stable random model choice, generation-correct startup,
 double-A skip and B/Back cancellation, complete native G&W/NES/GBA workflows,
 resource-incomplete behavior, then Socket importer/provenance/attribution review
 and one final independently verified release. These are current advancement
-blockers; the specific CI-01 external impediment above parks dependent work.
+blockers while implementation proceeds; the TV-resource impediment is resolved.
 No tracked deferral is established. Historical Drive-only/rebranding delivery below remains
 verified for that earlier S26 scope, not completion of the extension.
 

@@ -84,8 +84,9 @@ class _PreviewScreenState extends State<PreviewScreen>
       return;
     }
     final token = launch['token'] as int;
-    if (launch['console'] != 'nes-front-loader' ||
+    if (!{'nes-front-loader', 'nes-top-loader'}.contains(launch['console']) ||
         launch['consoleGeneration'] == null ||
+        launch['displayGeneration'] == null ||
         _launchPreparingToken == token ||
         _snapshot?['mediaLoading'] == true) return;
     if (_launchScene != null && _launchPreparingToken != token)
@@ -113,10 +114,14 @@ class _PreviewScreenState extends State<PreviewScreen>
         _action('launch-unavailable', variant: token);
         return;
       }
-      final console = await ConsoleModel.findNesLaunchTarget('front-loader');
+      final console = await ConsoleModel.findNesLaunchTarget(
+          (launch['console'] as String).substring(4));
+      final display = await ConsoleModel.findNesLaunchDisplay();
       if (!_sameLaunch(token)) return;
       if (console == null ||
-          console.generation != launch['consoleGeneration']) {
+          display == null ||
+          console.generation != launch['consoleGeneration'] ||
+          display.generation != launch['displayGeneration']) {
         _action('launch-unavailable', variant: token);
         return;
       }
@@ -129,7 +134,7 @@ class _PreviewScreenState extends State<PreviewScreen>
         _launchInitialPose = media.pose;
         _launchLabel = media.widget.label;
         _launchLabelIdentity = media.widget.labelIdentity;
-        _launchScene = NesLaunchScene(media.widget.nesScene!, console,
+        _launchScene = NesLaunchScene(media.widget.nesScene!, console, display,
             initialViewport: viewport);
       });
     } on FormatException {
@@ -605,6 +610,7 @@ class _PreviewScreenState extends State<PreviewScreen>
                                                 ? IgnorePointer(
                                                     ignoring: snapshot['sceneView'] == true && (details || snapshot['sceneLaunch'] != null),
                                                     child: CoverSection(
+                                                        onNesReferenceChanged: (style) => _action('nes-reference:${style ?? 'none'}'),
                                                         scenePresentation: snapshot['sceneView'] == true,
                                                         gameInformationVisible: details,
                                                         showGameWatchVariants: true,

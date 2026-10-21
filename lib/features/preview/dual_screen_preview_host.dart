@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/game_item.dart';
 import '../../models/console_model.dart';
+import '../../models/nes_cartridge_model.dart';
+import '../../models/nes_launch_scene.dart';
 import '../../models/scene_launch_presentation.dart';
 import '../../models/game_watch_hardware_info.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -110,6 +112,8 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
   final _launcher = OwnedEmulatorLauncher();
   final _sceneLaunch = SceneLaunchPresentation();
   String? _launchConsoleGeneration;
+  String? _launchDisplayGeneration;
+  String? _nesReferenceStyle;
   bool get _sceneView =>
       ref.read(mediaPresentationProvider).enabled &&
       _selection?.system.id == 'nes';
@@ -204,6 +208,9 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     _bindingSignature = signature;
     _sceneLaunch.reset(notify: false);
     _launchConsoleGeneration = null;
+    _launchDisplayGeneration = null;
+    _nesReferenceStyle =
+        NesCartridgeModel.referencesFor(selection.game.filename).firstOrNull;
     _generation++;
     _hardwareRequest++;
     _hardwareModels = const [];
@@ -427,6 +434,14 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
 
   Future<void> _action(String action, int? variant) async {
     if (!mounted || !_visible) return;
+    if (action.startsWith('nes-reference:')) {
+      if (_sceneLaunch.pending || _selection?.system.id != 'nes') return;
+      final style = action.substring('nes-reference:'.length);
+      if (style == 'none' || NesCartridgeModel.labels.containsKey(style)) {
+        _nesReferenceStyle = style == 'none' ? null : style;
+      }
+      return;
+    }
     if (action.startsWith('launch-')) {
       if (variant == null || variant != _sceneLaunch.token) return;
       switch (action) {
@@ -548,6 +563,9 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
         variant >= 0 &&
         variant < selection.variants.length) {
       controller.selectVariant(variant);
+      _nesReferenceStyle =
+          NesCartridgeModel.referencesFor(controller.selectedVariant.filename)
+              .firstOrNull;
       _metadata = null;
       _video = null;
       _videoMedia = null;
@@ -570,28 +588,29 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
             ? _sceneLaunch.begin(
                 identity:
                     '${selection.identity}:${controller.selectedVariant.selectionKey}',
-                consoleId: 'nes-front-loader')
+                consoleId: null)
             : null;
         if (token != null) {
           _launchConsoleGeneration = null;
+          _launchDisplayGeneration = null;
           try {
             final target =
-                await ConsoleModel.findNesLaunchTarget('front-loader');
+                await NesLaunchScene.chooseConsole(_nesReferenceStyle);
+            final display = await ConsoleModel.findNesLaunchDisplay();
+            if (display != null) await display.load();
             if (!mounted ||
                 generation != _generation ||
                 !_sceneLaunch.canInterrupt) {
               throw PlatformException(code: 'cancelled');
             }
-            if (target == null) {
+            if (target == null || display == null) {
               _sceneLaunch.unavailable(token);
             } else {
-              await target.load();
-              if (!mounted ||
-                  generation != _generation ||
-                  !_sceneLaunch.canInterrupt) {
-                throw PlatformException(code: 'cancelled');
-              }
-              setState(() => _launchConsoleGeneration = target.generation);
+              setState(() {
+                _launchConsoleGeneration = target.generation;
+                _launchDisplayGeneration = display.generation;
+              });
+              _sceneLaunch.selectConsole(token, 'nes-${target.launchTarget}');
             }
           } on FormatException {
             _sceneLaunch.unavailable(token);
@@ -754,6 +773,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
                 'phase': _sceneLaunch.phase.name,
                 'console': _sceneLaunch.consoleId,
                 'consoleGeneration': _launchConsoleGeneration,
+                'displayGeneration': _launchDisplayGeneration,
                 'skip': _sceneLaunch.skipRequested,
                 'visualAvailable': _sceneLaunch.visualAvailable,
               }

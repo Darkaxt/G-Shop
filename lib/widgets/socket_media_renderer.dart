@@ -390,6 +390,8 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
             'frameRendered': true,
             'consoleGeometrySha256':
                 submitted.model.data['consoleGeometrySha256'],
+            'displayGeometrySha256':
+                submitted.model.data['displayGeometrySha256'],
             'sceneGeometrySha256': submitted.model.data['geometrySha256'],
             'cartridgeStyle': submitted.model.data['cartridgeStyle'],
             'retailEditionId': submitted.model.data['retailEditionId'],
@@ -575,7 +577,7 @@ class SocketMediaGpu {
   static double surfaceOpening(SocketMediaModel model,
       Map<String, dynamic> surface, SocketMediaPose pose) {
     if (model.data['nesLaunch'] == true && surface['launchPart'] == 'console') {
-      return NesLaunchScene.opening(surface, pose);
+      return NesLaunchScene.opening(model, surface, pose);
     }
     if (model.data['nesLaunch'] == true &&
         surface['launchPart'] == 'cartridge') {

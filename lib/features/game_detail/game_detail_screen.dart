@@ -646,8 +646,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     if (game == null) return;
     _openingOwnedRom = true;
     final token = _sceneView && widget.system.id == 'nes'
-        ? _sceneLaunch.begin(
-            identity: game.selectionKey, consoleId: 'nes-front-loader')
+        ? _sceneLaunch.begin(identity: game.selectionKey, consoleId: null)
         : null;
     if (_sceneInformation) setState(() => _sceneInformation = false);
     var handedOff = false;
@@ -732,10 +731,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         _sceneLaunch.token == token &&
         _sceneLaunch.canInterrupt;
     try {
-      final target = await ConsoleModel.findNesLaunchTarget('front-loader');
-      if (!current()) throw PlatformException(code: 'cancelled');
       final cover = _coverSectionKey.currentState;
-      if (target == null || cover == null) {
+      if (cover == null) {
         _sceneLaunch.unavailable(token);
         return;
       }
@@ -753,8 +750,15 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         _sceneLaunch.unavailable(token);
         return;
       }
-      await target.load();
+      final target =
+          await NesLaunchScene.chooseConsole(media.widget.nesScene!.style);
+      final display = await ConsoleModel.findNesLaunchDisplay();
       if (!current()) throw PlatformException(code: 'cancelled');
+      if (target == null || display == null) {
+        _sceneLaunch.unavailable(token);
+        return;
+      }
+      _sceneLaunch.selectConsole(token, 'nes-${target.launchTarget}');
       if (!mounted || !media.mounted)
         throw PlatformException(code: 'cancelled');
       media.holdForLaunch();
@@ -764,7 +768,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         _nesInitialPose = media.pose;
         _nesLaunchLabel = media.widget.label;
         _nesLaunchLabelIdentity = media.widget.labelIdentity;
-        _nesLaunchScene = NesLaunchScene(media.widget.nesScene!, target,
+        _nesLaunchScene = NesLaunchScene(
+            media.widget.nesScene!, target, display,
             initialViewport: box.localToGlobal(Offset.zero) & box.size);
       });
     } on FormatException {

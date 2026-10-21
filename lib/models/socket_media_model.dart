@@ -261,9 +261,12 @@ class SocketMediaModel {
     final surfaces = data['surfaces'];
     // Twisted has 65 cartridge surfaces and the refined Panorama hardware has
     // up to 70. Paired scenes also include their separate carton/booklet parts.
+    // An NES launch additionally retains its wired console and supplied TV.
     final surfaceBudget = isGameWatchCollection(data)
         ? 384
-        : data['unboxingGeometry'] == true || data['gameWatchUnboxing'] == true
+        : data['unboxingGeometry'] == true ||
+                data['gameWatchUnboxing'] == true ||
+                data['nesLaunch'] == true
             ? 192
             : data['cartridgeGeometry'] == true ||
                     data['hardwareGeometry'] == true
