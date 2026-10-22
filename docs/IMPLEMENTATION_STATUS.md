@@ -5,6 +5,20 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-22 acceptance correction: **S26 remains ACTIVE; the full NES workflow
+has not passed acceptance.** The owner's observed alphabetical-only ordering and
+missing cartridge labels were validation failures in the integration, not a
+consequence of the owner's missing-resource instruction. The later signed
+candidate has scoped native ordering/badge evidence and selected authentic-label
+examples; upstream integrity checks cover the 24 eligible games, but native
+scene validation does not yet cover that full cohort. These results must not be
+reported as a generally validated or complete NES experience. The fifteen
+unmatched cartons are a separate resource gap and neither explain nor excuse
+ordering, metadata-publication, recovery or label-binding defects. Close the
+remaining NES acceptance against the actual user-facing workflow; preserve the
+original failed observations and bind each subsequent result to its candidate,
+entry point and exact resource identity. No requirement or release gate is waived.
+
 2026-10-22 current execution (specification revision 150): **S26 ACTIVE**, sole
 active stage. The owner identified NES/GBA sorting and scoring parity. The main
 Library already requests the canonical Top 100 prefix; the ordinary console
