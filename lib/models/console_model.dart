@@ -20,7 +20,6 @@ class ConsoleModel {
       romSet == null ? visualVariantId ?? '' : _physicalRomSet(romSet!);
   final bool canOpen;
   final bool isBox;
-  final bool hasFoamSpacer;
   final int openingDurationMs;
   ConsoleModel._(this.systemId, this.directory, this.generation,
       {this.romSet,
@@ -30,7 +29,6 @@ class ConsoleModel {
       this.launchTarget,
       this.canOpen = false,
       this.isBox = false,
-      this.hasFoamSpacer = false,
       this.openingDurationMs = 2000});
 
   // ROM identity remains the exact MAME set. A documented MCU-only revision
@@ -443,7 +441,6 @@ class ConsoleModel {
     }
     return ConsoleModel._('nes', dir, manifestSha256,
         isBox: true,
-        hasFoamSpacer: data['nesStandardCarton'] is Map,
         canOpen: true,
         retailEditionId: editionId,
         openingDurationMs: duration);

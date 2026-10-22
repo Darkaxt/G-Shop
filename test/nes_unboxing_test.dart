@@ -14,9 +14,11 @@ import 'package:g_shop/widgets/physical_media_view.dart';
 import 'package:g_shop/widgets/socket_media_renderer.dart';
 import 'package:vector_math/vector_math_64.dart' as vm;
 
-List<vm.Vector3> vertices(SocketMediaModel m, String part, SocketMediaPose p) {
+List<vm.Vector3> vertices(SocketMediaModel m, String part, SocketMediaPose p,
+    {String? node}) {
   final result = <vm.Vector3>[];
-  for (final s in m.surfaces.where((s) => s['nesPart'] == part)) {
+  for (final s in m.surfaces.where(
+      (s) => s['nesPart'] == part && (node == null || s['node'] == node))) {
     final t = NesUnboxingScene.partTransform(m, part, p) *
         SocketMediaGpu.openingTransform(
             s, SocketMediaGpu.surfaceOpening(m, s, p));
@@ -69,7 +71,7 @@ void main() {
   });
   final standard = Platform.environment['GSHOP_NES_STANDARD_CARTON_ID'];
   test(
-      'supplied standard carton seats actual-scale contents above foam and extracts it last',
+      'supplied carton keeps foam inside while actual-scale contents extract and settle',
       () async {
     final root = Directory(path!);
     final digest = sha256
@@ -85,7 +87,10 @@ void main() {
     final units = (m.data['physicalUnitsPerMetre'] as num).toDouble();
     final rest = const SocketMediaPose();
     final cart = vertices(m, 'cartridge', rest),
-        foam = vertices(m, 'foam', rest);
+        foam = vertices(m, 'box', rest, node: 'Separate foam spacer');
+    expect(foam, isNotEmpty);
+    expect(m.surfaces.any((s) => s['nesPart'] == 'foam'), false);
+    expect(sequence.durationMs, model.openingDurationMs + 5300);
     expect((edge(cart, 0, true) - edge(cart, 0, false)) / units,
         closeTo(.120, .00001));
     expect(edge(cart, 1, false), greaterThan(edge(foam, 1, true)));
@@ -94,16 +99,35 @@ void main() {
     SocketMediaPose at(double seconds) =>
         SocketMediaPose(unboxing: seconds * 1000 / sequence.durationMs);
     final opened = model.openingDurationMs / 1000;
-    final whileCartLeaves = vertices(m, 'foam', at(opened + 1.2));
-    expect(edge(whileCartLeaves, 1, true), closeTo(edge(foam, 1, true), 1e-6));
-    final freed = at(opened + 3.1 + 1.2);
-    expect(edge(vertices(m, 'foam', freed), 1, false),
-        greaterThan(edge(vertices(m, 'box', freed), 1, true)));
-    final settled = vertices(m, 'foam', const SocketMediaPose(unboxing: 1));
-    expect(
-        edge(settled, 2, false),
-        greaterThan(edge(
-            vertices(m, 'box', const SocketMediaPose(unboxing: 1)), 2, true)));
+    for (final seconds in [
+      opened + 1.2,
+      opened + 3.1,
+      opened + 4.3,
+      sequence.durationMs / 1000
+    ]) {
+      final p = at(seconds);
+      final spacer = vertices(m, 'box', p, node: 'Separate foam spacer');
+      final carton = vertices(m, 'box', p);
+      for (var axis = 0; axis < 3; axis++) {
+        expect(edge(spacer, axis, false),
+            greaterThanOrEqualTo(edge(carton, axis, false)));
+        expect(edge(spacer, axis, true),
+            lessThanOrEqualTo(edge(carton, axis, true)));
+      }
+      // No independent motion: the spacer retains its offset from the carton.
+      expect(
+          edge(spacer, 1, false) - edge(carton, 1, false),
+          closeTo(
+              edge(foam, 1, false) - edge(vertices(m, 'box', rest), 1, false),
+              1e-6));
+    }
+    final endBox = vertices(m, 'box', const SocketMediaPose(unboxing: 1));
+    for (final part in ['cartridge', 'sleeve']) {
+      expect(
+          edge(vertices(m, part, const SocketMediaPose(unboxing: 1)), 1, false),
+          closeTo(edge(endBox, 1, false), .00001),
+          reason: '$part rests on the shared ground');
+    }
   }, skip: path == null || standard == null, timeout: Timeout.none);
   test(
       'real shells seat, clear opened flaps, leave the sleeve and frame all parts',

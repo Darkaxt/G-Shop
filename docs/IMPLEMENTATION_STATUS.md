@@ -5,6 +5,27 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-22 foam correction (specification revision 156): **S26 ACTIVE**, sole
+active stage. The owner rejects displaying the loose packing foam. Keep its
+original mesh seated inside the carton, remove its independent extraction and
+extra phase, and retain actual contents clearance. Native Super C review also
+revealed a small cartridge/sleeve grounding error in this construction; their
+settled offsets now derive from the shared support plane. Focused host checks
+pass with actual private carton/media/launch resources: foam remains attached to
+the carton through extraction/settling and retires with it before insertion;
+cartridge and sleeve retain physical clearance and share the box's ground.
+Existing opening/cohort, launch, framing and preview regressions pass; unrelated
+GBA/G&W private fixtures were explicitly skipped. Changed-file analysis has no
+findings. The next candidate's actual native transition/settled review remains
+required.
+The installed internal 1.10.2+43 candidate from `02cb022` has verified 3D gallery
+cards, authentic StarTropics/Super C labels and the added Dendy multicart, but
+still contains the rejected foam display. The unchanged 24-game artwork pack
+completed normal import and Drive publication: all 216 typed remote image bodies
+were independently retrieved and matched by digest and byte length. Remaining
+cohort/gallery/recovery/native acceptance and wider S26 requirements are open;
+no public release or S26 completion is claimed.
+
 2026-10-22 supplied-carton continuation (specification revision 155):
 **S26 ACTIVE**, sole active stage. The owner authorizes the reviewed standard
 NES carton for compatible missing reconstructions and a supplied yellow multicart

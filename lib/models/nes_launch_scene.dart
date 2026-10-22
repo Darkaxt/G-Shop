@@ -229,7 +229,7 @@ class NesLaunchScene {
   static bool visible(Map<String, dynamic> surface, SocketMediaPose p) {
     final part = surface['launchPart'];
     if (part == 'console' || part == 'display') return p.launch >= .22;
-    if (part == 'box' || part == 'sleeve' || part == 'foam') {
+    if (part == 'box' || part == 'sleeve') {
       return p.launch < .22;
     }
     return true;
@@ -442,7 +442,7 @@ class NesLaunchScene {
     final part = surface['launchPart'];
     final opacity = part == 'console' || part == 'display'
         ? phase(p.launch, .22, .32)
-        : part == 'box' || part == 'sleeve' || part == 'foam'
+        : part == 'box' || part == 'sleeve'
             ? 1 - phase(p.launch, 0, .22)
             : 1.0;
     final color = (source['color'] as List).cast<num>();

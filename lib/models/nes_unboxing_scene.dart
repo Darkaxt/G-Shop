@@ -21,10 +21,7 @@ class NesUnboxingScene {
   bool get hasSleeve => usesSleeve(style);
   static bool usesSleeve(String style) =>
       RegExp(r'^nintendo-[35]-(?:gray|gold|white)$').hasMatch(style);
-  int get durationMs =>
-      box.openingDurationMs +
-      (hasSleeve ? 5300 : 4100) +
-      (box.hasFoamSpacer ? 1900 : 0);
+  int get durationMs => box.openingDurationMs + (hasSleeve ? 5300 : 4100);
 
   Future<SocketMediaModel> load() async {
     if (!box.isBox || box.systemId != 'nes') {
@@ -160,10 +157,8 @@ class NesUnboxingScene {
         final s = jsonDecode(jsonEncode(original)) as Map<String, dynamic>;
         s['vertexOffset'] = (s['vertexOffset'] as int) + offset;
         s['indexOffset'] = (s['indexOffset'] as int) + offset;
-        s['nesPart'] =
-            part == 'box' && profile != null && s['node'] == profile['foamNode']
-                ? 'foam'
-                : part;
+        // Packing foam stays seated inside its carton after the contents leave.
+        s['nesPart'] = part;
         // A plain sleeve avoids inferring Nintendo-printed packaging for every
         // licensed third-party game. The original branded reference is retained.
         if (part == 'sleeve') {
@@ -201,9 +196,10 @@ class NesUnboxingScene {
       'hasFoam': foamBounds != null,
       'physicalUnitsPerMetre': physicalUnits,
       'seatYOffset': seatY,
-      if (foamBounds != null)
-        'foamExitY': envelope[1][1] - foamBounds[0][1] + .08,
-      if (foamBounds != null) 'foamRestY': bb[0][1] - .25 - foamBounds[0][1],
+      if (profile != null) 'cartridgeRestY': bb[0][1] - .25 - cb[0][1] * seat,
+      if (profile != null && sleeveBounds != null)
+        'sleeveRestY':
+            bb[0][1] - .25 - sleeveBounds[0][1] * sleeveScale[1] * seat,
       'sleevePrint': 'plain reference',
       'boxOpeningMs': box.openingDurationMs,
       'sequenceDurationMs': durationMs,
@@ -227,11 +223,6 @@ class NesUnboxingScene {
             ]
         ],
         if (sleeveBounds != null) 'sleeve': sleeveBounds,
-        if (foamBounds != null)
-          'foam': [
-            for (final b in foamBounds)
-              [for (var a = 0; a < 3; a++) b[a] + bc[a]]
-          ]
       },
       'cartridgeGeometrySha256': cartridge.data['geometrySha256'],
       'boxGeometrySha256': carton.data['geometrySha256'],
@@ -262,9 +253,7 @@ class NesUnboxingScene {
     final forward = phase(s, opened + 1.2, opened + 1.9);
     final sleeved = d['hasSleeve'] == true;
     final unsleeve = sleeved ? phase(s, opened + 1.9, opened + 3.1) : 0.0;
-    final cartCleared = opened + (sleeved ? 3.1 : 1.9);
-    final hasFoam = d['hasFoam'] == true;
-    final cleared = cartCleared + (hasFoam ? 1.9 : 0.0);
+    final cleared = opened + (sleeved ? 3.1 : 1.9);
     final separate = phase(s, cleared, cleared + .6);
     final settle = phase(s, cleared + .6, cleared + 2.2);
     final seat = (d['seatScale'] as num).toDouble();
@@ -273,20 +262,6 @@ class NesUnboxingScene {
       final c = (d['boxCenter'] as List).cast<num>();
       return matrix
         ..translateByDouble(-.75 * separate, -.25 * settle, -.45 * separate, 1)
-        ..translateByDouble(
-            -c[0].toDouble(), -c[1].toDouble(), -c[2].toDouble(), 1);
-    }
-    if (part == 'foam') {
-      final c = (d['boxCenter'] as List).cast<num>();
-      final lift = phase(s, cartCleared, cartCleared + 1.2);
-      final forward = phase(s, cartCleared + 1.2, cartCleared + 1.9);
-      return matrix
-        ..translateByDouble(
-            1.7 * separate,
-            (d['foamExitY'] as num) * lift * (1 - settle) +
-                (d['foamRestY'] as num) * settle,
-            .90 * forward,
-            1)
         ..translateByDouble(
             -c[0].toDouble(), -c[1].toDouble(), -c[2].toDouble(), 1);
     }
@@ -302,7 +277,9 @@ class NesUnboxingScene {
     final y = ((d['seatYOffset'] as num?) ?? 0) +
         exit[1] * extract +
         (cart ? (d['sleeveLift'] as num) * unsleeve : 0);
-    final targetY = cart ? -.3 : -.35;
+    final targetY =
+        (d[cart ? 'cartridgeRestY' : 'sleeveRestY'] as num?)?.toDouble() ??
+            (cart ? -.3 : -.35);
     matrix
       ..translateByDouble(
           exit[0] * extract * (1 - separate) + (cart ? .55 : 1.35) * separate,

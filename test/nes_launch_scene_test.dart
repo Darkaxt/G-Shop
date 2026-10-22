@@ -141,7 +141,7 @@ void main() {
   }, skip: absent);
 
   final standard = Platform.environment['GSHOP_NES_STANDARD_CARTON_ID'];
-  test('supplied foam retires with its carton before console insertion',
+  test('foam remains part of its carton and retires before console insertion',
       () async {
     final root = Directory(mediaRoot!);
     final digest = sha256
@@ -159,7 +159,9 @@ void main() {
             console,
             display)
         .load();
-    final foam = m.surfaces.firstWhere((s) => s['launchPart'] == 'foam');
+    final foam =
+        m.surfaces.firstWhere((s) => s['node'] == 'Separate foam spacer');
+    expect(foam['launchPart'], 'box');
     expect(
         NesLaunchScene.visible(
             foam, const SocketMediaPose(unboxing: 1, launch: .22)),

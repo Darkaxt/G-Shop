@@ -1,6 +1,13 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 155, 2026-10-22.
+Authoritative specification, revision 156, 2026-10-22.
+
+Owner foam correction, 2026-10-22: packing foam belongs inside the NES carton
+after removing the cartridge. Keep it seated in the box throughout extraction,
+without a separate display position or additional animation phase. Preserve its
+actual geometry and the cartridge/sleeve clearance above it. Settle the extracted
+cartridge and sleeve on the same support plane as the carton. Verify the actual
+native transition and settled composition within the sole ACTIVE S26.
 
 Owner supplied-model continuation, 2026-10-22: use the reviewed `nes-box.glb`
 construction for compatible missing NES cartons, retaining matched game-specific

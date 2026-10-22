@@ -1,6 +1,11 @@
 # Staged implementation plan
 
-Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 155
+Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 156
+keeps NES packing foam seated inside its carton throughout cartridge extraction,
+removes its separate display phase, and grounds the extracted contents on the
+carton's support plane. Verify the corrected native transition/settled view in
+the next cohesive candidate; preserve the existing final S26 delivery boundary.
+Revision 155
 uses the supplied articulated standard carton for the three compatible missing
 NES reconstructions, preserving actual game artwork and foam/contents sequencing.
 Add the supplied multicart beside the Dendy clone after source/scale review.
