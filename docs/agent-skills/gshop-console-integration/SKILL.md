@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.16"
+  version: "0.1.17"
 ---
 
 # G-Shop Console Integration
@@ -87,6 +87,12 @@ affected integration for genuinely missing resources under CI-01. Batch limits
 Reconcile all batches and verify full-census bindings/integrity through the normal
 resource lane before reporting coverage complete. Read section 2 of the pipeline
 reference for the separate full-census and acceptance-sample gates.
+
+During collection, verify the normal metadata/artwork UI reports measured item
+progress from the durable job snapshot, including remaining items. Keep artwork
+and lookup phases separate; provider request counts and processed review/failure
+outcomes do not establish accepted resources. Preserve the original job/checkpoint
+through normal pause/resume when validating an app update.
 
 For the authorized console, establish the actual eligible, distinct Top 25 cohort
 from the app's canonical ranked query and current filters/preferences. Retain the

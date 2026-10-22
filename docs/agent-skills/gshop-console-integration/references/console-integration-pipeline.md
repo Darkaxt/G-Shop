@@ -39,6 +39,12 @@ console at once or create new stages, workers or approval gates.
   reconcile its full `.selection.json` census and every `.batches.json` pack receipt.
   `--inventory-only` establishes membership, without acquiring/publishing artwork.
   The default ranked selection is a testing aid and cannot establish production coverage.
+- Check collector progress against its committed outcome counts: total is all
+  items, processed is total minus pending. Display the actual remaining count;
+  API calls are a different metric. Verify metadata/artwork phases and paused or
+  blocked checkpoints separately. An item processed into review/failure is not
+  accepted coverage, and an empty job is not a completed collection. Preserve the
+  same durable job when installing a validation candidate and resuming work.
 - Do not move on to another console until required full-collection resource
   coverage is verified or each remaining limitation has explicit owner acceptance.
   Missing physical assets still use CI-01; do not disguise them as a backlog.

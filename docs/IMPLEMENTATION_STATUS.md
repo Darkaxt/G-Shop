@@ -12,12 +12,29 @@ correction derives processed/total from those counts, separately for metadata an
 artwork, with percentage/remaining labels and explicit empty/preparing states.
 Provider request counts are not the denominator and processed review/failure
 outcomes are not accepted resource coverage. Focused behavior/lifecycle checks
-pass after correcting Flutter's numeric progress-semantics contract; expected
-layout snapshots are under review. Signed native validation remains open.
+and reviewed desktop/compact layout snapshots pass; changed-file analysis has
+only one existing brace-style info in unchanged provider code. Signed CI run
+`39849643715` passed for `4f46b9c`; internal 1.10.2+43 was independently checked
+and installed on Thor, SHA-256
+`025cca146433180d7f4910a231aee5cf6ff0c4b8cbdfe594d7b914e2bc5d29ee`.
+The production signer, packaged configuration and all 16 database/preference
+files were verified. The normal pause checkpoint remained job 109 with 618
+processed and 9,213 pending of 9,831; native pixels show exactly those counts and
+6.2%, with a determinate bar. Normal Resume continued the same job, reaching
+628/9,831, 6.3%, 9,203 pending in the inspected running frame. No replacement
+job was created. Receipts/captures are `candidate-4f46b9c-*`,
+`full-nes-job109-preserved-after-update.json`, and native
+`progress-4f46b9c-paused-checkpoint` / `progress-4f46b9c-resumed` beneath the
+existing private task evidence root. Integration skill 0.1.17 source/installed
+entrypoint and reference both validate and match by SHA-256 after read-back.
+The eight generated golden-failure artifacts were removed through reviewed exact
+cleanup transaction `63cc7420382c65ce39c0d7f7df133dd3`; four unrelated older
+cover-rating failure images remain preserved.
 The normal scoped NES **All games** action started original ScreenScraper job
 109. Its committed membership reconciles to all 9,831 archives. The read-only
-FileObserver watcher remains attached to that original job; no duplicate/restart
-was issued. Provider outcomes and pending work remain distinct from accepted
+FileObserver watcher remains attached to that original job after the verified
+pause/update/resume checkpoint; no duplicate/restart was issued. Provider outcomes
+and pending work remain distinct from accepted
 metadata and resources. Continue observing its actual terminal/checkpoint state,
 then finish full NES/GBA resource reconciliation and the existing S26 delivery gate.
 
