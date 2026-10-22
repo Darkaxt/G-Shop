@@ -24,6 +24,8 @@ def main():
     parser.add_argument('--source-url', required=True)
     parser.add_argument('--rom-set', help='Exact supplied Game & Watch MAME set')
     parser.add_argument('--edition-id', help='Exact NES carton catalogue edition ID')
+    parser.add_argument('--nes-standard-carton', action='store_true',
+                        help='Reviewed metre-scale NES carton with separate foam spacer')
     parser.add_argument('--cartridge-style', help='Explicit NES cartridge reference identity')
     parser.add_argument('--launch-target', choices=('nes-front-loader', 'nes-top-loader'),
                         help='Inspected NES launch derivative with source-bound calibration')
@@ -524,6 +526,21 @@ def main():
         manifest['retailEditionId'] = args.edition_id
         manifest['resourceKind'] = 'box'
         manifest['openingDurationMs'] = round(duration*1000) if hinges else 2000
+    if args.nes_standard_carton:
+        extra=gltf.get('asset',{}).get('extras',{})
+        if (not args.edition_id or extra.get('units')!='metres' or
+                extra.get('dimensions_mm')!=[127.0,181.0,25.4] or
+                not any(s['node']=='Separate foam spacer' for s in surfaces)):
+            raise ValueError('Expected the reviewed standard NES carton and foam')
+        manifest['nesStandardCarton']={
+            'previewUnitsPerMetre':scale,'foamNode':'Separate foam spacer',
+            'interiorBounds':[
+                list((Vector(v)-center)*scale) for v in
+                [(-.06302,.00048,-.01222),(.06302,.18052,.01222)]],
+            'cardboardThicknessMetres':.00048,
+            'foamDimensionsAccuracy':'Estimated visual fit, not a measured original specimen'}
+        manifest['sourceReference']['preparedPrinting']=extra.get('preparedPrinting')
+        manifest['sourceReference']['construction']=extra
     if args.cartridge_style:
         manifest.pop('hardwareGeometry')
         manifest.update(name='nes-reference-'+args.cartridge_style,

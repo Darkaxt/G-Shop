@@ -1,8 +1,11 @@
 import 'dart:io';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:crypto/crypto.dart';
+import 'package:g_shop/models/console_model.dart';
 import 'package:g_shop/models/nes_cartridge_model.dart';
 import 'package:g_shop/models/nes_media_catalogue.dart';
 import 'package:g_shop/models/nes_unboxing_scene.dart';
@@ -64,6 +67,44 @@ void main() {
       expect(NesUnboxingScene.usesSleeve(style), isFalse);
     }
   });
+  final standard = Platform.environment['GSHOP_NES_STANDARD_CARTON_ID'];
+  test(
+      'supplied standard carton seats actual-scale contents above foam and extracts it last',
+      () async {
+    final root = Directory(path!);
+    final digest = sha256
+        .convert(await File('${root.path}/boxes/nes/$standard/model.json')
+            .readAsBytes())
+        .toString();
+    final model = (await ConsoleModel.findNesBox(standard!,
+        manifestSha256: digest, modelsDirectory: root))!;
+    final sequence =
+        NesUnboxingScene(model, 'nintendo-3-gray', modelsDirectory: root);
+    final m = await sequence.load();
+    expect(m.data['hasFoam'], true);
+    final units = (m.data['physicalUnitsPerMetre'] as num).toDouble();
+    final rest = const SocketMediaPose();
+    final cart = vertices(m, 'cartridge', rest),
+        foam = vertices(m, 'foam', rest);
+    expect((edge(cart, 0, true) - edge(cart, 0, false)) / units,
+        closeTo(.120, .00001));
+    expect(edge(cart, 1, false), greaterThan(edge(foam, 1, true)));
+    final carton = vertices(m, 'box', rest);
+    expect(edge(cart, 1, true), lessThan(edge(carton, 1, true)));
+    SocketMediaPose at(double seconds) =>
+        SocketMediaPose(unboxing: seconds * 1000 / sequence.durationMs);
+    final opened = model.openingDurationMs / 1000;
+    final whileCartLeaves = vertices(m, 'foam', at(opened + 1.2));
+    expect(edge(whileCartLeaves, 1, true), closeTo(edge(foam, 1, true), 1e-6));
+    final freed = at(opened + 3.1 + 1.2);
+    expect(edge(vertices(m, 'foam', freed), 1, false),
+        greaterThan(edge(vertices(m, 'box', freed), 1, true)));
+    final settled = vertices(m, 'foam', const SocketMediaPose(unboxing: 1));
+    expect(
+        edge(settled, 2, false),
+        greaterThan(edge(
+            vertices(m, 'box', const SocketMediaPose(unboxing: 1)), 2, true)));
+  }, skip: path == null || standard == null, timeout: Timeout.none);
   test(
       'real shells seat, clear opened flaps, leave the sleeve and frame all parts',
       () async {
@@ -229,4 +270,41 @@ void main() {
       expect(axis[1] * (near - far), greaterThan(0), reason: edition.id);
     }
   }, skip: absent, timeout: Timeout.none);
+  final prepared = Platform.environment['GSHOP_NES_PREPARED_CATALOGUE'];
+  test(
+      'reviewed ranked cartons verify textures and clear their actual openings',
+      () async {
+    final root = Directory(path!);
+    final catalogue = NesMediaCatalogue.parse(
+        jsonDecode(await File(prepared!).readAsString()));
+    expect(catalogue.bindings, isNotEmpty);
+    for (final references in catalogue.bindings.values) {
+      final edition = catalogue.editions[references.first]!;
+      final box = (await edition.load(modelsDirectory: root))!;
+      final carton = await box.load();
+      final textures = {
+        for (final surface in carton.surfaces)
+          ...(surface['material']['textures'] as Map).values.cast<String>()
+      };
+      expect(textures.length, greaterThanOrEqualTo(6), reason: edition.id);
+      for (final name in textures) {
+        expect(
+            (await carton.textureBundle!
+                    .load(SocketMediaModel.assetRoot + name))
+                .lengthInBytes,
+            greaterThan(0),
+            reason: '${edition.id} $name');
+      }
+      final selected =
+          NesUnboxingScene(box, 'nintendo-3-gray', modelsDirectory: root);
+      final model = await selected.load();
+      final pose = SocketMediaPose(
+          unboxing: (box.openingDurationMs + 1200) / selected.durationMs);
+      final axis = (model.data['exitAxis'] as List).cast<int>();
+      final near =
+          edge(vertices(model, 'cartridge', pose), axis[0], axis[1] < 0);
+      final far = edge(vertices(model, 'box', pose), axis[0], axis[1] > 0);
+      expect(axis[1] * (near - far), greaterThan(0), reason: edition.id);
+    }
+  }, skip: path == null || prepared == null, timeout: Timeout.none);
 }

@@ -256,8 +256,9 @@ def apply_panel_layouts(manifest, bodies, recipe_file):
                 'sourceUrl': panel['sourceUrl'], 'sourceSha256': digest,
                 'sha256': target_digest, 'panel': rect,
                 'rotationDegrees': rotation, 'sourceRegion': donor}
-            if recipe.get('languages'):
-                reference['sourceLanguages'] = recipe['languages']
+            languages = panel.get('languages', recipe.get('languages'))
+            if languages:
+                reference['sourceLanguages'] = languages
             if reconstruction:
                 reference['reconstruction'] = reconstruction
             colour = panel.get('colourReference')
@@ -529,7 +530,7 @@ def fetch(session, url, *, params=None, limit=32 * 1024 * 1024, provider_budget=
 
 def collect(args):
     global HTTP_CACHE
-    HTTP_CACHE = args.launchbox.parent / 'resource-bodies'
+    HTTP_CACHE = getattr(args, 'http_cache', None) or args.launchbox.parent / 'resource-bodies'
     selection = ranked_selection(args.projection, args.system)
     wanted = {normalized(name) for row in selection for name in
         [row['title'], *(x['text'] for x in row['metadata']['titles'])]}
@@ -627,7 +628,7 @@ def collect(args):
                     'providerReference': {'providerPlatformId': platform_id}})
         for media in extra_media:
             role, region = media['type'], media.get('region')
-            if region not in regions or role not in {'box-2D-back', 'box-2D-side', 'manuel'}:
+            if region not in regions or role not in {'box-2D', 'box-2D-back', 'box-2D-side', 'manuel'}:
                 continue
             if role != 'manuel' and any(x['type'] == role for x in resources):
                 continue
@@ -687,6 +688,8 @@ def main():
     parser.add_argument('--system', choices=PLATFORMS)
     parser.add_argument('--projection', type=Path)
     parser.add_argument('--launchbox', type=Path)
+    parser.add_argument('--http-cache', type=Path,
+        help='Exact artwork response-cache directory; defaults beside the LaunchBox index')
     parser.add_argument('--env', type=Path)
     parser.add_argument('--normalize-spines', type=Path,
         help='Reclassify a completed local pack without repeating provider requests')

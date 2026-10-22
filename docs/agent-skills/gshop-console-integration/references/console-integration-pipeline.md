@@ -37,6 +37,20 @@ console at once or create new stages, workers or approval gates.
   2. the public low-resolution NintAndBox .es preview for incomplete dump panels;
   3. edition-compatible LaunchBox front/back/spine artwork;
   4. ScreenScraper front/back/side/unfolded texture and bound manual roles.
+- Additional potential artwork fallback: [The Cover Project](https://thecoverproject.net/).
+  The owner supplied [Super C, cover 28510](https://thecoverproject.net/view.php?cover_id=28510),
+  inspected in the browser on 2026-10-22: Custom Cover, US/NTSC, Universal Game
+  Case, credited to Thorr_Warrior. The page also distinguishes custom and retail
+  alternatives. Evaluate the actual selected entry, not just the game heading.
+  A replacement-case wrap is useful artwork, not evidence of original cardboard
+  panels, folds, physical dimensions, shell or opening geometry. Inspect front,
+  spine and back boundaries, edition/language and case format before reusing it;
+  retain cover ID/URL, creator, category, hashes and derived-crop provenance.
+  Prefer established applicable sources above; do not replace a suitable donor
+  merely because a custom cover is available. This is a registered candidate,
+  not an implemented acquisition/import provider. If used, support its true
+  source identity through the normal typed import/publication lane; never relabel
+  its art as LaunchBox, ScreenScraper or NintAndBox to pass existing validation.
 - Check actual supported selectors and decoded responses, not just provider URLs
   or a list of advertised roles. A failed request for one face/game does not prove
   global absence. Do not omit the ScreenScraper front role when LaunchBox has none.

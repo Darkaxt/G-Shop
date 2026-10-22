@@ -1,6 +1,17 @@
 # Staged implementation plan
 
-Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 153
+Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 155
+uses the supplied articulated standard carton for the three compatible missing
+NES reconstructions, preserving actual game artwork and foam/contents sequencing.
+Add the supplied multicart beside the Dendy clone after source/scale review.
+Verify the integrated resource, conversion, publication/recovery, gallery and
+native scene outcome; retain the same single final release boundary. Revision 154
+continues the actual NES gallery fix and its resource/publication/recovery/native
+prerequisites. Register the checked Cover Project example as a potential artwork
+fallback, preserving custom-case versus original-carton provenance; no provider
+implementation is implied. Complete the current 24-game resource/consumer
+outcome before dependent wider-console/Socket work or final S26 delivery.
+Revision 153
 makes the already-approved regional-donor composition and Sapphire colour
 correction explicit in the reusable skill/contract, with a bounded independent
 consistency review and installed parity. Prefer suitable NintAndBox donors before

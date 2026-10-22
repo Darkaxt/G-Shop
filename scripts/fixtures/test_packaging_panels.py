@@ -22,6 +22,73 @@ spec.loader.exec_module(packaging)
 
 
 class PanelsTest(unittest.TestCase):
+    def test_reviewed_face_languages_keep_an_english_back_on_a_foreign_donor(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            Image.new('RGB', (10, 15), 'navy').save(root / 'panel.png')
+            digest = hashlib.sha256((root / 'panel.png').read_bytes()).hexdigest()
+            panel = {'file': 'panel.png', 'sha256': digest, 'rect': [0, 0, 10, 15],
+                'sourceUrl': 'https://www.nintandbox.org/fixture'}
+            recipe = {'version': 1, 'layouts': [{'platform': 'nes', 'gameId': 'one',
+                'targetRegions': ['us'], 'sourceRegion': 'eu', 'languages': ['fr'],
+                'reconstruction': 'regionalPackaging', 'panels': {
+                    'front': panel, 'back': {**panel, 'languages': ['en']}}}]}
+            path = root / 'panels.json'
+            path.write_text(json.dumps(recipe))
+            manifest = {'platform': 'nes', 'games': [{'gameId': 'one',
+                'regions': ['us'], 'resources': []}]}
+            packaging.apply_panel_layouts(manifest, {}, path)
+            resources = manifest['games'][0]['resources']
+            self.assertEqual(resources[0]['importReference']['sourceLanguages'], ['fr'])
+            self.assertEqual(resources[1]['importReference']['sourceLanguages'], ['en'])
+            back_digest = resources[1]['importReference']['sha256']
+            english = [{'type': 'box-2D-back', 'region': 'us',
+                'importReference': {'sourceId': 'launchbox', 'sha256': 'unneeded'}}]
+            packaging.compose_english_faces(manifest['games'][0], english)
+            back = next(r for r in manifest['games'][0]['resources']
+                if r['type'] == 'outer-box-back')
+            self.assertEqual(back['importReference']['sha256'], back_digest)
+
+    def test_screenscraper_front_fills_missing_launchbox_front(self):
+        import zipfile
+        body = io.BytesIO()
+        Image.new('RGB', (32, 48), 'navy').save(body, format='PNG')
+        row = {'rank': 1, 'title': 'Bound NES game', 'game': {'id': 'game'},
+            'edition': {'id': 'edition', 'regions': ['us']},
+            'metadata': {'titles': [], 'providerGameId': '42', 'media': [
+                {'type': 'box-2D', 'region': 'us',
+                 'providerReference': {'providerPlatformId': '3'}}]}}
+        calls = []
+        def fetch(session, url, **kwargs):
+            media = kwargs['params']['media']
+            calls.append(media)
+            return body.getvalue() if media == 'box-2D(us)' else None
+        credentials = {key: 'fixture' for key in ('SCREENSCRAPER_DEVID',
+            'SCREENSCRAPER_DEVPASSWORD', 'SCREENSCRAPER_SOFTNAME',
+            'SCREENSCRAPER_USERNAME', 'SCREENSCRAPER_PASSWORD')}
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            args = SimpleNamespace(system='nes', projection=root/'projection.gz',
+                launchbox=root/'Metadata.zip', env=root/'fixture.env',
+                panel_layouts=None, output=root/'pack.zip')
+            with patch.object(packaging, 'ranked_selection', return_value=[row]), \
+                    patch.object(packaging, 'launchbox_index', return_value=({}, {})), \
+                    patch.object(packaging, 'website_box', return_value=None), \
+                    patch.object(packaging, 'read_env', return_value=credentials), \
+                    patch.object(packaging, 'fetch', side_effect=fetch):
+                packaging.collect(args)
+            self.assertIn('box-2D(us)', calls)
+            with zipfile.ZipFile(args.output) as archive:
+                manifest = json.loads(archive.read('packaging.json'))
+                self.assertEqual(len(manifest['games']), 1)
+                selected = manifest['games'][0]
+                self.assertEqual(selected['editionId'], 'edition')
+                self.assertEqual(selected['resources'][0]['type'], 'box-2D')
+                ref = selected['resources'][0]['importReference']
+                self.assertEqual(ref['sourceId'], 'screenscraper')
+                self.assertEqual(hashlib.sha256(archive.read(
+                    'images/'+ref['sha256']+'.png')).hexdigest(), ref['sha256'])
+
     def test_composite_keeps_launchbox_detail_but_matches_original_global_cast(self):
         import numpy as np
         from test_artwork_colour_cast import palette_image

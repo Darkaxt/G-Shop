@@ -5,6 +5,31 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-22 supplied-carton continuation (specification revision 155):
+**S26 ACTIVE**, sole active stage. The owner authorizes the reviewed standard
+NES carton for compatible missing reconstructions and a supplied yellow multicart
+beside the Dendy-compatible collector console. Super C, Contra and Adventure
+Island 3 now have private derivatives preserving the supplied nested hinges,
+cardboard interiors and separate foam, with their existing matched printing.
+The converter verifies the actual source animation, and the integrated scene
+uses declared physical scale, seats contents above the spacer, extracts the
+cartridge/sleeve first, then extracts and settles the foam. Physical seating,
+clearance, source-texture integrity and the complete original carton cohort
+extraction checks pass on the host. The new collector composition preserves
+all original placements and adds the attributed original-label multicart at a
+uniform, explicitly estimated 108 mm width; the existing source calibration is
+not a dimensional certification. Actual Blender textured views are inspected.
+The original multicart validates without warnings/errors; the three textured
+cartons have zero errors and one inherited PNG metadata warning each.
+The source/installed skill 0.1.13 and contract also register the checked Super C
+Cover Project custom-case wrap as a potential artwork fallback, not an implemented
+provider or original cardboard net. The prepared catalogue binds the actual
+24-game cohort while retaining original regional editions. Artwork import and
+Drive publication are running through the normal application workflow; native
+candidate installation, actual new gallery/foam/collector pixels and independent
+publication/recovery verification remain acceptance blockers. No S26 completion
+or public release is claimed. Other console/Socket work retains its existing hold.
+
 2026-10-22 donor-composition correction (specification revision 153):
 **S26 ACTIVE**, sole active stage. The existing specification already authorizes
 regional/non-English NintAndBox donors, matched English LaunchBox substitutions

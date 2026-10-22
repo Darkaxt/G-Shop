@@ -1,6 +1,28 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 153, 2026-10-22.
+Authoritative specification, revision 155, 2026-10-22.
+
+Owner supplied-model continuation, 2026-10-22: use the reviewed `nes-box.glb`
+construction for compatible missing NES cartons, retaining matched game-specific
+artwork and complete source-specific cartons. Preserve the nested opening/closing
+hinges, separate foam, real-scale calibration and estimated-dimension disclosures;
+verify contents seating, extraction, artwork and actual native presentation.
+Inspect and add the supplied yellow multicart beside the Dendy-compatible clone
+in the collector composition when compatible. Keep it a display prop with its
+own original artwork and attribution, not a binding for unrelated owned games.
+Retain the existing scene props, comparative scale and camera-framing contract.
+These additions remain within the sole ACTIVE S26 and its final delivery gate.
+
+Owner gallery continuation, 2026-10-22: fix the NES gallery rendering together
+with its applicable acquisition/composition, model binding, metadata publication,
+recovery and native-view prerequisites. Preserve the existing ranked cohort and
+authentic labels. Register The Cover Project as another potential artwork
+fallback, using https://thecoverproject.net/view.php?cover_id=28510 as the checked
+example; it is a custom US/NTSC Universal Game Case cover for Super C by
+Thorr_Warrior, not an original NintAndBox-style carton reconstruction. Preserve
+that distinction and actual source identity; registration alone does not add a
+provider implementation or replace current suitable sources. The sole ACTIVE
+stage remains S26, with its existing single final release boundary.
 
 Owner donor-composition correction, 2026-10-22: the existing cross-collector GBA
 policy already permits regional/non-English NintAndBox donors with matched

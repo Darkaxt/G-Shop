@@ -21,7 +21,10 @@ class NesUnboxingScene {
   bool get hasSleeve => usesSleeve(style);
   static bool usesSleeve(String style) =>
       RegExp(r'^nintendo-[35]-(?:gray|gold|white)$').hasMatch(style);
-  int get durationMs => box.openingDurationMs + (hasSleeve ? 5300 : 4100);
+  int get durationMs =>
+      box.openingDurationMs +
+      (hasSleeve ? 5300 : 4100) +
+      (box.hasFoamSpacer ? 1900 : 0);
 
   Future<SocketMediaModel> load() async {
     if (!box.isBox || box.systemId != 'nes') {
@@ -41,6 +44,11 @@ class NesUnboxingScene {
     final cb = GameWatchUnboxingScene.bounds(cartridge, 0);
     final bb = GameWatchUnboxingScene.bounds(carton, 0);
     final bc = SocketMediaModel.poseCenter(carton.data, 0);
+    final profile = carton.data['nesStandardCarton'] as Map?;
+    final foamBounds = profile == null
+        ? null
+        : GameWatchUnboxingScene.bounds(carton, 0,
+            nodes: {profile['foamNode'] as String});
     // Portrait and landscape reconstructions have different opening ends.
     // Inspect their root flap pivots instead of crossing a closed wall.
     final pivots = [
@@ -49,7 +57,7 @@ class NesUnboxingScene {
           ((s['openingHinges'] as List).first['pivot'] as List).cast<num>()
     ];
     final ends = <List<int>>[];
-    for (final axis in [0, 1])
+    for (final axis in [0, 1]) {
       for (final sign in [-1, 1]) {
         final edge = bb[sign > 0 ? 1 : 0][axis] + bc[axis];
         if (pivots.isNotEmpty &&
@@ -57,6 +65,7 @@ class NesUnboxingScene {
           ends.add([axis, sign]);
         }
       }
+    }
     if (ends.length != 1) {
       throw const FormatException('NES carton needs a reviewed opening end');
     }
@@ -82,8 +91,47 @@ class NesUnboxingScene {
                 : (sleeveBounds[1][a] - sleeveBounds[0][a]) * sleeveScale[a])
     ];
     var seat = double.infinity;
-    for (var a = 0; a < 3; a++)
+    for (var a = 0; a < 3; a++) {
       seat = math.min(seat, (bb[1][a] - bb[0][a]) * .86 / packSize[a]);
+    }
+    var seatY = 0.0, physicalUnits = 0.0;
+    if (profile != null) {
+      physicalUnits = (profile['previewUnitsPerMetre'] as num).toDouble();
+      final ledger =
+          (cartridge.data['sourceReference'] as Map?)?['modelLedger'] as Map?;
+      final dimensions = ledger?['nominal_dimensions_mm'] as List?;
+      if (!physicalUnits.isFinite ||
+          physicalUnits <= 0 ||
+          ledger?['units'] != 'metres' ||
+          dimensions == null ||
+          dimensions.length != 3 ||
+          !dimensions.every((v) => v is num && v.isFinite && v > 0) ||
+          foamBounds!.expand((v) => v).any((v) => !v.isFinite)) {
+        throw const FormatException(
+            'Standard NES carton needs measured or declared physical contents');
+      }
+      seat = (dimensions[0] as num) / 1000 * physicalUnits / cartSize[0];
+      final packLow = [
+        for (var a = 0; a < 3; a++)
+          math.min(
+              cb[0][a],
+              sleeveBounds == null
+                  ? cb[0][a]
+                  : sleeveBounds[0][a] * sleeveScale[a])
+      ];
+      seatY = foamBounds[1][1] + .0006 * physicalUnits - packLow[1] * seat;
+      final interior = (profile['interiorBounds'] as List).cast<List>();
+      for (var a = 0; a < 3; a++) {
+        final offset = a == 1 ? seatY : 0.0;
+        final min = (interior[0][a] as num) - bc[a],
+            max = (interior[1][a] as num) - bc[a];
+        if (packLow[a] * seat + offset < min ||
+            packLow[a] * seat + packSize[a] * seat + offset > max) {
+          throw const FormatException(
+              'Physical NES contents do not fit the supplied carton');
+        }
+      }
+    }
     final openedBounds = (carton.data['bounds'] as List).cast<num>();
     final envelope = [
       for (final sign in [-1, 1])
@@ -112,7 +160,10 @@ class NesUnboxingScene {
         final s = jsonDecode(jsonEncode(original)) as Map<String, dynamic>;
         s['vertexOffset'] = (s['vertexOffset'] as int) + offset;
         s['indexOffset'] = (s['indexOffset'] as int) + offset;
-        s['nesPart'] = part;
+        s['nesPart'] =
+            part == 'box' && profile != null && s['node'] == profile['foamNode']
+                ? 'foam'
+                : part;
         // A plain sleeve avoids inferring Nintendo-printed packaging for every
         // licensed third-party game. The original branded reference is retained.
         if (part == 'sleeve') {
@@ -147,6 +198,12 @@ class NesUnboxingScene {
       'cartridgeStyle': style,
       'retailEditionId': box.retailEditionId,
       'hasSleeve': hasSleeve,
+      'hasFoam': foamBounds != null,
+      'physicalUnitsPerMetre': physicalUnits,
+      'seatYOffset': seatY,
+      if (foamBounds != null)
+        'foamExitY': envelope[1][1] - foamBounds[0][1] + .08,
+      if (foamBounds != null) 'foamRestY': bb[0][1] - .25 - foamBounds[0][1],
       'sleevePrint': 'plain reference',
       'boxOpeningMs': box.openingDurationMs,
       'sequenceDurationMs': durationMs,
@@ -169,7 +226,12 @@ class NesUnboxingScene {
                 sign * v / 2
             ]
         ],
-        if (sleeveBounds != null) 'sleeve': sleeveBounds
+        if (sleeveBounds != null) 'sleeve': sleeveBounds,
+        if (foamBounds != null)
+          'foam': [
+            for (final b in foamBounds)
+              [for (var a = 0; a < 3; a++) b[a] + bc[a]]
+          ]
       },
       'cartridgeGeometrySha256': cartridge.data['geometrySha256'],
       'boxGeometrySha256': carton.data['geometrySha256'],
@@ -200,7 +262,9 @@ class NesUnboxingScene {
     final forward = phase(s, opened + 1.2, opened + 1.9);
     final sleeved = d['hasSleeve'] == true;
     final unsleeve = sleeved ? phase(s, opened + 1.9, opened + 3.1) : 0.0;
-    final cleared = opened + (sleeved ? 3.1 : 1.9);
+    final cartCleared = opened + (sleeved ? 3.1 : 1.9);
+    final hasFoam = d['hasFoam'] == true;
+    final cleared = cartCleared + (hasFoam ? 1.9 : 0.0);
     final separate = phase(s, cleared, cleared + .6);
     final settle = phase(s, cleared + .6, cleared + 2.2);
     final seat = (d['seatScale'] as num).toDouble();
@@ -212,16 +276,32 @@ class NesUnboxingScene {
         ..translateByDouble(
             -c[0].toDouble(), -c[1].toDouble(), -c[2].toDouble(), 1);
     }
+    if (part == 'foam') {
+      final c = (d['boxCenter'] as List).cast<num>();
+      final lift = phase(s, cartCleared, cartCleared + 1.2);
+      final forward = phase(s, cartCleared + 1.2, cartCleared + 1.9);
+      return matrix
+        ..translateByDouble(
+            1.7 * separate,
+            (d['foamExitY'] as num) * lift * (1 - settle) +
+                (d['foamRestY'] as num) * settle,
+            .90 * forward,
+            1)
+        ..translateByDouble(
+            -c[0].toDouble(), -c[1].toDouble(), -c[2].toDouble(), 1);
+    }
     final cart = part == 'cartridge';
     final center = cart
         ? SocketMediaModel.poseCenter(
             Map<String, dynamic>.from(d['cartridgeData'] as Map), p.opening)
         : vm.Vector3.zero();
-    if (p.inspectedPart == 'cartridge')
+    if (p.inspectedPart == 'cartridge') {
       return matrix..translateByDouble(-center.x, -center.y, -center.z, 1);
+    }
     final exit = (d['exitOffset'] as List).cast<num>();
-    final y =
-        exit[1] * extract + (cart ? (d['sleeveLift'] as num) * unsleeve : 0);
+    final y = ((d['seatYOffset'] as num?) ?? 0) +
+        exit[1] * extract +
+        (cart ? (d['sleeveLift'] as num) * unsleeve : 0);
     final targetY = cart ? -.3 : -.35;
     matrix
       ..translateByDouble(
@@ -250,14 +330,16 @@ class NesUnboxingScene {
       if (p.inspectedPart != null && entry.key != p.inspectedPart) continue;
       final b = (entry.value as List).cast<List>();
       final transform = base * partTransform(m, entry.key as String, p);
-      for (final x in [0, 1])
-        for (final y in [0, 1])
+      for (final x in [0, 1]) {
+        for (final y in [0, 1]) {
           for (final z in [0, 1]) {
             points.add(transform.transformed3(vm.Vector3(
                 (b[x][0] as num).toDouble(),
                 (b[y][1] as num).toDouble(),
                 (b[z][2] as num).toDouble())));
           }
+        }
+      }
     }
     return points;
   }
@@ -282,9 +364,10 @@ class NesUnboxingScene {
 
   static double fittedUnits(
       SocketMediaModel m, SocketMediaPose p, double width, double height) {
-    if (p.inspectedPart == 'cartridge')
+    if (p.inspectedPart == 'cartridge') {
       return math.min(width * .72 / (m.data['cartridgeFrameWidth'] as num),
           height * .68 / (m.data['cartridgeFrameHeight'] as num));
+    }
     final center = viewCenter(m, p);
     var x = .01, y = .01;
     for (final point in _corners(m, p)) {
@@ -305,8 +388,9 @@ class _NesSceneTextures extends CachingAssetBundle {
         ? key.substring(SocketMediaModel.assetRoot.length)
         : '';
     final source = sources[name];
-    if (source == null)
+    if (source == null) {
       throw const FormatException('Unknown NES scene texture');
+    }
     return source.load(
         '${SocketMediaModel.assetRoot}${name.substring(name.indexOf('/') + 1)}');
   }

@@ -44,6 +44,11 @@ cartridge shells or labels. Trace prepared artwork through the normal edition-ow
 shared-cache recovery and every gallery/scene consumer before acceptance. A
 console-specific preview must not bypass those existing acquisition/fallback lanes.
 The skill's end-to-end reference checklist records the required integration steps.
+The Cover Project is an additional potential artwork fallback. Distinguish each
+entry's custom/replacement-case wrap from a retail scan and retain creator, cover
+ID, format/region and crop/hash provenance. Such artwork does not establish a
+NintAndBox-style cardboard net, folds, dimensions or opening construction. Its
+registration does not assert that an acquisition/import provider is implemented.
 
 Before accepting resource coverage for an authorized console, snapshot its actual
 eligible distinct Top 25 from the canonical ranked query and current preferences;

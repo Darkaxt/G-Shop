@@ -51,6 +51,10 @@ class _NesBoxTileState extends State<NesBoxTile> {
             builder: (_, pose) => SocketMediaRenderer.console(
                 key: ValueKey(model.generation),
                 model: model,
+                // Imported carton bounds include its open flaps. Frame the
+                // actual closed pose so that envelope does not shrink the card.
+                frameComposition: true,
+                compositionFill: widget.selected ? .8925 : .85,
                 pose: pose,
                 identity: '${widget.identity}:${model.generation}',
                 title: widget.title,

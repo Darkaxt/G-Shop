@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:crypto/crypto.dart';
 import 'package:g_shop/models/console_model.dart';
 import 'package:g_shop/models/nes_launch_scene.dart';
 import 'package:g_shop/models/nes_media_catalogue.dart';
@@ -138,6 +139,37 @@ void main() {
             hardware, const SocketMediaPose(launch: .35))['color'],
         hardware['material']['color']);
   }, skip: absent);
+
+  final standard = Platform.environment['GSHOP_NES_STANDARD_CARTON_ID'];
+  test('supplied foam retires with its carton before console insertion',
+      () async {
+    final root = Directory(mediaRoot!);
+    final digest = sha256
+        .convert(await File('${root.path}/boxes/nes/$standard/model.json')
+            .readAsBytes())
+        .toString();
+    final box = (await ConsoleModel.findNesBox(standard!,
+        manifestSha256: digest, modelsDirectory: root))!;
+    final console = (await ConsoleModel.findNesLaunchTarget('front-loader',
+        modelsDirectory: Directory(targetRoot!)))!;
+    final display = (await ConsoleModel.findNesLaunchDisplay(
+        modelsDirectory: Directory(targetRoot)))!;
+    final m = await NesLaunchScene(
+            NesUnboxingScene(box, 'nintendo-3-gray', modelsDirectory: root),
+            console,
+            display)
+        .load();
+    final foam = m.surfaces.firstWhere((s) => s['launchPart'] == 'foam');
+    expect(
+        NesLaunchScene.visible(
+            foam, const SocketMediaPose(unboxing: 1, launch: .22)),
+        false);
+    for (final t in [0.0, .1, .22, .35, 1.0]) {
+      final transform = NesLaunchScene.partTransform(
+          m, foam, SocketMediaPose(unboxing: 1, launch: t));
+      expect(transform.storage.every((v) => v.isFinite), true);
+    }
+  }, skip: absent != false || standard == null, timeout: Timeout.none);
 
   test(
       'launch uses the supplied calibrated curved TV, not a display placeholder',

@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.12"
+  version: "0.1.13"
 ---
 
 # G-Shop Console Integration
@@ -57,6 +57,9 @@ printing or claim a composite is an original exact-region SKU. Apply those
 existing permissions before invoking the resource gate; do
 not ask the owner to approve it again. Trace fixable acquisition/binding/rendering
 omissions before reporting a genuine source gap.
+The Cover Project is also registered as a potential artwork fallback; see the
+pipeline reference for its custom-case/retail distinction and provenance limits.
+It is not a NintAndBox-equivalent carton net or an already-implemented provider.
 
 **Pause the affected integration when any required resource is missing, invalid
 or lacks a sufficiently established physical binding.** Report the exact resource
