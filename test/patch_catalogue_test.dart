@@ -56,6 +56,22 @@ Map<String, dynamic> sourceIndex({String version = '1.0'}) => {
     };
 
 void main() {
+  test('schema 2 dependency pins predecessor bytes and expected intermediate output', () {
+    final json = sourceIndex();
+    final entry = (json['sections']['hacks'] as List).single as Map;
+    entry['rom_files'] = [];
+    entry['requires_patch'] = {
+      'patch': {'source': 'Earlier source', 'section': 'translations', 'sourceId': '10',
+        'version': '1.2', 'format': 'bps', 'sha256': digest, 'options': {}},
+      'output_size': 4, 'output_hashes': {'sha256': otherDigest}
+    };
+    final patch = PatchSourceIndex.fromJson(json).patches.single;
+    expect(patch.unavailableReason, isNull);
+    expect(patch.requires!.step.version, '1.2');
+    expect(patch.requires!.outputHashes['sha256'], otherDigest);
+    entry['requires_patch']['output_hashes'] = {'crc32': '12345678'};
+    expect(() => PatchSourceIndex.fromJson(json), throwsFormatException);
+  });
   test('schema 2 binds extracted patches to exact base member, not utilities',
       () {
     final catalogue = PatchSourceIndex.fromJson(sourceIndex());

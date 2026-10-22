@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:g_shop/models/config/drive_source_config.dart';
 import 'package:g_shop/models/config/provider_config.dart';
 import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/patch_catalogue.dart';
 import 'package:g_shop/services/drive/drive_api.dart';
 import 'package:g_shop/services/drive/drive_authorization.dart';
 import 'package:g_shop/services/drive/drive_catalogue.dart';
@@ -188,6 +189,19 @@ void main() {
         reason: 'Ambiguous names do not expose a broken patch route');
     expect(media.reads, 0);
     expect(api.listings, 0);
+  });
+
+  test('launch metadata reads the exact cached document without network or refresh', () async {
+    final local = DrivePatchCatalogue(config, runtime: runtime, localOnly: true);
+    await catalogue.cachePatchIndex(original, {'schema_version': 2, 'games': []});
+    expect(await local.read(PatchRelativePath('folder/index.json'), CancelToken()),
+      {'schema_version': 2, 'games': []});
+    expect(media.reads, 0);
+    expect(api.listings, 0);
+    await db.delete('drive_patch_index_cache');
+    await expectLater(local.read(PatchRelativePath('folder/index.json'), CancelToken()),
+      throwsA(isA<DriveCatalogueException>().having((e) => e.code, 'code', 'patchIndexNotCached')));
+    expect(media.reads, 0);
   });
 
   test('patch index reconciles version-only drift without a source rescan',

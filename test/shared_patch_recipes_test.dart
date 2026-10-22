@@ -227,7 +227,7 @@ void main() {
     expect(resolved.base.archiveMember!.value, 'Renamed.gba');
     expect(DrivePatchCatalogue.matchRecipe(portable, game, [patch('f' * 64)]),
         isNull);
-    final chain = PortablePatchRecipe(
+    expect(() => PortablePatchRecipe(
         recipe: PatchRecipe(
             platformId: 'gba',
             base: portable.recipe.base,
@@ -236,8 +236,6 @@ void main() {
         sourceGameId: '1379',
         gameTitle: 'Original',
         gameIndexPath: game.indexPath,
-        title: 'Undeclared chain');
-    expect(DrivePatchCatalogue.matchRecipe(chain, game, [patch('a' * 64)]),
-        isNull);
+        title: 'Undeclared chain'), throwsFormatException);
   });
 }

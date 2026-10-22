@@ -49,7 +49,60 @@ duplicate references are rejected. Keep existing producer fields when updating
 an index; R-Shop does not rewrite your original JSON. Update patch versions,
 payload hashes and base member fingerprints together when their bytes change.
 Do not declare compatibility merely because two titles look alike. Current
-indexes describe individual patches against an original, not composable chains.
+indexes without dependency fields describe individual patches against an original.
+
+## Dependent patches
+
+Schema 2 accepts an optional `requires_patch` on a hack/translation entry. It pins
+one immediate predecessor; prerequisites can themselves declare a predecessor.
+This describes an ordered chain, not arbitrary combinations of independent mods.
+The chain root retains `rom_files` for the original. Dependent entries can leave
+`rom_files` empty; their input is the declared predecessor's verified output.
+
+```json
+"requires_patch": {
+  "patch": {
+    "source": "Example source", "section": "translations", "sourceId": "10",
+    "version": "1.2", "format": "bps",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "options": {}
+  },
+  "output_size": 4194304,
+  "output_hashes": {
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  }
+}
+```
+
+The hashes above are illustrative, not compatibility declarations. Use reviewed
+producer instructions and actual bytes when populating them. The predecessor
+must be uniquely present in this game's indexed sources, with matching version,
+format and patch SHA-256. Missing/ambiguous dependencies and cycles disable the
+build. Never derive ordering from titles, file listing order or readme wording.
+Every intermediate is checked against the successor's expected input before the
+next application. Recipes retain those input contracts and the entire order.
+EBP canonical preparation remains an explicit checkbox recorded in the recipe;
+in a chain it applies only to EBP steps, never other formats or the original file.
+
+## Suggestions before launch
+
+Explicit console sync and Patches browsing prepare source/version-bound index
+metadata locally. Launch checks use that cache and exact original artifact
+references; they perform no network scan. A compatible offer precedes the launch
+animation: original, installed build, or patch selection/build. Choosing an
+installed result verifies it again, and matching complete recipes reuse output.
+Original play remains available when catalogue evidence is unavailable. A missing
+cache is unknown, not evidence that no patches exist; open Patches or sync to
+prepare it. Existing modified ROMs with no proven base lineage remain accessible
+in Hacks without guessed original-game suggestions.
+
+Remembered choices are bound to the original's content version. Changed/missing
+preferred builds return to selection rather than silently launching a different
+game. Use **Reset launch suggestions** on this console's Patches page to clear its
+saved choices. Cancel returns without starting the launch animation or emulator.
+Patched outputs retain their own saves, companions and metadata. The distinct
+hack-specific 3D animation is explicitly postponed; generation launch behavior
+remains shared for now.
 
 The [synthetic example](examples/patch-collection) contains indexes only, no ROMs,
 patch binaries or private inventory. Its pretend four-byte ROM and hash values

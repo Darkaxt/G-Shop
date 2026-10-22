@@ -27,6 +27,8 @@ class PatchBuildStore {
   final Future<SharedMetadataStore?>? sharedStore;
   String? sharedIssue;
   PatchBuildStore(this.database, {this.sharedStore});
+  Future<List<Map<String, dynamic>>> localForPlatform(String platform) =>
+      _read('platform_id=?', [platform]);
 
   /// Read-only navigation check; opening the library must not publish builds.
   Future<bool> hasForPlatform(String platform) async {

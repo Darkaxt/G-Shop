@@ -1,6 +1,17 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 162, 2026-10-22.
+Authoritative specification, revision 163, 2026-10-23.
+
+Owner launch/patch extension, 2026-10-23 (already authorized): implement
+PATCH-LAUNCH-01 and PATCH-CHAIN-01 in COLLECTION_PATCHES_SPECIFICATION.md within
+the sole ACTIVE S26 stage. Before the ordinary launch animation, offer compatible
+patches and verified builds for the exact selected original; original play remains
+the default. Resolve declared prerequisite patches in order and validate each
+intermediate input. Preserve originals, cancellation, exact modified-edition
+save/rating identity and the normal launch pipeline. Keep observing original NES
+metadata job 109; do not restart it or discard full NES/GBA coverage requirements.
+The owner explicitly postpones a hack-specific 3D launch variation: record that
+separate future design without implementing it or making it a current release gate.
 
 Owner measured-progress correction, 2026-10-22: show determinate progress for
 metadata and artwork jobs once their committed item snapshot exists. Derive the

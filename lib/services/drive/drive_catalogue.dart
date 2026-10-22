@@ -22,7 +22,20 @@ class DriveCatalogueEntry {
 }
 
 class DriveCatalogueSchema {
+  static Future<void> installPatchIndexCache(DatabaseExecutor db) async {
+    await db.execute('''CREATE TABLE IF NOT EXISTS drive_patch_index_cache (
+      artifact_key TEXT PRIMARY KEY, content_key TEXT NOT NULL, document TEXT NOT NULL
+    )''');
+    await db.execute('''CREATE TABLE IF NOT EXISTS drive_patch_base_links (
+      scope TEXT NOT NULL, generation INTEGER NOT NULL, folder_id TEXT NOT NULL,
+      base_file_id TEXT NOT NULL, index_path TEXT NOT NULL, game_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      PRIMARY KEY(scope, generation, folder_id, base_file_id, index_path)
+    )''');
+  }
+
   static Future<void> install(DatabaseExecutor db) async {
+    await installPatchIndexCache(db);
     await db.execute('''CREATE TABLE IF NOT EXISTS drive_catalogue_state (
       scope TEXT PRIMARY KEY, active INTEGER, pending INTEGER,
       next_generation INTEGER NOT NULL
@@ -61,6 +74,79 @@ class DriveCatalogueSchema {
 class DriveCatalogue {
   final Future<Database> _database;
   DriveCatalogue(this._database);
+
+  static String _patchContentKey(RemoteArtifact artifact) {
+    final keys = artifact.providerChecksums.keys.toList()..sort();
+    return jsonEncode([
+      artifact.id.key,
+      artifact.version,
+      artifact.sizeBytes,
+      {for (final key in keys) key: artifact.providerChecksums[key]}
+    ]);
+  }
+
+  Future<void> cachePatchIndex(
+      RemoteArtifact artifact, Map<String, dynamic> document) async {
+    await (await _database).insert(
+        'drive_patch_index_cache',
+        {
+          'artifact_key': artifact.id.key,
+          'content_key': _patchContentKey(artifact),
+          'document': jsonEncode(document),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<Map<String, dynamic>?> cachedPatchIndex(
+      RemoteArtifact artifact) async {
+    final rows = await (await _database).query('drive_patch_index_cache',
+        columns: ['document'],
+        where: 'artifact_key=? AND content_key=?',
+        whereArgs: [artifact.id.key, _patchContentKey(artifact)],
+        limit: 1);
+    if (rows.isEmpty) return null;
+    return (jsonDecode(rows.single['document'] as String) as Map)
+        .cast<String, dynamic>();
+  }
+
+  Future<void> cachePatchBaseLinks(
+      {required String scope,
+      required int generation,
+      required String folderId,
+      required String indexPath,
+      required String gameId,
+      required String title,
+      required Set<String> baseFileIds}) async {
+    await (await _database).transaction((txn) async {
+      await txn.delete('drive_patch_base_links',
+          where: 'scope=? AND folder_id=? AND generation<>?',
+          whereArgs: [scope, folderId, generation]);
+      await txn.delete('drive_patch_base_links',
+          where: 'scope=? AND generation=? AND folder_id=? AND index_path=?',
+          whereArgs: [scope, generation, folderId, indexPath]);
+      for (final id in baseFileIds) {
+        await txn.insert('drive_patch_base_links', {
+          'scope': scope,
+          'generation': generation,
+          'folder_id': folderId,
+          'base_file_id': id,
+          'index_path': indexPath,
+          'game_id': gameId,
+          'title': title
+        });
+      }
+    });
+  }
+
+  Future<List<Map<String, Object?>>> cachedPatchGames(
+          {required String scope,
+          required int generation,
+          required String folderId,
+          required String baseFileId}) async =>
+      (await _database).query('drive_patch_base_links',
+          columns: ['index_path', 'game_id', 'title'],
+          where: 'scope=? AND generation=? AND folder_id=? AND base_file_id=?',
+          whereArgs: [scope, generation, folderId, baseFileId]);
 
   static String scopeKey(
           String sourceId, String accountId, String rootFolderId) =>

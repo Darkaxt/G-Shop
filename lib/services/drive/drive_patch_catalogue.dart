@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../models/config/provider_config.dart';
 import '../../models/library_identity.dart';
 import '../../models/patch_catalogue.dart';
+import '../../models/patch_chain.dart';
 import '../../models/portable_patch_recipe.dart';
 import 'drive_catalogue.dart';
 import 'drive_runtime.dart';
@@ -19,7 +20,9 @@ class ResolvedPatchRecipe {
   final IndexedRomPatch patch;
   final IndexedPatchPayload payload;
   final IndexedPatchBase base;
-  const ResolvedPatchRecipe(this.game, this.patch, this.payload, this.base);
+  final List<IndexedRomPatch> availablePatches;
+  const ResolvedPatchRecipe(this.game, this.patch, this.payload, this.base,
+      [this.availablePatches = const []]);
 }
 
 class PatchRecipeRequirements {
@@ -34,18 +37,85 @@ class PatchRecipeRequirements {
 class DrivePatchCatalogue {
   final DriveRuntime runtime;
   final ProviderConfig config;
-  DrivePatchCatalogue(this.config, {DriveRuntime? runtime})
+  final bool localOnly;
+  DrivePatchCatalogue(this.config,
+      {DriveRuntime? runtime, this.localOnly = false})
       : runtime = runtime ?? DriveRuntime.instance;
+
+  Future<Map<String, dynamic>> _readArtifact(
+      RemoteArtifact artifact, CancelToken cancellation) async {
+    if (cancellation.isCancelled) {
+      throw const DriveCatalogueException('cancelled');
+    }
+    final cached = await runtime.catalogue.cachedPatchIndex(artifact);
+    if (cached != null) return cached;
+    if (localOnly) throw const DriveCatalogueException('patchIndexNotCached');
+    return runtime.readPatchIndex(
+        config: config, artifact: artifact, cancellation: cancellation);
+  }
+
+  /// Explicit sync/Patches work prepares metadata; launch checks remain local.
+  Future<void> refreshIndexes(CancelToken cancellation) async {
+    for (final game in await games(cancellation)) {
+      final available = await patches(game, cancellation);
+      await rememberBases(game, available);
+    }
+  }
+
+  Future<void> rememberBases(
+      IndexedPatchGame game, List<IndexedRomPatch> available) async {
+    final generation = await _generation();
+    final drive = config.drive!;
+    final ids = <String>{};
+    for (final patch in available) {
+      if (patch.requires != null) {
+        continue; // Original inputs live at chain roots.
+      }
+      for (final base in patch.bases) {
+        try {
+          ids.add((await resolve(base.relativePath)).id.providerFileId);
+        } on DriveCatalogueException catch (error) {
+          if (error.code != 'ambiguousOrMissingDependency') rethrow;
+        }
+      }
+    }
+    await runtime.catalogue.cachePatchBaseLinks(
+        scope: DriveCatalogue.scopeKey(
+            config.sourceId!, drive.accountId, drive.rootFolderId),
+        generation: generation,
+        folderId: config.path!,
+        indexPath: game.indexPath.value,
+        gameId: game.sourceGameId,
+        title: game.title,
+        baseFileIds: ids);
+  }
+
+  Future<List<IndexedPatchGame>> cachedGamesFor(RemoteArtifact artifact) async {
+    final drive = config.drive;
+    if (drive == null ||
+        artifact.id.sourceId != config.sourceId ||
+        artifact.id.accountId != drive.accountId) {
+      return const [];
+    }
+    final rows = await runtime.catalogue.cachedPatchGames(
+        scope: DriveCatalogue.scopeKey(
+            config.sourceId!, drive.accountId, drive.rootFolderId),
+        generation: await _generation(),
+        folderId: config.path!,
+        baseFileId: artifact.id.providerFileId);
+    return [
+      for (final row in rows)
+        IndexedPatchGame(row['game_id'] as String, row['title'] as String,
+            PatchRelativePath(row['index_path'] as String))
+    ];
+  }
 
   Future<PatchRecipeRequirements> resolveRecipe(
       PortablePatchRecipe portable, CancelToken cancellation) async {
-    if (portable.recipe.steps.length != 1) {
-      return const PatchRecipeRequirements(null, ['Compatible patch sequence']);
-    }
     final candidates = (await games(cancellation))
         .where((game) => game.sourceGameId == portable.sourceGameId);
     var patchFound = false;
-    final step = portable.recipe.steps.single;
+    final step = portable.recipe.steps.last;
     for (final game in candidates) {
       final available = await patches(game, cancellation);
       patchFound = patchFound ||
@@ -70,11 +140,10 @@ class DrivePatchCatalogue {
   /// declared content/engine recipe still agrees, not by filename or title.
   static ResolvedPatchRecipe? matchRecipe(PortablePatchRecipe portable,
       IndexedPatchGame game, List<IndexedRomPatch> patches) {
-    if (game.sourceGameId != portable.sourceGameId ||
-        portable.recipe.steps.length != 1) {
+    if (game.sourceGameId != portable.sourceGameId) {
       return null;
     }
-    final step = portable.recipe.steps.single;
+    final step = portable.recipe.steps.last;
     for (final patch in patches) {
       if (patch.source != step.source ||
           patch.section != step.section ||
@@ -88,15 +157,21 @@ class DrivePatchCatalogue {
             payload.format != step.format) {
           continue;
         }
-        for (final base in patch.bases) {
+        final PatchChain chain;
+        try {
+          chain = PatchChain.resolve(patches, patch, payload);
+        } on FormatException {
+          continue;
+        }
+        for (final base in chain.bases) {
           final candidate = PatchRecipe(
               platformId: portable.recipe.platformId,
               base: base,
-              steps: [PatchRecipeStep.fromPatch(patch, payload)],
+              steps: chain.recipeSteps,
               engineRevision: portable.recipe.engineRevision,
               preprocessing: portable.recipe.preprocessing);
           if (candidate.id == portable.recipe.id) {
-            return ResolvedPatchRecipe(game, patch, payload, base);
+            return ResolvedPatchRecipe(game, patch, payload, base, patches);
           }
         }
       }
@@ -137,10 +212,7 @@ class DrivePatchCatalogue {
 
   Future<Map<String, dynamic>> read(
           PatchRelativePath reference, CancelToken cancellation) async =>
-      runtime.readPatchIndex(
-          config: config,
-          artifact: await resolve(reference),
-          cancellation: cancellation);
+      _readArtifact(await resolve(reference), cancellation);
 
   /// Navigation availability reads the published local snapshot only. It does
   /// not download/parse an index, authenticate or start a catalogue refresh.
@@ -179,13 +251,12 @@ class DrivePatchCatalogue {
         parentId: config.path!,
         segments: const ['Patches', 'index.json'],
         generation: generation);
-    final index = await runtime.readPatchIndex(
-        config: config,
-        artifact: entry.file.artifact(
+    final index = await _readArtifact(
+        entry.file.artifact(
             sourceId: config.sourceId!,
             accountId: drive.accountId,
             displayPath: entry.displayPath),
-        cancellation: cancellation);
+        cancellation);
     if (index['schema_version'] != 2 || index['games'] is! List) {
       throw const FormatException('unsupported_patch_index_schema');
     }

@@ -91,6 +91,7 @@ class IndexedPatchPayload {
 }
 
 class IndexedRomPatch {
+  final PatchDependency? requires;
   final String source;
   final String section;
   final String sourceId;
@@ -111,6 +112,7 @@ class IndexedRomPatch {
       required this.description,
       this.language,
       this.sourceUrl,
+      this.requires,
       required List<IndexedPatchBase> bases,
       required List<IndexedPatchPayload> payloads,
       required List<String> unsupportedFiles})
@@ -118,7 +120,7 @@ class IndexedRomPatch {
         payloads = List.unmodifiable(payloads),
         unsupportedFiles = List.unmodifiable(unsupportedFiles);
   String get id => jsonEncode([source, section, sourceId]);
-  String? get unavailableReason => bases.isEmpty
+  String? get unavailableReason => bases.isEmpty && requires == null
       ? 'no_verified_base_reference'
       : payloads.isEmpty
           ? 'no_supported_patch_payload'
@@ -206,6 +208,9 @@ class PatchSourceIndex {
             description: (fields['description'] ?? '').toString(),
             language: fields['language']?.toString(),
             sourceUrl: entry['source_url']?.toString(),
+            requires: entry['requires_patch'] == null
+                ? null
+                : PatchDependency.fromJson(_map(entry['requires_patch'])),
             bases: _list(entry['rom_files'])
                 .map((base) => IndexedPatchBase.fromJson(_map(base)))
                 .toList(),
@@ -218,6 +223,8 @@ class PatchSourceIndex {
 }
 
 class PatchRecipeStep {
+  final int? inputSize;
+  final Map<String, String> inputHashes;
   final String source;
   final String section;
   final String sourceId;
@@ -232,9 +239,22 @@ class PatchRecipeStep {
       required this.version,
       required this.format,
       required String patchSha256,
+      this.inputSize,
+      Map<String, String> inputHashes = const {},
       Map<String, dynamic> options = const {}})
       : patchSha256 = _digest(patchSha256, 64),
-        options = Map.unmodifiable(options);
+        inputHashes = _hashes(inputHashes),
+        options = Map.unmodifiable(options) {
+    if ((inputSize == null) != this.inputHashes.isEmpty ||
+        (inputSize != null &&
+            (inputSize! <= 0 ||
+                !this
+                    .inputHashes
+                    .keys
+                    .any(const {'sha256', 'sha1', 'md5'}.contains)))) {
+      throw const FormatException('invalid_patch_step_input');
+    }
+  }
   factory PatchRecipeStep.fromPatch(
           IndexedRomPatch patch, IndexedPatchPayload payload) =>
       PatchRecipeStep(
@@ -252,6 +272,8 @@ class PatchRecipeStep {
           version: (json['version'] ?? '').toString(),
           format: PatchFormat.values.byName(_text(json, 'format')),
           patchSha256: _text(json, 'sha256'),
+          inputSize: json['inputSize'] as int?,
+          inputHashes: _hashes(json['inputHashes'] ?? const {}),
           options: _map(json['options'] ?? const {}));
   Map<String, dynamic> toJson() => {
         'source': source,
@@ -261,7 +283,34 @@ class PatchRecipeStep {
         'format': format.name,
         'sha256': patchSha256,
         'options': options,
+        if (inputSize != null) 'inputSize': inputSize,
+        if (inputSize != null) 'inputHashes': inputHashes,
       };
+}
+
+/// A declared predecessor, pinned to exact patch bytes and expected output.
+/// This is data supplied by the catalogue producer, never inferred from prose.
+class PatchDependency {
+  final PatchRecipeStep step;
+  final int outputSize;
+  final Map<String, String> outputHashes;
+  PatchDependency(
+      {required this.step,
+      required this.outputSize,
+      required Map<String, String> outputHashes})
+      : outputHashes = _hashes(outputHashes) {
+    if (outputSize <= 0 ||
+        step.inputSize != null ||
+        step.options.isNotEmpty ||
+        !this.outputHashes.keys.any(const {'sha256', 'sha1', 'md5'}.contains)) {
+      throw const FormatException('invalid_patch_dependency');
+    }
+  }
+  factory PatchDependency.fromJson(Map<String, dynamic> json) =>
+      PatchDependency(
+          step: PatchRecipeStep.fromJson(_map(json['patch'])),
+          outputSize: _size(json['output_size']),
+          outputHashes: _hashes(json['output_hashes']));
 }
 
 class PatchRecipe {

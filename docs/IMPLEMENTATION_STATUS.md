@@ -5,6 +5,23 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-23 revision 163: **S26 ACTIVE**, sole active stage. Owner authorized the
+pre-launch patch suggestion and review/support for prerequisite patches. Current
+advancement blockers are internal: availability has no local content-index cache,
+both launch surfaces bypass selection, and resolver/build paths only accept one
+step despite ordered recipe storage. Resolve those in PATCH-LAUNCH-01 /
+PATCH-CHAIN-01 and verify full native workflows before acceptance. Existing NES
+job 109 continues; full NES/GBA coverage and final S26 release remain open.
+The hack-specific 3D animation is explicitly postponed future scope, not a claimed
+implemented behavior or a current-stage acceptance requirement.
+Host verification now demonstrates ordered/nested resolution, intermediate-byte
+rejection, complete-recipe reuse, portable resolution, published-cache-only reads,
+desktop/compact chooser scrolling/cancel and persisted per-content choices. The
+v42-to-v43 additive migration preserves a paused collector, and affected legacy
+migration/owned launch/save/publication tests pass. Real signed native acceptance
+and actual catalogue dependency coverage remain advancement blockers; no final
+S26 release or completed collection coverage is claimed.
+
 2026-10-22 current reconciliation (specification revision 162): **S26 ACTIVE**,
 sole active stage. The native collector used an unvalued progress indicator even
 though its durable report retains every pending/outcome item. The measured-progress

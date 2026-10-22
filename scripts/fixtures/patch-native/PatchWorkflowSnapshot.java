@@ -19,6 +19,7 @@ public final class PatchWorkflowSnapshot {
           JSONObject build = new JSONObject().put("state", rows.getString(0))
               .put("buildId", receipt.getString("buildId"))
               .put("title", receipt.getString("title"))
+              .put("steps", receipt.getJSONObject("recipe").getJSONArray("steps"))
               .put("jobRoot", receipt.getString("jobRoot"))
               .put("canonicalJobRoot", new java.io.File(receipt.getString("jobRoot")).getCanonicalPath())
               .put("inputTransfers", receipt.getJSONArray("inputTransfers").length())

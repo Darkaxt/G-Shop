@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
+import 'drive/drive_patch_catalogue.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -245,6 +247,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
 
         // Remote + local merge (same quality as discoverAll)
         final remoteGames = await gameService.fetchGamesForSystem(systemConfig);
+      await _cachePatchIndexes(systemConfig);
         final List<GameItem> games;
         if (systemModel != null) {
           final localGames =
@@ -374,6 +377,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
           throw StateError('Connect Google Drive to sync this console');
 
         final remoteGames = await gameService.fetchGamesForSystem(systemConfig);
+      await _cachePatchIndexes(systemConfig);
         final List<GameItem> games;
         if (systemModel != null) {
           final localGames =
@@ -487,6 +491,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
           final remoteGames = await gameService.fetchGamesForSystem(
             systemConfig,
           );
+          await _cachePatchIndexes(systemConfig);
           final localGames = await _scanLocal(
             systemModel,
             systemConfig.targetFolder,
@@ -658,6 +663,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
         throw StateError('Connect Google Drive to sync this console');
 
       final remoteGames = await gameService.fetchGamesForSystem(systemConfig);
+      await _cachePatchIndexes(systemConfig);
       if (systemModel != null) {
         final localGames =
             await _scanLocal(systemModel, systemConfig.targetFolder);
@@ -712,6 +718,24 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     state = state.copyWith(completedSystems: state.completedSystems + 1);
   }
 
+  CancelToken? _patchCancellation;
+  Future<void> _cachePatchIndexes(SystemConfig system) async {
+    for (final provider in system.providers.where((p) => p.type == ProviderType.drive)) {
+      if (_isCancelled) return;
+      final cancellation = _patchCancellation = CancelToken();
+      try {
+        final catalogue = DrivePatchCatalogue(provider);
+        if (await catalogue.hasCachedIndex()) await catalogue.refreshIndexes(cancellation);
+      } catch (error) {
+        // This optional metadata lane does not invalidate the ROM membership.
+        // Missing/stale evidence stays unknown; original play never depends on it.
+        debugPrint('Patch availability cache unavailable: ${error.runtimeType}');
+      } finally {
+        if (identical(_patchCancellation, cancellation)) _patchCancellation = null;
+      }
+    }
+  }
+
   String _displayName(String systemId, SystemConfig systemConfig) {
     return SystemModel.supportedSystems
             .where((s) => s.id == systemId)
@@ -724,12 +748,14 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
       getUserFriendlyError(e, returnRawOnNoMatch: true);
 
   void cancel() {
+    _patchCancellation?.cancel();
     _pendingQueue.clear();
     _isCancelled = true;
   }
 
   @override
   void dispose() {
+    _patchCancellation?.cancel();
     _pendingQueue.clear();
     _isCancelled = true;
     super.dispose();

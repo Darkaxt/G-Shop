@@ -12,6 +12,7 @@ import 'package:sqflite/sqflite.dart';
 import '../models/game_item.dart';
 import '../models/library_identity.dart';
 import '../models/patch_catalogue.dart';
+import '../models/patch_chain.dart';
 import '../models/portable_patch_recipe.dart';
 import '../models/system_model.dart';
 import '../models/transfer_record.dart';
@@ -82,6 +83,7 @@ class PatchBuildService {
       required IndexedPatchBase base,
       required SystemModel system,
       required String targetFolder,
+      List<IndexedRomPatch>? availablePatches,
       String? retryBuildId,
       List<String> preprocessing = const [],
       PortablePatchRecipe? importedRecipe,
@@ -94,6 +96,7 @@ class PatchBuildService {
         base,
         system,
         targetFolder,
+        availablePatches ?? [patch],
         preprocessing,
         cancellation,
         onProgress,
@@ -223,14 +226,17 @@ class PatchBuildService {
       IndexedPatchBase base,
       SystemModel system,
       String targetFolder,
+      List<IndexedRomPatch> availablePatches,
       List<String> preprocessing,
       CancelToken cancellation,
       void Function(String, int, int)? onProgress,
       String? retryBuildId,
       PortablePatchRecipe? importedRecipe) async {
-    if (!patch.payloads.contains(payload) ||
-        !patch.bases.contains(base) ||
-        patch.unavailableReason != null) {
+    final PatchChain chain;
+    try {
+      chain = PatchChain.resolve(availablePatches, patch, payload);
+      chain.requireBase(base);
+    } on FormatException {
       throw const PatchBuildException('incompatible_selection');
     }
     final engineRevision = await native.invokeMethod<String>('revision');
@@ -241,7 +247,7 @@ class PatchBuildService {
     final recipe = PatchRecipe(
         platformId: system.id,
         base: base,
-        steps: [PatchRecipeStep.fromPatch(patch, payload)],
+        steps: chain.recipeSteps,
         engineRevision: engineRevision,
         preprocessing: preprocessing);
     if (importedRecipe != null && importedRecipe.recipe.id != recipe.id) {
@@ -320,6 +326,7 @@ class PatchBuildService {
     try {
       onProgress?.call('Getting original game', 0, 0);
       final baseArtifact = await catalogue.resolve(base.relativePath);
+      await store.update(buildId, {'baseArtifact': baseArtifact.toJson()});
       final baseFile = await _download(catalogue, baseArtifact,
           p.join(jobRoot, 'base-download'), cancellation, inputRecords,
           buildId: buildId,
@@ -327,17 +334,6 @@ class PatchBuildService {
               onProgress?.call('Getting original game', done, total),
           archivePlatform:
               _archivePlatform(baseArtifact.displayName, system.id));
-      onProgress?.call('Getting patch', 0, 0);
-      final patchArtifact =
-          await catalogue.resolve(PatchRelativePath(payload.relativePath));
-      final patchFile = await _download(catalogue, patchArtifact,
-          p.join(jobRoot, 'patch-download'), cancellation, inputRecords,
-          buildId: buildId,
-          onProgress: (done, total) =>
-              onProgress?.call('Getting patch', done, total));
-      await fingerprintPatchBytes(patchFile.openRead(), cancellation,
-          expectedSize: payload.sizeBytes,
-          expected: {'sha256': payload.sha256});
       onProgress?.call('Checking original game', 2, 2);
       if (base.archiveMember != null) {
         await _nativeOperation(
@@ -363,18 +359,55 @@ class PatchBuildService {
       }
       await fingerprintPatchBytes(rawBase.openRead(), cancellation,
           expectedSize: base.sizeBytes, expected: base.checksums);
-      onProgress?.call('Applying patch', 0, 0);
-      await _nativeOperation(
-          'apply',
-          buildId,
-          {
-            'input': rawBase.path,
-            'patch': patchFile.path,
-            'output': rawOutput.path,
-            'format': payload.format.name,
-            'preprocessing': preprocessing,
-          },
-          cancellation);
+      var input = rawBase;
+      for (var i = 0; i < chain.steps.length; i++) {
+        final selected = chain.steps[i];
+        final contract = selected.recipeStep;
+        checkPatchCancellation(cancellation);
+        if (contract.inputSize != null) {
+          onProgress?.call(
+              'Checking prerequisite ${i + 1}/${chain.steps.length}',
+              i,
+              chain.steps.length);
+          await fingerprintPatchBytes(input.openRead(), cancellation,
+              expectedSize: contract.inputSize, expected: contract.inputHashes);
+        }
+        onProgress?.call('Getting patch ${i + 1}/${chain.steps.length}', 0, 0);
+        final patchArtifact = await catalogue
+            .resolve(PatchRelativePath(selected.payload.relativePath));
+        final patchFile = await _download(
+            catalogue,
+            patchArtifact,
+            p.join(jobRoot, i == 0 ? 'patch-download' : 'patch-download-$i'),
+            cancellation,
+            inputRecords,
+            buildId: buildId,
+            onProgress: (done, total) => onProgress?.call(
+                'Getting patch ${i + 1}/${chain.steps.length}', done, total));
+        await fingerprintPatchBytes(patchFile.openRead(), cancellation,
+            expectedSize: selected.payload.sizeBytes,
+            expected: {'sha256': selected.payload.sha256});
+        final output = i == chain.steps.length - 1
+            ? rawOutput
+            : File(p.join(jobRoot, 'step-$i.raw'));
+        onProgress?.call('Applying patch ${i + 1}/${chain.steps.length}', i,
+            chain.steps.length);
+        await _nativeOperation(
+            'apply',
+            buildId,
+            {
+              'input': input.path,
+              'patch': patchFile.path,
+              'output': output.path,
+              'format': selected.payload.format.name,
+          // Canonical EBP preparation is explicitly opted into for each EBP
+          // step. Other engines always receive an unchanged verified input.
+          'preprocessing': selected.payload.format == PatchFormat.ebp
+              ? preprocessing : const <String>[],
+            },
+            cancellation);
+        input = output;
+      }
       final fingerprint =
           await fingerprintPatchBytes(rawOutput.openRead(), cancellation);
       if (fingerprint.size <= 0) {
@@ -465,7 +498,13 @@ class PatchBuildService {
       if (root == null || root != row['jobRoot']) {
         throw const PatchBuildException('scratch_unavailable');
       }
-      for (final leaf in ['base.raw', 'result.raw']) {
+      final recipe =
+          PatchRecipe.fromJson((row['recipe'] as Map).cast<String, dynamic>());
+      for (final leaf in [
+        'base.raw',
+        'result.raw',
+        for (var i = 0; i < recipe.steps.length - 1; i++) 'step-$i.raw'
+      ]) {
         final file = File(p.join(root, leaf));
         if (await file.exists()) await file.delete();
       }

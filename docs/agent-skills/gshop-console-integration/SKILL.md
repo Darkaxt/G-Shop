@@ -2,10 +2,20 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.17"
+  version: "0.1.18"
 ---
 
 # G-Shop Console Integration
+
+Launch integration also follows PATCH-LAUNCH-01 / PATCH-CHAIN-01 in the project's
+COLLECTION_PATCHES_SPECIFICATION.md. Resolve an explicit patch/build choice before
+starting the 3D animation, retain the selected modified edition's save/companion/
+rating identity and never re-intercept a derived result. Availability reads only
+source/version-bound local metadata prepared by explicit sync/Patches browsing.
+Prerequisites need exact ordered declarations and intermediate fingerprints;
+never guess chains from titles/readmes or apply independent mods in listing order.
+The owner has postponed a distinct hack-specific animation; shared generation
+behavior is not evidence that this future variation has been implemented.
 
 Locate the actual G-Shop checkout. Read `docs/SPECIFICATION.md`, the current
 `docs/IMPLEMENTATION_PLAN.md` and `docs/IMPLEMENTATION_STATUS.md`, then

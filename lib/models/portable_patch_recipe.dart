@@ -145,18 +145,26 @@ class PortablePatchRecipe {
         'version',
         'format',
         'sha256',
+        'inputSize',
+        'inputHashes',
         'options'
       });
       if ((step['options'] as Map?)?.isNotEmpty ?? false) {
         throw const FormatException('unsupported_portable_patch_options');
       }
+      if (step['inputHashes'] != null) {
+        _keys(step['inputHashes'] as Map,
+            const {'sha256', 'sha1', 'md5', 'crc32'});
+      }
+    }
+    if (steps.skip(1).cast<Map>().any((step) => step['inputSize'] == null)) {
+      throw const FormatException('missing_patch_chain_input');
     }
     final preprocessing = json['preprocessing'] as List? ?? const [];
     if (preprocessing.isNotEmpty &&
         !(preprocessing.length == 1 &&
             preprocessing.single == 'ebp-canonical-base' &&
-            steps.length == 1 &&
-            (steps.single as Map)['format'] == 'ebp')) {
+            steps.cast<Map>().any((step) => step['format'] == 'ebp'))) {
       throw const FormatException('unsupported_portable_patch_preparation');
     }
   }

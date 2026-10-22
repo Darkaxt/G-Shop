@@ -16,6 +16,7 @@ import '../../core/theme/app_theme.dart';
 import '../../models/config/provider_config.dart';
 import '../../models/game_item.dart';
 import '../../models/patch_catalogue.dart';
+import '../../models/patch_chain.dart';
 import '../../models/portable_patch_recipe.dart';
 import '../../models/system_model.dart';
 import '../../services/drive/drive_catalogue.dart';
@@ -26,6 +27,7 @@ import '../../services/drive/drive_patch_catalogue.dart';
 import '../../services/drive/drive_runtime.dart';
 import '../../providers/installed_files_provider.dart';
 import '../../providers/library_providers.dart';
+import '../../providers/app_providers.dart';
 import '../../services/verified_file_publication.dart';
 import '../../services/patch_build_service.dart';
 import '../../services/patch_build_store.dart';
@@ -191,6 +193,7 @@ class _PatchLibraryState extends ConsumerState<PatchLibraryScreen>
       while (_cursor < end) {
         final (catalogue, game) = _pending[_cursor];
         final patches = await catalogue.patches(game, _cancellation);
+        await catalogue.rememberBases(game, patches);
         final bases = <String, GameItem>{};
         for (final patch in patches) {
           for (final base in patch.bases) {
@@ -320,6 +323,17 @@ class _PatchLibraryState extends ConsumerState<PatchLibraryScreen>
           appBar:
               AppBar(title: Text('${widget.system.name} · Patches'), actions: [
             IconButton(
+                tooltip: 'Reset launch suggestions',
+                onPressed: () async {
+                  await ref
+                      .read(storageServiceProvider)
+                      .resetPatchLaunchChoices(widget.system.id);
+                  if (mounted)
+                    setState(() => _notice =
+                        'Launch suggestions restored for this console.');
+                },
+                icon: const Icon(Icons.restore)),
+            IconButton(
                 tooltip: 'Import recipe',
                 onPressed: _importing ? null : _importRecipe,
                 icon: const Icon(Icons.file_open_outlined))
@@ -408,6 +422,8 @@ class _PatchLibraryState extends ConsumerState<PatchLibraryScreen>
 }
 
 class PatchGameScreen extends ConsumerStatefulWidget {
+  final bool selectForLaunch;
+  final List<IndexedPatchBase>? launchBases;
   final SystemModel system;
   final String targetFolder;
   final PatchGameData row;
@@ -420,6 +436,8 @@ class PatchGameScreen extends ConsumerStatefulWidget {
       required this.targetFolder,
       required this.row,
       this.service,
+      this.selectForLaunch = false,
+      this.launchBases,
       this.catalogues = const [],
       this.collection = const []});
   @override
@@ -443,8 +461,20 @@ class _PatchGameState extends ConsumerState<PatchGameScreen>
       'patch-game-${widget.system.id}-${widget.row.game.sourceGameId}';
   IndexedRomPatch? get _selected =>
       widget.row.patches.isEmpty ? null : widget.row.patches[_patch];
+  PatchChain? get _chain {
+    final selected = _selected;
+    if (selected == null || selected.payloads.isEmpty) return null;
+    try {
+      return PatchChain.resolve(
+          widget.row.patches, selected, selected.payloads[_payload]);
+    } on FormatException {
+      return null;
+    }
+  }
+
+  bool get _needsPreparation => _chain?.steps.any((step) => step.payload.format == PatchFormat.ebp) ?? false;
   List<IndexedPatchBase> get _bases =>
-      _selected?.bases
+      _chain?.bases
           .where(
               (base) => widget.row.bases.containsKey(base.relativePath.value))
           .toList() ??
@@ -465,7 +495,17 @@ class _PatchGameState extends ConsumerState<PatchGameScreen>
         .forGame(widget.system.id, widget.row.game.sourceGameId);
     if (mounted) {
       setState(() {
-        _builds = builds;
+        _builds = widget.launchBases == null
+            ? builds
+            : builds.where((row) {
+                final recipe = PatchRecipe.fromJson(
+                    (row['recipe'] as Map).cast<String, dynamic>());
+                return widget.launchBases!.any((b) =>
+                    b.sizeBytes == recipe.base.sizeBytes &&
+                    b.checksums.length == recipe.base.checksums.length &&
+                    b.checksums.entries
+                        .every((e) => recipe.base.checksums[e.key] == e.value));
+              }).toList();
         if (_service.store.sharedIssue != null) {
           _notice = _recipeMessage(StateError('shared'));
         }
@@ -657,6 +697,7 @@ class _PatchGameState extends ConsumerState<PatchGameScreen>
           catalogue: selected,
           indexedGame: resolved.game,
           patch: resolved.patch,
+          availablePatches: resolved.availablePatches,
           payload: resolved.payload,
           base: resolved.base,
           system: widget.system,
@@ -675,6 +716,10 @@ class _PatchGameState extends ConsumerState<PatchGameScreen>
       await _reloadBuilds();
       if (mounted) {
         ref.invalidate(installedFilesProvider);
+        if (widget.selectForLaunch) {
+          Navigator.pop(context, result);
+          return;
+        }
         setState(() => _notice = result.reused
             ? 'This build is already installed.'
             : 'Patched game is ready to play.');
@@ -713,7 +758,7 @@ class _PatchGameState extends ConsumerState<PatchGameScreen>
       return;
     }
     final payload = patch.payloads[_payload];
-    if (payload.format == PatchFormat.ebp && !_prepareEarthBound) return;
+    if (_needsPreparation && !_prepareEarthBound) return;
     setState(() {
       _busy = true;
       _notice = null;
@@ -723,13 +768,14 @@ class _PatchGameState extends ConsumerState<PatchGameScreen>
           catalogue: widget.row.catalogue!,
           indexedGame: widget.row.game,
           patch: patch,
+          availablePatches: widget.row.patches,
           payload: payload,
           base: _bases[_base],
           system: widget.system,
           targetFolder: widget.targetFolder,
           retryBuildId: retryBuildId,
           preprocessing:
-              payload.format == PatchFormat.ebp ? ['ebp-canonical-base'] : [],
+              _needsPreparation ? ['ebp-canonical-base'] : [],
           onProgress: (phase, completed, total) {
             if (mounted) {
               setState(() {
@@ -742,6 +788,10 @@ class _PatchGameState extends ConsumerState<PatchGameScreen>
       await _reloadBuilds();
       if (mounted) ref.invalidate(installedFilesProvider);
       if (mounted) {
+        if (widget.selectForLaunch) {
+          Navigator.pop(context, result);
+          return;
+        }
         setState(() {
           _tab = 1;
           _notice = result.reused
@@ -782,7 +832,15 @@ class _PatchGameState extends ConsumerState<PatchGameScreen>
           PatchRecipe.fromJson((row['recipe'] as Map).cast<String, dynamic>());
       for (var i = 0; i < widget.row.patches.length; i++) {
         final patch = widget.row.patches[i];
-        final bases = patch.bases
+        if (patch.payloads.isEmpty) continue;
+        final PatchChain chain;
+        try {
+          chain = PatchChain.resolve(
+              widget.row.patches, patch, patch.payloads.first);
+        } on FormatException {
+          continue;
+        }
+        final bases = chain.bases
             .where((b) => widget.row.bases.containsKey(b.relativePath.value))
             .toList();
         for (var j = 0; j < patch.payloads.length; j++) {
@@ -790,7 +848,9 @@ class _PatchGameState extends ConsumerState<PatchGameScreen>
             final candidate = PatchRecipe(
                 platformId: widget.system.id,
                 base: bases[k],
-                steps: [PatchRecipeStep.fromPatch(patch, patch.payloads[j])],
+                steps: PatchChain.resolve(
+                        widget.row.patches, patch, patch.payloads[j])
+                    .recipeSteps,
                 engineRevision: recipe.engineRevision,
                 preprocessing: recipe.preprocessing);
             if (candidate.id != recipe.id) continue;
@@ -880,6 +940,10 @@ class _PatchGameState extends ConsumerState<PatchGameScreen>
         setState(() => _notice =
             'This copy is missing or changed. Build a new copy from Available patches.');
         await _reloadBuilds();
+        return;
+      }
+      if (widget.selectForLaunch) {
+        Navigator.pop(context, result);
         return;
       }
       await Navigator.push(
@@ -1079,6 +1143,14 @@ class _PatchGameState extends ConsumerState<PatchGameScreen>
                                                           maxLines: 5,
                                                           overflow: TextOverflow
                                                               .ellipsis),
+                                                      if (selected.requires !=
+                                                          null)
+                                                        if (_chain == null)
+                                                          const Text(
+                                                              'A required patch version is missing, ambiguous or cyclic. This build is unavailable.')
+                                                        else
+                                                          Text(
+                                                              'Apply in order: ${_chain!.steps.map((s) => '${s.patch.title} ${s.patch.version}').join(' → ')}'),
                                                       const SizedBox(
                                                           height: 14),
                                                       if (selected
@@ -1160,13 +1232,7 @@ class _PatchGameState extends ConsumerState<PatchGameScreen>
                                                                     setState(() =>
                                                                         _base =
                                                                             index!)),
-                                                      if (selected.payloads
-                                                              .isNotEmpty &&
-                                                          selected
-                                                                  .payloads[
-                                                                      _payload]
-                                                                  .format ==
-                                                              PatchFormat.ebp)
+                                                      if (_needsPreparation)
                                                         CheckboxListTile(
                                                             title: const Text(
                                                                 'Prepare EarthBound base'),
@@ -1211,13 +1277,14 @@ class _PatchGameState extends ConsumerState<PatchGameScreen>
                               onPressed: selected == null ||
                                       selected.payloads.isEmpty ||
                                       bases.isEmpty ||
-                                      (selected.payloads[_payload].format ==
-                                              PatchFormat.ebp &&
+                                      (_needsPreparation &&
                                           !_prepareEarthBound)
                                   ? null
                                   : _build,
                               icon: const Icon(Icons.build_outlined),
-                              label: const Text('Build')),
+                              label: Text(widget.selectForLaunch
+                                  ? 'Build and play'
+                                  : 'Build')),
                         ],
                       ])),
                 ]))),

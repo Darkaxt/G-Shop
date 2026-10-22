@@ -30,6 +30,7 @@ import '../../services/metadata/metadata_artwork_cache.dart';
 import '../../services/metadata/preview_video_cache.dart';
 import '../game_detail/game_detail_controller.dart';
 import '../game_detail/open_managed_game.dart';
+import '../game_detail/patch_launch_selection.dart';
 import '../../widgets/quick_menu.dart';
 
 final previewRouteObserver = RouteObserver<ModalRoute<void>>();
@@ -593,6 +594,10 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     int? launchToken;
     try {
       if (action == 'launch' && controller.canOpenSelected) {
+        final chosen = await choosePatchLaunch(ref, context,
+            controller.selectedVariant, selection.system, selection.target);
+        if (!mounted || generation != _generation)
+          throw PlatformException(code: 'cancelled');
         if (_sceneView) {
           setState(() {
             _details = false;
@@ -602,8 +607,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
         final cinematic = _sceneView && selection.system.id == 'nes';
         final token = launchToken = cinematic
             ? _sceneLaunch.begin(
-                identity:
-                    '${selection.identity}:${controller.selectedVariant.selectionKey}',
+                identity: '${selection.identity}:${chosen.game.selectionKey}',
                 consoleId: null)
             : null;
         if (token != null) {
@@ -634,13 +638,8 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
             _sceneLaunch.unavailable(token);
           }
         }
-        await openManagedGame(
-            ref,
-            context,
-            _launcher,
-            controller.selectedVariant,
-            selection.system,
-            selection.target, beforeHandoff: () async {
+        await openManagedGame(ref, context, _launcher, chosen.game,
+            selection.system, chosen.target, beforeHandoff: () async {
           if (!mounted || generation != _generation)
             throw PlatformException(code: 'cancelled');
           if (token == null) return;

@@ -23,7 +23,7 @@ import 'patch_build_store.dart';
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 42;
+  static const int _dbVersion = 43;
 
   static Future<void> _configurePrivateDatabase(Database db) async {
     // Independent native ROM readers need a committed snapshot during UI/save
@@ -444,6 +444,9 @@ class DatabaseService {
     }
     if (oldVersion < 42) {
       await MetadataRefreshJobs.installResourceCollectionMode(db);
+    }
+    if (oldVersion < 43) {
+      await DriveCatalogueSchema.installPatchIndexCache(db);
     }
   }
 

@@ -12,6 +12,30 @@ import '../models/commercial_release_preference.dart';
 enum ControllerLayout { nintendo, xbox, playstation }
 
 class StorageService {
+  /// Per-content launch decisions; a changed original gets a fresh suggestion.
+  String? getPatchLaunchChoice(String contentKey) =>
+      _prefs?.getString('patch_launch_v1_$contentKey');
+  Future<void> setPatchLaunchChoice(String contentKey, String? recipeId) async {
+    final key = 'patch_launch_v1_$contentKey';
+    final saved = recipeId == null
+        ? await _prefs?.remove(key)
+        : await _prefs?.setString(key, recipeId);
+    if (saved != true) {
+      throw StateError('Patch launch choice could not be saved');
+    }
+  }
+
+  Future<void> resetPatchLaunchChoices(String platform) async {
+    for (final key in _prefs!
+        .getKeys()
+        .where((key) => key.startsWith('patch_launch_v1_${platform}_'))
+        .toList()) {
+      if (!await _prefs!.remove(key)) {
+        throw StateError('Patch launch choices could not be reset');
+      }
+    }
+  }
+
   static const commercialReleasePreferenceKey =
       'commercial_release_preference_v1';
   CommercialReleasePreference getCommercialReleasePreference() {

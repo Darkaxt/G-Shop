@@ -111,6 +111,54 @@ void main() {
       targetFolder: p.join(scratch.path, 'roms'),
       retryBuildId: retryId);
 
+  IndexedRomPatch dependent({String? expectedHash}) => IndexedRomPatch(
+      source: patch.source, section: 'hacks', sourceId: 'second', title: 'After Balance',
+      version: '1', description: '', bases: [], payloads: patch.payloads,
+      unsupportedFiles: [], requires: PatchDependency(
+        step: PatchRecipeStep.fromPatch(patch, patch.payloads.single),
+        outputSize: patched.length,
+        outputHashes: {'sha256': expectedHash ?? sha256.convert(patched).toString()}));
+
+  test('ordered dependency verifies intermediate bytes and reuses the entire recipe', () async {
+    final second = dependent();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(native, (call) async {
+      if (call.method == 'revision') return _revision;
+      final args = call.arguments as Map;
+      final root = p.join(scratch.path, 'jobs', args['jobId'] as String);
+      if (call.method == 'prepare') { await Directory(root).create(recursive: true); return root; }
+      if (call.method == 'reopen') return root;
+      if (call.method == 'copy') await File(args['input'] as String).copy(args['output'] as String);
+      if (call.method == 'apply') {
+        expect(await File(args['input'] as String).readAsBytes(), applications == 0 ? original : patched);
+        applications++;
+        await File(args['output'] as String).writeAsBytes(patched);
+      }
+      return {'engineRevision': _revision};
+    });
+    Future<PatchBuildResult> chain() => service.build(catalogue: catalogue,
+        indexedGame: game, patch: second, availablePatches: [second, patch],
+        payload: second.payloads.single, base: patch.bases.single, system: system,
+        targetFolder: p.join(scratch.path, 'roms'));
+    final first = await chain();
+    expect(first.recipe.steps.map((s) => s.sourceId), ['7013', 'second']);
+    expect(applications, 2);
+    expect((await chain()).reused, isTrue);
+    expect(applications, 2);
+    expect(await File(p.join(first.targetRoot, first.game.filename)).readAsBytes(), patched);
+    expect(Directory(p.join(scratch.path, 'jobs')).listSync(recursive: true).whereType<File>(), isEmpty);
+  });
+
+  test('wrong prerequisite output stops before second application/publication', () async {
+    final second = dependent(expectedHash: '0' * 64);
+    await expectLater(service.build(catalogue: catalogue, indexedGame: game,
+        patch: second, availablePatches: [patch, second], payload: second.payloads.single,
+        base: patch.bases.single, system: system, targetFolder: p.join(scratch.path, 'roms')),
+        throwsA(isA<PatchBuildException>().having((e) => e.code, 'code', 'input_fingerprint_mismatch')));
+    expect(applications, 1);
+    expect((await service.store.localForPlatform('gba')).single['state'], 'failed');
+    expect((await DatabaseService().getGames('gba')), isEmpty);
+  });
+
   setUp(() async {
     previousDbPath = await databaseFactory.getDatabasesPath();
     scratch = await Directory.systemTemp.createTemp('rshop-patch-workflow-');
@@ -472,7 +520,7 @@ void main() {
     await db.close();
     DatabaseService.resetForTesting();
     db = await DatabaseService().database;
-    expect(await db.getVersion(), 42);
+    expect(await db.getVersion(), 43);
     expect((await db.query('games')).single['displayName'], 'Existing game');
     expect(await db.query('patch_builds'), isEmpty);
   });
@@ -491,10 +539,24 @@ void main() {
     await db.close();
     DatabaseService.resetForTesting();
     db = await DatabaseService().database;
-    expect(await db.getVersion(), 42);
+    expect(await db.getVersion(), 43);
     final row = (await db.query('metadata_refresh_jobs')).single;
     expect(row['collection_generation'], 'existing');
     expect(row['selection_json'], isNull);
     expect(await db.query('patch_builds'), isEmpty);
+  });
+  test('v42 upgrade adds local patch metadata without changing a paused collector', () async {
+    await db.insert('metadata_refresh_jobs', {'generation': 1,
+      'provider_id': 'screenscraper', 'collection_generation': 'preserved', 'state': 'paused'});
+    final before = await db.query('metadata_refresh_jobs');
+    await db.execute('DROP TABLE drive_patch_index_cache');
+    await db.execute('DROP TABLE drive_patch_base_links');
+    await db.setVersion(42);
+    await db.close(); DatabaseService.resetForTesting();
+    db = await DatabaseService().database;
+    expect(await db.getVersion(), 43);
+    expect(await db.query('metadata_refresh_jobs'), before);
+    expect(await db.query('drive_patch_index_cache'), isEmpty);
+    expect(await db.query('drive_patch_base_links'), isEmpty);
   });
 }

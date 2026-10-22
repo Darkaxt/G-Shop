@@ -57,6 +57,7 @@ import '../library/widgets/shelf_picker_dialog.dart';
 import 'achievements_screen.dart';
 import 'game_detail_controller.dart';
 import 'open_managed_game.dart';
+import 'patch_launch_selection.dart';
 import 'game_detail_state.dart';
 import 'widgets/cover_section.dart';
 import 'widgets/ra_info_section.dart';
@@ -650,17 +651,25 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     final game = _controller?.selectedVariant;
     if (game == null) return;
     _openingOwnedRom = true;
-    final token = _sceneView && widget.system.id == 'nes'
-        ? _sceneLaunch.begin(identity: game.selectionKey, consoleId: null)
-        : null;
+    int? token;
     if (_sceneInformation) setState(() => _sceneInformation = false);
     var handedOff = false;
     try {
+      final chosen = await choosePatchLaunch(
+          ref, context, game, widget.system, widget.targetFolder);
+      if (!mounted ||
+          _controller?.selectedVariant.selectionKey != game.selectionKey) {
+        throw PlatformException(code: 'cancelled');
+      }
+      token = _sceneView && widget.system.id == 'nes'
+          ? _sceneLaunch.begin(
+              identity: chosen.game.selectionKey, consoleId: null)
+          : null;
       if (token != null) await _prepareNesLaunch(token);
       if (!mounted) return;
-      await openManagedGame(ref, context, _emulatorLauncher, game,
-          widget.system, widget.targetFolder,
-          withoutCompanion: withoutCompanion, beforeHandoff: () async {
+      await openManagedGame(ref, context, _emulatorLauncher, chosen.game,
+          widget.system, chosen.target, withoutCompanion: withoutCompanion,
+          beforeHandoff: () async {
         if (!mounted ||
             !isCurrentScreen ||
             _controller?.selectedVariant.selectionKey != game.selectionKey) {

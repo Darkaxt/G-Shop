@@ -711,12 +711,14 @@ class DriveRuntime {
         _metadataHeaders.containsKey(cancellation)) {
       throw const DriveTransferException(DriveTransferIssue.invalidSource);
     }
+    var observed = artifact;
     final operation = () async {
       final drive = config.drive!;
       final boundary = DriveDownloadBoundary(config: config,
           artifact: artifact, catalogue: catalogue, api: apiFor(drive));
       final selected = await boundary.reconcilePatchIndexRevision(
           cancellation: cancellation);
+      observed = selected;
       final selectedBoundary = DriveDownloadBoundary(config: config,
           artifact: selected, catalogue: catalogue, api: apiFor(drive));
       final media = _mediaApis.putIfAbsent(drive.accountId,
@@ -739,6 +741,7 @@ class DriveRuntime {
       if (decoded is! Map<String, dynamic>) {
         throw const FormatException('invalid_patch_index_object');
       }
+      await catalogue.cachePatchIndex(observed, decoded);
       return decoded;
     } finally {
       _metadataHeaders.remove(cancellation);

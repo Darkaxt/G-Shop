@@ -1,5 +1,14 @@
 # Staged implementation plan
 
+Current execution, 2026-10-23, revision 163: **S26 ACTIVE**, sole active stage.
+Implement PATCH-LAUNCH-01 / PATCH-CHAIN-01 as one integrated outcome: source-bound
+local availability, selection before animation, dependency resolution and ordered
+verified build/reuse, then existing launch/save handoff. Verify focused behavioral
+and widget flows, then a signed native original/build/reuse/chain/cancellation
+workflow. Retain the original running metadata job 109 and its checkpoint before
+any installation. Continue full NES/GBA resource reconciliation afterwards; no
+intermediate public release. Hack-specific animation is explicitly future scope.
+
 Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage, resumed under
 revision 162. Correct metadata/artwork progress to use committed item totals and
 pending counts, with phase-specific processed/total and remaining labels. Preserve

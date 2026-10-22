@@ -1,6 +1,6 @@
 # Collection navigation, rankings and reproducible ROM patching
 
-Authoritative extension to SPECIFICATION.md revision 56. Revision 3, 2026-10-16.
+Authoritative extension to SPECIFICATION.md. Revision 4, 2026-10-23.
 Authorization: already_authorized; owner requested the full specification and
 implementation, then explicitly authorized useful ROM-folder reorganization in
 Google Drive and requested evaluation of UniPatcher. The owner subsequently
@@ -8,6 +8,34 @@ authorized making the combined product as open as needed, including a
 GPL-compatible release, requesting Darkaxt attribution. No design-approval checkpoint.
 
 ## 1. Outcome and boundaries
+
+Current S26 extension (2026-10-23, already_authorized):
+
+- PATCH-LAUNCH-01: before starting a launch animation, consult locally cached,
+  source/version-bound patch indexes and build receipts for the exact original.
+  Offer Play original (default), compatible patches, and verified existing builds.
+  The selector returns a chosen build to the existing launch owner; building does
+  not launch implicitly. Preserve Back/cancel, remember an explicit per-content
+  choice or suppress suggestions, and never re-intercept a modified result.
+  Populate index metadata during explicit console sync/Patches browsing, never
+  perform a provider scan or network request in the launch availability check.
+  Unknown/unavailable catalogue evidence is not proof that no patches exist and
+  must not prevent original play. Verify both normal detail and dual-screen launch
+  entry points, conditional empty behavior, preferences and derived-result identity.
+- PATCH-CHAIN-01: support explicit, exact-version prerequisite chains through the
+  existing recipe/build/portable lanes. Each declared predecessor includes its
+  patch fingerprint and expected output fingerprint/size, used as the successor's
+  input contract. Resolve recursively in order; reject cycles, ambiguous/missing
+  dependencies, version/payload changes and incompatible intermediate bytes.
+  Never guess from titles, folder order or prose. Display the ordered chain before
+  build; download only selected resources, verify every patch and input, apply to
+  private intermediate files, publish only the final verified output. Reuse the
+  full ordered recipe, retain cancellation/retry/publication recovery and portable
+  resolution. Verify a real two-step native chain plus failure preservation.
+
+Future owner request, explicitly postponed: a distinct hack-specific 3D launch
+animation after this feature. Existing generation-appropriate animations remain
+in use; no fabricated custom model/art or new animation is included in this batch.
 
 Browse manufacturer -> system type -> console -> Commercial/Hacks/Patches.
 Consoles appear chronologically; games feature up to the collection's best 100
