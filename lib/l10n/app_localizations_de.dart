@@ -310,6 +310,18 @@ class LDe extends L {
   String get metadata_pending => 'Ausstehend';
 
   @override
+  String metadata_itemProgress(
+      String processed, String total, String percent, String pending) {
+    return '$processed / $total bearbeitet · $percent% · $pending ausstehend';
+  }
+
+  @override
+  String get metadata_noJobItems => 'Keine Einträge in diesem Auftrag';
+
+  @override
+  String get metadata_preparingJob => 'Auftrag wird vorbereitet…';
+
+  @override
   String get metadata_completeNote =>
       'Ein abgeschlossener Durchlauf bedeutet nicht, dass jedes Spiel Metadaten oder eine verlässliche Bewertung hat.';
 

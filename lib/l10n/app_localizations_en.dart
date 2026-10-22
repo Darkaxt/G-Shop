@@ -311,6 +311,18 @@ class LEn extends L {
   String get metadata_pending => 'Pending';
 
   @override
+  String metadata_itemProgress(
+      String processed, String total, String percent, String pending) {
+    return '$processed / $total processed · $percent% · $pending pending';
+  }
+
+  @override
+  String get metadata_noJobItems => 'No items in this job';
+
+  @override
+  String get metadata_preparingJob => 'Preparing job…';
+
+  @override
   String get metadata_completeNote =>
       'A finished search does not mean every game has information or a reliable rating.';
 

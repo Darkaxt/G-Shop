@@ -645,6 +645,25 @@ abstract class L {
   /// **'Pending'**
   String get metadata_pending;
 
+  /// Progress through the committed metadata or artwork item snapshot; processed is not matched coverage.
+  ///
+  /// In en, this message translates to:
+  /// **'{processed} / {total} processed · {percent}% · {pending} pending'**
+  String metadata_itemProgress(
+      String processed, String total, String percent, String pending);
+
+  /// No description provided for @metadata_noJobItems.
+  ///
+  /// In en, this message translates to:
+  /// **'No items in this job'**
+  String get metadata_noJobItems;
+
+  /// No description provided for @metadata_preparingJob.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing job…'**
+  String get metadata_preparingJob;
+
   /// No description provided for @metadata_completeNote.
   ///
   /// In en, this message translates to:

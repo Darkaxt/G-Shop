@@ -25,6 +25,7 @@ import '../../services/metadata/metadata_refresh_jobs.dart';
 import '../../widgets/console_notification.dart';
 import 'metadata_review_screen.dart';
 import 'metadata_progress_feedback.dart';
+import 'metadata_job_progress.dart';
 
 /// All entry points share the same durable collector, never a second worker.
 Future<void> openScreenScraperCollector(BuildContext context, WidgetRef ref,
@@ -969,10 +970,18 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
       ],
       _button(l.metadata_openReview, 'metadata-open-review',
           enabled ? _openReview : null),
-      if (state.busy)
-        const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: LinearProgressIndicator()),
+      if (report != null)
+        MetadataJobProgress(report: state.artworkReport ?? report)
+      else if (state.busy)
+        Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(l.metadata_preparingJob),
+                  const SizedBox(height: 8),
+                  const LinearProgressIndicator(),
+                ])),
       if (state.error)
         Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1205,7 +1214,8 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                                 const SizedBox(height: 20),
                                 Text(l.metadata_savedJobLabel(
                                     report.id, report.state, report.requested)),
-                                if (state.busy) const LinearProgressIndicator(),
+                                MetadataJobProgress(
+                                    report: state.artworkReport ?? report),
                               ],
                             ],
                           ],

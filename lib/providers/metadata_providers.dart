@@ -429,6 +429,7 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
           bool top25PerSystem = false,
           bool ratingsOnly = false}) =>
       _perform(() async {
+        _set(state.copyWith(clearReport: true));
         var selectedSystems = systemSlugs;
         if (top25PerSystem &&
             systemSlug == null &&
@@ -459,6 +460,7 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
           List<String>? systemSlugs,
           bool top25PerSystem = false}) =>
       _perform(() async {
+        _set(state.copyWith(clearReport: true));
         final job = await _jobs.createResourcesFromCatalogue(
             providerId: state.providerId,
             systemSlug: systemSlug,

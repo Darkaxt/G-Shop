@@ -311,6 +311,18 @@ class LPt extends L {
   String get metadata_pending => 'Pendentes';
 
   @override
+  String metadata_itemProgress(
+      String processed, String total, String percent, String pending) {
+    return '$processed / $total processados · $percent% · $pending pendentes';
+  }
+
+  @override
+  String get metadata_noJobItems => 'Nenhum item nesta tarefa';
+
+  @override
+  String get metadata_preparingJob => 'Preparando tarefa…';
+
+  @override
   String get metadata_completeNote =>
       'Concluir o percurso não significa que todos os jogos tenham metadados ou pontuações fiáveis.';
 

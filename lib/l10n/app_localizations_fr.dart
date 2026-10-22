@@ -313,6 +313,18 @@ class LFr extends L {
   String get metadata_pending => 'Restants';
 
   @override
+  String metadata_itemProgress(
+      String processed, String total, String percent, String pending) {
+    return '$processed / $total traités · $percent% · $pending en attente';
+  }
+
+  @override
+  String get metadata_noJobItems => 'Aucun élément dans cette tâche';
+
+  @override
+  String get metadata_preparingJob => 'Préparation de la tâche…';
+
+  @override
   String get metadata_completeNote =>
       'Un parcours terminé ne signifie pas que chaque jeu possède des métadonnées ou une note fiable.';
 

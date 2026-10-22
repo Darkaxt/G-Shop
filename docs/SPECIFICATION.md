@@ -1,6 +1,20 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 161, 2026-10-22.
+Authoritative specification, revision 162, 2026-10-22.
+
+Owner measured-progress correction, 2026-10-22: show determinate progress for
+metadata and artwork jobs once their committed item snapshot exists. Derive the
+total from every item outcome count and processed from total minus pending;
+provider request count is not the denominator. Show processed/total, percentage
+and remaining items, keeping metadata and artwork phases separate. Review,
+unmatched and failed outcomes are processed, never accepted resource coverage.
+Paused/quota/offline jobs retain their actual fraction; an empty selection must
+not look like successful full coverage. Indeterminate activity is limited to
+preparing an operation whose item snapshot is not yet available. Apply this to
+the collector and provider summary, preserving the running original NES job,
+its durable identity, provider, checkpoint and normal pause/resume behavior.
+Verify focused lifecycle/widget cases and the signed native screen; no restart
+or fabricated progress. This remains within the sole ACTIVE S26 stage.
 
 Owner conversion-validation correction, 2026-10-22: verify text orientation in
 the Python carton conversion pipeline. Judge the actual assembled panel with its

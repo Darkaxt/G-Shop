@@ -5,7 +5,23 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-22 current reconciliation (specification revision 161): **S26 ACTIVE**,
+2026-10-22 current reconciliation (specification revision 162): **S26 ACTIVE**,
+sole active stage. The native collector used an unvalued progress indicator even
+though its durable report retains every pending/outcome item. The measured-progress
+correction derives processed/total from those counts, separately for metadata and
+artwork, with percentage/remaining labels and explicit empty/preparing states.
+Provider request counts are not the denominator and processed review/failure
+outcomes are not accepted resource coverage. Focused behavior/lifecycle checks
+pass after correcting Flutter's numeric progress-semantics contract; expected
+layout snapshots are under review. Signed native validation remains open.
+The normal scoped NES **All games** action started original ScreenScraper job
+109. Its committed membership reconciles to all 9,831 archives. The read-only
+FileObserver watcher remains attached to that original job; no duplicate/restart
+was issued. Provider outcomes and pending work remain distinct from accepted
+metadata and resources. Continue observing its actual terminal/checkpoint state,
+then finish full NES/GBA resource reconciliation and the existing S26 delivery gate.
+
+2026-10-22 badge/orientation reconciliation (specification revision 161): **S26 ACTIVE**,
 sole active stage. Full read-only census proves 9,831 NES and 7,675 GBA member
 archives; both projections were clean at the snapshot. Private per-archive role
 ledgers retain every member. Existing references cover only 97 NES/135 GBA fronts,

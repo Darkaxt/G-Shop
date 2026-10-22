@@ -312,6 +312,18 @@ class LEs extends L {
   String get metadata_pending => 'Pendientes';
 
   @override
+  String metadata_itemProgress(
+      String processed, String total, String percent, String pending) {
+    return '$processed / $total procesados · $percent% · $pending pendientes';
+  }
+
+  @override
+  String get metadata_noJobItems => 'No hay elementos en esta tarea';
+
+  @override
+  String get metadata_preparingJob => 'Preparando tarea…';
+
+  @override
   String get metadata_completeNote =>
       'Completar el recorrido no significa que todos los juegos tengan metadatos o puntuaciones fiables.';
 

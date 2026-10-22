@@ -300,6 +300,18 @@ class LJa extends L {
   String get metadata_pending => '未処理';
 
   @override
+  String metadata_itemProgress(
+      String processed, String total, String percent, String pending) {
+    return '$processed / $total 処理済み · $percent% · 残り $pending';
+  }
+
+  @override
+  String get metadata_noJobItems => 'このジョブには項目がありません';
+
+  @override
+  String get metadata_preparingJob => 'ジョブを準備中…';
+
+  @override
   String get metadata_completeNote => '処理が完了しても、全ゲームにメタデータや信頼できる評価があるとは限りません。';
 
   @override

@@ -1,7 +1,11 @@
 # Staged implementation plan
 
 Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage, resumed under
-revision 161. Add assembled-panel OCR orientation validation to the Python carton
+revision 162. Correct metadata/artwork progress to use committed item totals and
+pending counts, with phase-specific processed/total and remaining labels. Preserve
+and observe original full-collection NES job 109 while implementing; installation
+must preserve its normal durable pause/resume checkpoint. Then continue resource
+coverage. Add assembled-panel OCR orientation validation to the Python carton
 pipeline and correct actual source faults with opening transforms kept consistent;
 a gallery-only transform is insufficient. Correct NES score/status attachment to the actual front surface,
 including dynamic updates, preferences and both browser paths. Full-collection

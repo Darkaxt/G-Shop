@@ -384,6 +384,13 @@ void main() {
         )))!;
     final entered = signals.$1;
     final release = signals.$2;
+    addTearDown(() {
+      if (!release.isCompleted) {
+        release.complete(MetadataLookupResult(
+            status: MetadataLookupStatus.unmatched,
+            message: 'Fixture cleanup'));
+      }
+    });
     provider.reply = (_, __) {
       if (!entered.isCompleted) entered.complete();
       return release.future;
@@ -438,6 +445,17 @@ void main() {
     }
     expect(controls.state.report!.id, runningId);
     expect(controls.state.busy, isTrue);
+    final counts = controls.state.report!.counts;
+    final total = counts.values.fold(0, (sum, value) => sum + value);
+    expect(total, greaterThan(0));
+    expect(
+        tester
+            .widget<LinearProgressIndicator>(
+                find.byType(LinearProgressIndicator).first)
+            .value,
+        closeTo((total - (counts['pending'] ?? 0)) / total, 0.000001),
+        reason:
+            'The collector knows its durable item count, not just API calls');
     expect(
         tester
             .widget<TextButton>(find.byKey(const ValueKey('metadata-nav-igdb')))

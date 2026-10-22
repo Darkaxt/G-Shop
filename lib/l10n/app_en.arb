@@ -109,6 +109,26 @@
   "metadata_failed": "Failed / unsupported",
   "metadata_rated": "Rated",
   "metadata_pending": "Pending",
+  "metadata_itemProgress": "{processed} / {total} processed · {percent}% · {pending} pending",
+  "metadata_noJobItems": "No items in this job",
+  "metadata_preparingJob": "Preparing job…",
+  "@metadata_itemProgress": {
+    "description": "Progress through the committed metadata or artwork item snapshot; processed is not matched coverage.",
+    "placeholders": {
+      "processed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      },
+      "pending": {
+        "type": "String"
+      }
+    }
+  },
   "metadata_completeNote": "A finished search does not mean every game has information or a reliable rating.",
   "metadata_controlsError": "Metadata operation failed. Saved progress and ROM actions remain available. Check access or resume the saved job.",
   "metadata_configureAccess": "Open Account & API keys for this service, check the details, then resume your saved search. Your ScreenScraper user account can remain a standard account.",
