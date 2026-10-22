@@ -7,20 +7,88 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 2026-10-23 revision 163: **S26 ACTIVE**, sole active stage. Owner authorized the
 pre-launch patch suggestion and review/support for prerequisite patches. Current
-advancement blockers are internal: availability has no local content-index cache,
-both launch surfaces bypass selection, and resolver/build paths only accept one
-step despite ordered recipe storage. Resolve those in PATCH-LAUNCH-01 /
-PATCH-CHAIN-01 and verify full native workflows before acceptance. Existing NES
-job 109 continues; full NES/GBA coverage and final S26 release remain open.
+implementation now includes a source/version-bound local index cache, selection
+at both launch surfaces, and ordered dependency resolution/build/publication.
+PATCH-LAUNCH-01 / PATCH-CHAIN-01 have the host and native evidence below. Existing
+NES job 109 continues; full NES/GBA coverage and final S26 release remain open.
 The hack-specific 3D animation is explicitly postponed future scope, not a claimed
 implemented behavior or a current-stage acceptance requirement.
 Host verification now demonstrates ordered/nested resolution, intermediate-byte
 rejection, complete-recipe reuse, portable resolution, published-cache-only reads,
 desktop/compact chooser scrolling/cancel and persisted per-content choices. The
 v42-to-v43 additive migration preserves a paused collector, and affected legacy
-migration/owned launch/save/publication tests pass. Real signed native acceptance
-and actual catalogue dependency coverage remain advancement blockers; no final
-S26 release or completed collection coverage is claimed.
+migration/owned launch/save/publication tests pass. The signed candidate's ordinary
+and secondary launch paths now demonstrate the chooser, original selection,
+existing-build reuse, build-and-play and direct derived-result bypass on Thor.
+The real native IPS -> BPS chain also passes in an isolated test installation,
+including intermediate mismatch and corrupt-second-patch rejection. Actual full
+catalogue preparation/dependency coverage remains an internal S26 advancement
+blocker: the normal Patches pass prepared 12 of 221 indexed GBA games. Resolve it
+through explicit console sync and inspect the resulting declarations/bindings;
+that first page is not full-collection availability. The already-started normal
+GBA sync is traversing its source catalogue; a read-only preference observer waits
+for that operation's actual successful last-sync update. Do not restart it or
+count pending/unpublished catalogue generations as launch-availability evidence.
+No final S26 release or
+completed collection coverage is claimed.
+
+### S26 patch launch and prerequisite native evidence (2026-10-23)
+
+- Production candidate: signed CI run `39859924368`, source
+  `9a8fbdf277bc6841c1c47590d4799577d2935dcf`, internal `1.10.2+43`.
+  Independently checked APK SHA-256
+  `35046db1992f0e6f09180b7afc8c54475f96e60a251562f2e13b2a4e2b11b6d0`,
+  production signer, packaged resources and installed bytes. All 16 pre-start
+  database/preference files matched across the in-place update; native schema 43
+  retained the existing builds and paused collector membership/checkpoint.
+- Native ordinary detail: Advance Wars (USA) offers original, its existing
+  Balance build and compatible patch selection. Back returns without handoff.
+  Selecting Balance re-verifies/reuses its existing installation and hands off
+  the modified installation URI. Selecting War Room Sturm through Build and play
+  produces a distinct 4,194,304-byte installation, SHA-256
+  `ca01fb6d415eb17392ed307b6514610402b24441bd62a0cab360786259caf287`;
+  its exact receipt and the older Balance installation remain present.
+- Native secondary screen: its Play button opens the same chooser, now with both
+  ready builds. Play original hands off the original owned archive URI. Selecting
+  the derived Sturm game directly emits `bypass, derived=true` and hands off that
+  build's owned URI without a second chooser. Actual emulator pixels confirm the
+  original intro and the patched game's Advance Wars title screen. A prior blank
+  capture did not establish game startup and was not used as acceptance evidence.
+  Existing emulator settings were inspected without modification.
+- `integration_test/patch_chain_app.dart` uses synthetic remote bytes in the
+  existing separate `com.darkaxt.rshop.sharedproof` debug package. Production
+  Dart build/recipe logic, Android method channel, IPS/BPS engines, SQLite, owned
+  storage and publication are real. Two steps produce SHA-256
+  `0bb9ac93a5152c92ea656547c3e5dcd14724bdf16e09b21c622274d2cd6db126`;
+  verified reuse makes no new input request. Wrong intermediate hashes and a
+  correctly fingerprinted but internally corrupt BPS fail without replacing the
+  existing output; only the successful final build is ready and its scratch is
+  retired. This proves mechanics, not uninspected production dependency data.
+- The isolated build used the installed shared Gradle gate. Observed two workers,
+  parallel=false and a 3 GiB Gradle heap; Kotlin ran in-process, test-fork settings
+  were configuration evidence only, and the supervisor verified daemon exit.
+  The compiler's detailed failure identified D:-plugin/C:-project incremental
+  cache paths; invocation-only `-Pkotlin.incremental=false` resolved it. No global
+  settings, wrapper upgrade or memory increase. Native environment budget 2 was
+  requested; universal native task concurrency was not independently established.
+- The helper recorded the test package's absence and exact APK digest before
+  installation, then reviewed/ticketed/uninstalled that exact package and data.
+  Its two disposable APK copies were separately removed through reviewed helper
+  transaction `98d530009750e6c3510689e86080b745` (246,659,848 bytes). Production
+  G-Shop, original ROMs, existing modified builds and saves were preserved.
+  Reviewed transaction `3bf845408d7d3e59f332d9e6c7d470c1` also retired 469 exact
+  synthetic test scratch members (35,533,552 bytes), preserving the test receipts.
+- The same NES All games job 109 resumed through its normal UI. Its total stays
+  9,831; the read-only observer confirms running state and decreasing pending
+  membership. Processed outcomes still include failures/review and do not mean
+  accepted metadata, labels or boxes. Hack-specific animation remains postponed.
+
+Private device/event/package receipts and screenshots remain under the task's
+`D:/Temp/gshop-scene-launch-20261021/reports` evidence root. They are not public
+repository assets or a published release. The native fixture is reproducible with
+the existing debug-only `rshopSharedMetadataProof=true` opt-in and Gradle target
+`integration_test/patch_chain_app.dart`; it refuses production/ordinary-debug
+package IDs and a reused fixture root. It uses no user ROM, account or model.
 
 2026-10-22 current reconciliation (specification revision 162): **S26 ACTIVE**,
 sole active stage. The native collector used an unvalued progress indicator even

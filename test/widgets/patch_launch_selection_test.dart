@@ -6,10 +6,49 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:g_shop/features/game_detail/patch_launch_selection.dart';
 import 'package:g_shop/features/library/patch_library_screen.dart';
 import 'package:g_shop/models/patch_catalogue.dart';
+import 'package:g_shop/models/game_item.dart';
+import 'package:g_shop/models/library_identity.dart';
+import 'package:g_shop/models/system_model.dart';
 import 'package:g_shop/services/drive/drive_patch_catalogue.dart';
 import 'package:g_shop/services/storage_service.dart';
 
 void main() {
+  testWidgets(
+      'a derived result bypasses interception without database or catalogue access',
+      (tester) async {
+    final game = GameItem(
+        filename: 'result.gba',
+        displayName: 'Modified',
+        url: '',
+        remoteArtifact: RemoteArtifact(
+            id: RemoteArtifactId(
+                providerId: 'patch-build',
+                sourceId: 'generated-patches',
+                providerFileId: 'recipe'),
+            displayName: 'result.gba',
+            displayPath: 'Hacks/result.gba'));
+    PatchLaunchTarget? result;
+    await tester.pumpWidget(ProviderScope(
+        child: MaterialApp(
+            home: Consumer(
+                builder: (context, ref, _) => FilledButton(
+                    onPressed: () async {
+                      result = await choosePatchLaunch(
+                          ref,
+                          context,
+                          game,
+                          SystemModel.supportedSystems
+                              .singleWhere((s) => s.id == 'gba'),
+                          '/owned/Hacks');
+                    },
+                    child: const Text('Play build'))))));
+    await tester.tap(find.text('Play build'));
+    await tester.pumpAndSettle();
+    expect(identical(result?.game, game), isTrue);
+    expect(result?.target, '/owned/Hacks');
+    expect(find.text('Choose what to play'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
   for (final size in [const Size(1920, 1080), const Size(800, 450)]) {
     testWidgets(
         'launch chooser defaults to original and supports remember/cancel at $size',

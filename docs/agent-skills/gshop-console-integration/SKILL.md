@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.18"
+  version: "0.1.19"
 ---
 
 # G-Shop Console Integration
@@ -16,6 +16,14 @@ Prerequisites need exact ordered declarations and intermediate fingerprints;
 never guess chains from titles/readmes or apply independent mods in listing order.
 The owner has postponed a distinct hack-specific animation; shared generation
 behavior is not evidence that this future variation has been implemented.
+
+Verify patch launch from both ordinary details and the secondary screen, including
+an actual started patched game. An accepted Android intent is only handoff evidence.
+Use the existing isolated debug package for native chain/failure fixtures; never
+install a test entrypoint over the owner's app. Report cached indexed-game coverage
+separately from exact original bindings and verified build recipes. A first page
+or a synthetic native chain does not establish complete production patch coverage;
+missing explicit prerequisite declarations remain unresolved catalogue evidence.
 
 Locate the actual G-Shop checkout. Read `docs/SPECIFICATION.md`, the current
 `docs/IMPLEMENTATION_PLAN.md` and `docs/IMPLEMENTATION_STATUS.md`, then
