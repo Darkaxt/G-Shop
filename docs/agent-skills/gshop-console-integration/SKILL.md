@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.13"
+  version: "0.1.16"
 ---
 
 # G-Shop Console Integration
@@ -71,7 +71,22 @@ actionable binding defects rather than manufacturing external blockers.
 The approved carton composition/reconstruction above is an explicit exception
 to generic-box substitution; it does not authorize substitute hardware or media.
 
-## Verify upstream coverage before scene acceptance
+## Full collection coverage; Top 25 testing
+
+Cover **every ROM in the console's collection before moving to another console**.
+This applies retrospectively to GBA as well as NES and future integrations.
+Top 25 is the native testing sample, never the acquisition/reconstruction,
+binding, publication or recovery scope. Keep an exact per-archive/game/edition
+resource ledger, distinguishing available, missing, invalid, uncertain, evidenced
+inapplicability and specifically owner-accepted limitations. Do not silently
+exclude unranked, hacked, translated, unlicensed or aftermarket releases, borrow
+their base game's art or claim a model-edition count as unique-game coverage.
+Resolve actionable gaps through the complete existing pipeline and hold the
+affected integration for genuinely missing resources under CI-01. Batch limits
+(including 25-game artwork packs) constrain transport, not production coverage.
+Reconcile all batches and verify full-census bindings/integrity through the normal
+resource lane before reporting coverage complete. Read section 2 of the pipeline
+reference for the separate full-census and acceptance-sample gates.
 
 For the authorized console, establish the actual eligible, distinct Top 25 cohort
 from the app's canonical ranked query and current filters/preferences. Retain the
@@ -85,8 +100,8 @@ genuinely unsupported ranking or sparse coverage explicitly rather than acceptin
 an empty cohort or inventing ranks. Apply the authorized collection scope when a
 console uses a different, explicitly approved selection rule.
 
-Verify the configured Google Drive account/root and the cohort's metadata and
-required artwork there before accepting device resource coverage. For each game,
+Verify the configured Google Drive account/root and the full collection's metadata
+and required artwork there before accepting resource coverage. For each game,
 record the required roles (including the cartridge/support label), edition/region
 binding, remote resource identity and integrity evidence. A folder count, completed
 job, successful upload or another console's accepted cohort does not prove coverage.
@@ -101,7 +116,7 @@ duplicates identify one resource; distinct same-region alternatives and indexed
 disc members retain their separate binding/ambiguity rules. If Drive already has
 the correct resource,
 repair that path rather than collecting another copy. Do not use an individual
-lookup/local-only patch to conceal an incomplete Top 25 publication or recovery.
+lookup/local-only patch to conceal incomplete collection publication or recovery.
 Any authorized acquisition must pass the existing Drive publication/integrity
 workflow before counting as integrated coverage.
 
@@ -140,6 +155,10 @@ copy GBA's scores or claim another console's coverage from the GBA reference.
   shared resting yaw (currently -0.70 rad, about -40 degrees), not a flatter
   per-console override. Check visible side depth in idle and Reduced Motion as
   well as the selected +/-30-degree sweep; shared animation alone is not parity.
+  Score and cloud/local badges belong to the front artwork's upper-right and
+  lower-right, following that face's perspective, yaw and occlusion. Reject
+  floating card/screen corner overlays. Check late score arrival, score-overlay
+  preferences and both browser paths. Lower-screen HUD anchors are separate.
 - Lower selector: large console/game composition; retain source props, hide only
   approved staging; shallow arc for multiple valid physical editions. Open the arc
   toward the viewer, with the central edition behind the outer editions. Keep
@@ -149,6 +168,9 @@ copy GBA's scores or claim another console's coverage from the GBA reference.
   on touch/controller activity from either display and selection; hide during
   information, resources, launch and backgrounding. Keep facts sourced and offline,
   with no new buttons or model resizing. This is explicit presentation timing.
+  Use the shared diffuse red floor by default, one pool for the whole composition;
+  its perspective ellipse fades completely at the edges without a rim/platform.
+  Keep upper cards and non-3D/resource screens outside this floor treatment.
 - Lower default camera: reserve 10–15% per edge for text and buttons, targeting
   12.5%. Fit the whole animated composition to the central 75% rectangle without
   changing relative physical scales. Preserve aspect ratio, allowing extra space
@@ -191,6 +213,13 @@ Validate actual meshes/UVs/hinges, insertion apertures, controller/cable contact
 and screen anchors. Do not replace those measurements with bounding-box guesses
 or a single attractive camera angle. Keep authoring probes separate from full
 feature acceptance.
+
+For cartons, use the Python assembled-panel text-orientation gate as well as
+the Blender opening comparison. Judge the actual UV-mapped printing, retaining
+hash-bound OCR candidates and uncertain results. Source image rotation/material
+names alone are insufficient. Do not rotate a valid compensating scan/UV pair,
+automatically correct weak OCR or conceal a source fault with a gallery camera.
+Section 4 of the pipeline reference records the converter flags and evidence.
 
 After the required feature is integrated, exercise its complete normal workflow
 on the intended device: gallery, lower scene, browsing/unboxing, inspection/info,

@@ -310,6 +310,17 @@ device evidence, including Thor's 1920x1080 upper and 1240x1080 lower display an
 smaller ordinary single-screen layout. Check actual rendered frames and physical
 input; a loader success or build alone is insufficient.
 
+Carton conversion must verify text on the actual assembled front/back panels,
+including their source UV mapping, with the Python orientation validator. Raw
+scan rotation and material names alone do not establish the visible text direction.
+Retain orthogonal OCR candidates, source/assembled-image hashes and unresolved
+results. An uncertain/stylized or unsupported-language read needs review and does
+not pass automatically. Do not rotate a carton from weak OCR or hide a source
+orientation fault with a gallery-only camera transform. Preserve originals; any
+actual correction must keep meshes, normals, pivots, hinge axes, translations and
+pose centres consistent and pass closed/open source-animation checks independently.
+The converter withholds accepted model.json when either required gate fails.
+
 Check default projected composition bounds against the central 70–80% viewport
 at closed, extraction, settled and rotating poses. Text/buttons remain in the
 reserved edge areas with usable targets; no flap, cable or edition may clip during

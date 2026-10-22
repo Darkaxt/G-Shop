@@ -16,13 +16,44 @@ console at once or create new stages, workers or approval gates.
   in the existing ledger. The owner supplies resources; the integrator owns the
   acquisition, conversion, deployment, recovery and review process.
 
-## 2. Establish the real collection and ranked cohort
+## 2. Establish full coverage and the separate testing sample
+
+- Inventory **all ROM archives** for the console, not just ranked games. This
+  includes retrospective GBA coverage and current NES coverage. Bind each exact
+  archive to its actual game/edition and required resource roles. Deduplicate
+  compatible physical resources only with evidence, retaining archive membership.
+- Keep raw archive count, distinct games, physical editions, available models,
+  fully bound resources, published/recoverable resources and missing/uncertain
+  roles separate. A catalogue count or 24/25 successful scenes is not full coverage.
+- Do not drop hacks, translations, unlicensed, aftermarket or unranked releases
+  from the denominator. Their resources may differ. A genuine lack of retail
+  packaging needs an evidenced inapplicability or specific owner acknowledgement;
+  absence alone does not establish that packaging never existed. Do not invent
+  a physical printing or silently use a base game's artwork.
+- Exhaust applicable local sources, regional-donor composition and the existing
+  LaunchBox/ScreenScraper reconstruction chain for actionable gaps. Continue the
+  full census through identity-bound import, Drive publication and normal recovery.
+  Split collections into validated import/provider batches, retaining checkpoint
+  membership and reconciling every batch; a 25-game pack limit is not a scope cap.
+  For desktop acquisition use `prepare_packaging_resources.py --selection collection`;
+  reconcile its full `.selection.json` census and every `.batches.json` pack receipt.
+  `--inventory-only` establishes membership, without acquiring/publishing artwork.
+  The default ranked selection is a testing aid and cannot establish production coverage.
+- Do not move on to another console until required full-collection resource
+  coverage is verified or each remaining limitation has explicit owner acceptance.
+  Missing physical assets still use CI-01; do not disguise them as a backlog.
+- Separately select the eligible canonical **Top 25 for native acceptance testing**
+  and add risk-relevant edge cases outside that sample. Full-census identity,
+  resource-role, content-integrity and publication/recovery checks remain required;
+  the Top 25 visual sample does not substitute for them.
 
 - Use the canonical query, current release preferences and actual eligible
   distinct Top 25. Fewer than 25 is valid; zero selected in a populated collection
   requires diagnosis, not an empty coverage claim. Retain exact identities privately.
 - Keep ROM program/revision, canonical game, physical hardware/media edition and
-  carton printing distinct. Preserve exact matching and modification exclusions.
+  carton printing distinct. Preserve exact matching and the canonical query's
+  modification exclusions for ranking only; excluded releases remain in the
+  full resource census with their own identities and unresolved roles.
 - Verify rating source/confidence/freshness upstream. Both console browser and
   Library need the ranked prefix, full alphabetical tail and visible source-labelled
   scores. Initial selection must use the finished result, not loading groups.
@@ -110,6 +141,25 @@ console at once or create new stages, workers or approval gates.
   where applicable; use Blender for actual authoring/mesh review.
 - Preserve shared physical dimensions where known and record estimates. Fit the
   camera rather than scaling unrelated objects independently to equal sizes.
+- Verify printing in the **assembled panel**, including its actual mesh UVs.
+  A portrait raw scan can correctly map to a landscape face; a material named
+  `Scanned front` can be rear-facing. Inspect the actual visible plane/artwork,
+  keeping printing identity and text direction as separate checks.
+- `prepare_console_model.py` requires box conversions to supply
+  `--text-orientation-python` (the actual installed host Python with Pillow),
+  `--orientation-title` and, when applicable, `--orientation-language`.
+  `verify_carton_orientation.py` samples assembled front/back at 0/90/180/270,
+  with whole-panel and source-bound detail-strip OCR through Windows OCR.
+  Keep report/word/image hashes. Exact title/brand anchors are relative evidence;
+  the engine supplies no confidence score. Sparse/stylized/unsupported-language
+  or tied results stay review-required, without an automatic pass or rotation.
+- The converter independently checks the original Blender opening against its
+  converted hinges. OCR passing does not establish animation correctness, and
+  a correct hinge does not establish upright printing. A rejected/uncertain box
+  retains its candidate/evidence and exposes no accepted `model.json`.
+  Repair a proven source/UV/axis fault, keeping normals, pivots, axes, translation
+  keys and pose centres together; recheck closed/open poses and both gates.
+  A gallery-only orientation transform is not that repair. Preserve the original.
 
 ## 5. Bind media and accessories independently
 
@@ -158,6 +208,9 @@ console at once or create new stages, workers or approval gates.
 
 - Upper gallery: one representative 3D carton, shared upright/rest yaw, bounded
   selected rotation and silhouette glow; idle and Reduced Motion retain depth.
+  Paint score upper-right and availability lower-right in the actual front-face
+  coordinates, as in GBA. Verify perspective/occlusion while turning and late
+  metadata/preference changes; a separate card-space Stack is not equivalent.
 - Lower selector: supplied console/game composition, physical scale, shallow arc
   opening toward the viewer, center behind, direct model taps and no magnifiers.
 - Browse: sequential box/contents extraction; correct case/sleeve/booklet; authentic
@@ -171,12 +224,16 @@ console at once or create new stages, workers or approval gates.
 
 ## 9. Accept the complete native outcome, then deliver
 
-- Use a per-cohort evidence matrix in the existing ledger: selected identity,
-  source/face provenance, conversion, Drive integrity, recovery, upper 3D card,
-  ordinary/secondary label and scene, and unresolved requirement.
-- Inspect actual pixels for the whole required resource cohort. Readiness flags,
-  folder counts, sample games and historical GBA evidence cannot substitute for
-  current console coverage. Separate a 2D cover fallback from a validated 3D box.
+- Keep a full-census coverage matrix in the existing ledger: archive/game/edition
+  membership, required resource roles, source/face provenance, conversion, Drive
+  integrity, recovery and unresolved requirements. Check every resource binding
+  and body; reconcile all import batches before counting collection coverage.
+- Separately inspect actual native pixels and complete workflows for the canonical
+  Top 25 testing sample plus risk-relevant edge cases, including upper 3D cards
+  and ordinary/secondary labels and scenes. Readiness flags, folder counts and
+  historical GBA evidence cannot substitute for that visual acceptance. A passing
+  sample cannot substitute for the full-census checks. Separate a 2D cover fallback
+  from a validated 3D box.
 - Verify ranked order and its alphabetical boundary, score overlay preference,
   navigation/re-entry, selected label consistency and exact publication refresh
   in both entry points. Review smaller ordinary layouts too.

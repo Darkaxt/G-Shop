@@ -15,15 +15,33 @@ counts are not unique-game or full-collection coverage. Desktop collection now
 has a full edition selector and bounded import packs; focused scope/batch checks
 pass, and production inventory runs retain all archives. No broad acquisition or
 publication has yet run from this snapshot; the normal all-games metadata job has
-not been started. Thor remains on its existing `661e8a0` candidate.
+not been started. Signed CI run `39840110607` passed for source `dbfdd80`;
+its internal 1.10.2+43 candidate was independently checked and installed on Thor.
+Installed APK SHA-256 is
+`37f0f6ea7ed68c5405e6033d74057967f8f35be6b315f64c7db2bb6ffbafbf1b`;
+the production signer and all 16 database/preference files were preserved.
 
 NES badges were confirmed in a card-space Stack rather than GBA front-artwork
 coordinates. The correction removes that stack and uses a transparent decal on
 the actual forward printed panel, with independent upright UVs. All 632 bound
 cartons pass the host geometry check: original mesh prefix and source transforms
 are retained, with no gallery-only normalization. Late score/overlay preferences
-and shared GBA badge layout pass focused checks. Actual signed native appearance
-and both browser entry points remain acceptance blockers.
+and shared GBA badge layout pass focused checks. Initial signed native pixels show
+score/status on the correct forward faces through selected/unselected yaw, with
+actual supplied and reconstructed cartons. All 24 eligible ranked games were
+navigated through real controller input to their opening-settled events; native
+upper grids and lower compositions were inspected. The main Library NES tab also
+shows the same face-bound badges and ranked-first order. Reduced Motion retains
+the resting depth; turning cover ratings off removes scores while retaining
+availability. Both preferences were restored through the normal UI, confirmed
+by restored scores and the normal-motion event. Selected-yaw recording shows
+the badges following the face; its single compression-size spike was inspected
+without a corresponding flash. Raw-H264 timing is estimated, not physical timing.
+Private receipts are in `reports/badge-dbfdd80-ordinary-cohort.json` and native
+`badge-dbfdd80-*` captures under the existing task evidence root. This proves the
+bounded badge/orientation correction, not full NES/S26 acceptance. The shared
+diffuse floor was inspected with these single-edition poses; broader multi-model
+review remains part of S26's existing three-system acceptance.
 
 The Python converter now gates carton acceptance on OCR of UV-mapped assembled
 front/back panels at four orthogonal rotations, retaining original/crop/word/hash
@@ -35,9 +53,11 @@ without writing an accepted model.json, despite passing its hinge comparison.
 Uncertain OCR remains review-required. A rotated source scan with compensating UVs
 is not a failure; material names alone do not establish visible front/back roles.
 No original import was changed on that coordinate-only assumption. Full-census
-orientation/resource reconciliation remains open. No new signed candidate or
-native badge/orientation pass is claimed. Source and installed skill must be
-reconciled after the fix; installed version currently remains 0.1.14.
+orientation/resource reconciliation remains open. Full native badge acceptance
+is not yet claimed. Source and installed integration skill 0.1.16 both validate;
+entrypoint/reference SHA-256 pairs match and the installed conversion rule was
+read back. This records full-collection coverage, face-bound badges, the shared
+diffuse floor and independent assembled-text/opening validation.
 
 2026-10-22 resume / full-coverage correction (specification revision 159):
 **S26 ACTIVE**, sole active stage. The owner resumed work and explicitly requires
