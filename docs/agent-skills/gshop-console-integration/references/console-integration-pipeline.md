@@ -45,19 +45,52 @@ console at once or create new stages, workers or approval gates.
   credentials in URLs, output, reports or repository content.
 - A missing dump catalogue binding means only that lane has no match. Investigate
   remaining sources, aliases and fixable integration defects before escalating.
+  Search the original archive listing and retained edition/model/panel catalogue;
+  a partial extraction directory is not the full dump inventory. For example,
+  the archive's `NES - Famicom` family includes regional Kirby cartons even when
+  an extracted root or selected USA-ROM binding contains none. Record the actual
+  source location; do not claim an old scratch extraction still exists.
 
 ## 4. Reconstruct and review the carton
 
-- Prefer classified authentic panels where available: inspect fold boundaries,
-  crop/orientation, text, front/back/spine and assembled contact sheets.
+- Evaluate complete suitable English or English-containing multilingual sets
+  first. Then evaluate the same game's regional/non-English NintAndBox carton
+  as a donor before falling back to an entirely flat-art reconstruction. Local
+  dump panels/models precede the public .es donor preview. A same-region runtime
+  binding is not a prerequisite for an explicitly attributed composite. Verify
+  game/alias identity and physical suitability; do not borrow a sequel's printing
+  or infer a cartridge shell from the donor carton.
+- Preserve donor geometry, useful sides, closures/flaps and opening animation.
+  Classify actual panel roles, languages and crop/orientation; inspect unfolded
+  and assembled contact sheets. Unknown language is not evidence of English.
+  Retain originals and make an attributed derivative, without replacing the
+  permanent source edition or changing the selected ROM identity.
+- For non-English front/back, use matched English LaunchBox faces first, then
+  ScreenScraper for missing faces. Fit to the donor's panel aspect without
+  distorting the artwork. A different region/language alone must not discard
+  the donor, demand repeated owner approval or trigger a generic carton first.
+- Reuse `apply_panel_layouts`, `compose_english_faces` and `fit_panel` in
+  `scripts/prepare_packaging_resources.py`; use
+  `scripts/artwork_colour_cast.py::match_colour_cast` for the established
+  collector-side global correction. The Sapphire decision preserves LaunchBox
+  detail/text while matching the original corresponding blue packaging. Use
+  corresponding artwork/verified colour-reference pixels, not unrelated art
+  or merely a similar palette. Dominant colour anchors need corroboration from
+  other corresponding colours; retain the helper's stability/held-out checks.
+  Record applied/skipped reason, source/reference/derived hashes and, when
+  applied, the single RGB transform. A rejected fit is a colour-review result,
+  not permission to force a correction, selectively repaint purple pixels or
+  tint the mesh at runtime. Resolve a visible mismatch before acceptance.
+- Bind the same derived front to preparation/flat artwork and the 3D carton.
+  Review their handoff and the assembled front/side/back colour continuity,
+  text, UV alignment, closures, unboxing and inspection. Preserve per-face
+  original/donor/composite provenance and source language/printing separately
+  from the target edition. Do not describe a composite as an authentic USA box
+  merely because it presents a USA ROM or English front.
 - Reuse the established GBA best-effort path when only flat art exists. The owner
   permits plain colour-matched missing faces, coherent reuse of available spine
   art, full rotation and zoom. Default to neutral faces rather than repeated
   barcodes/text. This is permission to reconstruct, not six-original-scan evidence.
-- Where an approved foreign donor layout is used, preserve its other panels and
-  fit matched English artwork without stretching. Retain original and composite
-  hashes and per-face original/reconstructed/donor provenance. Use the same derived
-  front for preparation artwork and the carton; do not silently change languages.
 - Validate a connected opaque volume, UVs, normals, opening seams/flaps/hinges,
   interior/holder, thickness and extraction aperture. Preserve provided geometry
   where applicable; use Blender for actual authoring/mesh review.
@@ -99,7 +132,10 @@ console at once or create new stages, workers or approval gates.
 - Verify upper cards, ordinary detail and the secondary scene all consume the
   same edition-owned packaging and labels. Check each call chain explicitly.
 - Keep complete supplied box models first, then integrate collected/reconstructed
-  packaging. A console-specific early return must not bypass the shared source
+  packaging according to section 4's suitability/composition order. A supplied
+  model for another language may need its approved derivative; retaining it does
+  not mean silently rendering its untranslated front for the target edition.
+  A console-specific early return must not bypass the shared source
   and fallback pipeline. Importing artwork without connecting consumers is incomplete.
 - Reuse the existing main-engine selection/launch owner. Preserve exact ROM/save
   identity, installation/cloud actions and publication-driven refresh.
@@ -147,6 +183,12 @@ navigation aids and historical precedents, not claims of fresh acceptance.
 
 - Acquisition/classification/compositing: `scripts/prepare_packaging_resources.py`,
   `scripts/prepare_unfolded_boxes.py`, `scripts/nintandbox_preview.py`.
+- Colour/composite regressions: `scripts/fixtures/test_packaging_panels.py`
+  (foreign-panel retention, fitting, identical derived flat/carton front and
+  global cast) and `scripts/fixtures/test_artwork_colour_cast.py` (one transform,
+  unchanged alpha/originals, matching-art no-op and unrelated-art rejection).
+  Run affected checks when changing that behavior; source tests do not replace
+  visual review of the actual newly integrated carton.
 - Durable import/recovery: `lib/services/metadata/packaging_resource_import.dart`,
   `metadata_artwork_cache.dart` and `metadata_cloud_library.dart` in that directory.
 - Composition/rendering: `lib/models/packaging_model.dart`,
@@ -154,6 +196,10 @@ navigation aids and historical precedents, not claims of fresh acceptance.
   `lib/features/game_detail/widgets/cover_section.dart`, ordinary detail and dual preview.
 - GBA permission: `docs/IMPLEMENTATION_STATUS.md`, historical revisions 70–73,
   especially the superseding revision 72 best-effort decision.
+- Cross-collector donor permission and Sapphire correction:
+  `docs/SPECIFICATION.md`, paragraphs beginning "Non-English unfolded artwork"
+  and "Owner colour-cast decision". These are established owner decisions, not
+  new per-console approval requirements.
 - Delivered flat-art precedent: the ledger's 2026-10-18 Castlevania six-face box,
   and its GBA publication/cohort/classified-face receipts. The 2026-10-19 Sapphire
   cold-recovery and composed carton/cartridge/booklet evidence is another anchor.

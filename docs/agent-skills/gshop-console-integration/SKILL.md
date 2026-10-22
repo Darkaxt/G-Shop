@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.11"
+  version: "0.1.12"
 ---
 
 # G-Shop Console Integration
@@ -42,10 +42,19 @@ For cartons, exhaust the existing applicable source chain: reviewed NintAndBox
 dump panels, public low-resolution .es previews, LaunchBox, then ScreenScraper.
 Consider front, back, spine and unfolded texture roles. A missing dump model or
 same-region catalogue binding is not evidence that no box can be produced.
+Inspect the original archive and retained model/panel catalogue as well as any
+partial extraction. A regional or non-English same-game carton remains a valid
+donor for the already-approved GBA composition: retain its geometry, sides and
+flaps, replace the necessary front/back with matched English LaunchBox art
+(then ScreenScraper), and reuse the existing collector colour-correction path.
+Read section 4 of the pipeline reference for its source-selection and colour
+checks. Do not reject that donor solely because its language/printing differs,
+build a lower-fidelity flat-art box first, or request that approval again.
 The established best-effort reconstruction approval permits available flat art,
 coherent spine reuse and plain colour-matched absent faces, with per-face
 provenance. It does not establish six original scans or authorize a wrong game's
-printing. Apply that existing permission before invoking the resource gate; do
+printing or claim a composite is an original exact-region SKU. Apply those
+existing permissions before invoking the resource gate; do
 not ask the owner to approve it again. Trace fixable acquisition/binding/rendering
 omissions before reporting a genuine source gap.
 
@@ -56,6 +65,8 @@ a concrete workaround or acknowledges the specific limitation. Record that decis
 No silent generic model, guessed shell/colour/label or omitted prop. Runtime missing
 file handling is not acceptance of an incomplete resource set. Diagnose/fix
 actionable binding defects rather than manufacturing external blockers.
+The approved carton composition/reconstruction above is an explicit exception
+to generic-box substitution; it does not authorize substitute hardware or media.
 
 ## Verify upstream coverage before scene acceptance
 

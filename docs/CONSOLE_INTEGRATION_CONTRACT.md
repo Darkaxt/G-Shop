@@ -18,13 +18,29 @@ Carry forward the complete existing GBA resource pipeline for each authorized
 console: reviewed NintAndBox dump panels -> public low-resolution .es preview ->
 edition-compatible LaunchBox faces -> ScreenScraper missing roles, including the
 front. Check actual decoded resources and retain per-face provenance. A missing
-dump catalogue binding is not an exhausted source investigation. The established
+dump catalogue binding or partial extraction is not an exhausted source
+investigation: check the original archive and retained model/panel catalogue.
+Use a complete suitable English/English-containing multilingual set first;
+otherwise reuse the same game's suitable regional/non-English carton as a donor,
+retaining its geometry, sides/flaps and opening animation while replacing the
+necessary front/back with matched English LaunchBox art, then ScreenScraper.
+This established GBA composition policy applies across the collector. Do not
+reject the donor solely for language/region or seek repeated approval. Reuse the
+collector's verified global colour-cast correction against corresponding original
+artwork; keep source/reference/derived hashes and one corroborated transform,
+never a selective repaint or runtime mesh tint. The preparation and 3D front must
+use the same derived image and pass visible handoff/colour-continuity review.
+Preserve the source edition and describe the derivative as a composite/reference,
+not an original exact-region physical SKU. The established
 best-effort approval permits flat-art reconstruction, plain colour-matched absent
 faces and coherent available-spine reuse, with original/reconstructed provenance;
 six authentic scans are not a prerequisite. This does not authorize wrong-game
-or unestablished regional-printing substitution. Use that existing approval rather
+printing or misrepresent a donor/composite as an established target printing.
+Use that existing approval rather
 than asking the owner to repeat it. Preserve complete supplied models first.
-Trace prepared artwork through the normal edition-owned import, Drive publication,
+These carton composition/reconstruction permissions are explicit exceptions to
+the generic-box prohibition below; they do not authorize substitute hardware,
+cartridge shells or labels. Trace prepared artwork through the normal edition-owned import, Drive publication,
 shared-cache recovery and every gallery/scene consumer before acceptance. A
 console-specific preview must not bypass those existing acquisition/fallback lanes.
 The skill's end-to-end reference checklist records the required integration steps.

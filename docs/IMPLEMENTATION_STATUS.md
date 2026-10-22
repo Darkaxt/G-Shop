@@ -5,6 +5,30 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-22 donor-composition correction (specification revision 153):
+**S26 ACTIVE**, sole active stage. The existing specification already authorizes
+regional/non-English NintAndBox donors, matched English LaunchBox substitutions
+(then ScreenScraper) and the Sapphire collector-side global colour correction.
+Treating a selected USA-ROM catalogue mismatch as a missing model bypassed that
+approved path. The permanent catalogue contains regional Kirby cartons; the
+owner's partial extraction root is not the full original archive inventory.
+The current flat-art fallback reconstructions remain staged candidates, not
+deployed/accepted replacements for suitable existing donors. Skill/contract edits
+make the source/composition order, retained geometry/panels/animation, colour
+review, identical preparation/carton front and composite provenance explicit.
+The owner's bounded read-only independent review completed using the confirmed
+main model `gpt-6.1-sol` at Low effort. It found no actionable inconsistencies
+after inspecting the specification, helpers and regressions and walking regional
+Kirby, partial extraction, rejected colour fit, missing custom cartridge and
+complete supplied-English-carton cases. Source and installed skill **0.1.12**
+both validate; entrypoint, pipeline reference and unchanged UI metadata are
+byte-identical, and the changed installed instructions/reference were reread.
+Fresh focused composition and global-colour regressions pass, including donor
+panel retention, identical derived front, unrelated-art rejection and preservation
+of source pixels/alpha. This is instruction maintenance, not closure of NES
+carton integration or S26 acceptance. The uncommitted collector/front-role
+implementation remains separate from this documentation change.
+
 2026-10-22 owner focus / pipeline correction (specification revision 152):
 **S26 ACTIVE**, sole active stage. Work remains on NES ordering, badges, authentic
 labels and the omitted existing box pipeline; other console launch adaptation and

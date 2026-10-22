@@ -1,6 +1,13 @@
 # Staged implementation plan
 
-Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 152
+Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 153
+makes the already-approved regional-donor composition and Sapphire colour
+correction explicit in the reusable skill/contract, with a bounded independent
+consistency review and installed parity. Prefer suitable NintAndBox donors before
+flat-art reconstruction; retain source/derived identity and validate the actual
+preparation-to-carton handoff. This documentation correction does not accept the
+still-unfinished NES carton integration or open another implementation stage.
+Revision 152
 restores the full established GBA acquisition/reconstruction/publication/recovery
 pipeline to the current NES correction. The bounded audit identifies dump-only
 NES catalogue and preview bypasses, plus the collector's missing ScreenScraper

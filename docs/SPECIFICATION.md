@@ -1,6 +1,19 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 152, 2026-10-22.
+Authoritative specification, revision 153, 2026-10-22.
+
+Owner donor-composition correction, 2026-10-22: the existing cross-collector GBA
+policy already permits regional/non-English NintAndBox donors with matched
+English LaunchBox front/back substitutions and the Sapphire global colour-cast
+correction. Apply it before generic flat-art reconstruction or declaring a
+resource gap; inspect the original archive/retained catalogue rather than
+inferring absence from partial extraction or a USA-ROM binding. Preserve donor
+geometry, sides/flaps, animation and source edition, plus per-face provenance;
+the derivative remains a composite rather than an asserted original USA SKU.
+Use the same derived front for preparation and the carton. Update source and
+installed integration skill and perform the owner's requested bounded independent
+consistency review. This clarifies existing authorization within the sole ACTIVE
+S26; it does not start a later stage or waive remaining native acceptance.
 
 Owner pipeline correction, 2026-10-22: audit and carry forward the full existing
 GBA pipeline, including missing-box reconstruction from LaunchBox with
