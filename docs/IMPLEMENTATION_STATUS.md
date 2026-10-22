@@ -5,6 +5,29 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-22 owner pause (specification revision 158): **S26 BLOCKED** by the
+explicit request to pause for today; no implementation stage is ACTIVE. The
+owner directs floor review to the next implementation. Source `6bd3855` is
+committed/pushed, focused host checks pass, and signed CI run `39775767418`
+was still running at the pause. Its APK has not been retrieved, installed or
+visually accepted. Preserve the run identity and read it back on resume, without
+dispatching a duplicate. Thor's installed candidate remains `661e8a0`, internal
+1.10.2+43; public latest is unchanged. Thor immediately returned to sleep with
+`device_admin` as its reported reason during the attempted baseline capture;
+no device-policy bypass or power-setting change was made. No further installation
+or native review is requested tonight.
+
+NES remains incomplete at the integrated acceptance boundary: current resources
+bind the 24 eligible ranked games and their remote artwork integrity is checked;
+ordering, badges, authentic labels and normal/interruptible launches have scoped
+native evidence. The latest full 3D carton cohort still needs its complete native
+pass across both browsing entry points and the required recovery/settings paths.
+The new floor's native review is explicitly held until the next implementation.
+Do not confuse the previously delivered ICON/NES baseline or individual passing
+scenes with acceptance of this expanded workflow. Wider GBA/G&W adaptation,
+three-system reconciliation, final Socket review and S26 release remain open.
+Older ACTIVE statements below are dated checkpoints, superseded by this hold.
+
 2026-10-22 diffuse floor treatment (specification revision 157): **S26 ACTIVE**,
 sole active stage. A shared static, pointer-transparent floor painter adds one
 soft red ellipse to lower collector/game stages and the NES launch background.

@@ -1,6 +1,12 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 157, 2026-10-22.
+Authoritative specification, revision 158, 2026-10-22.
+
+Owner pause, 2026-10-22: pause execution for today. Review the diffuse floor with
+the next implementation rather than performing its native acceptance now. Keep
+the committed change and existing signed CI run; do not install or start another
+implementation while paused. This changes review timing, not the unverified
+appearance into an acceptance pass. Preserve all remaining NES/S26 requirements.
 
 Owner floor treatment, 2026-10-22: default all consoles' lower 3D collector and
 game presentations to a slightly brighter red pool beneath their models. Use a

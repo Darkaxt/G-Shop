@@ -1,6 +1,14 @@
 # Staged implementation plan
 
-Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 157
+Current execution, 2026-10-22: **S26 BLOCKED** by the owner's explicit pause for
+today (revision 158); no implementation stage is ACTIVE. Review the committed
+floor treatment with the next implementation on resume. Retain existing CI run
+`39775767418` for source `6bd3855`; it was running at the pause, and must be read
+back rather than dispatched again. No installation or native review tonight.
+NES/S26 is not accepted as complete. Resume its existing outstanding acceptance
+before later console/Socket work or the final S26 delivery.
+
+Prior execution, revision 157:
 adds the owner-approved diffuse red floor by default through shared lower 3D
 collector/game presentation paths, with one pool per composition and no gallery
 or resource-screen change. Preserve scale/framing/input and inspect the signed
