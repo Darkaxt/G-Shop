@@ -1,6 +1,16 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 156, 2026-10-22.
+Authoritative specification, revision 157, 2026-10-22.
+
+Owner floor treatment, 2026-10-22: default all consoles' lower 3D collector and
+game presentations to a slightly brighter red pool beneath their models. Use a
+perspective ellipse whose edges dissolve fully into the existing red background,
+without a visible disc, rim or platform. Multi-model arrangements share one pool.
+Preserve model scale, framing, controls, hit testing and Reduced Motion. Keep
+upper gallery cards and non-3D/resource screens unchanged. Apply this through
+shared presentation paths rather than a console allowlist; include the NES launch
+scene's background. Verify single and multi-model views on Thor and ordinary
+compact/portrait layouts. This remains within the sole ACTIVE S26.
 
 Owner foam correction, 2026-10-22: packing foam belongs inside the NES carton
 after removing the cartridge. Keep it seated in the box throughout extraction,

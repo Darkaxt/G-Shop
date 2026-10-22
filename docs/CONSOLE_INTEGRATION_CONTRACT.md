@@ -132,6 +132,14 @@ groups; later publication preserves actual selected identity.
 
 ## Lower console composition — CI-03
 
+All consoles use the shared lower-stage floor treatment by default: a slightly
+brighter red pool beneath the models, flattened into a perspective ellipse and
+fading completely into the existing background. No defined edge, rim or platform.
+Use one pool for a whole composition, including multi-edition arrangements; do
+not add one beneath each nested model view. Preserve physical scale, framing,
+touch/controller hit areas and Reduced Motion. Apply to lower collector/game
+and launch views, not upper gallery cards or non-3D/resource content.
+
 The console-section preview is a large rotating composition of the applicable
 console models and representative games/accessories. Preserve provided collector
 props and original scenes; hide only specifically approved staging objects, such

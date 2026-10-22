@@ -14,6 +14,7 @@ import 'package:g_shop/models/game_item.dart';
 import 'package:g_shop/models/system_model.dart';
 import 'package:g_shop/utils/game_metadata.dart';
 import 'package:g_shop/widgets/socket_media_renderer.dart';
+import 'package:g_shop/features/preview/scene_floor.dart';
 
 class _Player extends VideoPlayerPlatform {
   final events = StreamController<VideoEvent>();
@@ -45,6 +46,72 @@ class _Player extends VideoPlayerPlatform {
 }
 
 void main() {
+  testWidgets(
+      'all consoles share the lower 3D floor without changing other modes',
+      (tester) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    const channel = MethodChannel('com.darkaxt.gshop/preview_view');
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (_) async => null);
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+    await tester.pumpWidget(const MaterialApp(home: PreviewScreen()));
+    var revision = 0;
+    Future<void> show(String system,
+        {bool threeD = true,
+        bool gallery = false,
+        bool details = false,
+        bool scene = false,
+        bool modelVisible = true}) async {
+      await messenger.handlePlatformMessage(
+          channel.name,
+          const StandardMethodCodec().encodeMethodCall(MethodCall('snapshot', {
+            'revision': ++revision,
+            'identity': 'floor-$system-$revision',
+            'actionEpoch': revision,
+            'system': system,
+            'filename': 'Fixture.rom',
+            'title': 'Fixture',
+            'threeD': threeD,
+            'gallery': gallery,
+            // This contract checks stage selection, not host-unsupported GPU
+            // resource rendering. Keep that separate existing test isolated.
+            'galleryLoading': gallery,
+            'details': details,
+            'sceneView': scene,
+            'mediaLoading': true,
+            'reducedMotion': true,
+            'settings': PreviewSettings(modelVisible: modelVisible).toJson(),
+          })),
+          (_) {});
+      await tester.pump();
+    }
+
+    for (final system in SystemModel.supportedSystems) {
+      await show(system.id);
+      expect(find.byType(SceneFloor), findsOneWidget, reason: system.id);
+      expect(tester.takeException(), isNull, reason: system.id);
+    }
+    for (final size in [const Size(537.67, 468.29), const Size(360, 640)]) {
+      tester.view.physicalSize = size;
+      await show('gba');
+      expect(tester.getRect(find.byType(SceneFloor)), Offset.zero & size);
+      expect(tester.takeException(), isNull);
+    }
+    await show('nes', threeD: false);
+    expect(find.byType(SceneFloor), findsNothing);
+    await show('nes', gallery: true);
+    expect(find.byType(SceneFloor), findsNothing);
+    await show('nes', details: true);
+    expect(find.byType(SceneFloor), findsNothing);
+    await show('nes', details: true, scene: true);
+    expect(find.byType(SceneFloor), findsOneWidget);
+    await show('nes', modelVisible: false);
+    expect(find.byType(SceneFloor), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets(
       'details rounds displayed ratings to one decimal without changing scale',
       (tester) async {

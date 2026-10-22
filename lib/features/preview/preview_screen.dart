@@ -13,6 +13,7 @@ import '../../models/socket_media_model.dart';
 import 'nes_launch_preview.dart';
 import 'nes_console_selector.dart';
 import 'scene_preview_layout.dart';
+import 'scene_floor.dart';
 import 'scene_idle_hints.dart';
 import '../../models/preview_settings.dart';
 import '../../models/system_model.dart';
@@ -551,6 +552,11 @@ class _PreviewScreenState extends State<PreviewScreen>
                                     icon: Icon(value.isPlaying
                                         ? Icons.pause
                                         : Icons.play_arrow)))),
+                  if (prefs.modelVisible &&
+                      snapshot['threeD'] == true &&
+                      !gallery &&
+                      (!details || snapshot['sceneView'] == true))
+                    const SceneFloor(),
                   SafeArea(
                       child: Padding(
                           padding: EdgeInsets.symmetric(

@@ -7,6 +7,7 @@ import '../../models/scene_launch_presentation.dart';
 import '../../models/socket_media_model.dart';
 import '../../widgets/socket_media_renderer.dart';
 import '../../core/theme/app_theme.dart';
+import 'scene_floor.dart';
 
 /// Rendering only. The main engine still owns ROM checks, saves and handoff.
 class NesLaunchPreview extends StatefulWidget {
@@ -134,7 +135,8 @@ class _NesLaunchPreviewState extends State<NesLaunchPreview>
   Widget build(BuildContext context) => Stack(fit: StackFit.expand, children: [
         if (_ready)
           const DecoratedBox(
-              decoration: BoxDecoration(gradient: AppTheme.backgroundGradient)),
+              decoration: BoxDecoration(gradient: AppTheme.backgroundGradient),
+              child: SceneFloor()),
         AnimatedBuilder(
             animation: _timeline,
             builder: (context, _) => SocketMediaRenderer(

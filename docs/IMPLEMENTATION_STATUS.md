@@ -5,6 +5,24 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-22 diffuse floor treatment (specification revision 157): **S26 ACTIVE**,
+sole active stage. A shared static, pointer-transparent floor painter adds one
+soft red ellipse to lower collector/game stages and the NES launch background.
+The light occupies 98% viewport width by 28% height, centered at 50%/74%, with
+alpha fading fully to zero at its edge; it adds no mesh, camera/scale adjustment,
+resource dependency or control. Collector views with transparent backgrounds do
+not add nested pools; game-stage selection has no console allowlist. Upper cards,
+2D previews, ordinary details and Resources retain their previous presentation.
+Focused host checks pass across every supported system ID, plus actual lower
+viewport and compact portrait sizes, existing layout/lifecycle/audio behavior and
+non-3D/resource exclusions. The initial test fixture accidentally opened an empty
+GPU resource viewer before the next test; isolating its stage-selection check
+with the normal resource-loading state resolves that host-only interaction.
+Analysis reports only eight existing brace-style infos in unchanged preview
+statements, confirmed against HEAD; no new findings. Signed candidate and actual
+native single/multi-model appearance/input review remain required. Wider S26
+acceptance remains open and no public release is claimed.
+
 2026-10-22 foam correction (specification revision 156): **S26 ACTIVE**, sole
 active stage. The owner rejects displaying the loose packing foam. Keep its
 original mesh seated inside the carton, remove its independent extraction and

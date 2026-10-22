@@ -1,6 +1,11 @@
 # Staged implementation plan
 
-Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 156
+Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 157
+adds the owner-approved diffuse red floor by default through shared lower 3D
+collector/game presentation paths, with one pool per composition and no gallery
+or resource-screen change. Preserve scale/framing/input and inspect the signed
+candidate's actual single/multi-model views before accepting the correction.
+Retain the single final S26 release boundary. Revision 156
 keeps NES packing foam seated inside its carton throughout cartridge extraction,
 removes its separate display phase, and grounds the extracted contents on the
 carton's support plane. Verify the corrected native transition/settled view in
