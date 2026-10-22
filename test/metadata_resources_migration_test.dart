@@ -34,7 +34,7 @@ void main() {
       DatabaseService.resetForTesting();
 
       db = await DatabaseService().database;
-      expect(await db.getVersion(), 43);
+      expect(await db.getVersion(), 44);
       final jobs = MetadataRefreshJobs(Future.value(db));
       expect((await jobs.latest(providerId: 'screenscraper'))?.id, 1);
       expect((await jobs.savedJobs(providerId: 'screenscraper')).single.id, 1);

@@ -43,7 +43,8 @@ class DriveCatalogueSchema {
     await db.execute('''CREATE TABLE IF NOT EXISTS drive_catalogue_entries (
       scope TEXT NOT NULL, generation INTEGER NOT NULL, file_id TEXT NOT NULL,
       parent_id TEXT, display_path TEXT NOT NULL, is_folder INTEGER NOT NULL,
-      record_json TEXT NOT NULL, PRIMARY KEY(scope, generation, file_id)
+      record_json TEXT NOT NULL, file_name TEXT NOT NULL,
+      PRIMARY KEY(scope, generation, file_id)
     )''');
     await db.execute('''CREATE INDEX IF NOT EXISTS drive_catalogue_parent
       ON drive_catalogue_entries(scope, generation, parent_id)''');
@@ -53,10 +54,44 @@ class DriveCatalogueSchema {
       PRIMARY KEY(scope, generation, file_id)
     )''');
     await installPendingWorkIndex(db);
+    await installNameLookup(db);
     await db.execute('''CREATE TABLE IF NOT EXISTS drive_catalogue_pages (
       scope TEXT NOT NULL, generation INTEGER NOT NULL, file_id TEXT NOT NULL,
       page_token TEXT NOT NULL, PRIMARY KEY(scope, generation, file_id, page_token)
     )''');
+  }
+
+  /// Exact observed names permit bounded lookups without transferring every
+  /// sibling's JSON through the platform channel for each patch/base reference.
+  static Future<void> installNameLookup(DatabaseExecutor db) async {
+    final columns =
+        await db.rawQuery('PRAGMA table_info(drive_catalogue_entries)');
+    if (!columns.any((row) => row['name'] == 'file_name')) {
+      await db.execute(
+          "ALTER TABLE drive_catalogue_entries ADD COLUMN file_name TEXT NOT NULL DEFAULT ''");
+      var cursor = 0;
+      while (true) {
+        final rows = await db.rawQuery(
+            '''SELECT rowid AS entry_rowid,record_json
+          FROM drive_catalogue_entries WHERE rowid>? ORDER BY rowid LIMIT 256''',
+            [cursor]);
+        if (rows.isEmpty) break;
+        final batch = db.batch();
+        for (final row in rows) {
+          final name =
+              (jsonDecode(row['record_json'] as String) as Map)['name'];
+          if (name is! String || name.isEmpty) {
+            throw const DriveCatalogueException('invalidCachedFileName');
+          }
+          cursor = row['entry_rowid'] as int;
+          batch.update('drive_catalogue_entries', {'file_name': name},
+              where: 'rowid=?', whereArgs: [cursor]);
+        }
+        await batch.commit(noResult: true);
+      }
+    }
+    await db.execute('''CREATE INDEX IF NOT EXISTS drive_catalogue_name
+      ON drive_catalogue_entries(scope, generation, parent_id, file_name)''');
   }
 
   static Future<void> installPendingWorkIndex(DatabaseExecutor db) async {
@@ -378,6 +413,7 @@ class DriveCatalogue {
       'scope': scope,
       'generation': generation,
       'file_id': file.id,
+      'file_name': file.name,
       'parent_id': parentId,
       'display_path': path,
       'is_folder': file.isFolder ? 1 : 0,
@@ -533,33 +569,23 @@ class DriveCatalogue {
       var parent = parentId;
       DriveCatalogueEntry? result;
       for (var i = 0; i < segments.length; i++) {
-        var after = '';
-        final matches = <Map<String, Object?>>[];
-        while (true) {
-          final rows = await txn
-              .rawQuery('''SELECT e.file_id, e.record_json, e.display_path
+        final matches = await txn
+            .rawQuery('''SELECT e.file_id, e.record_json, e.display_path
           FROM drive_catalogue_entries e JOIN drive_catalogue_state s
           ON s.scope=e.scope AND s.active=e.generation
-          WHERE e.scope=? AND e.generation=? AND e.parent_id=? AND e.file_id>?
-          ORDER BY e.file_id LIMIT 100''', [scope, generation, parent, after]);
-          // Duplicate names in Drive are legal. Never pick the first namesake.
-          matches.addAll(rows.where((row) =>
-              DriveFile.fromJson(jsonDecode(row['record_json'] as String)
-                      as Map<String, dynamic>)
-                  .name ==
-              segments[i]));
-          if (matches.length > 1) {
-            throw const DriveCatalogueException('ambiguousOrMissingDependency');
-          }
-          if (rows.length < 100) break;
-          after = rows.last['file_id'] as String;
-        }
+          WHERE e.scope=? AND e.generation=? AND e.parent_id=? AND e.file_name=?
+          LIMIT 2''', [scope, generation, parent, segments[i]]);
+        // Duplicate names in Drive are legal. Two matches establish ambiguity;
+        // never pick a namesake or normalize case/Unicode to manufacture a match.
         if (matches.length != 1) {
           throw const DriveCatalogueException('ambiguousOrMissingDependency');
         }
         final row = matches.single;
         final file = DriveFile.fromJson(
             jsonDecode(row['record_json'] as String) as Map<String, dynamic>);
+        if (file.name != segments[i]) {
+          throw const DriveCatalogueException('snapshotChanged');
+        }
         if (i + 1 < segments.length
             ? !file.isFolder
             : !file.isSupportedBinary) {

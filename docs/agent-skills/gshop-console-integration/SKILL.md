@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.19"
+  version: "0.1.20"
 ---
 
 # G-Shop Console Integration
@@ -24,6 +24,12 @@ install a test entrypoint over the owner's app. Report cached indexed-game cover
 separately from exact original bindings and verified build recipes. A first page
 or a synthetic native chain does not establish complete production patch coverage;
 missing explicit prerequisite declarations remain unresolved catalogue evidence.
+For a large published catalogue, verify that exact path resolution uses bounded
+indexed lookups while preserving folder scope, generation, case and duplicate-name
+rejection. A cache hit must not repeatedly transfer/decode every sibling's JSON.
+Check additive cache migrations against existing recipes and collector/catalogue
+checkpoints. Distinguish provider failures from local lookup work and retain the
+original resumable operation instead of relaunching it while still running.
 
 Locate the actual G-Shop checkout. Read `docs/SPECIFICATION.md`, the current
 `docs/IMPLEMENTATION_PLAN.md` and `docs/IMPLEMENTATION_STATUS.md`, then

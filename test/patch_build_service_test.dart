@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
@@ -520,7 +521,7 @@ void main() {
     await db.close();
     DatabaseService.resetForTesting();
     db = await DatabaseService().database;
-    expect(await db.getVersion(), 43);
+    expect(await db.getVersion(), 44);
     expect((await db.query('games')).single['displayName'], 'Existing game');
     expect(await db.query('patch_builds'), isEmpty);
   });
@@ -539,7 +540,7 @@ void main() {
     await db.close();
     DatabaseService.resetForTesting();
     db = await DatabaseService().database;
-    expect(await db.getVersion(), 43);
+    expect(await db.getVersion(), 44);
     final row = (await db.query('metadata_refresh_jobs')).single;
     expect(row['collection_generation'], 'existing');
     expect(row['selection_json'], isNull);
@@ -554,9 +555,46 @@ void main() {
     await db.setVersion(42);
     await db.close(); DatabaseService.resetForTesting();
     db = await DatabaseService().database;
-    expect(await db.getVersion(), 43);
+    expect(await db.getVersion(), 44);
     expect(await db.query('metadata_refresh_jobs'), before);
     expect(await db.query('drive_patch_index_cache'), isEmpty);
     expect(await db.query('drive_patch_base_links'), isEmpty);
+  });
+  test('v43 upgrade indexes observed names and preserves recipes and checkpoints', () async {
+    await build();
+    await db.insert('metadata_refresh_jobs', {'generation': 1,
+      'provider_id': 'screenscraper', 'collection_generation': 'preserved', 'state': 'paused'});
+    await db.insert('drive_catalogue_state', {
+      'scope': 'preserved', 'active': 1, 'pending': 2, 'next_generation': 3,
+    });
+    for (var i = 0; i < 300; i++) {
+      final generation = i.isEven ? 1 : 2;
+      final name = i < 2 ? (i == 0 ? "雪's Game.gba" : "雪's game.gba") : 'Other $i.gba';
+      await db.insert('drive_catalogue_entries', {
+        'scope': 'preserved', 'generation': generation, 'file_id': 'observed-$i',
+        'file_name': name, 'parent_id': 'root', 'display_path': name,
+        'is_folder': 0, 'record_json': jsonEncode({'name': name}),
+      });
+    }
+    await db.insert('drive_catalogue_work', {
+      'scope': 'preserved', 'generation': 2, 'file_id': 'pending-folder',
+      'page_token': 'resume-cursor', 'done': 0,
+    });
+    final tables = ['metadata_refresh_jobs', 'patch_builds', 'installed_artifacts',
+      'drive_catalogue_state', 'drive_catalogue_work', 'drive_catalogue_pages',
+      'drive_patch_index_cache', 'drive_patch_base_links'];
+    final before = {for (final table in tables) table: await db.query(table)};
+    final entries = await db.query('drive_catalogue_entries');
+    await db.execute('DROP INDEX drive_catalogue_name');
+    await db.execute('ALTER TABLE drive_catalogue_entries DROP COLUMN file_name');
+    await db.setVersion(43);
+    await db.close(); DatabaseService.resetForTesting();
+    db = await DatabaseService().database;
+    expect(await db.getVersion(), 44);
+    expect(await db.query('drive_catalogue_entries'), entries);
+    for (final table in tables) {
+      expect(await db.query(table), before[table], reason: table);
+    }
+    expect(await db.rawQuery("SELECT name FROM sqlite_master WHERE name='drive_catalogue_name'"), hasLength(1));
   });
 }

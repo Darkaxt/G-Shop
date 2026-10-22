@@ -137,6 +137,7 @@ void defineConsoleDiscoveryChecks({
         'scope': scope,
         'generation': 1,
         'file_id': file.id,
+        'file_name': file.name,
         'parent_id': file.parents.single,
         'display_path': file.name,
         'is_folder': file.isFolder ? 1 : 0,

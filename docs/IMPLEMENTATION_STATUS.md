@@ -23,14 +23,24 @@ existing-build reuse, build-and-play and direct derived-result bypass on Thor.
 The real native IPS -> BPS chain also passes in an isolated test installation,
 including intermediate mismatch and corrupt-second-patch rejection. Actual full
 catalogue preparation/dependency coverage remains an internal S26 advancement
-blocker: the normal Patches pass prepared 12 of 221 indexed GBA games. Resolve it
-through explicit console sync and inspect the resulting declarations/bindings;
-that first page is not full-collection availability. The already-started normal
-GBA sync is traversing its source catalogue; a read-only preference observer waits
-for that operation's actual successful last-sync update. Do not restart it or
-count pending/unpublished catalogue generations as launch-availability evidence.
-No final S26 release or
-completed collection coverage is claimed.
+blocker: explicit Patches browsing has prepared 24 of 221 indexed GBA games.
+The original normal sync ended with `Google Drive: unavailable`, retaining its
+published generation 2 and unpublished generation 3 traversal checkpoint. Its
+last-sync timestamp did not advance; the read-only completion observer was closed
+after the actual failed result. Device and host endpoint probes subsequently
+returned the expected unauthenticated HTTP 403; this does not establish success
+of the failed authenticated request. No duplicate sync was launched.
+Do not count pending generations or a partial Patches page as full availability.
+Native measurement also exposed repeated local sibling scans (3,827 records,
+39 queries and 1,927,604 JSON characters per folder lookup). The exact-name index
+correction uses one bounded query per path segment and additive schema 44 name
+backfill. Host regression proves the former 41-query case now uses its name index,
+preserves exact case/Unicode and duplicate rejection, and retains recipes, original
+installations, paused jobs and active/pending catalogue generations through a real
+v43 upgrade. Invalid cached names roll back the migration. The integrated affected
+Drive/patch/migration/widget checks pass. Signed `1.10.2+44` native migration and
+all-index acceptance remain required; source checks are not native acceptance.
+No final S26 release or completed collection coverage is claimed.
 
 ### S26 patch launch and prerequisite native evidence (2026-10-23)
 

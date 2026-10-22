@@ -57,7 +57,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await service.database;
-      expect(await db.getVersion(), 43);
+      expect(await db.getVersion(), 44);
       for (final table in retained.keys) {
         expect(await db.query(table), retained[table]);
       }

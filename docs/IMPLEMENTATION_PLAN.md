@@ -8,6 +8,10 @@ and widget flows, then a signed native original/build/reuse/chain/cancellation
 workflow. Retain the original running metadata job 109 and its checkpoint before
 any installation. Continue full NES/GBA resource reconciliation afterwards; no
 intermediate public release. Hack-specific animation is explicitly future scope.
+Native full-catalogue preparation exposed a repeated sibling-scan bottleneck.
+Within the same S26 outcome, index observed exact file names, migrate the private
+catalogue additively and retain ambiguity/generation checks. Verify existing jobs,
+recipes and unpublished traversal checkpoints before native full-index acceptance.
 
 Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage, resumed under
 revision 162. Correct metadata/artwork progress to use committed item totals and

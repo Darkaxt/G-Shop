@@ -1693,6 +1693,7 @@ void main() {
           'scope': scope,
           'generation': 1,
           'file_id': folder.key,
+          'file_name': folder.value['name'],
           'parent_id': (folder.value['parents'] as List).single,
           'display_path': 'ignored-display-path',
           'is_folder': 1,

@@ -195,15 +195,24 @@ void main() {
     // Both the anchor and result row must be exact file lookups. A parent-index
     // recursive step alone does not protect the outer join from a scope scan.
     expect(
-        trace.plans.single.where((step) => step.startsWith('SEARCH e ') &&
+        trace.plans.single.where((step) =>
+            step.startsWith('SEARCH e ') &&
             step.contains('scope=? AND generation=? AND file_id=?')),
-        hasLength(2), reason: trace.plans.single.join('\n'));
-    expect(trace.plans.single,
-        contains(anyOf(contains('CO-ROUTINE page'), contains('MATERIALIZE page'))),
+        hasLength(2),
+        reason: trace.plans.single.join('\n'));
+    expect(
+        trace.plans.single,
+        contains(
+            anyOf(contains('CO-ROUTINE page'), contains('MATERIALIZE page'))),
         reason: 'Select the bounded page before reading record_json payloads');
     final nextPage = await DriveCatalogue(Future.value(trace)).entries(
-        sourceId: 'source', accountId: 'account', rootFolderId: 'root-id',
-        folderId: 'console', generation: 1, limit: 1, offset: 1);
+        sourceId: 'source',
+        accountId: 'account',
+        rootFolderId: 'root-id',
+        folderId: 'console',
+        generation: 1,
+        limit: 1,
+        offset: 1);
     expect(nextPage.map((entry) => entry.file.id), ['nested']);
   });
 
@@ -223,10 +232,15 @@ void main() {
     await refresh();
     final trace = _QueryTraceDatabase(db);
     final page = await DriveCatalogue(Future.value(trace)).entries(
-        sourceId: 'source', accountId: 'account', rootFolderId: 'root-id',
-        folderId: 'console', generation: 1, limit: 3, offset: 8);
-    expect(page.map((entry) => entry.file.id),
-        ['rom-0-0', 'rom-0-1', 'rom-0-10']);
+        sourceId: 'source',
+        accountId: 'account',
+        rootFolderId: 'root-id',
+        folderId: 'console',
+        generation: 1,
+        limit: 3,
+        offset: 8);
+    expect(
+        page.map((entry) => entry.file.id), ['rom-0-0', 'rom-0-1', 'rom-0-10']);
 
     // Execute the actual production recursive CTE independently of its bounded
     // payload page. The expansion budget is the nine folders, not 2,048 leaves
@@ -237,6 +251,59 @@ void main() {
         '$recursive) SELECT COUNT(*) AS expanded FROM descendants',
         [scope, 1, 'console', scope, 1]);
     expect(expanded.single['expanded'], 9);
+  });
+
+  test('exact patch paths do not page through unrelated siblings', () async {
+    const targetName = "雪's Game.gba";
+    api.pages['root-id:'] = DriveFilePage(files: [
+      for (var i = 0; i < 4096; i++)
+        rom('unrelated-$i', 'root-id', name: 'Other $i.gba'),
+      rom('exact', 'root-id', name: targetName),
+      rom('different-case', 'root-id', name: "雪's game.gba"),
+    ]);
+    await refresh();
+    final trace = _QueryTraceDatabase(db);
+    final result = await DriveCatalogue(Future.value(trace))
+        .requireRelativeBinary(
+            sourceId: 'source',
+            accountId: 'account',
+            rootFolderId: 'root-id',
+            parentId: 'root-id',
+            segments: [targetName],
+            generation: 1);
+    expect(result.file.id, 'exact');
+    expect(trace.statements, hasLength(1),
+        reason:
+            'A path segment must not transfer/decode every unrelated sibling');
+    expect(
+        trace.plans.single.any((row) => row.contains('drive_catalogue_name')),
+        isTrue);
+  });
+
+  test('invalid legacy names roll back the additive lookup migration',
+      () async {
+    await db.execute('DROP INDEX drive_catalogue_name');
+    await db
+        .execute('ALTER TABLE drive_catalogue_entries DROP COLUMN file_name');
+    await db.insert('drive_catalogue_entries', {
+      'scope': 'source',
+      'generation': 1,
+      'file_id': 'invalid',
+      'parent_id': 'root',
+      'display_path': 'invalid',
+      'is_folder': 0,
+      'record_json': '{"name":""}',
+    });
+    final before = await db.query('drive_catalogue_entries');
+    await expectLater(
+        db.transaction(DriveCatalogueSchema.installNameLookup),
+        throwsA(isA<DriveCatalogueException>()
+            .having((e) => e.code, 'code', 'invalidCachedFileName')));
+    expect(await db.query('drive_catalogue_entries'), before);
+    expect(
+        (await db.rawQuery('PRAGMA table_info(drive_catalogue_entries)'))
+            .any((row) => row['name'] == 'file_name'),
+        isFalse);
   });
 
   test('root indexed page still requires its supported root record', () async {

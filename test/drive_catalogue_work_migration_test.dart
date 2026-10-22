@@ -31,6 +31,7 @@ void main() {
           'scope': 'scope',
           'generation': generation,
           'file_id': 'folder',
+          'file_name': 'folder',
           'parent_id': 'root',
           'display_path': 'folder',
           'is_folder': 1,
@@ -65,7 +66,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await DatabaseService().database;
-      expect(await db.getVersion(), 43);
+      expect(await db.getVersion(), 44);
       expect(
           await db.rawQuery(
               "SELECT name FROM sqlite_master WHERE type='index' AND name='drive_catalogue_pending_work'"),
