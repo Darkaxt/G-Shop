@@ -263,6 +263,48 @@ void main() {
         isEmpty);
   });
 
+  test(
+      'repeated exact label references collect once without inventing a choice',
+      () async {
+    final store = LibraryStore(Future.value(db));
+    final original = (await store.metadata('a', provider.providerId))!;
+    final label = MetadataMedia(
+        type: 'support-texture',
+        region: 'us',
+        providerReference: ScreenScraperMediaReference(
+            providerGameId: '42',
+            providerPlatformId: 4,
+            mediaType: 'support-texture',
+            region: 'us'));
+    final duplicate = MetadataMedia.fromJson(label.toJson());
+    final record = MetadataRecord.fromJson({
+      ...original.toJson(),
+      'media': [media.toJson(), label.toJson(), duplicate.toJson()]
+    });
+    await store.putMetadata(record);
+    final job = await jobs.createArtwork(
+        providerId: provider.providerId,
+        collectionGeneration: 'duplicate-exact-label',
+        editionIds: ['a']);
+    expect((await jobs.run(job.id, provider, artworkCache: cache)).counts,
+        {'matched': 2});
+    expect((await cache.artworkForEdition('a')).supportTexture, isNotNull);
+    expect(provider.calls, 2);
+    expect(record.media, hasLength(3),
+        reason: 'Retain the original provider evidence');
+    final otherLabel = MetadataMedia(
+        type: 'support-texture',
+        region: 'us',
+        url: 'https://example.invalid/another-us-label.png');
+    final ambiguous = MetadataRecord.fromJson({
+      ...record.toJson(),
+      'media': [label.toJson(), duplicate.toJson(), otherLabel.toJson()]
+    });
+    expect(MetadataArtworkCache.physicalLabels(ambiguous, regions: ['USA']),
+        isEmpty,
+        reason: 'Distinct label alternatives remain unresolved');
+  });
+
   test('normal artwork refresh caches physical labels separately from covers',
       () async {
     final store = LibraryStore(Future.value(db));

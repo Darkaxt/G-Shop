@@ -31,6 +31,9 @@ acquisition follows the existing Drive publication workflow before acceptance.
 A captured fallback sticker or `labelReady` flag does not verify authentic artwork.
 An unranked or incomplete fixture may diagnose animation but cannot satisfy the
 Top 25 resource or personalized-label criteria. Keep exact inventories private.
+Compare stable media identities before classifying a label as ambiguous: exact
+duplicate references identify one resource. Preserve unresolved distinct labels
+and individually bound disc members; do not rewrite retained provider evidence.
 
 If any required resource is absent, invalid or cannot be identified sufficiently
 to integrate faithfully, **pause the affected console integration**. Record the

@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.9"
+  version: "0.1.10"
 ---
 
 # G-Shop Console Integration
@@ -58,7 +58,11 @@ CI-01; a missing database row alone does not establish an absent source asset.
 
 Trace the same resource through Drive publication, shared-cache recovery, app
 projection and the rendered scene. Distinguish upstream absence, recovery failure,
-binding failure and renderer failure. If Drive already has the correct resource,
+binding failure and renderer failure. Before treating repeated label references
+as competing editions, compare their complete stable media identities. Exact
+duplicates identify one resource; distinct same-region alternatives and indexed
+disc members retain their separate binding/ambiguity rules. If Drive already has
+the correct resource,
 repair that path rather than collecting another copy. Do not use an individual
 lookup/local-only patch to conceal an incomplete Top 25 publication or recovery.
 Any authorized acquisition must pass the existing Drive publication/integrity

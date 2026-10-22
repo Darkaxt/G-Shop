@@ -38,6 +38,8 @@ not verified authentic artwork. Record this in CI-01 and the integration skill.
 Resolve actionable pipeline defects before dependent acceptance; retain the
 existing resource gate for genuine missing assets. No additional stage or partial
 release is authorized.
+Resolve exact duplicate media references as one resource while preserving genuine
+same-region ambiguity, disc-member bindings and original provider evidence.
 
 Owner information-panel refinement, 2026-10-22: slightly blur the scene beneath
 the translucent game-information and hardware-history panels. Clip the backdrop

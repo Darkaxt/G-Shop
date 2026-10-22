@@ -546,8 +546,15 @@ class MetadataArtworkCache {
         normalized(evidence) != 'wor') {
       explicit.add(normalized(evidence));
     }
-    final labels =
-        record.media.where((m) => m.type == 'support-texture').toList();
+    // Repeated selectors identify the same cached body, not another physical
+    // edition. Keep distinct same-region alternatives unresolved below.
+    final labelsByKey = <String, MetadataMedia>{};
+    for (final media in record.media) {
+      if (media.type == 'support-texture') {
+        labelsByKey.putIfAbsent(key(media), () => media);
+      }
+    }
+    final labels = labelsByKey.values.toList();
     final preferred = explicit.isNotEmpty
         ? [...explicit, 'wor', '']
         : ['wor', '', 'us', 'eu', 'jp'];

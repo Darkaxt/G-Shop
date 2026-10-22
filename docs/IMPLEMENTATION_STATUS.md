@@ -34,13 +34,31 @@ manual reconciliation then failed with HTTP 500 `internalError`. Normal startup
 backup-only publication subsequently completed at 1,403/1,403. Independent connector
 read-back verifies all 24 exact NES cohort packets contain the new IGDB record,
 the same community scores as the native projection and the required vote floor.
-Art availability remains incomplete: twelve cohort packets list cartridge images;
-actual label/resource acceptance remains open. CI-02 and source/installed skill
-0.1.9 require both entry points, ranked-prefix/tail behavior, initial published
-selection and native source-labelled score parity.
+The scoped Top 25 media operation (job 105) completed locally for the actual
+24-game cohort: 192 verified resources and 140 provider requests. Its automatic
+Drive publication stopped with HTTP 500 `POST v3 internalError`. Independent
+read-back finds cartridge images in eighteen cohort packets; five packets still
+have no published asset bodies. One further label is excluded by an internal
+binding defect: ScreenScraper repeats an identical same-region typed reference,
+which the label resolver incorrectly treats as competing physical editions.
+The correction deduplicates complete stable media identities without changing
+retained provider evidence or accepting genuinely distinct same-region labels.
+The regression fails before the correction and passes through normal collection
+and cache resolution afterward. Focused artwork/job/cloud/resource checks pass,
+including the 30,000-distinct-game resource fixture; analysis reports no errors
+or warnings and three unchanged style infos. Native label acceptance, the
+additional label's normal collection/publication and complete Drive resource
+read-back remain open. No individual local lookup conceals these cohort gaps.
+CI-01/02 and source/installed skill 0.1.10 require stable-reference comparison,
+both entry points, ranked-prefix/tail behavior, initial published selection and
+native source-labelled score parity. Both skill copies validate and share the
+same SHA-256; the installed current instructions were reread.
 No intermediate public release. Evidence: `console-default-order-before.log`,
 `console-default-order-checks.log`, `console-default-order-analysis.log` and
-`nes-ratings-job-private.json` under the scene-launch reports.
+`nes-ratings-job-private.json`, `duplicate-label-before.log`,
+`duplicate-label-integrated-checks.log`, `duplicate-label-analysis.log`,
+`nes-top25-resource-job-completed.json` and
+`nes-top25-resource-drive-partial.json` under the scene-launch reports.
 The existing scene workflow remains in the same sole
 active stage. The supplied Sony display and NES-101 derivative are integrated in
 the internal signed candidate from `9bc449a`, installed and hash/signer verified
