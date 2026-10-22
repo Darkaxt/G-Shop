@@ -28,7 +28,12 @@ It also exposes an initial-selection defect: the lower preview retains the
 alphabetical loading item instead of the first ranked game. Loading groups must
 not seed published selection, and an absent installation index must not skip
 discovery. Both corrections pass focused query/controller/console/Library checks
-and analysis; native selection acceptance awaits the next signed candidate.
+and analysis. Signed candidate `7a17ab0` is now installed: APK/source/signer,
+approved icon resources and private-payload absence are verified, and all sixteen
+database/preferences files are byte-identical across update. Its ordinary NES
+browser keeps all 9,831 entries, shows the ranked order and IGDB badges, and now
+selects the first ranked game on both screens. The lower scene reaches its actual
+settled carton/sleeve/cartridge frame with authentic artwork visibly reviewed.
 Drive publication initially stopped with HTTP 500 `responsePreparationFailure`;
 manual reconciliation then failed with HTTP 500 `internalError`. Normal startup
 backup-only publication subsequently completed at 1,403/1,403. Independent connector
@@ -46,9 +51,58 @@ retained provider evidence or accepting genuinely distinct same-region labels.
 The regression fails before the correction and passes through normal collection
 and cache resolution afterward. Focused artwork/job/cloud/resource checks pass,
 including the 30,000-distinct-game resource fixture; analysis reports no errors
-or warnings and three unchanged style infos. Native label acceptance, the
-additional label's normal collection/publication and complete Drive resource
-read-back remain open. No individual local lookup conceals these cohort gaps.
+or warnings and three unchanged style infos. On the signed candidate, the normal
+NES-only Top 25 collection (job 106) completes with 195 matched resources and
+three provider requests, retaining the valid cached work. Startup publication
+and the already-queued dirty publication both reach actual sync completion.
+Independent read-back now finds cartridge assets in all 24 exact cohort packets;
+independent authenticated downloads verify every label's size and SHA-256 against
+its packet. The earlier HTTP 500 publication gap is resolved for this cohort.
+Native validation of every cohort scene and GBA entry-point parity remain open;
+the first ranked native label alone does not establish all scene bindings.
+No individual local lookup concealed these cohort gaps. Both NES entry points
+show the ranked first selection and source-labelled badges on Thor. The repeated
+TMNT label is also visibly resolved in its cartridge-only native view. Its missing
+carton does not pass unboxing acceptance: a private audit finds compatible
+carton bindings for nine of the 24 selected releases, while fifteen selected USA
+releases have only different regional references or no corresponding carton in
+the supplied catalogue. The affected carton integrations remain paused under
+CI-01 pending the owner's resource/workaround/limitation decision; no unrelated
+regional carton or sequel was substituted.
+After the cohort publication was verified, the original exact owned-game request
+completed through the existing single-game settings workflow: metadata job 107
+matches its one requested lookup; child artwork job 108 matches eight assets.
+Drive sync reaches actual completion. Independent read-back verifies the exact
+USA/Europe archive binding and label body/digest, and the native ordinary scene
+visibly replaces the handwritten fallback with authentic artwork. The canonical
+eligible NES cohort remains 24; private WAL/shared DELETE are unchanged.
+The secondary-screen preference was temporarily disabled for this ordinary-view
+check and is now visibly restored to its original enabled state; 3D remains
+enabled and Reduced Motion remains disabled. The authentic owned label is also
+visibly verified on the restored secondary view after dismissing the search IME.
+The first ordinary return frame retained a fallback while metadata resolved; the
+subsequent actual ready view shows the authentic label, rather than counting
+that provisional frame as completion.
+The remaining normal NES-101 launch is now exercised without skip: its single
+token selects the validated top-loader, reaches the final GPU frame with bound
+console/display geometry and hands off through the owned native launcher.
+The real game runs without touch controls; normal RetroArch exit preserves the
+selected game and returns to its scene. A preceding random front-loader choice
+was cancelled with B for coverage targeting and is not counted as a top-loader
+launch. Every exported recording contact sheet was reviewed; export is not
+truncated. Raw H.264 playback timestamps remain estimates, not physical-display
+timing. This closes that NES-101 normal-path gap, not the remaining three-system
+acceptance, fifteen carton resource gates, GBA/G&W adaptation or final S26 release.
+Exact cleanup transaction `d81beb8fd2888d6f9402e333bc7e6328` applied its reviewed
+16-member manifest and removed 177,838,222 bytes: superseded verification copies
+`candidate-4be05b9`, `candidate-9bc449a`, `candidate-8458081` and the discarded
+front-loader-choice raw recording. All four exact roots are verified absent.
+Current `candidate-7a17ab0`, defined rollback `candidate-246fd42`, original/private
+models, active launch derivatives, provenance, required reports and the complete
+successful NES-101 recording remain present. No runtime model, user download or
+source was removed, and cleanup did not use the Gradle gate. The superseded broad
+registration transaction is discarded without deleting its retained targets.
+Private receipt: `cleanup-7a-validation-round.json` under the scene-launch reports.
 CI-01/02 and source/installed skill 0.1.10 require stable-reference comparison,
 both entry points, ranked-prefix/tail behavior, initial published selection and
 native source-labelled score parity. Both skill copies validate and share the
@@ -58,7 +112,20 @@ No intermediate public release. Evidence: `console-default-order-before.log`,
 `nes-ratings-job-private.json`, `duplicate-label-before.log`,
 `duplicate-label-integrated-checks.log`, `duplicate-label-analysis.log`,
 `nes-top25-resource-job-completed.json` and
-`nes-top25-resource-drive-partial.json` under the scene-launch reports.
+`nes-top25-resource-drive-partial.json`,
+`nes-top25-label-recovery-completed.json`,
+`nes-top25-published-label-integrity-complete.json`,
+`candidate-7a17ab0-install.json`, `scene-7a-nes-ranked-focus.json` and
+`native/scene-7a-first-ranked-settled.*`,
+`native/scene-7a-main-library-nes-ranked.*`,
+`native/scene-7a-tmnt-label-rendered.*`,
+`nes-ranked-carton-resource-gate.md`, `nes-owned-exact-completed.json`,
+`nes-owned-label-drive-verified.json` and
+`native/scene-7a-owned-label-ready-state-up.png`,
+`native/scene-7a-owned-dual-ime-dismissed-*`,
+`native/scene-7a-nes101-normal-chosen-outcome.json`, the corresponding recording
+`analysis/manifest.json` and `scene-7a-nes101-real-owned-game-up.png` under the
+scene-launch reports.
 The existing scene workflow remains in the same sole
 active stage. The supplied Sony display and NES-101 derivative are integrated in
 the internal signed candidate from `9bc449a`, installed and hash/signer verified
