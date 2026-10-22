@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.8"
+  version: "0.1.9"
 ---
 
 # G-Shop Console Integration
@@ -80,6 +80,9 @@ By default, place up to 100 eligible canonical games first in score-rank order,
 then retain the full alphabetical tail. Use the actual eligible count; preserve
 explicit Top/rating filters, release preferences and manual shelf order. Browsing
 must remain cache-only and must not scrape to manufacture the default ordering.
+Check entry with and without a ready installation index. Initial selection and
+the secondary preview must come from the finished ranked view, not provisional
+alphabetical loading groups; preserve actual selection on later publications.
 
 Verify the same accepted source, freshness, confidence and exact-edition binding
 rules used by GBA, plus the visible source-labelled score badges and rating-overlay

@@ -243,7 +243,8 @@ void defineConsoleDiscoveryChecks({
       storageServiceProvider.overrideWithValue(storage),
       libraryDbProvider.overrideWithValue(service),
       bootstrappedConfigProvider.overrideWith((ref) async => appConfig),
-      installedFilesProvider.overrideWith((ref) async => InstalledFilesState()),
+      installedFilesProvider.overrideWith(
+          (ref) async => InstalledFilesState(bySystem: {'psx': <String>{}})),
       deviceMemoryProvider.overrideWithValue(
           const DeviceMemoryInfo(totalBytes: 0, tier: MemoryTier.standard)),
       sourcesProvider.overrideWith(
@@ -344,6 +345,16 @@ void defineConsoleDiscoveryChecks({
       await tester.pumpAndSettle();
     }
 
+    // Initial focus must be chosen from the published ranked result, not the
+    // alphabetical groups prepared internally while the loading view is shown.
+    final originalSecond = (await store.metadata(editions[2]!, 'igdb'))!;
+    await store.putMetadata(MetadataRecord.fromJson({
+      ...originalSecond.toJson(),
+      'refreshGeneration': 2,
+      'ratings': originalSecond.ratings
+          .map((r) => {...r.toJson(), 'rawValue': '100'})
+          .toList()
+    }));
     await tester.pumpWidget(app());
     expect(find.byType(AnimatedBackground), findsOneWidget,
         reason: 'The ROM grid must share the red console-selection backdrop');
@@ -365,7 +376,31 @@ void defineConsoleDiscoveryChecks({
     await tester.pumpAndSettle();
     await container.read(cachedCoverRatingsProvider('psx').future);
     await tester.pumpAndSettle();
+    await expectGames(['Game 02', 'Game 01', ...firstGames(12).skip(2)]);
+    expect(
+        tester
+            .widgetList<BaseGameCard>(find.byType(BaseGameCard))
+            .singleWhere((card) => card.displayName == 'Game 02')
+            .isSelected,
+        isTrue,
+        reason: 'Loading-only alphabetical groups are not a user selection');
+    await store.putMetadata(MetadataRecord.fromJson(
+        {...originalSecond.toJson(), 'refreshGeneration': 3}));
+    container.read(gameDbChangedProvider.notifier).state++;
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widgetList<BaseGameCard>(find.byType(BaseGameCard))
+            .singleWhere((card) => card.displayName == 'Game 02')
+            .isSelected,
+        isTrue,
+        reason: 'A published selection survives a later rating reorder');
     await expectGames(firstGames(12));
+    tester
+        .widgetList<BaseGameCard>(find.byType(BaseGameCard))
+        .singleWhere((card) => card.displayName == 'Game 01')
+        .onTapSelect!();
+    await tester.pumpAndSettle();
     await openFilters();
     // The real filter panel owns normal controller navigation and activation.
     for (var i = 0; i < 3; i++) {

@@ -343,7 +343,9 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
           .read(secondaryPreviewProvider)
           .hide(widget.retainedPreviewOwner!));
     }
-    if (!state.queryingDiscovery) {
+    // Loading groups are provisional. Remember focus only from a published
+    // view so the first ranked result can select its actual first game.
+    if (!state.isLoading && !state.queryingDiscovery) {
       final visible = [
         for (final group in state.filteredGroups)
           state.filteredGroupedGames[group]!.first.selectionKey

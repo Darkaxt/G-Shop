@@ -87,6 +87,9 @@ source-labelled score badges with GBA, including the rating-overlay setting,
 publication refresh and re-entry. Diagnose absent rating inputs separately from
 sorting or rendering defects and apply CI-01's upstream audit before claiming
 coverage. Keep unrated games accessible without manufacturing a badge.
+Default ordering also applies without a ready installation index. Initial focus
+and the secondary preview use the finished ranked view, not provisional loading
+groups; later publication preserves actual selected identity.
 
 ## Lower console composition — CI-03
 

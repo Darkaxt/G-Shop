@@ -335,15 +335,15 @@ class GameListController extends ChangeNotifier {
   }
 
   /// Uses pre-provided filenames (from [installedFilesProvider]) if available,
-  /// otherwise just clears the loading flag and lets the provider listener
-  /// call [applyInstalledFilenames] when data arrives.
+  /// otherwise publish the same filtered/ranked view with no known installs.
+  /// A later index publication updates installation state independently.
   void _resolveInstalledStatus() {
     if (_pendingInstalledFilenames != null) {
       applyInstalledFilenames(_pendingInstalledFilenames!,
           installedArtifacts: _installedArtifacts, localAliases: _localAliases);
     } else {
       _state = _state.copyWith(isLoading: false);
-      notifyListeners();
+      _applyFilters();
     }
   }
 

@@ -13,19 +13,31 @@ out the alphabetical tail. Actual controller/query regressions reproduce the
 old alphabetical order for both NES and GBA and pass with the correction,
 including the 100-game cap, unrated/low-vote tail, explicit Top filter and
 publication-driven reorder. Focused query/controller/console/Library checks
-and source analysis pass. Native order/badge acceptance remains open. The
-normal ratings-only NES operation was started once on Thor; job 104 is running
-with accepted matching inputs, rather than blindly scraping all 9,831 titles.
+and source analysis pass. The
+normal ratings-only NES operation was started once on Thor with accepted
+matching inputs, rather than blindly scraping all 9,831 titles.
 Job 104 has now completed: 84 provider requests, 58 matched records and 47 with
 scores. After projection recovery, 24 distinct NES games qualify under the
 existing ranking policy. Main Library on the installed `9bc449a` shows Best 24
 followed by A–Z and the actual IGDB score badges. The ordinary browser correction
-is committed as `246fd42`; its internal signed build is running. Drive publication
-stopped partway with HTTP 500 `responsePreparationFailure`; a read-only audit of
-all 24 exact cohort packets confirms partial new rating publication and incomplete
-artwork. Upstream publication/resource acceptance and native ordinary-browser
-verification remain open. CI-02 and skill 0.1.8 now explicitly require both
-entry points, ranked-prefix/tail behavior and native source-labelled score parity.
+is committed as `246fd42`; its signed candidate is installed with matching APK
+hash, existing signer and all sixteen database/preferences files unchanged.
+Native ordinary-browser entry retains all 9,831 entries and shows ranked NES
+games and actual IGDB badges (4.212 seconds including 2.568 seconds of recovery).
+It also exposes an initial-selection defect: the lower preview retains the
+alphabetical loading item instead of the first ranked game. Loading groups must
+not seed published selection, and an absent installation index must not skip
+discovery. Both corrections pass focused query/controller/console/Library checks
+and analysis; native selection acceptance awaits the next signed candidate.
+Drive publication initially stopped with HTTP 500 `responsePreparationFailure`;
+manual reconciliation then failed with HTTP 500 `internalError`. Normal startup
+backup-only publication subsequently completed at 1,403/1,403. Independent connector
+read-back verifies all 24 exact NES cohort packets contain the new IGDB record,
+the same community scores as the native projection and the required vote floor.
+Art availability remains incomplete: twelve cohort packets list cartridge images;
+actual label/resource acceptance remains open. CI-02 and source/installed skill
+0.1.9 require both entry points, ranked-prefix/tail behavior, initial published
+selection and native source-labelled score parity.
 No intermediate public release. Evidence: `console-default-order-before.log`,
 `console-default-order-checks.log`, `console-default-order-analysis.log` and
 `nes-ratings-job-private.json` under the scene-launch reports.

@@ -1440,7 +1440,7 @@ void main() {
               providers: const []),
           databaseService: _ConsoleCacheDatabase(db, games),
           storage: _FreshFilterStorage(),
-          installedFilenames: const {},
+          installedFilenames: platform == 'nes' ? null : const {},
           releasePreference: const CommercialReleasePreference(),
           prepareMetadata: () async {});
       addTearDown(controller.dispose);
