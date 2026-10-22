@@ -1,6 +1,21 @@
 # Staged implementation plan
 
-Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 150
+Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage. Revision 152
+restores the full established GBA acquisition/reconstruction/publication/recovery
+pipeline to the current NES correction. The bounded audit identifies dump-only
+NES catalogue and preview bypasses, plus the collector's missing ScreenScraper
+front role. Resolve those omissions using existing approved best-effort packaging,
+retain complete supplied models, then verify actual native 3D boxes and authentic
+labels. Update source/installed skill with the complete checklist. The fifteen
+dump-unbound releases are not established external blockers: remaining sources
+and already-approved reconstruction have not yet been exhausted.
+Revision 151
+restricts current work to NES default ranked ordering, visible score badges and
+authentic cartridge labels. Verify the actual 24-game ranked cohort through
+real navigation and both browsing entry points on the installed candidate;
+upstream checks or a few representative scenes do not close this outcome.
+Hold other console/launch/Socket work without dropping its requirements.
+Revision 150
 requires default ranked-prefix ordering and score-policy parity in the ordinary
 NES/GBA console browser and main Library. Resolve missing NES rating inputs
 through the existing upstream workflow; verify actual native order and badges.

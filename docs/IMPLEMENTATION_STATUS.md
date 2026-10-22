@@ -5,6 +5,34 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-22 owner focus / pipeline correction (specification revision 152):
+**S26 ACTIVE**, sole active stage. Work remains on NES ordering, badges, authentic
+labels and the omitted existing box pipeline; other console launch adaptation and
+Socket work are held. The requested one-agent read-only audit used the verified
+main model at Low effort and found that NES's dump-only catalogue/early preview
+return bypassed GBA's source/reconstruction lane; the packaging collector also
+omits the ScreenScraper front role. Main-agent source and historical-evidence
+review confirms the prior revision 72 best-effort permission for flat art,
+colour-matched missing faces and coherent spine reuse with provenance. The
+previous fifteen-carton external-gap classification and associated workaround
+question were premature and are superseded: applicable sources and the approved
+reconstruction lane have not been exhausted. They remain internal integration
+and acceptance work, not a demand for the owner to restate prior approval.
+The installed `7a17ab0` candidate's actual ordinary grid was navigated through all
+24 canonical ranked games, preserving rank/selected filename and authentic label
+pixels in every lower scene; all four six-game contact sheets are inspected.
+Current main Library also visibly shows Best 24 then A-Z, IGDB badges and the
+first ranked game's authentic carton/cartridge label. These fresh observations
+do not accept the currently flat fallback covers as 3D boxes. Private evidence:
+`nes-fix-ordinary-cohort-observed.json`, `native/nes-fix-ordinary-labels-*`,
+`native/nes-fix-ranked-first.*`, `native/nes-fix-main-ranked-first.*`.
+Source and installed integration skill 0.1.11 now include the full recovered
+pipeline/checklist reference, prior best-effort approval and source exhaustion
+before escalation. Both copies validate; entrypoint and reference hashes match,
+and the changed installed instructions/reference were reread. Public-skill
+preflight produced unrelated logging/acceptance candidates, so the existing
+project-specific skill is retained; no third-party skill was installed.
+
 2026-10-22 acceptance correction: **S26 remains ACTIVE; the full NES workflow
 has not passed acceptance.** The owner's observed alphabetical-only ordering and
 missing cartridge labels were validation failures in the integration, not a

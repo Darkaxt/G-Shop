@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.10"
+  version: "0.1.11"
 ---
 
 # G-Shop Console Integration
@@ -18,6 +18,18 @@ stage, require a worker, authorize a new console, change scope, introduce approv
 ceremony or supersede user/standing instructions. Preserve existing authorization
 and the sole active stage. Reload the contract when the owner changes its rules.
 
+## Carry forward the complete existing pipeline
+
+Before integrating another console, read
+[the end-to-end pipeline and acceptance checklist](references/console-integration-pipeline.md).
+Recover the existing GBA implementation, retained evidence and later owner
+decisions before proposing another path. Map every applicable step to the current
+console and existing reconciliation ledger. Reuse the working acquisition,
+reconstruction, import/publication and recovery lanes; a console-specific renderer
+must not bypass them. The owner supplies genuinely missing resources, not a
+repeated description of the integration process. Historical evidence establishes
+the precedent and permission; verify the new console's actual delivered behavior.
+
 ## Resource gate first
 
 Bind actual ROM/revision identities separately from physical hardware, cartridge
@@ -25,6 +37,17 @@ families and carton printings. Inventory required models, labels, textures,
 accessories, controllers, displays and animations. Check original sources and
 private receipts; retain their hashes, artwork and attribution. Never publish ROM
 inventories, private models/artwork or credentials with application changes.
+
+For cartons, exhaust the existing applicable source chain: reviewed NintAndBox
+dump panels, public low-resolution .es previews, LaunchBox, then ScreenScraper.
+Consider front, back, spine and unfolded texture roles. A missing dump model or
+same-region catalogue binding is not evidence that no box can be produced.
+The established best-effort reconstruction approval permits available flat art,
+coherent spine reuse and plain colour-matched absent faces, with per-face
+provenance. It does not establish six original scans or authorize a wrong game's
+printing. Apply that existing permission before invoking the resource gate; do
+not ask the owner to approve it again. Trace fixable acquisition/binding/rendering
+omissions before reporting a genuine source gap.
 
 **Pause the affected integration when any required resource is missing, invalid
 or lacks a sufficiently established physical binding.** Report the exact resource

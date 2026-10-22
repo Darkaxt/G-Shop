@@ -1,6 +1,27 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 150, 2026-10-22.
+Authoritative specification, revision 152, 2026-10-22.
+
+Owner pipeline correction, 2026-10-22: audit and carry forward the full existing
+GBA pipeline, including missing-box reconstruction from LaunchBox with
+ScreenScraper fallback after the applicable NintAndBox sources. Recover and apply
+the already-approved best-effort flat-art/neutral-face reconstruction rather than
+classifying a missing dump binding as an external resource gap. Wire the resulting
+edition-owned packaging through publication/recovery into both NES gallery and
+game scene; preserve authentic labels, ordering and supplied complete models.
+Update the integration skill with the full source-to-native checklist so the
+owner supplies genuinely missing resources rather than repeating implementation
+steps for each console. This expands the current NES correction to its omitted
+box pipeline; GBA/G&W launch adaptations and Socket review remain held. Existing
+single-stage and single final release requirements remain unchanged.
+
+Owner focus correction, 2026-10-22: work only on the NES ranked-order,
+score-badge and authentic cartridge-label failures until this bounded outcome
+is verified. Reproduce against the installed candidate, trace any remaining
+defect and verify both browsing entry points with the actual ranked cohort.
+Missing cartons do not excuse these failures. Hold GBA/Game & Watch launch
+adaptation and the later Socket review; their requirements remain recorded,
+not waived. Keep the existing single ACTIVE S26 and single final release boundary.
 
 Owner NES/GBA sorting and score parity, 2026-10-22: apply the established
 default Top 100 canonical ranked prefix followed by the alphabetical tail to

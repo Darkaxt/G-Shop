@@ -14,6 +14,21 @@ Distinguish absent files, invalid assets, uncertain physical bindings and resour
 that genuinely do not apply. A ROM revision is not automatically another exterior;
 a game title or CRC does not establish a physical printing, colour or shell.
 
+Carry forward the complete existing GBA resource pipeline for each authorized
+console: reviewed NintAndBox dump panels -> public low-resolution .es preview ->
+edition-compatible LaunchBox faces -> ScreenScraper missing roles, including the
+front. Check actual decoded resources and retain per-face provenance. A missing
+dump catalogue binding is not an exhausted source investigation. The established
+best-effort approval permits flat-art reconstruction, plain colour-matched absent
+faces and coherent available-spine reuse, with original/reconstructed provenance;
+six authentic scans are not a prerequisite. This does not authorize wrong-game
+or unestablished regional-printing substitution. Use that existing approval rather
+than asking the owner to repeat it. Preserve complete supplied models first.
+Trace prepared artwork through the normal edition-owned import, Drive publication,
+shared-cache recovery and every gallery/scene consumer before acceptance. A
+console-specific preview must not bypass those existing acquisition/fallback lanes.
+The skill's end-to-end reference checklist records the required integration steps.
+
 Before accepting resource coverage for an authorized console, snapshot its actual
 eligible distinct Top 25 from the canonical ranked query and current preferences;
 do not infer membership from an installed animation-test game. Verify the accepted
