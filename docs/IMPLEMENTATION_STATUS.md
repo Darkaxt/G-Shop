@@ -5,6 +5,55 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-22 current reconciliation (specification revision 161): **S26 ACTIVE**,
+sole active stage. Full read-only census proves 9,831 NES and 7,675 GBA member
+archives; both projections were clean at the snapshot. Private per-archive role
+ledgers retain every member. Existing references cover only 97 NES/135 GBA fronts,
+97 NES/143 GBA labels, with full body/publication/recovery acceptance still open.
+The 632-edition NES catalogue binds 472 current archives; edition and filename-key
+counts are not unique-game or full-collection coverage. Desktop collection now
+has a full edition selector and bounded import packs; focused scope/batch checks
+pass, and production inventory runs retain all archives. No broad acquisition or
+publication has yet run from this snapshot; the normal all-games metadata job has
+not been started. Thor remains on its existing `661e8a0` candidate.
+
+NES badges were confirmed in a card-space Stack rather than GBA front-artwork
+coordinates. The correction removes that stack and uses a transparent decal on
+the actual forward printed panel, with independent upright UVs. All 632 bound
+cartons pass the host geometry check: original mesh prefix and source transforms
+are retained, with no gallery-only normalization. Late score/overlay preferences
+and shared GBA badge layout pass focused checks. Actual signed native appearance
+and both browser entry points remain acceptance blockers.
+
+The Python converter now gates carton acceptance on OCR of UV-mapped assembled
+front/back panels at four orthogonal rotations, retaining original/crop/word/hash
+evidence. The existing Blender hinge comparison remains independently required.
+All 24 currently eligible NES testing-cohort cartons pass front/back OCR and
+their retained opening checks. A real Kirby conversion passes the new end-to-end
+gate; an intentionally inverted-front GLB is detected at 180 degrees and rejected
+without writing an accepted model.json, despite passing its hinge comparison.
+Uncertain OCR remains review-required. A rotated source scan with compensating UVs
+is not a failure; material names alone do not establish visible front/back roles.
+No original import was changed on that coordinate-only assumption. Full-census
+orientation/resource reconciliation remains open. No new signed candidate or
+native badge/orientation pass is claimed. Source and installed skill must be
+reconciled after the fix; installed version currently remains 0.1.14.
+
+2026-10-22 resume / full-coverage correction (specification revision 159):
+**S26 ACTIVE**, sole active stage. The owner resumed work and explicitly requires
+resource coverage for all ROMs before moving on, including GBA. Top 25 is only the
+native testing sample. The existing desktop collector's ranked-only selector and
+25-game import-pack cap must not narrow production scope: use full identity-bound
+selection and bounded packs through the same resource lane. Current NES census
+contains 9,831 archives; the catalogue has 632 editions and 468 filename bindings,
+which are not unique-game or whole-collection coverage counts. Full per-ROM role
+reconciliation, gap acquisition/binding/publication/recovery, GBA backfill and
+their acceptance remain open. GBA's historical ranked-sample success is not full
+GBA coverage. Existing floor CI run `39775767418` is confirmed successful for
+`6bd3855`; no new installation/review has occurred. The user's requested cohesive
+next-implementation floor review remains pending. Older pause/ACTIVE statements
+below are dated checkpoints, superseded by this resumed scope.
+
 2026-10-22 owner pause (specification revision 158): **S26 BLOCKED** by the
 explicit request to pause for today; no implementation stage is ACTIVE. The
 owner directs floor review to the next implementation. Source `6bd3855` is

@@ -14,6 +14,25 @@ Distinguish absent files, invalid assets, uncertain physical bindings and resour
 that genuinely do not apply. A ROM revision is not automatically another exterior;
 a game title or CRC does not establish a physical printing, colour or shell.
 
+Resource coverage is **the full ROM collection**, including the GBA backfill;
+Top 25 is the native acceptance sample, not a production coverage cap. Reconcile
+every archive and required role against actual game/edition identities through
+acquisition, reconstruction, binding, publication and recovery. Keep unranked and
+modified/unlicensed/aftermarket releases visible in that census; do not silently
+exclude them or borrow base-game resources. Proven inapplicability and specific
+owner-accepted limitations must retain their evidence. Do not move to another
+console with actionable missing coverage or unacknowledged required gaps. A
+25-game import pack or provider request budget requires bounded batches/resume,
+not truncating the collection. Test the canonical Top 25 plus relevant edge cases;
+validate full-census bindings, content integrity and production coverage separately.
+
+For upper 3D cartons, apply GBA's front-artwork badge contract: score upper-right
+and cloud/local availability lower-right on the actual front surface. Both must
+share its perspective, rotation and occlusion, including idle/Reduced Motion;
+screen/card-space corner overlays do not satisfy this rule. Preserve dynamic
+score arrival, overlay preferences and source-labelled exact-edition ownership.
+Keep lower-screen HUD badges at their separately specified screen anchors.
+
 Carry forward the complete existing GBA resource pipeline for each authorized
 console: reviewed NintAndBox dump panels -> public low-resolution .es preview ->
 edition-compatible LaunchBox faces -> ScreenScraper missing roles, including the

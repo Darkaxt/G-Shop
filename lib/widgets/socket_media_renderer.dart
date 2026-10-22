@@ -34,7 +34,7 @@ class SocketMediaRenderer extends StatefulWidget {
   final Widget label;
   final Object? labelIdentity;
   final VoidCallback? onReady;
-  final bool frameComposition;
+  final bool frameComposition, boxFaceBadges;
   final double compositionFill, compositionZoom;
   const SocketMediaRenderer(
       {super.key,
@@ -52,6 +52,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.compositionZoom = 1,
       this.onReady})
       : packaging = null,
+        boxFaceBadges = false,
         gameWatchScene = null,
         console = null,
         unboxingScene = null;
@@ -65,6 +66,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.labelIdentity,
       this.onReady})
       : frameComposition = false,
+        boxFaceBadges = false,
         compositionFill = .75,
         compositionZoom = 1,
         packaging = model,
@@ -81,6 +83,9 @@ class SocketMediaRenderer extends StatefulWidget {
       required this.pose,
       required this.identity,
       required this.title,
+      this.label = const ColoredBox(color: Colors.white),
+      this.labelIdentity = 'console',
+      this.boxFaceBadges = false,
       this.onReady,
       this.frameComposition = false,
       this.compositionFill = .75,
@@ -92,9 +97,7 @@ class SocketMediaRenderer extends StatefulWidget {
         unboxingScene = null,
         packaging = null,
         cartridgeStyle = null,
-        format = PhysicalMediaFormat.gameBoy,
-        label = const ColoredBox(color: Colors.white),
-        labelIdentity = 'console';
+        format = PhysicalMediaFormat.gameBoy;
   const SocketMediaRenderer.unboxing(
       {super.key,
       required UnboxingScene scene,
@@ -106,6 +109,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.compositionZoom = 1,
       this.onReady})
       : frameComposition = true,
+        boxFaceBadges = false,
         compositionFill = .75,
         unboxingScene = scene,
         nesLaunchScene = null,
@@ -274,6 +278,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         oldWidget.packaging?.aspect != widget.packaging?.aspect ||
         oldWidget.packaging?.depth != widget.packaging?.depth ||
         oldWidget.console?.generation != widget.console?.generation ||
+        oldWidget.boxFaceBadges != widget.boxFaceBadges ||
         oldWidget.cartridgeStyle != widget.cartridgeStyle ||
         oldWidget.identity != widget.identity ||
         _resources != SocketMediaModel.importedBundle) {
@@ -326,7 +331,8 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
                               (throw StateError(
                                   'Import the holder-enabled box and cartridge'))
                           : widget.console != null
-                              ? await widget.console!.load()
+                              ? await widget.console!
+                                  .load(galleryBadges: widget.boxFaceBadges)
                               : widget.cartridgeStyle != null &&
                                       widget.format == PhysicalMediaFormat.nes
                                   ? await NesCartridgeModel.load(
@@ -839,6 +845,11 @@ class SocketMediaGpu {
         ..rotateY(-opening.clamp(0, 1) *
             (model.data['maxOpenRadians'] as num).toDouble())
         ..translateByDouble(-pivot[0].toDouble(), 0, 0, 1);
+    }
+    if (surface['galleryBadges'] == true) {
+      // Source-local separation prevents z-fighting with the original face.
+      // It shares the carton transform rather than the viewport corners.
+      transform.translateByDouble(0, 0, .0001, 1);
     }
     if (pose.labelSpin != 0 && (isLabel || model.motionKind == 'disc')) {
       final pivot = (surface['pivot'] as List).cast<num>();

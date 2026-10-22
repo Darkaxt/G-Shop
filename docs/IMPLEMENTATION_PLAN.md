@@ -1,6 +1,21 @@
 # Staged implementation plan
 
-Current execution, 2026-10-22: **S26 BLOCKED** by the owner's explicit pause for
+Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage, resumed under
+revision 161. Add assembled-panel OCR orientation validation to the Python carton
+pipeline and correct actual source faults with opening transforms kept consistent;
+a gallery-only transform is insufficient. Correct NES score/status attachment to the actual front surface,
+including dynamic updates, preferences and both browser paths. Full-collection
+resource coverage is required for NES and GBA;
+Top 25 remains the native acceptance sample. Reconcile every archive against
+the existing catalogue, complete actionable acquisition/reconstruction/binding
+and production publication/recovery, then verify the sample and actual gaps.
+Backfill GBA before moving to another console. Keep explicit missing resources
+under CI-01; do not disguise exclusions as completed coverage. Update and validate
+source/installed skill parity. Existing floor CI run `39775767418` completed
+successfully for `6bd3855`; its native review remains with the next implementation.
+Retain wider acceptance/Socket and the single final S26 delivery boundary.
+
+Prior owner hold, revision 158: **S26 BLOCKED** by the owner's explicit pause for
 today (revision 158); no implementation stage is ACTIVE. Review the committed
 floor treatment with the next implementation on resume. Retain existing CI run
 `39775767418` for source `6bd3855`; it was running at the pause, and must be read

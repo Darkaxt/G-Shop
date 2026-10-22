@@ -5,6 +5,8 @@ enter the pack. Never writes ROMs, ratings, credentials or Google Drive directly
 Requires Pillow, requests, py7zr and PyMuPDF for available PDF manuals.
 """
 import argparse
+from contextlib import closing
+import math
 import gzip
 import hashlib
 import io
@@ -131,7 +133,8 @@ def website_box(row, system, session):
         return []
     soup = BeautifulSoup(page, 'html.parser')
     heading = soup.find('h1')
-    aliases = {normalized(t) for t in [row['title'], *[t['text'] for t in row['metadata']['titles']]]}
+    aliases = {normalized(t) for t in [row['title'],
+        *[t['text'] for t in (row['metadata'] or {}).get('titles', [])]]}
     if heading is None or normalized(heading.get_text()) not in aliases:
         return []
     text = soup.get_text(' ', strip=True).lower()
@@ -386,6 +389,83 @@ def ranked_selection(projection, system):
     return sorted((v[1] for v in chosen.values()), key=lambda x: x['rank'])
 
 
+def collection_selection(projection, system):
+    """Every current edition, including unrated/modified and metadata gaps.
+
+    Identity and region facts are retained verbatim. Missing prerequisites remain
+    census members, rather than disappearing through the ranked/provider joins.
+    """
+    with closing(sqlite3.connect(':memory:')) as db:
+        db.deserialize(gzip.decompress(projection.read_bytes()))
+        db.row_factory = sqlite3.Row
+        rows = db.execute('''SELECT s.edition_id,s.game_id,s.cache_row_id,
+          s.title,s.group_key,g.record_json AS game_json,
+          e.record_json AS edition_json,m.record_json AS metadata_json
+          FROM library_query_editions s
+          LEFT JOIN library_editions e ON e.edition_id=s.edition_id
+          LEFT JOIN library_game_identities g ON g.game_id=s.game_id
+          LEFT JOIN library_metadata m ON m.edition_id=s.edition_id
+            AND m.provider_id='screenscraper'
+          WHERE s.member=1 AND s.platform_id=? ORDER BY s.edition_id''', (system,))
+        result = []
+        seen = set()
+        for row in rows:
+            if row['edition_id'] in seen:
+                raise ValueError('Duplicate collection edition')
+            seen.add(row['edition_id'])
+            item = dict(row)
+            for field in ['game', 'edition', 'metadata']:
+                raw = item.pop(field + '_json')
+                item[field] = json.loads(raw) if raw is not None else None
+            game, edition, metadata = item['game'], item['edition'], item['metadata']
+            if (game is None or edition is None or game['id'] != row['game_id'] or
+                    game['platformId'] != system or edition['id'] != row['edition_id'] or
+                    edition['gameId'] != game['id']):
+                raise ValueError('Inconsistent collection identity')
+            if metadata is not None and (metadata.get('gameId') != game['id'] or
+                    metadata.get('editionId') != edition['id'] or
+                    metadata.get('platformId') != system or
+                    metadata.get('providerId') != 'screenscraper'):
+                raise ValueError('Inconsistent metadata identity')
+            item.update(rank=None, score=None)
+            result.append(item)
+    return result
+
+
+def write_packaging_batches(target, manifest, bodies):
+    """Keep the production import's 25-game and decoded/member budgets intact."""
+    games = manifest['games']
+    batches = [games[start:start + 25] for start in range(0, len(games), 25)]
+    prepared = []
+    for index, batch in enumerate(batches, 1):
+        path = target if len(batches) == 1 else target.with_name(
+            f'{target.stem}.batch-{index:04d}{target.suffix}')
+        if path.exists():
+            raise FileExistsError(path)
+        data = json.dumps({**manifest, 'games': batch}, separators=(',', ':')).encode()
+        needed = sorted({r['importReference']['sha256'] for g in batch for r in g['resources']})
+        if any(digest not in bodies for digest in needed):
+            raise ValueError('Missing resource body')
+        sizes = [len(data), *(len(bodies[digest]) for digest in needed)]
+        if len(sizes) > 4096 or any(size < 1 or size > 4 * 1024 * 1024 for size in sizes) or sum(sizes) > 1024 ** 3:
+            raise ValueError('Artwork batch exceeds production import budget')
+        prepared.append((path, data, needed, len(batch)))
+    receipts = []
+    for path, data, needed, count in prepared:
+        with zipfile.ZipFile(path, 'x', compression=zipfile.ZIP_STORED) as archive:
+            archive.writestr('packaging.json', data)
+            for digest in needed:
+                archive.writestr('images/' + digest + '.png', bodies[digest])
+        receipts.append({'file': path.name, 'games': count, 'images': len(needed),
+            'bytes': path.stat().st_size, 'sha256': file_sha256(path)})
+    return receipts
+
+
+def file_sha256(path):
+    with path.open('rb') as stream:
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+
 def launchbox_index(source, wanted_names, system='gba'):
     games, images = {}, {}
     with zipfile.ZipFile(source) as archive, archive.open('Metadata.xml') as stream:
@@ -531,22 +611,54 @@ def fetch(session, url, *, params=None, limit=32 * 1024 * 1024, provider_budget=
 def collect(args):
     global HTTP_CACHE
     HTTP_CACHE = getattr(args, 'http_cache', None) or args.launchbox.parent / 'resource-bodies'
-    selection = ranked_selection(args.projection, args.system)
+    scope = getattr(args, 'selection', 'top25')
+    selection = (collection_selection if scope == 'collection' else ranked_selection)(
+        args.projection, args.system)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    batch_count = math.ceil(len(selection) / 25)
+    def batch_target(index):
+        return args.output if batch_count <= 1 else args.output.with_name(
+            f'{args.output.stem}.batch-{index:04d}{args.output.suffix}')
+    for index in range(1, batch_count + 1):
+        if batch_target(index).exists():
+            raise FileExistsError(batch_target(index))
+    if scope == 'collection':
+        census = {'scope': scope, 'platform': args.system,
+            'projectionSha256': file_sha256(args.projection),
+            'editions': [{'gameId': r['game']['id'], 'editionId': r['edition']['id'],
+                'cacheRowId': r['cache_row_id'], 'identityKey': owner_key(r['game'], r['edition']),
+                'metadataAvailable': r['metadata'] is not None} for r in selection]}
+        with args.output.with_suffix('.selection.json').open('x', encoding='utf8') as output:
+            json.dump(census, output, indent=2)
+    if getattr(args, 'inventory_only', False):
+        print(json.dumps({'scope': scope, 'selected': len(selection), 'acquisitionStarted': False}))
+        return
     wanted = {normalized(name) for row in selection for name in
-        [row['title'], *(x['text'] for x in row['metadata']['titles'])]}
+        [row['title'], *(x['text'] for x in (row['metadata'] or {}).get('titles', []))]}
     games, images = launchbox_index(args.launchbox, wanted, args.system)
     by_name = {}
     for key, title in games.items():
         by_name.setdefault(normalized(title), set()).add(key)
     session = requests.Session()
     manifest = {'version': 1, 'platform': args.system, 'games': []}
-    bodies, report = {}, []
+    bodies, report, packs = {}, [], []
     credentials = read_env(args.env) if args.env else {}
     auth = {target: credentials.get(source, '') for target, source in {
         'devid': 'SCREENSCRAPER_DEVID', 'devpassword': 'SCREENSCRAPER_DEVPASSWORD',
         'softname': 'SCREENSCRAPER_SOFTNAME', 'ssid': 'SCREENSCRAPER_USERNAME',
         'sspassword': 'SCREENSCRAPER_PASSWORD'}.items()}
     provider_budget = ScreenScraperBudget(auth) if all(auth.values()) else None
+    def flush(processed):
+        if manifest['games']:
+            packs.extend(write_packaging_batches(batch_target(math.ceil(processed / 25)), manifest, bodies))
+        args.output.with_suffix('.report.json').write_text(json.dumps(report, indent=2), encoding='utf8')
+        if scope == 'collection':
+            args.output.with_suffix('.batches.json').write_text(json.dumps({
+                'scope': scope, 'selected': len(selection), 'processed': processed,
+                'preparationFinished': processed == len(selection),
+                'publicationVerified': False, 'packs': packs}, indent=2), encoding='utf8')
+        manifest['games'].clear()
+        bodies.clear()
     def add(resources, role, region, body, *, source, asset, url, page=None, panel=None, original=None):
         source_body = original or body
         rotation = 0
@@ -567,10 +679,23 @@ def collect(args):
               'sourceSha256': hashlib.sha256(source_body).hexdigest(),
               **({'rotationDegrees': rotation} if rotation else {}),
               **({'panel': panel} if panel else {})}})
-    for row in selection:
+    for position, row in enumerate(selection, 1):
         resources = []
         edition = row['edition']
         regions = set(edition['regions'])
+        metadata = row['metadata'] or {}
+        # These remain in the full census. A title match alone cannot establish
+        # the printing of a hack/translation or an edition with unknown region.
+        modified = (row['game'].get('baseGameId') or edition.get('patchId') or
+            edition.get('isTranslation') or set(edition.get('tags', [])) &
+                {'Hack', 'T-Eng', 'Dub', 'Undub', 'Uncensor'})
+        if scope == 'collection' and (not regions or modified):
+            report.append({'editionId': edition['id'], 'gameId': row['game']['id'],
+                'title': row['title'], 'rank': None, 'regions': sorted(regions), 'roles': {},
+                'gap': 'modified-release-artwork-binding' if modified else 'edition-region-unresolved'})
+            if position % 25 == 0 or position == len(selection):
+                flush(position)
+            continue
         # Local reviewed complete boxes win before any remote artwork request.
         local = {'platform': args.system, 'games': [{'gameId': row['game']['id'],
             'regions': list(regions), 'resources': resources}]}
@@ -595,7 +720,7 @@ def collect(args):
                 panel = next(r for r in resources if r['type'] == 'outer-box-' + face)
                 resources.append({**panel, 'type': role})
         ids = set().union(*(by_name.get(normalized(name), set()) for name in
-            [row['title'], *(x['text'] for x in row['metadata']['titles'])]))
+            [row['title'], *(x['text'] for x in metadata.get('titles', []))]))
         if not full_box and len(ids) == 1:
             game_id = next(iter(ids))
             for type_name, role in ROLES.items():
@@ -616,8 +741,8 @@ def collect(args):
                         source='launchbox', asset=game_id + '/' + filename, url=url)
         # Existing ScreenScraper facts supply the matched game identity. Only
         # extra same-edition faces/documents are requested; facts/scores stay intact.
-        provider_id = row['metadata']['providerGameId']
-        extra_media = list(row['metadata']['media'])
+        provider_id = metadata.get('providerGameId')
+        extra_media = list(metadata.get('media', []))
         platform_id = next((m['providerReference']['providerPlatformId'] for m in extra_media
             if m.get('providerReference')), None)
         # Legacy metadata discarded mediaManuelJeu selectors. Probe the documented
@@ -632,7 +757,7 @@ def collect(args):
                 continue
             if role != 'manuel' and any(x['type'] == role for x in resources):
                 continue
-            if not all(auth.values()):
+            if not all(auth.values()) or not provider_id:
                 continue
             reference = media.get('providerReference')
             if not reference:
@@ -666,6 +791,7 @@ def collect(args):
         compose_english_faces(composed, resources.copy(), bodies=bodies)
         resources = composed['resources']
         report.append({'rank': row['rank'], 'title': row['title'],
+            'gameId': row['game']['id'], 'editionId': edition['id'],
             'regions': sorted(regions), 'launchboxIds': sorted(ids),
             'roles': {role: sum(x['type'] == role for x in resources)
                 for role in sorted({x['type'] for x in resources})}})
@@ -673,20 +799,20 @@ def collect(args):
             manifest['games'].append({'gameId': row['game']['id'], 'editionId': edition['id'],
                 'identityKey': owner_key(row['game'], edition), 'resources': resources})
         print(json.dumps(report[-1]), flush=True)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(args.output, 'x', compression=zipfile.ZIP_STORED) as archive:
-        archive.writestr('packaging.json', json.dumps(manifest, separators=(',', ':')))
-        for digest, data in bodies.items():
-            archive.writestr('images/' + digest + '.png', data)
-    args.output.with_suffix('.report.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
-    print(json.dumps({'pack': str(args.output), 'ranked': len(selection),
-        'prepared': len(manifest['games']), 'images': len(bodies)}))
+        if position % 25 == 0 or position == len(selection):
+            flush(position)
+    print(json.dumps({'scope': scope, 'selected': len(selection), 'packs': packs,
+        'prepared': sum(p['games'] for p in packs), 'publicationVerified': False}))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--system', choices=PLATFORMS)
     parser.add_argument('--projection', type=Path)
+    parser.add_argument('--selection', choices=['top25', 'collection'], default='top25',
+        help='Top 25 testing sample (default), or every current collection edition')
+    parser.add_argument('--inventory-only', action='store_true',
+        help='Write the complete collection identity census without acquiring resources')
     parser.add_argument('--launchbox', type=Path)
     parser.add_argument('--http-cache', type=Path,
         help='Exact artwork response-cache directory; defaults beside the LaunchBox index')
@@ -703,6 +829,8 @@ def main():
         help='For an existing pack, check the public lower-res .es preview only where dump panels are absent')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
+    if args.inventory_only and (args.selection != 'collection' or args.augment_pack or args.normalize_spines):
+        parser.error('--inventory-only requires normal --selection collection')
     if args.augment_pack:
         if not args.panel_layouts:
             parser.error('--augment-pack requires --panel-layouts')

@@ -1,6 +1,49 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 158, 2026-10-22.
+Authoritative specification, revision 161, 2026-10-22.
+
+Owner conversion-validation correction, 2026-10-22: verify text orientation in
+the Python carton conversion pipeline. Judge the actual assembled panel with its
+UV mapping, not material names or raw texture rotation alone: a rotated scan can
+be compensated by its UVs, and a source material named front may be rear-facing.
+Report upright, rotated and insufficient/ambiguous OCR evidence separately; do
+not certify unreadable/stylized art from a loader flag or automatically rotate a
+model from weak OCR. Correct genuine source/panel/conversion faults with geometry,
+normals, pivots, hinge axes, translations, pose centres and animation verification
+kept together. A gallery-only orientation transform does not fix the source or
+establish unboxing acceptance. Preserve originals and bind review to exact hashes.
+Exercise closed/open poses and retain OCR/pixel evidence for accepted imports.
+Keep S26 the sole ACTIVE stage; badge integration, full NES/GBA coverage and the
+single final release remain required.
+
+Owner score-placement correction, 2026-10-22: carry the established GBA front-face
+badge contract into the NES gallery. Scores belong at the carton's front upper
+right and cloud/local availability at its front lower right; both travel with the
+actual surface through selected yaw, idle pose and Reduced Motion. Remove the
+NES card-space badge stack. Preserve source artwork/geometry, asynchronous score
+updates, score-overlay preferences, exact edition ownership, and both browser
+entry points. Record the same rule in the reusable console integration skill.
+Verify actual supplied/reconstructed NES cartons on the signed native candidate;
+widget layout alone does not establish attachment to the rendered face. Keep
+S26 as the sole ACTIVE stage and retain the full NES/GBA collection coverage gate.
+
+Owner resume and coverage correction, 2026-10-22: resume S26 and complete resource
+coverage for every ROM in each integrated console's collection before moving on.
+This explicitly includes GBA backfill as well as NES. The eligible Top 25 is the
+native testing sample, not the acquisition, reconstruction, binding, publication
+or recovery limit. Inventory every archive and its actual game/edition identity;
+reuse compatible resources across proven variants without counting editions as
+distinct games. Record all required roles as available, absent, invalid, uncertain,
+evidently inapplicable or specifically owner-accepted limitations. Do not silently
+drop unranked releases, hacks, translations, unlicensed games or aftermarkets;
+their own resources/bindings may differ and cannot be replaced by a base game's
+artwork without authorization. Exhaust the approved source/fallback chain for
+actionable gaps. Small provider/import batches are transport limits, not scope
+limits. Verify full coverage and integrity through the production resource lane;
+test actual Top 25 workflows plus relevant edge cases. Update source and installed
+integration skill to enforce this distinction and the stop-before-next-console
+gate. Keep S26 as the sole ACTIVE stage. The floor review remains with the next
+cohesive implementation; no separate floor-only installation is required.
 
 Owner pause, 2026-10-22: pause execution for today. Review the diffuse floor with
 the next implementation rather than performing its native acceptance now. Keep

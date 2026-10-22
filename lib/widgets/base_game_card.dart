@@ -151,26 +151,26 @@ class BaseGameCard extends StatelessWidget {
                             )))
                             .valueOrNull
                         : null);
-                return Stack(fit: StackFit.expand, children: [
-                  NesBoxTile(
-                      filename: filename ?? displayName,
-                      identity: gameIdentity!,
-                      title: displayName,
-                      selected: isSelected,
-                      reducedMotion: reducedMotion,
-                      fallback: _cover(cachedUrl)),
-                  if (showRating && rating != null)
-                    Positioned(
-                        top: 8,
-                        right: 8,
-                        child: _CoverRating(rating: rating, isSmall: false)),
-                  if (isInstalled || isRemoteAvailable)
-                    Positioned(
-                        bottom: 8,
-                        right: 8,
-                        child: _AvailabilityBadge(
-                            installed: isInstalled, isSmall: false)),
-                ]);
+                return NesBoxTile(
+                    filename: filename ?? displayName,
+                    identity: gameIdentity!,
+                    title: displayName,
+                    selected: isSelected,
+                    reducedMotion: reducedMotion,
+                    fallback: _cover(cachedUrl),
+                    score: showRating && rating != null
+                        ? _CoverRating(
+                            key: ValueKey(
+                                'score-${rating.rating.normalizedValue}-${rating.fresh}-${rating.rankingEligible}'),
+                            rating: rating,
+                            isSmall: false)
+                        : null,
+                    availability: isInstalled || isRemoteAvailable
+                        ? _AvailabilityBadge(
+                            key: ValueKey('available-$isInstalled'),
+                            installed: isInstalled,
+                            isSmall: false)
+                        : null);
               }
               if (systemId == 'gameandwatch') {
                 return Stack(fit: StackFit.expand, children: [

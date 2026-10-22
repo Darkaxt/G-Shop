@@ -4,6 +4,7 @@ import '../models/packaging_model.dart';
 import 'library_model_presentation.dart';
 import 'socket_media_renderer.dart';
 import 'unboxing_preview.dart' show boxPanelPath;
+import 'box_face_badges.dart';
 
 /// Shelf object. Its badges are painted into the front-face atlas, not
 /// attached to an unrelated square overlay. The selected cinematic stays below.
@@ -35,24 +36,10 @@ class GbaBoxTile extends StatelessWidget {
         : index == 0
             ? frontFallback
             : const ColoredBox(color: Color(0xff34333a));
-    if (index == 0)
-      surface = Stack(fit: StackFit.expand, children: [
-        surface,
-        if (score != null)
-          Positioned(
-              top: 12,
-              right: 12,
-              child: Transform.scale(
-                  scale: 1.5, alignment: Alignment.topRight, child: score)),
-        if (availability != null)
-          Positioned(
-              bottom: 12,
-              right: 12,
-              child: Transform.scale(
-                  scale: 1.5,
-                  alignment: Alignment.bottomRight,
-                  child: availability)),
-      ]);
+    if (index == 0) {
+      surface = BoxFaceBadges(
+          score: score, availability: availability, child: surface);
+    }
     return surface;
   }
 

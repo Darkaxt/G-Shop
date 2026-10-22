@@ -446,7 +446,111 @@ class ConsoleModel {
         openingDurationMs: duration);
   }
 
-  Future<SocketMediaModel> load() async {
+  /// A transparent decal shares the actual forward printed panel's positions.
+  /// Its own upright UVs keep source scan/UV compensation and all hinges intact.
+  static SocketMediaModel withGalleryBadges(SocketMediaModel source) {
+    if (source.data['system'] != 'nes' ||
+        source.data['resourceKind'] != 'box') {
+      throw const FormatException('Gallery badges require a bound NES carton');
+    }
+    Map<String, dynamic>? front;
+    List<List<double>> points = [];
+    var left = 0.0,
+        bottom = 0.0,
+        width = 0.0,
+        height = 0.0,
+        area = 0.0,
+        frontIndex = -1;
+    for (var index = 0; index < source.surfaces.length; index++) {
+      final surface = source.surfaces[index];
+      if (surface['vertexCount'] != 6 ||
+          surface['indexCount'] != 6 ||
+          surface['material']['textures']['albedo'] == null ||
+          (surface['material']['color'][3] as num) < .99) {
+        continue;
+      }
+      final vertices = [
+        for (var i = 0; i < 6; i++)
+          [
+            for (var axis = 0; axis < 8; axis++)
+              source.mesh.getFloat32(
+                  (surface['vertexOffset'] as int) + i * 32 + axis * 4,
+                  Endian.little)
+          ]
+      ];
+      if (vertices.any((p) => p[5] < .999)) {
+        continue;
+      }
+      double low(int axis) =>
+          vertices.map((p) => p[axis]).reduce((a, b) => a < b ? a : b);
+      double high(int axis) =>
+          vertices.map((p) => p[axis]).reduce((a, b) => a > b ? a : b);
+      final w = high(0) - low(0), h = high(1) - low(1);
+      if (w <= 0 || h <= 0 || high(2) - low(2) > .0001 || w * h <= area) {
+        continue;
+      }
+      front = surface;
+      points = vertices;
+      left = low(0);
+      bottom = low(1);
+      width = w;
+      height = h;
+      area = w * h;
+      frontIndex = index;
+    }
+    if (front == null) {
+      throw const FormatException(
+          'Forward printed carton panel is not established');
+    }
+    final vertexOffset = source.mesh.lengthInBytes,
+        indexOffset = vertexOffset + points.length * 32;
+    final mesh = ByteData(indexOffset + (front['indexCount'] as int) * 4);
+    mesh.buffer.asUint8List().setRange(
+        0,
+        source.mesh.lengthInBytes,
+        source.mesh.buffer
+            .asUint8List(source.mesh.offsetInBytes, source.mesh.lengthInBytes));
+    for (var i = 0; i < points.length; i++) {
+      for (var axis = 0; axis < 8; axis++) {
+        final value = axis == 6
+            ? (points[i][0] - left) / width
+            : axis == 7
+                ? 1 - (points[i][1] - bottom) / height
+                : points[i][axis];
+        mesh.setFloat32(vertexOffset + i * 32 + axis * 4, value, Endian.little);
+      }
+    }
+    for (var i = 0; i < front['indexCount']; i++) {
+      mesh.setUint32(
+          indexOffset + i * 4,
+          source.mesh
+              .getUint32((front['indexOffset'] as int) + i * 4, Endian.little),
+          Endian.little);
+    }
+    final data = jsonDecode(jsonEncode(source.data)) as Map<String, dynamic>;
+    data['labelAspect'] = width / height;
+    data['galleryBadgeFrontSurfaceIndex'] = frontIndex;
+    data['galleryBadgeSourceGeometrySha256'] = source.data['geometrySha256'];
+    data['geometrySha256'] =
+        sha256.convert(mesh.buffer.asUint8List()).toString();
+    (data['surfaces'] as List).add({
+      ...front,
+      'name': 'Gallery front badges',
+      'role': 'label',
+      'galleryBadges': true,
+      'vertexOffset': vertexOffset,
+      'indexOffset': indexOffset,
+      'material': {
+        'color': [1.0, 1.0, 1.0, .999],
+        'textures': <String, String>{},
+        'sourceProperties': {'roughness': .9, 'metallic': 0.0}
+      },
+    });
+    return SocketMediaModel.privateHardware(data, mesh,
+        textureBundle: source.textureBundle!);
+  }
+
+  Future<SocketMediaModel> load({bool galleryBadges = false}) async {
     final manifest = await File('${directory.path}/model.json').readAsBytes();
     if (manifest.length > 1024 * 1024 ||
         sha256.convert(manifest).toString() != generation) {
@@ -533,9 +637,10 @@ class ConsoleModel {
     if (await file.length() > 20 * 1024 * 1024) {
       throw const FormatException('Console mesh exceeds import size');
     }
-    return SocketMediaModel.privateHardware(
+    final model = SocketMediaModel.privateHardware(
         data, ByteData.sublistView(await file.readAsBytes()),
         textureBundle: _ConsoleTextures(directory, receipts));
+    return galleryBadges ? withGalleryBadges(model) : model;
   }
 }
 

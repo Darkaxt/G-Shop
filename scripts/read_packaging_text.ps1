@@ -1,5 +1,10 @@
-param([Parameter(Mandatory=$true)][string]$ImagePath)
+param(
+    [Parameter(Mandatory=$true, ParameterSetName='Single')][string]$ImagePath,
+    [Parameter(Mandatory=$true, ParameterSetName='Batch')][string]$ImageManifest,
+    [string]$LanguageTag='en-US'
+)
 $ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 Add-Type -AssemblyName System.Runtime.WindowsRuntime
 $null = [Windows.Storage.StorageFile, Windows.Storage, ContentType=WindowsRuntime]
 $null = [Windows.Graphics.Imaging.BitmapDecoder, Windows.Foundation, ContentType=WindowsRuntime]
@@ -13,15 +18,28 @@ function Await-Operation($Operation, [Type]$ResultType) {
     $task = $taskMethod.MakeGenericMethod($ResultType).Invoke($null, @($Operation))
     $task.GetAwaiter().GetResult()
 }
-$file = Await-Operation ([Windows.Storage.StorageFile]::GetFileFromPathAsync($ImagePath)) ([Windows.Storage.StorageFile])
-$stream = Await-Operation ($file.OpenReadAsync()) ([Windows.Storage.Streams.IRandomAccessStreamWithContentType])
-try {
+$engine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromLanguage([Windows.Globalization.Language]::new($LanguageTag))
+if ($null -eq $engine) { throw "Windows OCR language unavailable: $LanguageTag" }
+$paths = if ($PSCmdlet.ParameterSetName -eq 'Batch') {
+    @(Get-Content -LiteralPath $ImageManifest -Raw -Encoding UTF8 | ConvertFrom-Json)
+} else { @($ImagePath) }
+foreach ($path in $paths) {
+  $file = Await-Operation ([Windows.Storage.StorageFile]::GetFileFromPathAsync($path)) ([Windows.Storage.StorageFile])
+  $stream = Await-Operation ($file.OpenReadAsync()) ([Windows.Storage.Streams.IRandomAccessStreamWithContentType])
+  try {
     $decoder = Await-Operation ([Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($stream)) ([Windows.Graphics.Imaging.BitmapDecoder])
     $bitmap = Await-Operation ($decoder.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareBitmap])
     try {
-        $engine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromLanguage([Windows.Globalization.Language]::new('en-US'))
-        if ($null -eq $engine) { throw 'Windows English OCR is unavailable' }
         $result = Await-Operation ($engine.RecognizeAsync($bitmap)) ([Windows.Media.Ocr.OcrResult])
-        @{text=$result.Text; engine='Windows.Media.Ocr/en-US'; width=$bitmap.PixelWidth; height=$bitmap.PixelHeight} | ConvertTo-Json -Compress
+        $words = @(foreach ($line in $result.Lines) {
+            foreach ($word in $line.Words) {
+                @{text=$word.Text; x=$word.BoundingRect.X; y=$word.BoundingRect.Y;
+                  width=$word.BoundingRect.Width; height=$word.BoundingRect.Height}
+            }
+        })
+        @{path=$path; text=$result.Text; words=$words; textAngle=$result.TextAngle;
+          engine="Windows.Media.Ocr/$LanguageTag"; osVersion=[Environment]::OSVersion.Version.ToString();
+          width=$bitmap.PixelWidth; height=$bitmap.PixelHeight} | ConvertTo-Json -Depth 5 -Compress
     } finally { $bitmap.Dispose() }
-} finally { $stream.Dispose() }
+  } finally { $stream.Dispose() }
+}
