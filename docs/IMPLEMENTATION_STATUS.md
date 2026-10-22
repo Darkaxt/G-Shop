@@ -16,11 +16,23 @@ the carton through extraction/settling and retires with it before insertion;
 cartridge and sleeve retain physical clearance and share the box's ground.
 Existing opening/cohort, launch, framing and preview regressions pass; unrelated
 GBA/G&W private fixtures were explicitly skipped. Changed-file analysis has no
-findings. The next candidate's actual native transition/settled review remains
-required.
-The installed internal 1.10.2+43 candidate from `02cb022` has verified 3D gallery
-cards, authentic StarTropics/Super C labels and the added Dendy multicart, but
-still contains the rejected foam display. The unchanged 24-game artwork pack
+findings. Signed CI run `39769777053` passed for source `661e8a0`; its internal
+1.10.2+43 candidate was independently checked and installed on Thor. Delivered
+and installed APK SHA-256 both equal
+`7aff28b04fe459cea6682b33f3754c2209bab6c7a7e713e6117ed30d39413003`;
+the existing signer, approved icon and private-model exclusion pass, and all 16
+database/preference files remained byte-identical across installation. Actual
+Super C native extraction and settling are inspected in the retained recording,
+contact sheets and full-resolution frames: the foam stays in the carton, the
+cartridge clears its sleeve, and the final composition contains no loose foam.
+The first recording only caught cold loading and is diagnostic evidence, not
+transition acceptance. A cached re-entry covers the full transition and settled
+view; expanded analysis scans every recorded frame without truncating exported
+evidence. Its playback timeline remains estimated from raw H.264, including the
+remuxed reanalysis; no exact capture timing is claimed. Native evidence is private
+under `nes-foam-corrected-warm-animation*` and `nes-foam-corrected-warm-review`.
+The previous `02cb022` candidate's unchanged gallery/collector observations are
+retained as scoped evidence. The unchanged 24-game artwork pack
 completed normal import and Drive publication: all 216 typed remote image bodies
 were independently retrieved and matched by digest and byte length. Remaining
 cohort/gallery/recovery/native acceptance and wider S26 requirements are open;
