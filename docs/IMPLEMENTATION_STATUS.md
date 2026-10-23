@@ -5,6 +5,46 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-23 installed floor/background verification: **S26 ACTIVE**, sole active
+stage. Signed CI `39886882373`, source
+`16229156852eb7a078db0ada133da1162f209205`, internal `1.10.2+47`, passed independent
+package/source/digest/production-signature/icon checks. APK and installed bytes
+match SHA-256 `e781f9bf6b7f99e9c822e2f309af4e73360a27580ea129a5747cc5eaf221caa1`.
+All 16 database/preference files were byte-identical across this in-place update;
+schema remains 44 and calibrated model resources remain unchanged. Job 109's
+4,732-request checkpoint/counts matched exactly, then normal Resume continued
+the same 9,831-item job. Its observer is retained; processed outcomes do not imply
+accepted resource coverage.
+
+Fresh native `candidate47-gamewatch-three-editions` joins every painted settled
+pair and shows all three Donkey Kong Jr. devices, including the retained refined
+CJ-71, at shared scale with the diffuse floor. Fresh GBA
+`candidate47-gba-floor-completed` joins the actual Mega Man Zero 3 completion:
+model/cover/label/resources ready, video absent/not playing and reveal complete.
+Inspected pixels show the themed red stage and visible floor, without the old
+blurred trailer or playback button. NES floor/label evidence and Table Top
+inspection/information/return evidence above remain applicable to their unchanged
+paths. Source/installed integration skill 0.1.23 match SHA-256
+`f8633de155f102524aeb7b83ae3574ed116e621c5389887e8cb8901181f543b9`.
+This accepts the reported floor/three-edition correction, not full S26 acceptance
+or the remaining all-collection resource and launch matrix. No final release made.
+
+Normal Patches browsing on schema 44 advanced beyond the former 24-game boundary
+to 64/221 checked. Entry 65 then failed the existing `invalid_patch_size` guard;
+the page operation completed with its visible error. The read-only page observer
+was closed after that actual failure, and no later page taps were issued. Its
+source/version-bound cache retains 131 current documents (65 game/source pairs,
+including that invalid entry), with 58 original-binding groups/78 files. These
+cached counts are not 65 accepted games. This is an internal advancement blocker
+for full patch availability: inspect the exact offending descriptor and actual
+artifact, repair its upstream size/provenance through the existing publication
+lane, then revalidate/resume all 221 entries. Do not relax the size guard or skip
+the entry. The separate full NES/GBA artwork census, authenticated GBA refresh,
+mixed-display shader bindings/native loading and final S26 delivery remain open.
+The obsolete 1.03 GB stopped schema-43 migration archive was removed through the
+reviewed cleanup ticket only after migration/state preservation/resume passed;
+its hash receipt, current data, model originals and resource rollback remain.
+
 2026-10-23 native physical-scale review: **S26 ACTIVE**, sole active stage.
 Signed CI `39882222717`, source `1b4baae`, internal `1.10.2+46`, passed package,
 production signature/icon and installed-byte checks (APK SHA-256

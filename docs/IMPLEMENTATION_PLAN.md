@@ -6,6 +6,11 @@ its information/inspection return, visible floor and preserved job/migration.
 Complete the same floor correction for legacy GBA backgrounds: use the actual
 model-stage condition to retire background playback and review the next signed
 candidate. Preserve the same collector and existing calibrated resource set.
+Signed native `1.10.2+47` now verifies that GBA correction and the three-edition
+Game & Watch scene, preserving/resuming the same job 109. Continue the remaining
+S26 acceptance. Normal full patch browsing found `invalid_patch_size` at entry 65
+after 64/221 checked: repair the exact upstream descriptor from actual artifact
+evidence before resuming; preserve its current cache and reject silent skipping.
 Implement PATCH-LAUNCH-01 / PATCH-CHAIN-01 as one integrated outcome: source-bound
 local availability, selection before animation, dependency resolution and ordered
 verified build/reuse, then existing launch/save handoff. Verify focused behavioral
