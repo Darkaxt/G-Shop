@@ -5,6 +5,17 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-23 CI-03 floor review: the installed `9a8fbdf` does contain the shared
+floor (`6bd3855` is an ancestor), but native Ball and Donkey Kong Jr. captures
+show a faint detached spot rather than readable illumination beneath the models.
+Earlier widget-presence verification did not establish visual acceptance. The
+shared painter now raises/spreads its diffuse pool with greater red contrast and
+retains a fully transparent edge, one pool per composition and all existing mode
+exclusions. Pixel contrast against the actual themed background and the affected
+secondary preview lifecycle/mode checks pass; source analysis is clean. Native
+appearance of the corrected signed candidate remains required. S26 stays ACTIVE.
+
+
 2026-10-23 revision 163: **S26 ACTIVE**, sole active stage. Owner authorized the
 pre-launch patch suggestion and review/support for prerequisite patches. Current
 implementation now includes a source/version-bound local index cache, selection

@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.20"
+  version: "0.1.21"
 ---
 
 # G-Shop Console Integration
@@ -201,6 +201,9 @@ copy GBA's scores or claim another console's coverage from the GBA reference.
   Use the shared diffuse red floor by default, one pool for the whole composition;
   its perspective ellipse fades completely at the edges without a rim/platform.
   Keep upper cards and non-3D/resource screens outside this floor treatment.
+  Verify visible contrast beneath actual single/multi-model native scenes; widget
+  presence or source wiring alone cannot accept the appearance. A faint detached
+  spot below the composition does not satisfy the shared floor requirement.
 - Lower default camera: reserve 10–15% per edge for text and buttons, targeting
   12.5%. Fit the whole animated composition to the central 75% rectangle without
   changing relative physical scales. Preserve aspect ratio, allowing extra space

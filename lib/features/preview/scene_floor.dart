@@ -20,19 +20,23 @@ class _FloorPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
     canvas.save();
-    canvas.translate(size.width * .5, size.height * .74);
-    canvas.scale(size.width * .49, size.height * .14);
+    // Spread the light beneath the composition's lower third. A narrow, low-
+    // opacity centre read as a detached spot on Thor rather than a floor.
+    canvas.translate(size.width * .5, size.height * .70);
+    canvas.scale(size.width * .49, size.height * .18);
     canvas.drawCircle(
         Offset.zero,
         1,
         Paint()
           ..shader = ui.Gradient.radial(Offset.zero, 1, const [
-            Color(0x66B92742),
-            Color(0x338E1B32),
-            Color(0x008E1B32),
+            Color(0xA8D93A4D),
+            Color(0x8CBF2E44),
+            Color(0x3A9C2238),
+            Color(0x009C2238),
           ], const [
             0,
-            .45,
+            .35,
+            .70,
             1,
           ]));
     canvas.restore();

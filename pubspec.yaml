@@ -1,7 +1,7 @@
 name: g_shop
 description: "G-Shop — A retro game manager for Android with a console-style UI, controller support, and download queue."
 publish_to: 'none'
-version: 1.10.2+44
+version: 1.10.2+45
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

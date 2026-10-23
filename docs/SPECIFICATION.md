@@ -2,6 +2,27 @@
 
 Authoritative specification, revision 163, 2026-10-23.
 
+Owner floor-visibility correction, 2026-10-23 (CI-03, already authorized):
+the installed shared floor is too faint and detached to read beneath the models.
+Keep the single diffuse red ellipse and its zero-alpha edge, strengthen and spread
+its illumination beneath the composition without changing physical model scale,
+camera, controls or upper gallery. Verify actual native single/multi-model views;
+widget presence alone does not establish visible floor acceptance.
+
+Owner core-appearance addition, 2026-10-23 (already authorized, CORE-LOOK-01):
+configure the installed RetroArch cores for the original systems' CRT or LCD
+appearance, using available compatible presets and the owner's mGBA example
+`lcd-grid-v2-gba-color-motionblur` as a reference. Inventory actual installed cores,
+shader assets, renderer compatibility and existing effective overrides first.
+Preserve unrelated input, saves, accounts, controls and video-driver settings.
+Use per-core or content-directory binding where a core emulates different display
+families; do not impose a GBA LCD treatment globally. Retain exact before/after
+configuration and an applicable rollback, verify effective selection and actual
+rendering with available owned content, and report any unverified core explicitly.
+This is installed-core appearance configuration within the sole ACTIVE S26 stage,
+not authorization to open more console/model integration stages. Coordinate device
+writes with the current signed update and retain the original collector job.
+
 Owner launch/patch extension, 2026-10-23 (already authorized): implement
 PATCH-LAUNCH-01 and PATCH-CHAIN-01 in COLLECTION_PATCHES_SPECIFICATION.md within
 the sole ACTIVE S26 stage. Before the ordinary launch animation, offer compatible

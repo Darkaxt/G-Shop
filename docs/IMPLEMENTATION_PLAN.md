@@ -12,6 +12,14 @@ Native full-catalogue preparation exposed a repeated sibling-scan bottleneck.
 Within the same S26 outcome, index observed exact file names, migrate the private
 catalogue additively and retain ambiguity/generation checks. Verify existing jobs,
 recipes and unpublished traversal checkpoints before native full-index acceptance.
+The owner reports the installed CI-03 floor is not visibly readable. Correct the
+shared painter's contrast/spread and review actual native compositions with the
+next cohesive candidate; preserve the same active stage and delivery boundary.
+Owner addition CORE-LOOK-01 belongs to this same S26 stage: inventory installed
+cores/presets, configure generation-appropriate per-core/content-directory filters
+and verify effective rendering. Its bounded worker must coordinate Thor changes
+with the main agent's update/acceptance; main-agent integration and final delivery
+remain unchanged.
 
 Current execution, 2026-10-22: **S26 ACTIVE**, sole active stage, resumed under
 revision 162. Correct metadata/artwork progress to use committed item totals and
