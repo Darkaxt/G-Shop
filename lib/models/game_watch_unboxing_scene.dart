@@ -73,6 +73,15 @@ class GameWatchUnboxingScene {
     }
     final consoleClosed = bounds(console, 0);
     final boxClosed = bounds(carton, 0);
+    final consoleUnits = handheld.physicalUnitsPerMetre;
+    final boxUnits = box.physicalUnitsPerMetre;
+    if (consoleUnits == null || boxUnits == null) {
+      throw const FormatException(
+          'Calibrate physical hardware and carton units before composing');
+    }
+    const worldUnitsPerMetre = 10.0;
+    final consoleScale = worldUnitsPerMetre / consoleUnits;
+    var boxScale = worldUnitsPerMetre / boxUnits;
     final boxCenter = SocketMediaModel.poseCenter(carton.data, 0);
     final seating = carton.data['seatingBounds'] as List?;
     final cavity = seating == null
@@ -92,41 +101,72 @@ class GameWatchUnboxingScene {
             cavity[0][a] >= cavity[1][a])) {
       throw const FormatException('Invalid reviewed carton seating cavity');
     }
+    // A cabinet may be packed on its side. Choose the smallest physically
+    // fitting orthogonal orientation; never miniaturize its mesh to a thin axis.
+    var expansion = double.infinity;
+    var packing = vm.Quaternion.identity();
+    var packedBounds = consoleClosed;
+    for (final x in [0.0, math.pi / 2, -math.pi / 2, math.pi]) {
+      for (final y in [0.0, math.pi / 2, -math.pi / 2, math.pi]) {
+        for (final z in [0.0, math.pi / 2, -math.pi / 2, math.pi]) {
+          final matrix = vm.Matrix4.identity()
+            ..rotateX(x)
+            ..rotateY(y)
+            ..rotateZ(z);
+          final rotated = transformBounds(consoleClosed, matrix);
+          var required = 1.0;
+          for (var a = 0; a < 3; a++) {
+            required = math.max(
+                required,
+                (rotated[1][a] - rotated[0][a]) *
+                    consoleScale /
+                    ((cavity[1][a] - cavity[0][a]) * boxScale * .88));
+          }
+          if (required < expansion - 1e-8) {
+            expansion = required;
+            packing = vm.Quaternion.fromRotation(matrix.getRotation());
+            packedBounds = rotated;
+          }
+        }
+      }
+    }
+    final cartonCalibration = carton.data['physicalScale'] as Map;
+    if (expansion > 1.00001 && cartonCalibration['estimated'] != true) {
+      throw const FormatException(
+          'Measured carton cannot contain this hardware; review resource calibration');
+    }
+    // Only explicitly inferred carton dimensions may be calibrated upwards.
+    // Source folds, artwork and all aspect ratios stay unchanged.
+    boxScale *= expansion;
     final seatOffset = [
-      for (var a = 0; a < 3; a++) (cavity[0][a] + cavity[1][a]) / 2
+      for (var a = 0; a < 3; a++)
+        (cavity[0][a] + cavity[1][a]) * boxScale / 2 -
+            (packedBounds[0][a] + packedBounds[1][a]) * consoleScale / 2
     ];
     final insertBounds =
         insertNodes.isEmpty ? null : bounds(carton, 0, nodes: insertNodes);
     final exitAxis = extractionAxis(carton, boxClosed);
     final boxExit = bounds(carton, 1);
-    final centreDelta = SocketMediaModel.poseCenter(carton.data, 1) -
-        SocketMediaModel.poseCenter(carton.data, 0);
+    final centreDelta = SocketMediaModel.poseCenter(carton.data, 1) - boxCenter;
     final exitOffset = List.filled(3, 0.0);
-    // Both imports have independent uniform normalization. Fit the folded
-    // handheld inside the real closed carton, preserving every aspect ratio.
-    var seatScale = double.infinity;
-    for (var axis = 0; axis < 3; axis++) {
-      seatScale = math.min(
-          seatScale,
-          (cavity[1][axis] - cavity[0][axis]) *
-              .88 /
-              (consoleClosed[1][axis] - consoleClosed[0][axis]));
-    }
-    for (var axis = 0; axis < 3; axis++) {
-      if (exitAxis[axis] == 0) continue;
-      final positive = exitAxis[axis] > 0;
+    for (var a = 0; a < 3; a++) {
+      if (exitAxis[a] == 0) continue;
+      final positive = exitAxis[a] > 0;
       var contentsEdge =
-          consoleClosed[positive ? 0 : 1][axis] * seatScale + seatOffset[axis];
+          packedBounds[positive ? 0 : 1][a] * consoleScale + seatOffset[a];
       if (insertBounds != null) {
         contentsEdge = positive
-            ? math.min(contentsEdge, insertBounds[0][axis])
-            : math.max(contentsEdge, insertBounds[1][axis]);
+            ? math.min(contentsEdge, insertBounds[0][a] * boxScale)
+            : math.max(contentsEdge, insertBounds[1][a] * boxScale);
       }
-      exitOffset[axis] = boxExit[positive ? 1 : 0][axis] +
-          centreDelta[axis] -
-          contentsEdge +
-          (positive ? .1 : -.1);
+      exitOffset[a] =
+          (boxExit[positive ? 1 : 0][a] + centreDelta[a]) * boxScale -
+              contentsEdge +
+              (positive ? .1 : -.1);
     }
+    final restBounds = [
+      for (var i = 0; i <= 60; i++) bounds(console, i / 60, pitch: restPitch)
+    ];
     final geometry = bytes.takeBytes();
     final sources = [
       console.data['sourceReference'],
@@ -147,29 +187,42 @@ class GameWatchUnboxingScene {
       'boxOpeningMs': box.openingDurationMs,
       'consoleOpeningMs': handheld.canOpen ? handheld.openingDurationMs : 0,
       'sequenceDurationMs': durationMs,
-      'seatScale': seatScale,
+      'worldUnitsPerMetre': worldUnitsPerMetre,
+      'physicalCalibration': {
+        'consoleWidthMetres':
+            (consoleClosed[1][0] - consoleClosed[0][0]) / consoleUnits,
+        'boxWidthMetres':
+            (boxClosed[1][0] - boxClosed[0][0]) * boxScale / worldUnitsPerMetre,
+        'boxExpansion': expansion,
+        'boxEstimated': cartonCalibration['estimated'],
+        'consoleReference': console.data['physicalScale'],
+        'boxReference': cartonCalibration
+      },
+      'boxScale': boxScale,
+      'packingQuaternion': packing.storage.toList(),
+      'seatScale': consoleScale,
       'seatOffset': seatOffset,
-      'seatingBounds': cavity,
+      'seatingBounds': [
+        for (final row in cavity) [for (final v in row) v * boxScale]
+      ],
       'extractionAxis': exitAxis,
       'exitOffset': exitOffset,
       'motionFrameWidth': math.max(
           4.8,
           2 *
               (exitOffset[0].abs() +
-                  console.sourceWidth * seatScale / 2 +
+                  console.sourceWidth * consoleScale / 2 +
                   .25)),
       'motionFrameHeight': math.max(2.0,
-          2 * (exitOffset[1].abs() + console.height * seatScale / 2 + .25)),
+          2 * (exitOffset[1].abs() + console.height * consoleScale / 2 + .25)),
       'boxClosedBounds': boxClosed,
       'consoleClosedBounds': consoleClosed,
       'consoleData': {'poseCenters': console.data['poseCenters']},
       'boxData': {'poseCenters': carton.data['poseCenters']},
-      'consoleRestLows': [
-        for (var i = 0; i <= 60; i++)
-          bounds(console, i / 60, pitch: restPitch)[0][1]
-      ],
+      'consoleRestLows': [for (final b in restBounds) b[0][1]],
+      'consoleRestDepthLows': [for (final b in restBounds) b[0][2]],
       'consoleRestPitch': restPitch,
-      'consoleRestScale': seatScale * .84,
+      'consoleRestScale': consoleScale,
       'consoleSourceWidth': console.sourceWidth,
       'consoleHeight': console.height,
       'consoleGeometrySha256': console.data['geometrySha256'],
@@ -184,6 +237,24 @@ class GameWatchUnboxingScene {
       },
       'surfaces': surfaces,
     }, ByteData.sublistView(geometry), textureBundle: _PairTextures(bundles));
+  }
+
+  static List<List<double>> transformBounds(
+      List<List<double>> bounds, vm.Matrix4 matrix) {
+    final low = List.filled(3, double.infinity),
+        high = List.filled(3, double.negativeInfinity);
+    for (final x in [bounds[0][0], bounds[1][0]]) {
+      for (final y in [bounds[0][1], bounds[1][1]]) {
+        for (final z in [bounds[0][2], bounds[1][2]]) {
+          final v = matrix.transformed3(vm.Vector3(x, y, z));
+          for (var a = 0; a < 3; a++) {
+            low[a] = math.min(low[a], v[a]);
+            high[a] = math.max(high[a], v[a]);
+          }
+        }
+      }
+    }
+    return [low, high];
   }
 
   /// New reconstructions declare their reviewed opening. The original imports
@@ -279,7 +350,9 @@ class GameWatchUnboxingScene {
     final closedBox = (data['boxClosedBounds'] as List).cast<List>();
     final seat = (data['seatScale'] as num).toDouble();
     final rest = (data['consoleRestScale'] as num).toDouble();
-    final size = box ? 1 - .16 * settle : seat + (rest - seat) * settle;
+    final size = box
+        ? (data['boxScale'] as num).toDouble()
+        : seat + (rest - seat) * settle;
     // First clear the actual opened end, then move in front, only then
     // unfold and return to centre. The carton never moves through its contents.
     final exit = (data['exitOffset'] as List).cast<num>();
@@ -297,19 +370,31 @@ class GameWatchUnboxingScene {
                 support[supportIndex]) *
             (supportPosition - supportIndex);
     final y = box
-        ? exit[1] * tray + (-.65 - (closedBox[0][1] as num) * .84) * settle
+        ? exit[1] * tray + (-.65 - (closedBox[0][1] as num) * size) * settle
         : exit[1] * extract * (1 - settle) +
             seated[1] * (1 - forward) +
             (-.65 - restLow * rest) * settle;
+    final depthLows = (data['consoleRestDepthLows'] as List).cast<num>();
+    final restDepthLow = depthLows[supportIndex] +
+        (depthLows[math.min(supportIndex + 1, depthLows.length - 1)] -
+                depthLows[supportIndex]) *
+            (supportPosition - supportIndex);
     final z = box
-        ? exit[2] * tray - .6 * settle
+        ? exit[2] * tray + (-.05 - (closedBox[1][2] as num) * size) * settle
         : exit[2] * extract * (1 - settle) +
             seated[2] * (1 - forward) +
-            .95 * forward -
-            .4 * settle;
+            (.05 - restDepthLow * rest) * forward;
+    final packed = (data['packingQuaternion'] as List).cast<num>();
+    final rotation = vm.Quaternion.fromFloat64List(
+        Float64List.fromList(packed.map((v) => v.toDouble()).toList()));
+    final unpacked = vm.Quaternion.axisAngle(
+        rotation.axis, rotation.radians * (1 - forward));
     return vm.Matrix4.identity()
       ..translateByDouble(x, y, z, 1)
       ..rotateX(box ? 0 : (data['consoleRestPitch'] as num).toDouble() * settle)
+      ..multiply(box
+          ? vm.Matrix4.identity()
+          : vm.Matrix4.compose(vm.Vector3.zero(), unpacked, vm.Vector3.all(1)))
       ..scaleByDouble(size, size, size, 1)
       ..translateByDouble(-center.x, -center.y, -center.z, 1);
   }

@@ -11,6 +11,15 @@ import 'package:g_shop/models/socket_media_model.dart';
 import 'package:g_shop/features/preview/console_hardware_view.dart';
 import 'package:g_shop/features/preview/game_watch_variants_preview.dart';
 
+Future<void> prepareViews(WidgetTester tester) async {
+  final states = tester.stateList<GameWatchVariantsViewState>(
+      find.byType(GameWatchVariantsView));
+  await tester.runAsync(() async {
+    await Future.wait([for (final state in states) state.modelsPrepared]);
+  });
+  await tester.pump();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final root = Directory('${Directory.systemTemp.path}/rshop-gw-variant-test');
@@ -28,6 +37,12 @@ void main() {
       'hardwareGeometry': true,
       'privateImport': true,
       'resourceKind': 'handheld',
+      'physicalScale': {
+        'previewUnitsPerMetre': 20.0,
+        'widthMetres': .1,
+        'reference': 'local:fixture',
+        'estimated': true
+      },
       if (set != null) 'romSet': set,
       if (variant != null) 'visualVariantId': variant,
       'textureFiles': {
@@ -96,11 +111,16 @@ void main() {
       ];
     }))!;
     final original = revisions[0], revised = revisions[1];
+    final prepared = (await tester
+        .runAsync(() => Future.wait([for (final v in revisions) v.load()])))!;
     final key = GlobalKey<GameWatchVariantsViewState>();
     Widget view(ConsoleModel selected) => MaterialApp(
         home: GameWatchVariantsView(
-            key: key, variants: [GameWatchModelVariant(selected, null)]));
+            key: key,
+            variants: [GameWatchModelVariant(selected, null)],
+            preparedModels: [prepared[revisions.indexOf(selected)]]));
     await tester.pumpWidget(view(original));
+    await prepareViews(tester);
     await tester.pump();
     final oldState = tester
         .state<ConsoleHardwareViewState>(find.byType(ConsoleHardwareView));
@@ -110,6 +130,7 @@ void main() {
         .widget<ConsoleHardwareView>(find.byType(ConsoleHardwareView))
         .onReady!;
     await tester.pumpWidget(view(revised));
+    await prepareViews(tester);
     await tester.pump();
     expect(
         tester
@@ -217,12 +238,16 @@ void main() {
         ConsoleModel.findGameWatchVariants('gnw_zelda.zip',
             modelsDirectory: root)))!;
     var ready = 0;
+    final prepared = (await tester
+        .runAsync(() => GameWatchVariantsView.prepareModels(models)))!;
     await tester.pumpWidget(MaterialApp(
         home: Scaffold(
             body: GameWatchVariantsView(
                 variants: models,
+                preparedModels: prepared,
                 reducedMotion: true,
                 onReady: () => ready++))));
+    await prepareViews(tester);
     final views = tester
         .widgetList<ConsoleHardwareView>(find.byType(ConsoleHardwareView))
         .toList();
@@ -231,15 +256,19 @@ void main() {
     expect(find.text('Multi Screen'), findsNothing);
     expect(find.text('2021 edition'), findsNothing);
     expect(views.every((v) => !v.showTitle), isTrue);
-    final left = tester.getRect(find.byType(ConsoleHardwareView).at(0));
-    final right = tester.getRect(find.byType(ConsoleHardwareView).at(1));
+    final left =
+        tester.getRect(find.byKey(const ValueKey('gamewatch-edition-hit-0')));
+    final right =
+        tester.getRect(find.byKey(const ValueKey('gamewatch-edition-hit-1')));
     expect(left.right, lessThanOrEqualTo(right.left));
     expect(left.left, greaterThanOrEqualTo(0));
     expect(right.right, lessThanOrEqualTo(1240));
     expect(left.left, closeTo(1240 * .125, .001));
     expect(right.right, closeTo(1240 * .875, .001));
-    expect(views.every((v) => v.compositionFill == 1), isTrue,
-        reason: 'Reserve the edge areas once for the complete edition arc');
+    expect(views.map((v) => v.sharedCameraUnits).toSet().length, 1);
+    expect(views.every((v) => v.sharedCameraUnits != null), isTrue,
+        reason:
+            'One shared physical camera reserves the edge areas for the whole arc');
     expect(ready, 0);
     views.first.onReady?.call();
     expect(ready, 0);
@@ -251,8 +280,10 @@ void main() {
         home: Scaffold(
             body: GameWatchVariantsView(
                 variants: models.reversed.toList(),
+                preparedModels: prepared.reversed.toList(),
                 reducedMotion: true,
                 onReady: () => ready++))));
+    await prepareViews(tester);
     views.first.onReady?.call();
     views.last.onReady?.call();
     expect(ready, 1, reason: 'Stale callbacks cannot finish a new selection');
@@ -310,26 +341,32 @@ void main() {
           modelsDirectory: root);
     }))!;
     var ready = 0;
+    final prepared = (await tester
+        .runAsync(() => GameWatchVariantsView.prepareModels(models)))!;
     await tester.pumpWidget(MaterialApp(
         home: Scaffold(
             body: GameWatchVariantsView(
                 variants: models,
+                preparedModels: prepared,
                 reducedMotion: true,
                 onReady: () => ready++))));
+    await prepareViews(tester);
     final views = tester
         .widgetList<ConsoleHardwareView>(find.byType(ConsoleHardwareView))
         .toList();
     expect(views.length, 3);
     final rects = [
       for (var i = 0; i < 3; i++)
-        tester.getRect(find.byType(ConsoleHardwareView).at(i))
+        tester.getRect(find.byKey(ValueKey('gamewatch-edition-hit-$i')))
     ];
-    expect(rects[0].center.dx, closeTo(1240 / (369 / 160) / 2, .001));
-    expect(rects[0].center.dy, lessThan(rects[1].center.dy));
-    expect(rects[0].center.dy, lessThan(rects[2].center.dy));
+    expect(rects[0].center.dx, greaterThan(rects[1].center.dx));
+    expect(rects[0].center.dx, lessThan(rects[2].center.dx));
+    expect(rects[0].bottom, lessThan(rects[1].bottom));
+    expect(rects[0].bottom, lessThan(rects[2].bottom));
     expect(views[1].stagingYaw, greaterThan(.2));
     expect(views[2].stagingYaw, lessThan(.2));
-    expect(views.every((v) => v.stagingScale == 1), isTrue);
+    expect(views.every((v) => v.stagingScale == .5), isTrue);
+    expect(views.map((v) => v.sharedCameraUnits).toSet().length, 1);
     expect(find.byIcon(Icons.zoom_in), findsNothing);
     expect(find.byType(IconButton), findsNothing,
         reason: 'Inspect the model directly without floating overview buttons');
@@ -386,6 +423,8 @@ void main() {
     var referenceOpened = 0;
     late StateSetter redraw;
     final viewKey = GlobalKey<GameWatchVariantsViewState>();
+    final prepared = (await tester
+        .runAsync(() => GameWatchVariantsView.prepareModels(models)))!;
     await tester.pumpWidget(MaterialApp(
         home: Scaffold(body: StatefulBuilder(builder: (context, setState) {
       redraw = setState;
@@ -395,6 +434,7 @@ void main() {
           child: GameWatchVariantsView(
               key: viewKey,
               variants: models,
+              preparedModels: prepared,
               reducedMotion: reduced,
               inspectedIndex: inspected,
               informationVisible: information,
@@ -406,11 +446,17 @@ void main() {
               onInformation: (visible) =>
                   setState(() => information = visible)));
     }))));
+    await prepareViews(tester);
     final states = tester
         .stateList<ConsoleHardwareViewState>(find.byType(ConsoleHardwareView))
         .toList();
     expect(find.text('Multi Screen'), findsNothing);
-    await tester.tap(find.byType(ConsoleHardwareView).at(0));
+    for (final view in tester
+        .widgetList<ConsoleHardwareView>(find.byType(ConsoleHardwareView))) {
+      view.onReady!();
+    }
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('gamewatch-edition-hit-0')));
     await tester.pump();
     expect(inspected, 0);
     expect(find.text('Multi Screen'), findsOneWidget);
@@ -483,7 +529,7 @@ void main() {
                 find.byType(ConsoleHardwareView))
             .toList(),
         states);
-    await tester.tap(find.byType(ConsoleHardwareView).at(1));
+    await tester.tap(find.byKey(const ValueKey('gamewatch-edition-hit-1')));
     await tester.pump();
     await tester
         .tap(find.byKey(const ValueKey('gamewatch-information-toggle')));

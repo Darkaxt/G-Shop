@@ -23,6 +23,11 @@ def main():
     parser.add_argument('--system', required=True)
     parser.add_argument('--author', required=True)
     parser.add_argument('--source-url', required=True)
+    parser.add_argument('--physical-width-metres', type=float,
+                        help='Reviewed real/inferred width; retained for shared-scale compositions')
+    parser.add_argument('--dimensions-reference',
+                        help='Source of the physical width, not a geometry-normalization guess')
+    parser.add_argument('--dimensions-estimated', action='store_true')
     parser.add_argument('--rom-set', help='Exact supplied Game & Watch MAME set')
     parser.add_argument('--edition-id', help='Exact NES carton catalogue edition ID')
     parser.add_argument('--nes-standard-carton', action='store_true',
@@ -51,6 +56,8 @@ def main():
     if args.resource_kind == 'box' and (not args.text_orientation_python or
             not args.text_orientation_python.is_file() or not args.orientation_title):
         parser.error('Box conversion requires --text-orientation-python and --orientation-title')
+    if args.physical_width_metres is not None and (not .01 <= args.physical_width_metres <= 3 or not args.dimensions_reference):
+        parser.error('Physical width requires a bounded metre value and reference')
     if args.output.exists():
         raise ValueError('Preserve existing conversions; select an absent output')
     raw = args.source.read_bytes()
@@ -329,6 +336,7 @@ def main():
     objects = [o for o in bpy.context.scene.objects if o.type == 'MESH' and len(o.data.polygons)>0]
     def axis(p): return Vector((p.x, p.z, -p.y))
     points = [axis(o.matrix_world @ v.co) for o in objects for v in o.data.vertices]
+    closed_source_width=max(p.x for p in points)-min(p.x for p in points)
     # Frame the actual articulated envelope, not only the closed shell. Mesh
     # vertices and hinge pivots are still exported from the closed rest pose.
     pose_bounds = []
@@ -517,6 +525,13 @@ def main():
                 'heldAtAuthoredRest': ['BatteryRemove', 'BatteryInsert'] if 'BatteryRemove' in source_animations else []},
             'adaptation': 'Full authored scene; uniform centering/scale, Y-up, source UV/PBR and screen emission'},
         'surfaces': surfaces}
+    if args.physical_width_metres is not None:
+        manifest['physicalScale'] = {
+            'previewUnitsPerMetre': closed_source_width * scale / args.physical_width_metres,
+            'widthMetres': args.physical_width_metres,
+            'reference': args.dimensions_reference,
+            'estimated': args.dimensions_estimated,
+        }
     if collection:
         manifest['selectorScene'] = collection
         manifest['sourceReference']['adaptation'] = 'All 63 original placements and vertical axis; only Display_board hidden; elevated overview camera, reduced tessellation and 256px textures; original sources retained'

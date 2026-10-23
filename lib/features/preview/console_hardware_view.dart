@@ -12,6 +12,7 @@ import 'scene_floor.dart';
 
 class ConsoleHardwareView extends StatefulWidget {
   final ConsoleModel model;
+  final SocketMediaModel? preparedModel;
   final String title;
   String get systemId => model.systemId;
   String get generation => model.generation;
@@ -20,6 +21,8 @@ class ConsoleHardwareView extends StatefulWidget {
   final bool turntable, transparentBackground;
   final bool informationRotation;
   final double stagingYaw, stagingScale, compositionFill;
+  final double? sharedCameraUnits;
+  final Offset? sharedCameraOrigin;
   final VoidCallback? onInspect;
   final VoidCallback? onReady;
   final GameWatchUnboxingScene? unboxingScene;
@@ -31,12 +34,15 @@ class ConsoleHardwareView extends StatefulWidget {
       {super.key,
       required this.model,
       required this.title,
+      this.preparedModel,
       this.showTitle = true,
       this.turntable = true,
       this.informationRotation = false,
       this.stagingYaw = 0,
       this.stagingScale = 1,
       this.compositionFill = .75,
+      this.sharedCameraUnits,
+      this.sharedCameraOrigin,
       this.onInspect,
       this.transparentBackground = false,
       this.reducedMotion = false,
@@ -229,6 +235,13 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
       _opening.duration =
           Duration(milliseconds: widget.model.openingDurationMs);
     }
+    if (oldWidget.inspecting && !widget.inspecting) {
+      // Inspection zoom is local; returning to the shared world restores scale.
+      _zoom = .9;
+      _pitch = _initialPitch;
+      _yaw = -.2;
+      _rotation.value = 0;
+    }
     if (!oldWidget.reducedMotion && widget.reducedMotion) {
       _yaw += _motionYaw;
       _rotation.stop();
@@ -249,6 +262,32 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
     _updateMotion();
     _reportInformationMotion();
   }
+
+  SocketMediaPose _pose(
+          {double? unboxing, double? opening, double yawOffset = 0}) =>
+      SocketMediaPose(
+          cameraUnits: widget.sharedCameraUnits,
+          cameraCenterX: widget.sharedCameraOrigin?.dx,
+          cameraCenterY: widget.sharedCameraOrigin?.dy,
+          unboxing: unboxing ?? widget.unboxingProgress,
+          inspectedPart: widget.inspecting ? 'console' : null,
+          inspection: widget.inspecting ? 1 : 0,
+          opening: opening ?? widget.sequenceOpening ?? _opening.value,
+          rx: _pitch,
+          ry: widget.stagingYaw +
+              _yaw +
+              (widget.reducedMotion ? 0 : _motionYaw) +
+              yawOffset,
+          scaleX: _zoom * widget.stagingScale,
+          scaleY: _zoom * widget.stagingScale,
+          scaleZ: _zoom * widget.stagingScale);
+
+  Rect? physicalBounds(
+          {required double unboxing,
+          required double opening,
+          double yawOffset = 0}) =>
+      rendererKey.currentState?.physicalBoundsFor(
+          _pose(unboxing: unboxing, opening: opening, yawOffset: yawOffset));
 
   @override
   Widget build(BuildContext context) => Container(
@@ -298,6 +337,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
                         child: SocketMediaRenderer.console(
                           key: rendererKey,
                           model: widget.model,
+                          preparedConsole: widget.preparedModel,
                           frameComposition: true,
                           compositionFill: widget.compositionFill,
                           compositionZoom: _zoom / .9,
@@ -306,19 +346,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
                               'console:${widget.systemId}:${widget.model.hardwareId}:${widget.generation}',
                           title: widget.title,
                           onReady: _ready,
-                          pose: SocketMediaPose(
-                              unboxing: widget.unboxingProgress,
-                              inspectedPart:
-                                  widget.inspecting ? 'console' : null,
-                              inspection: widget.inspecting ? 1 : 0,
-                              opening: widget.sequenceOpening ?? _opening.value,
-                              rx: _pitch,
-                              ry: widget.stagingYaw +
-                                  _yaw +
-                                  (widget.reducedMotion ? 0 : _motionYaw),
-                              scaleX: _zoom * widget.stagingScale,
-                              scaleY: _zoom * widget.stagingScale,
-                              scaleZ: _zoom * widget.stagingScale),
+                          pose: _pose(),
                         )))),
           )),
         ]),

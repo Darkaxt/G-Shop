@@ -475,6 +475,8 @@ class SocketMediaPose {
       pageFocus,
       pageAspect;
   final String? inspectedPart;
+  // An overview composition supplies one shared physical camera scale.
+  final double? cameraUnits, cameraCenterX, cameraCenterY;
   const SocketMediaPose(
       {this.rx = 0,
       this.ry = 0,
@@ -489,6 +491,9 @@ class SocketMediaPose {
       this.unboxing = 0,
       this.launch = 0,
       this.inspectedPart,
+      this.cameraUnits,
+      this.cameraCenterX,
+      this.cameraCenterY,
       this.inspection = 0,
       this.pageFocus = 0,
       this.pageAspect = 0});

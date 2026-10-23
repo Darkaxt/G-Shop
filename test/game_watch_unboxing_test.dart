@@ -30,6 +30,15 @@ List<vm.Vector3> vertices(
   return result;
 }
 
+Future<void> prepareViews(WidgetTester tester) async {
+  final states = tester.stateList<GameWatchVariantsViewState>(
+      find.byType(GameWatchVariantsView));
+  await tester.runAsync(() async {
+    await Future.wait([for (final state in states) state.modelsPrepared]);
+  });
+  await tester.pump();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final path = Platform.environment['RSHOP_GAMEWATCH_MODEL_DIR'];
@@ -150,10 +159,9 @@ void main() {
               scaleX: .9,
               scaleY: .9,
               scaleZ: .9);
-          final projection = SocketMediaGpu.cameraProjection(
-                  size.width,
-                  size.height,
-                  SocketMediaGpu.fittedUnits(model, size, pose: pose)) *
+          final projection = SocketMediaGpu.compositionProjection(
+                  model, pose, size,
+                  fill: .75) *
               SocketMediaGpu.modelTransform(model, pose);
           for (final part in ['box', 'console', 'insert']) {
             for (final vertex in vertices(model, part, pose)) {
@@ -237,10 +245,9 @@ void main() {
               scaleX: .9,
               scaleY: .9,
               scaleZ: .9);
-          final projection = SocketMediaGpu.cameraProjection(
-                  size.width,
-                  size.height,
-                  SocketMediaGpu.fittedUnits(model, size, pose: pose)) *
+          final projection = SocketMediaGpu.compositionProjection(
+                  model, pose, size,
+                  fill: .75) *
               SocketMediaGpu.modelTransform(model, pose);
           for (final part in ['box', 'console', 'insert']) {
             var maxX = 0.0, maxY = 0.0;
@@ -316,6 +323,8 @@ void main() {
           modelsDirectory: Directory(path));
       return [a.single, b.single];
     }))!;
+    final prepared = (await tester
+        .runAsync(() => GameWatchVariantsView.prepareModels(models)))!;
     final key = GlobalKey<GameWatchVariantsViewState>();
     var reduced = false;
     late StateSetter redraw;
@@ -323,8 +332,12 @@ void main() {
         MaterialApp(home: Scaffold(body: StatefulBuilder(builder: (_, update) {
       redraw = update;
       return GameWatchVariantsView(
-          key: key, variants: models, reducedMotion: reduced);
+          key: key,
+          variants: models,
+          preparedModels: prepared,
+          reducedMotion: reduced);
     }))));
+    await prepareViews(tester);
     final views = tester
         .widgetList<ConsoleHardwareView>(find.byType(ConsoleHardwareView))
         .toList();
@@ -347,7 +360,7 @@ void main() {
     progress = key.currentState!.snapshot['sequenceProgress'] as List;
     expect(progress.first, 1);
     expect(progress.last, greaterThan(0));
-    await tester.tap(find.byType(ConsoleHardwareView).at(1));
+    await tester.tap(find.byKey(const ValueKey('gamewatch-edition-hit-1')));
     await tester.pump();
     expect(key.currentState!.snapshot['sequenceSettled'], isTrue);
     expect(key.currentState!.snapshot['inspectedIndex'], 1);
@@ -362,7 +375,10 @@ void main() {
     expect(key.currentState!.snapshot['sequenceRunning'], isFalse);
     await tester.pumpWidget(MaterialApp(
         home: GameWatchVariantsView(
-            key: key, variants: models.reversed.toList())));
+            key: key,
+            variants: models.reversed.toList(),
+            preparedModels: prepared.reversed.toList())));
+    await prepareViews(tester);
     views.first.onReady!();
     views.last.onReady!();
     expect(key.currentState!.snapshot['frameRendered'], isFalse,
@@ -372,7 +388,9 @@ void main() {
         home: GameWatchVariantsView(
             key: key,
             variants: models.reversed.toList(),
+            preparedModels: prepared.reversed.toList(),
             reducedMotion: true)));
+    await prepareViews(tester);
     expect(key.currentState!.snapshot['sequenceProgress'], [1.0, 1.0]);
     expect(key.currentState!.snapshot['sequenceRunning'], isFalse);
     await tester.pumpWidget(const SizedBox());

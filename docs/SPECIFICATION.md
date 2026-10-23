@@ -2,6 +2,15 @@
 
 Authoritative specification, revision 163, 2026-10-23.
 
+Owner Game & Watch scale/layout correction, 2026-10-23 (CI-02/03): correct
+relative carton/hardware dimensions and the distribution of multi-edition pairs.
+The Donkey Kong Jr. New Wide Screen carton must not dwarf its handheld; preserve
+real or explicitly evidenced inferred dimensions in shared scale rather than
+shrinking contents to a shallow carton axis. Verify all supplied hardware,
+including CJ-71 Table Top, in the actual settled sequence; a capture before its
+turn does not establish a missing model. Preserve exact source/edition bindings,
+artwork, extraction clearance, organic inspection and the shallow rear-centre arc.
+
 Owner floor-visibility correction, 2026-10-23 (CI-03, already authorized):
 the installed shared floor is too faint and detached to read beneath the models.
 Keep the single diffuse red ellipse and its zero-alpha edge, strengthen and spread

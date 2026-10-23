@@ -4,7 +4,10 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/game_watch_hardware_info.dart';
+import '../../core/theme/app_theme.dart';
 import '../../models/game_watch_unboxing_scene.dart';
+import '../../models/socket_media_model.dart';
+import '../../widgets/socket_media_renderer.dart';
 import 'package:flutter/material.dart';
 import '../../models/console_model.dart';
 import 'console_hardware_view.dart';
@@ -41,13 +44,23 @@ class GameWatchVariantsPreview extends StatefulWidget {
 
 class GameWatchVariantsPreviewState extends State<GameWatchVariantsPreview> {
   final _viewKey = GlobalKey<GameWatchVariantsViewState>();
-  late Future<List<GameWatchModelVariant>> _models;
+  late Future<
+      ({
+        List<GameWatchModelVariant> variants,
+        List<SocketMediaModel> models
+      })> _models;
   bool _errorReported = false;
   Map<String, Object?>? get snapshot => _viewKey.currentState?.snapshot;
   void _load() {
     _errorReported = false;
-    _models = ConsoleModel.findGameWatchVariants(widget.filename,
-        modelsDirectory: widget.modelsDirectory);
+    _models = () async {
+      final variants = await ConsoleModel.findGameWatchVariants(widget.filename,
+          modelsDirectory: widget.modelsDirectory);
+      return (
+        variants: variants,
+        models: await GameWatchVariantsView.prepareModels(variants)
+      );
+    }();
   }
 
   @override
@@ -66,44 +79,62 @@ class GameWatchVariantsPreviewState extends State<GameWatchVariantsPreview> {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      FutureBuilder<List<GameWatchModelVariant>>(
-          future: _models,
-          builder: (context, result) {
-            if (result.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final variants = result.data;
-            if (result.hasError && !_errorReported) {
-              _errorReported = true;
-              debugPrint(
-                  'GShopGameWatchVariants import unavailable: ${result.error}');
-            }
-            if (variants == null || variants.isEmpty) {
-              // An optional visual catalogue cannot hide the exact primary or the
-              // existing honest fallback when no primary has been imported.
-              return GameWatchPreview(
-                  filename: widget.filename,
-                  title: widget.title,
-                  identity: widget.identity,
-                  reducedMotion: widget.reducedMotion,
-                  onReady: widget.onReady);
-            }
-            return GameWatchVariantsView(
-                key: _viewKey,
-                variants: variants,
-                inspectedIndex: widget.inspectedIndex,
-                informationVisible: widget.informationVisible,
-                onInspect: widget.onInspect,
-                onInformation: widget.onInformation,
-                onReference: widget.onReference,
-                reducedMotion: widget.reducedMotion,
-                onReady: widget.onReady);
-          });
+  Widget build(BuildContext context) => FutureBuilder<
+          ({
+            List<GameWatchModelVariant> variants,
+            List<SocketMediaModel> models
+          })>(
+      future: _models,
+      builder: (context, result) {
+        if (result.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final variants = result.data?.variants;
+        if (result.hasError && !_errorReported) {
+          _errorReported = true;
+          debugPrint(
+              'GShopGameWatchVariants import unavailable: ${result.error}');
+        }
+        if (result.hasError) {
+          return const Center(child: Text('Model resources need review'));
+        }
+        if (variants == null || variants.isEmpty) {
+          // An optional visual catalogue cannot hide the exact primary or the
+          // existing honest fallback when no primary has been imported.
+          return GameWatchPreview(
+              filename: widget.filename,
+              title: widget.title,
+              identity: widget.identity,
+              reducedMotion: widget.reducedMotion,
+              onReady: widget.onReady);
+        }
+        return GameWatchVariantsView(
+            key: _viewKey,
+            variants: variants,
+            preparedModels: result.data!.models,
+            inspectedIndex: widget.inspectedIndex,
+            informationVisible: widget.informationVisible,
+            onInspect: widget.onInspect,
+            onInformation: widget.onInformation,
+            onReference: widget.onReference,
+            reducedMotion: widget.reducedMotion,
+            onReady: widget.onReady);
+      });
 }
 
 class GameWatchVariantsView extends StatefulWidget {
   final List<GameWatchModelVariant> variants;
+  final List<SocketMediaModel>? preparedModels;
+
+  static Future<List<SocketMediaModel>> prepareModels(
+          List<GameWatchModelVariant> variants) =>
+      Future.wait([
+        for (final v in variants)
+          v.box == null
+              ? v.model.load()
+              : GameWatchUnboxingScene(v.model, v.box!).load()
+      ]);
+
   final bool reducedMotion;
   final int? inspectedIndex;
   final bool informationVisible;
@@ -114,6 +145,7 @@ class GameWatchVariantsView extends StatefulWidget {
   const GameWatchVariantsView(
       {super.key,
       required this.variants,
+      this.preparedModels,
       this.reducedMotion = false,
       this.inspectedIndex,
       this.informationVisible = false,
@@ -180,6 +212,10 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
   final _ready = <int>{};
   int _generation = 0;
   bool _reported = false;
+  List<Rect>? _settledBounds;
+  List<SocketMediaModel>? _preparedModels;
+  late Future<void> modelsPrepared;
+  String? _calibrationError;
   int? _localInspection;
   bool _localInformation = false;
   int? get _inspected {
@@ -277,6 +313,62 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
     ];
     _ready.clear();
     _reported = false;
+    _settledBounds = null;
+    _calibrationError = null;
+    _preparedModels = null;
+    modelsPrepared = _prepareModels(_generation);
+  }
+
+  double _worldScale(int i) => _scenes[i] == null &&
+          widget.variants[i].model.physicalUnitsPerMetre != null
+      ? 10 / widget.variants[i].model.physicalUnitsPerMetre!
+      : 1;
+
+  SocketMediaPose _initialPose(int i,
+      {double unboxing = 1, double? opening, double yawOffset = 0}) {
+    final scale = .9 * _worldScale(i);
+    return SocketMediaPose(
+        rx: ConsoleHardwareViewState.defaultPitch,
+        ry: widget.variants.length > 1
+            ? -_angle(i, widget.variants.length) * .35 + yawOffset
+            : -.2 + yawOffset,
+        scaleX: scale,
+        scaleY: scale,
+        scaleZ: scale,
+        unboxing: unboxing,
+        opening: opening ?? (widget.variants[i].model.canOpen ? 1 : 0));
+  }
+
+  Future<void> _prepareModels(int generation) async {
+    try {
+      final models = widget.preparedModels ??
+          await GameWatchVariantsView.prepareModels(widget.variants);
+      if (models.length != widget.variants.length) {
+        throw const FormatException('Prepared edition count changed');
+      }
+      if (!mounted || generation != _generation) return;
+      final bounds = <Rect>[];
+      if (widget.variants.length > 1) {
+        for (var i = 0; i < models.length; i++) {
+          if (widget.variants[i].model.physicalUnitsPerMetre == null) {
+            throw const FormatException(
+                'Physical model scale needs calibration');
+          }
+          Rect at(double yaw) => SocketMediaGpu.compositionBounds(
+              models[i], _initialPose(i, yawOffset: yaw), const Size(1, 1), 1);
+          bounds.add(at(-.16).expandToInclude(at(.16)));
+        }
+      }
+      setState(() {
+        _preparedModels = models;
+        _settledBounds = bounds.isEmpty ? null : bounds;
+      });
+    } catch (error) {
+      if (!mounted || generation != _generation) return;
+      debugPrint('GShopGameWatchCalibration $error');
+      setState(
+          () => _calibrationError = 'Physical model calibration needs review');
+    }
   }
 
   Map<String, Object?> get snapshot => {
@@ -291,6 +383,8 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
         'layout': widget.variants.length > 1 ? 'semicircle' : 'single',
         'inspectedIndex': _inspected,
         'informationVisible': _information,
+        'calibrationError': _calibrationError,
+        'sharedPhysicalCamera': _settledBounds != null,
         'error': _keys
             .map((key) => key.currentState?.snapshot['error'])
             .where((value) => value != null)
@@ -301,7 +395,7 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
     if (!mounted || generation != _generation || _reported) return;
     _ready.add(index);
     if (_ready.length != widget.variants.length) return;
-    _reported = true;
+    setState(() => _reported = true);
     final size = context.size;
     debugPrint('GShopGameWatchVariants ${jsonEncode({
           'frameRendered': true,
@@ -448,95 +542,178 @@ class GameWatchVariantsViewState extends State<GameWatchVariantsView>
                                 ])))))));
   }
 
+  Rect _currentBounds(int i) {
+    final progress = _progress(i);
+    final opening = _scenes[i]?.handheldOpening(progress) ??
+        (widget.variants[i].model.canOpen ? progress : 0.0);
+    return _keys[i]
+            .currentState
+            ?.physicalBounds(unboxing: progress, opening: opening) ??
+        SocketMediaGpu.compositionBounds(
+            _preparedModels![i],
+            _initialPose(i, unboxing: progress, opening: opening),
+            const Size(1, 1),
+            1);
+  }
+
+  static int _slot(int index, int count) {
+    final centre = (count - 1) ~/ 2;
+    return index == 0
+        ? centre
+        : index <= centre
+            ? index - 1
+            : index;
+  }
+
+  static double _angle(int index, int count) =>
+      count == 1 ? 0 : (_slot(index, count) / (count - 1) - .5) * 1.9;
+
+  /// Bounds use projected physical world units (+Y up). All editions share one
+  /// pixels-per-unit value, including camera fitting during sequential unboxing.
+  static ({double units, List<Offset> origins, List<Rect> hitBounds})
+      physicalLayout(Size size, List<Rect> settled, {List<Rect>? current}) {
+    final count = settled.length;
+    final order = List.generate(count, (i) => i)
+      ..sort((a, b) => _slot(a, count).compareTo(_slot(b, count)));
+    const gap = .20;
+    final anchors = List.filled(count, Offset.zero);
+    var cursor = 0.0;
+    for (final i in order) {
+      final bounds = settled[i];
+      final drop = count == 1
+          ? 0.0
+          : .45 * (1 - math.cos(_angle(i, count))) / (1 - math.cos(.95));
+      anchors[i] = Offset(cursor - bounds.left, drop + bounds.top);
+      cursor += bounds.width + gap;
+    }
+    final projected = <Rect>[
+      for (var i = 0; i < count; i++)
+        Rect.fromLTRB(
+            anchors[i].dx + (current ?? settled)[i].left,
+            anchors[i].dy - (current ?? settled)[i].bottom,
+            anchors[i].dx + (current ?? settled)[i].right,
+            anchors[i].dy - (current ?? settled)[i].top)
+    ];
+    final envelope = projected.reduce((a, b) => a.expandToInclude(b));
+    final safe = Rect.fromLTWH(size.width * .125, size.height * .125,
+        size.width * .75, size.height * .75);
+    final units =
+        math.min(safe.width / envelope.width, safe.height / envelope.height);
+    final translation = safe.center - envelope.center * units;
+    return (
+      units: units,
+      origins: [for (final a in anchors) translation + a * units],
+      hitBounds: [
+        for (final r in projected)
+          Rect.fromLTRB(
+              translation.dx + r.left * units,
+              translation.dy + r.top * units,
+              translation.dx + r.right * units,
+              translation.dy + r.bottom * units)
+      ]
+    );
+  }
+
   @override
   Widget build(BuildContext context) =>
       LayoutBuilder(builder: (context, bounds) {
         final generation = _generation;
+        if (_preparedModels == null) {
+          return Center(
+              child: _calibrationError == null
+                  ? const CircularProgressIndicator()
+                  : Text(_calibrationError!));
+        }
         final count = widget.variants.length;
         final inspected = _inspected;
         final width = bounds.maxWidth, height = bounds.maxHeight;
-        // Reserve margins once for the whole arc, rather than shrinking each
-        // edition twice. Single-model and inspection cameras frame themselves.
-        final arc = Rect.fromLTWH(
-            width * .125, height * .125, width * .75, height * .75);
-        final cellWidth = (arc.width - 12 * (count - 1)) / count;
+        final settled = _settledBounds;
+        final currents = settled == null || _sequence.value == 1
+            ? null
+            : [for (var i = 0; i < count; i++) _currentBounds(i)];
+        final layout = settled == null
+            ? null
+            : physicalLayout(Size(width, height), settled, current: currents);
         return Stack(clipBehavior: Clip.hardEdge, children: [
           for (var i = 0; i < count; i++)
-            Builder(builder: (context) {
-              // Primary stays first in identity/catalogue order and occupies the
-              // rear centre of the arc; the outer editions come toward the viewer.
-              final centre = (count - 1) ~/ 2;
-              final slot = i == 0
-                  ? centre
-                  : i <= centre
-                      ? i - 1
-                      : i;
-              final angle = count == 1 ? 0.0 : (slot / (count - 1) - .5) * 1.9;
-              final x = arc.center.dx +
-                  (count == 1
-                      ? 0
-                      : (arc.width - cellWidth) /
-                          2 *
-                          math.sin(angle) /
-                          math.sin(.95));
-              final y = arc.top + arc.height * (.69 - .20 * math.cos(angle));
-              final overview = count == 1
-                  ? Rect.fromLTWH(0, 0, width, height)
-                  : Rect.fromCenter(
-                      center: Offset(x, y),
-                      width: cellWidth,
-                      height: arc.height * .78);
-              final rect = inspected == i
-                  ? Rect.fromLTWH(0, 48, width, math.max(1, height - 48))
-                  : overview;
-              final visible = inspected == null || inspected == i;
-              return Positioned.fromRect(
-                  rect: rect,
-                  child: Offstage(
-                      offstage: !visible,
-                      child: TickerMode(
-                          enabled: visible,
-                          child: Stack(fit: StackFit.expand, children: [
-                            IgnorePointer(
-                                ignoring: _information,
-                                child: Semantics(
-                                    label: _label(i),
-                                    child: ConsoleHardwareView(
-                                        key: _keys[i],
-                                        model: widget.variants[i].model,
-                                        unboxingScene: _scenes[i],
-                                        unboxingProgress: _progress(i),
-                                        sequenceOpening: _sequence.value < 1
-                                            ? (_scenes[i]?.handheldOpening(
-                                                    _progress(i)) ??
-                                                (widget.variants[i].model.canOpen
-                                                    ? _progress(i)
-                                                    : 0))
-                                            : null,
-                                        inspecting: inspected == i,
-                                        compositionFill:
-                                            inspected == null && count > 1
-                                                ? 1
-                                                : .75,
-                                        onInteraction: _settleSequence,
-                                        title: _label(i),
-                                        showTitle: false,
-                                        turntable: false,
-                                        reducedMotion: widget.reducedMotion,
-                                        informationRotation:
-                                            inspected == i && _information,
-                                        stagingYaw:
-                                            inspected == null && count > 1
-                                                ? .2 - angle * .35
-                                                : 0,
-                                        onInspect: inspected == null
-                                            ? () => _inspect(i)
-                                            : null,
-                                        transparentBackground: true,
-                                        onReady: () =>
-                                            _rendered(i, generation)))),
-                          ]))));
-            }),
+            Positioned.fill(
+              top: inspected == i ? 48 : 0,
+              child: Offstage(
+                  offstage: inspected != null && inspected != i,
+                  child: TickerMode(
+                      enabled: inspected == null || inspected == i,
+                      child: IgnorePointer(
+                          ignoring: inspected == null || _information,
+                          child: ConsoleHardwareView(
+                              key: _keys[i],
+                              model: widget.variants[i].model,
+                              preparedModel: _preparedModels![i],
+                              unboxingScene: _scenes[i],
+                              unboxingProgress: _progress(i),
+                              sequenceOpening: _sequence.value < 1
+                                  ? (_scenes[i]
+                                          ?.handheldOpening(_progress(i)) ??
+                                      (widget.variants[i].model.canOpen
+                                          ? _progress(i)
+                                          : 0))
+                                  : null,
+                              inspecting: inspected == i,
+                              compositionFill: .75,
+                              sharedCameraUnits:
+                                  inspected == null ? layout?.units : null,
+                              sharedCameraOrigin:
+                                  inspected == null ? layout?.origins[i] : null,
+                              // Bare optional editions use the same 10 units per metre as
+                              // paired scenes; an inspection is free to magnify independently.
+                              stagingScale: inspected == null &&
+                                      _scenes[i] == null &&
+                                      widget.variants[i].model
+                                              .physicalUnitsPerMetre !=
+                                          null
+                                  ? 10 /
+                                      widget.variants[i].model
+                                          .physicalUnitsPerMetre!
+                                  : 1,
+                              onInteraction: _settleSequence,
+                              title: _label(i),
+                              showTitle: false,
+                              turntable: false,
+                              reducedMotion: widget.reducedMotion,
+                              informationRotation:
+                                  inspected == i && _information,
+                              stagingYaw: inspected == null && count > 1
+                                  ? .2 - _angle(i, count) * .35
+                                  : 0,
+                              transparentBackground: true,
+                              onReady: () => _rendered(i, generation))))),
+            ),
+          if (inspected == null && count > 1 && layout != null)
+            for (var i = 0; i < count; i++)
+              Positioned.fromRect(
+                  rect: layout.hitBounds[i],
+                  child: Semantics(
+                      label: _label(i),
+                      button: true,
+                      child: GestureDetector(
+                          key: ValueKey('gamewatch-edition-hit-$i'),
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => _inspect(i),
+                          child: const SizedBox.expand()))),
+          if (inspected == null && count == 1)
+            Positioned.fill(
+                child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _inspect(0),
+                    child: const SizedBox.expand())),
+          if (inspected == null && count > 1 && !_reported)
+            Positioned.fill(
+                child: DecoratedBox(
+                    decoration: const BoxDecoration(
+                        gradient: AppTheme.backgroundGradient),
+                    child: Center(
+                        child: _calibrationError == null
+                            ? const CircularProgressIndicator()
+                            : Text(_calibrationError!)))),
           if (inspected != null) ...[
             Positioned(
                 left: 0,

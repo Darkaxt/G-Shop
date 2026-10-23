@@ -12,6 +12,10 @@ Native full-catalogue preparation exposed a repeated sibling-scan bottleneck.
 Within the same S26 outcome, index observed exact file names, migrate the private
 catalogue additively and retain ambiguity/generation checks. Verify existing jobs,
 recipes and unpublished traversal checkpoints before native full-index acceptance.
+Owner reports mis-scaled Game & Watch cartons and an absent CJ-71 in the captured
+three-edition view. Trace actual dimension calibration, seating/orientation and
+per-edition camera fitting; correct the real pair/arc layout, then join all three
+rendered settled states. Keep the floor-only candidate held for this correction.
 The owner reports the installed CI-03 floor is not visibly readable. Correct the
 shared painter's contrast/spread and review actual native compositions with the
 next cohesive candidate; preserve the same active stage and delivery boundary.

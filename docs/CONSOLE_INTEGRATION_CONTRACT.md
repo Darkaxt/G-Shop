@@ -151,6 +151,14 @@ groups; later publication preserves actual selected identity.
 
 ## Lower console composition — CI-03
 
+Retain physical-unit calibration through normalized imports. Multi-edition views
+share a camera scale; independently filling equal cells does not preserve physical
+sizes. Review packed appendages and orthogonal packing orientations before
+fitting contents. Preserve measured/inferred provenance; only explicitly inferred
+carton dimensions may expand uniformly when their retained estimate cannot contain
+the hardware. Verify every edition at its painted settled state before declaring
+a supplied model missing. A capture while the last carton is closed can be mid-sequence.
+
 All consoles use the shared lower-stage floor treatment by default: a slightly
 brighter red pool beneath the models, flattened into a perspective ellipse and
 fading completely into the existing background. No defined edge, rim or platform.

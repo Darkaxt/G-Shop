@@ -24,6 +24,7 @@ class SocketMediaRenderer extends StatefulWidget {
   final PhysicalMediaFormat format;
   final PackagingModel? packaging;
   final ConsoleModel? console;
+  final SocketMediaModel? preparedConsole;
   final GameWatchUnboxingScene? gameWatchScene;
   final NesUnboxingScene? nesScene;
   final NesLaunchScene? nesLaunchScene;
@@ -51,7 +52,8 @@ class SocketMediaRenderer extends StatefulWidget {
       this.compositionFill = .75,
       this.compositionZoom = 1,
       this.onReady})
-      : packaging = null,
+      : preparedConsole = null,
+        packaging = null,
         boxFaceBadges = false,
         gameWatchScene = null,
         console = null,
@@ -65,7 +67,8 @@ class SocketMediaRenderer extends StatefulWidget {
       required this.label,
       this.labelIdentity,
       this.onReady})
-      : frameComposition = false,
+      : preparedConsole = null,
+        frameComposition = false,
         boxFaceBadges = false,
         compositionFill = .75,
         compositionZoom = 1,
@@ -90,7 +93,8 @@ class SocketMediaRenderer extends StatefulWidget {
       this.frameComposition = false,
       this.compositionFill = .75,
       this.compositionZoom = 1,
-      this.gameWatchScene})
+      this.gameWatchScene,
+      this.preparedConsole})
       : console = model,
         nesLaunchScene = null,
         nesScene = null,
@@ -108,7 +112,8 @@ class SocketMediaRenderer extends StatefulWidget {
       this.labelIdentity,
       this.compositionZoom = 1,
       this.onReady})
-      : frameComposition = true,
+      : preparedConsole = null,
+        frameComposition = true,
         boxFaceBadges = false,
         compositionFill = .75,
         unboxingScene = scene,
@@ -149,7 +154,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
   Size _viewport = Size.zero;
   Future<Map<String, Object?>> get ready => _ready.future;
   Map<String, Rect> get inspectionBounds {
-    final model = _renderer?.model;
+    final model = _renderer?.model ?? widget.preparedConsole;
     if (model == null ||
         model.data['unboxingGeometry'] != true ||
         _viewport.isEmpty) return const {};
@@ -174,6 +179,24 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     return (_poseReady ??= Completer<Map<String, Object?>>()).future;
   }
 
+  Rect? physicalBoundsFor(SocketMediaPose pose) {
+    final model = _renderer?.model;
+    if (model == null ||
+        (widget.gameWatchScene == null &&
+            widget.console?.physicalUnitsPerMetre == null)) return null;
+    return SocketMediaGpu.compositionBounds(model, pose, const Size(1, 1), 1);
+  }
+
+  Rect? get _physicalOverviewBounds => physicalBoundsFor(SocketMediaPose(
+      rx: widget.pose.rx,
+      ry: widget.pose.ry,
+      rz: widget.pose.rz,
+      scaleX: widget.pose.scaleX,
+      scaleY: widget.pose.scaleY,
+      scaleZ: widget.pose.scaleZ,
+      unboxing: 1,
+      opening: _renderer?.model.data['canOpen'] == true ? 1 : 0));
+
   Map<String, Object?> get snapshot => {
         'model': _renderer?.model.name ??
             widget.packaging?.id ??
@@ -197,6 +220,21 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         'inspectedPart': widget.pose.inspectedPart,
         'inspection': widget.pose.inspection,
         'compositionFraming': widget.frameComposition,
+        if (_physicalOverviewBounds case final bounds?)
+          'physicalOverviewBounds': [
+            bounds.left,
+            bounds.top,
+            bounds.right,
+            bounds.bottom
+          ],
+        if (_renderer?.model.data['physicalCalibration']
+            case final calibration?)
+          'physicalCalibration': calibration,
+        'sharedCameraUnits': widget.pose.cameraUnits,
+        'sharedCameraOrigin': [
+          widget.pose.cameraCenterX,
+          widget.pose.cameraCenterY
+        ],
         if (widget.frameComposition) 'compositionFill': widget.compositionFill,
         'inspectionBounds': {
           for (final entry in inspectionBounds.entries)
@@ -215,6 +253,11 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
                 'scale': _paintedPose!.scaleX,
                 'opening': _paintedPose!.opening,
                 'pageFocus': _paintedPose!.pageFocus,
+                'cameraUnits': _paintedPose!.cameraUnits,
+                'cameraOrigin': [
+                  _paintedPose!.cameraCenterX,
+                  _paintedPose!.cameraCenterY
+                ],
                 'unboxing': _paintedPose!.unboxing
               },
         'identity': widget.identity,
@@ -265,7 +308,8 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.pose.unboxing == 1 && widget.pose.unboxing < 1)
       _sceneSettledReported = false;
-    if (oldWidget.nesLaunchScene?.identity != widget.nesLaunchScene?.identity ||
+    if (oldWidget.preparedConsole != widget.preparedConsole ||
+        oldWidget.nesLaunchScene?.identity != widget.nesLaunchScene?.identity ||
         oldWidget.nesScene?.identity != widget.nesScene?.identity ||
         oldWidget.gameWatchScene?.identity != widget.gameWatchScene?.identity ||
         oldWidget.format != widget.format ||
@@ -320,31 +364,33 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     _labelImage = null;
     try {
       final renderer = await SocketMediaGpu.load(widget.format,
-          owned: widget.nesLaunchScene != null
-              ? await widget.nesLaunchScene!.load()
-              : widget.nesScene != null
-                  ? await widget.nesScene!.load()
-                  : widget.gameWatchScene != null
-                      ? await widget.gameWatchScene!.load()
-                      : widget.unboxingScene != null
-                          ? await widget.unboxingScene!.load() ??
-                              (throw StateError(
-                                  'Import the holder-enabled box and cartridge'))
-                          : widget.console != null
-                              ? await widget.console!
-                                  .load(galleryBadges: widget.boxFaceBadges)
-                              : widget.cartridgeStyle != null &&
-                                      widget.format == PhysicalMediaFormat.nes
-                                  ? await NesCartridgeModel.load(
-                                          widget.cartridgeStyle!) ??
-                                      (throw StateError(
-                                          'Import the selected NES cartridge shell'))
+          owned: widget.preparedConsole ??
+              (widget.nesLaunchScene != null
+                  ? await widget.nesLaunchScene!.load()
+                  : widget.nesScene != null
+                      ? await widget.nesScene!.load()
+                      : widget.gameWatchScene != null
+                          ? await widget.gameWatchScene!.load()
+                          : widget.unboxingScene != null
+                              ? await widget.unboxingScene!.load() ??
+                                  (throw StateError(
+                                      'Import the holder-enabled box and cartridge'))
+                              : widget.console != null
+                                  ? await widget.console!
+                                      .load(galleryBadges: widget.boxFaceBadges)
                                   : widget.cartridgeStyle != null &&
                                           widget.format ==
-                                              PhysicalMediaFormat.gba
-                                      ? await GbaCartridgeModel.load(
-                                          widget.cartridgeStyle!)
-                                      : await widget.packaging?.load());
+                                              PhysicalMediaFormat.nes
+                                      ? await NesCartridgeModel.load(
+                                              widget.cartridgeStyle!) ??
+                                          (throw StateError(
+                                              'Import the selected NES cartridge shell'))
+                                      : widget.cartridgeStyle != null &&
+                                              widget.format ==
+                                                  PhysicalMediaFormat.gba
+                                          ? await GbaCartridgeModel.load(
+                                              widget.cartridgeStyle!)
+                                          : await widget.packaging?.load()));
       if (!mounted || generation != _generation) return;
       _modelUs = _clock.elapsedMicroseconds;
       setState(() => _renderer = renderer);
@@ -1009,6 +1055,16 @@ class SocketMediaGpu {
   static vm.Matrix4 compositionProjection(
       SocketMediaModel model, SocketMediaPose pose, Size size,
       {double fill = .75, double zoom = 1}) {
+    if (pose.cameraUnits case final units?) {
+      if (!units.isFinite ||
+          units <= 0 ||
+          pose.cameraCenterX == null ||
+          pose.cameraCenterY == null) {
+        throw const FormatException('Invalid shared physical camera');
+      }
+      return cameraProjection(size.width, size.height, units * zoom,
+          center: Offset(pose.cameraCenterX!, pose.cameraCenterY!));
+    }
     if (model.data['nesLaunch'] == true) {
       final rect = model.data['launchInitialViewport'] as List?;
       final initialSize = rect == null

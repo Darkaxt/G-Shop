@@ -21,6 +21,7 @@ class ConsoleModel {
   final bool canOpen;
   final bool isBox;
   final int openingDurationMs;
+  final double? physicalUnitsPerMetre;
   ConsoleModel._(this.systemId, this.directory, this.generation,
       {this.romSet,
       this.visualVariantId,
@@ -29,7 +30,8 @@ class ConsoleModel {
       this.launchTarget,
       this.canOpen = false,
       this.isBox = false,
-      this.openingDurationMs = 2000});
+      this.openingDurationMs = 2000,
+      this.physicalUnitsPerMetre});
 
   // ROM identity remains the exact MAME set. A documented MCU-only revision
   // may share its exterior; Crystal/Silver/Panorama designs remain separate.
@@ -222,6 +224,16 @@ class ConsoleModel {
     }
     final bytes = await manifest.readAsBytes();
     final data = jsonDecode(utf8.decode(bytes)) as Map;
+    final physical = data['physicalScale'];
+    final units = physical is Map ? physical['previewUnitsPerMetre'] : null;
+    if (physical != null &&
+        (units is! num ||
+            !units.isFinite ||
+            units <= 0 ||
+            physical['reference'] is! String ||
+            physical['estimated'] is! bool)) {
+      throw const FormatException('Invalid hardware physical-unit calibration');
+    }
     final duration = data['openingDurationMs'] ?? 2000;
     if (duration is! int || duration < 50 || duration > 10000) {
       throw const FormatException('Invalid handheld animation duration');
@@ -231,7 +243,8 @@ class ConsoleModel {
         visualVariantId: visualVariantId,
         isBox: box,
         canOpen: data['canOpen'] == true,
-        openingDurationMs: duration);
+        openingDurationMs: duration,
+        physicalUnitsPerMetre: (units as num?)?.toDouble());
   }
 
   /// Visual group membership is explicit private import data. It never changes

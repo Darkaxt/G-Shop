@@ -5,6 +5,38 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-23 Game & Watch physical-scale correction: **S26 ACTIVE**, sole active
+stage. Native painted/settled evidence confirms CJ-71 Table Top is already installed
+from the large refinement package; the earlier screenshot caught its box before
+the final turn of the 19.1-second sequence. The newly downloaded file is an older
+source revision; Blender confirms the packaged revision retains the same cabinet
+and adds underside details. Preserve that refined import. All 124 installed
+Game & Watch manifests match the retained conversion baseline exactly.
+
+The real defect was min-axis seating scale plus independent per-edition camera
+fitting. The New Wide Screen mesh also had its stand extended inside the packing
+calculation. Blender folded only that existing disconnected stand into the rear
+recess; all seven texture receipts remain identical. The converted derivative
+retains its measured 111 mm width reference (M+ object 2016.586). Physical scale is
+now retained in import metadata and one camera scale is shared across the arc,
+including extraction framing. Cabinet packing chooses an orthogonal orientation;
+only explicitly inferred carton dimensions may expand uniformly to contain the
+hardware. Geometry/UV aspect ratios and actual source/revision identities remain.
+The centre pair's box/handheld width ratio is 1.441, rather than 2.684.
+
+The prepared private resource kit calibrates 63 handhelds and 61 containers,
+recording supplied inferred dimensions separately from the measured-width anchor.
+The actual three-edition animation framing/packing checks, all 61 paired imports,
+sequential readiness/pause/inspection, source meshes/textures and source identity
+checks pass on host. These are geometry and widget-boundary evidence, not native
+GPU/visual acceptance. The corrected signed candidate, manifest-bound resource
+activation, actual floor/composition/input review and original-job pause/update/
+resume verification remain required. Hold floor-only CI `39877332632` (`d528ad3`,
+successful) for the cohesive candidate; it has not been installed. CORE-LOOK-01's
+worker completed its read-only inventory and recommendations only; no RetroArch
+configuration or launches have changed.
+
+
 2026-10-23 CI-03 floor review: the installed `9a8fbdf` does contain the shared
 floor (`6bd3855` is an ancestor), but native Ball and Donkey Kong Jr. captures
 show a faint detached spot rather than readable illumination beneath the models.
