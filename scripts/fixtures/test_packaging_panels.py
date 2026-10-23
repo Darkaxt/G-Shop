@@ -22,6 +22,23 @@ spec.loader.exec_module(packaging)
 
 
 class PanelsTest(unittest.TestCase):
+    def test_composition_requires_a_selected_face_instead_of_provider_precedence(self):
+        donor = {'type': 'outer-box-front', 'region': 'us',
+                 'importReference': {'sourceId': 'nintandbox', 'sha256': 'donor',
+                                     'sourceLanguages': ['fr']}}
+        preferred = {'type': 'box-2D', 'region': 'us', 'importReference': {
+            'sourceId': 'screenscraper', 'sha256': 'reviewed-sharper-face'}}
+        alternative = {'type': 'box-2D', 'region': 'us', 'importReference': {
+            'sourceId': 'launchbox', 'sha256': 'unselected-face'}}
+        game = {'resources': [donor, preferred]}
+        with self.assertRaisesRegex(ValueError, 'Select one English face'):
+            packaging.compose_english_faces(game, [preferred, alternative])
+        self.assertEqual(game['resources'], [donor, preferred])
+        packaging.compose_english_faces(game, [preferred])
+        front = next(r for r in game['resources'] if r['type'] == 'outer-box-front')
+        self.assertEqual(front['importReference']['sourceId'], 'screenscraper')
+        self.assertEqual(front['importReference']['sha256'], 'reviewed-sharper-face')
+
     def test_missing_english_art_preserves_every_donor_face_and_provenance(self):
         import copy
         donor = [{'type': 'outer-box-' + face, 'region': 'us',

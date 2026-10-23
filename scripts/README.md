@@ -151,8 +151,10 @@ python -B scripts/prepare_packaging_resources.py --system gba `
 ```
 
 LaunchBox's official metadata index supplies exact-platform/title matches and
-same-region front/back/spine images. ScreenScraper supplies compatible missing
-faces and available PDF manuals using the already bound provider ID. PDF pages
+same-region front/back/spine candidates. For each needed/replacement face, request
+both LaunchBox and ScreenScraper candidates and select the better compatible image,
+retaining original bodies, hashes and selection reasons. ScreenScraper also supplies
+available PDF manuals using the already bound provider ID. PDF pages
 become ordered, bounded PNGs. Horizontal spines are normalized upright, with the
 original source hash and rotation retained. Missing resources remain missing.
 The stored ZIP contains a versioned identity-bound manifest and hash-addressed
@@ -160,7 +162,7 @@ normalized PNGs, never API keys or ROM bytes. Sources and the retained original
 PDFs stay in the desktop reference cache. NintAndBox print/fold templates require
 classified panels; never stretch an entire sheet onto one face or mix editions.
 
-In Game metadata > Storage, **Import artwork pack** streams the reviewed ZIP
+In Game metadata > Storage, **Import prepared resources** streams the reviewed ZIP
 through the existing shared metadata store. Its normal Drive publisher places
 `box.png`, `box-back.png`, `box-spine.png`, `outer-box-*.png` and ordered
 `manual-page-001.png` resources beneath the existing per-game resource directory.
@@ -254,5 +256,35 @@ change saved Android jobs or write arbitrary `metadata.json` into H:. Final
 resources still pass the existing identity-owned import/publication/recovery
 lane, including Drive ownership/app-property/digest checks, before they count as
 integrated. Never place cache files, credentials or ROM inventories on H: as a
-substitute for this final gate. Keep NintAndBox/LaunchBox precedence in the separate
-packaging collector; a metadata crawl does not supersede carton preparation.
+substitute for this final gate. Preserve NintAndBox carton construction in the
+separate packaging collector; a metadata crawl does not supersede carton preparation.
+
+Prepare completed archive-bound results for the normal application lane with
+`prepare_desktop_crawl_import.py --census <complete clean read-only NDJSON>
+--manifest <same crawl manifest> --crawl <E: output> --output <new E: pack folder>`.
+It captures the committed checkpoint, verifies exact artifact/image ownership and
+writes stored ZIP batches of at most 25 games. In Settings / shared metadata
+storage, **Import prepared resources** accepts multiple packs sequentially. The
+app rechecks current identities and artifact versions, performs normal fresh
+provider matching using the validated raw evidence and publishes through its
+existing metadata/Drive lane. Imported image reuse stays edition/artifact scoped;
+it is not relabelled as a fresh provider-body response. Existing saved jobs remain
+unchanged. A paused/blocked import stops the batch and retains its normal job.
+Preparation, a successful import and final verified publication/recovery are
+different outcomes; never count pack membership as usable coverage.
+
+For needed/replacement box faces, `prepare_packaging_resources.py` now acquires
+both LaunchBox and ScreenScraper candidates. It preserves original image bodies
+in the E: HTTP cache, reports dimensions/detail measurements, all candidate hashes
+and the chosen source. `--quality-review <private JSON>` supplies reviewed choices
+as `{gameId: {role: {sourceId, sourceSha256, reason}}}`. A changed/missing reviewed
+image fails explicitly. Otherwise the measured nomination remains labelled as
+requiring the visual sample; it is not a claim of accepted quality. Review real
+legibility, cropping, damage/glare, printing and colour continuity; resolution
+alone cannot decide. The existing NintAndBox donor/colour path remains in place.
+Donor composition preserves the selected face; distinct English alternatives
+must be resolved upstream instead of being reordered by provider during fitting.
+`--crawl-artwork <completed Windows output>` seeds validated acquired face bodies
+into that response cache to avoid repeat API requests. It does not import facts,
+classifications, acceptance or publication. Support textures and shell-inclusive
+cartridge pictures remain different roles.

@@ -34,15 +34,17 @@ score arrival, overlay preferences and source-labelled exact-edition ownership.
 Keep lower-screen HUD badges at their separately specified screen anchors.
 
 Carry forward the complete existing GBA resource pipeline for each authorized
-console: reviewed NintAndBox dump panels -> public low-resolution .es preview ->
-edition-compatible LaunchBox faces -> ScreenScraper missing roles, including the
-front. Check actual decoded resources and retain per-face provenance. A missing
+console: reviewed NintAndBox dump panels -> public low-resolution .es preview;
+for faces needing acquisition/replacement, acquire edition-compatible candidates
+from **both LaunchBox and ScreenScraper**, including the front. Select per role
+by actual quality, preserving per-face provenance. Provider precedence alone is
+not a quality decision. Check actual decoded resources. A missing
 dump catalogue binding or partial extraction is not an exhausted source
 investigation: check the original archive and retained model/panel catalogue.
 Use a complete suitable English/English-containing multilingual set first;
 otherwise reuse the same game's suitable regional/non-English carton as a donor,
 retaining its geometry, sides/flaps and opening animation while replacing the
-necessary front/back with matched English LaunchBox art, then ScreenScraper.
+necessary front/back with the better compatible English LaunchBox/ScreenScraper art.
 This established GBA composition policy applies across the collector. Do not
 reject the donor solely for language/region or seek repeated approval. Reuse the
 collector's verified global colour-cast correction against corresponding original
@@ -68,6 +70,17 @@ entry's custom/replacement-case wrap from a retail scan and retain creator, cove
 ID, format/region and crop/hash provenance. Such artwork does not establish a
 NintAndBox-style cardboard net, folds, dimensions or opening construction. Its
 registration does not assert that an acquisition/import provider is implemented.
+
+Compare original delivered dimensions, real detail/text legibility, cropping,
+glare/damage, orientation and colour continuity after game/platform/region/printing
+compatibility. More pixels can represent enlarged blur; same-region assets can
+belong to different printings. Retain both original candidates in the desktop
+cache and their hashes/selected-or-rejected reasons in the preparation receipt.
+Use reviewed source-hash choices for known better assets; automated measurements
+nominate candidates and do not replace the required Top 25 native visual sample.
+Keep genuine support-label textures distinct from full-cartridge pictures; never
+apply a shell-inclusive image as a label. An unavailable provider is recorded as
+an acquisition limitation, not evidence that the other provider is superior.
 
 Before accepting resource coverage for an authorized console, snapshot its actual
 eligible distinct Top 25 from the canonical ranked query and current preferences;

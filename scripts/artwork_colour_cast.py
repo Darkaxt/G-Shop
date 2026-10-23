@@ -62,6 +62,11 @@ def match_colour_cast(source, reference):
         robust = np.minimum(1, scale / np.maximum(residual, 1e-9))
     if not np.isfinite(matrix).all() or np.max(np.abs(matrix)) > 8 or np.linalg.det(matrix[:3]) <= 0:
         return unchanged('unstable-colour-transform')
+    # A cast may mix channels, but must not reverse a primary channel's own
+    # contrast. A positive determinant alone permits two channel inversions and
+    # accepted a visibly darkened fit between different regional back layouts.
+    if np.any(np.diag(matrix[:3]) <= 0):
+        return unchanged('nonphysical-colour-transform')
     observed = np.column_stack([a[check, :3], np.ones(np.count_nonzero(check))])
     after = float(np.median(np.linalg.norm(np.clip(observed @ matrix, 0, 1) - b[check, :3], axis=1)))
     # Regional text/layout and print grain differ; allow a median 0.18 RGB-vector

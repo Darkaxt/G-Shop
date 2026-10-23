@@ -1,13 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 import '../../models/scraped_metadata.dart';
+import '../../models/library_identity.dart';
 import '../library_store.dart';
 import 'metadata_artwork_cache.dart';
 import 'shared_metadata_store.dart';
+import 'desktop_archive_evidence.dart';
+import 'metadata_png.dart';
 
 /// Desktop-prepared scans/documents enter the same durable metadata and cloud
 /// lane as provider artwork. A pack cannot create games, ratings or ROMs.
@@ -15,6 +19,7 @@ class PackagingResourceImport {
   final Future<Database> database;
   final MetadataArtworkCache cache;
   final SharedMetadataStore shared;
+  List<String> archiveEditionIds = const [];
   PackagingResourceImport(this.database, this.cache, this.shared);
   static const roles = {
     'box-2D',
@@ -90,6 +95,10 @@ class PackagingResourceImport {
         (manifest['games'] as List).length > 25)
       throw const FormatException('Invalid artwork pack scope');
     final db = await database;
+    if (manifest['kind'] == 'desktopArchiveEvidence') {
+      archiveEditionIds = await _importDesktop(manifest, members, read, db);
+      return archiveEditionIds.length;
+    }
     final library = LibraryStore(database);
     final prepared = <({
       Map<String, Object?> identity,
@@ -201,5 +210,140 @@ class PackagingResourceImport {
       }
     }
     return prepared.length;
+  }
+
+  Future<List<String>> _importDesktop(
+      Map manifest,
+      Map<String, ZipFileHeader> members,
+      List<int> Function(ZipFileHeader) read,
+      Database db) async {
+    final prepared = <({
+      String edition,
+      String platform,
+      RemoteArtifact artifact,
+      Map observation,
+      List<MetadataMedia> media,
+      Map<String, String> digests
+    })>[];
+    final seen = <String>{};
+    for (final entry in manifest['games'] as List) {
+      final id = entry['editionId'] as String;
+      if (!seen.add(id))
+        throw const FormatException('Duplicate evidence edition');
+      final rows = await db.rawQuery('''SELECT g.record_json AS game_json,
+        e.record_json AS edition_json FROM library_editions e JOIN
+        library_game_identities g ON g.game_id=e.game_id WHERE e.edition_id=?''',
+          [id]);
+      if (rows.length != 1 ||
+          LibraryStore.metadataIdentity(rows.single,
+                  providerId: 'screenscraper') !=
+              entry['identityKey']) {
+        throw const FormatException(
+            'Collection changed since desktop acquisition');
+      }
+      final game =
+          GameIdentity.fromJson(jsonDecode(rows.single['game_json'] as String));
+      final edition = EditionIdentity.fromJson(
+          jsonDecode(rows.single['edition_json'] as String));
+      final artifact = RemoteArtifact.fromJson(entry['artifact']);
+      final platform = entry['platformId'] as String;
+      final current = await LibraryStore(database).artifact(artifact.id);
+      if (game.id != entry['gameId'] ||
+          game.platformId != platform ||
+          game.baseGameId != null ||
+          edition.patchId != null ||
+          edition.isTranslation == true ||
+          edition.translatedLanguages.isNotEmpty ||
+          edition.tags.any((t) => !{'unknown', 'official'}.contains(t)) ||
+          edition.evidence.any((e) =>
+              e.source == 'manual' && e.kind == 'contentClassification') ||
+          edition.members.length != 1 ||
+          edition.members.single.artifactId.key != artifact.id.key ||
+          current == null ||
+          jsonEncode(current.toJson()) != jsonEncode(artifact.toJson())) {
+        throw const FormatException(
+            'Desktop evidence does not own this source');
+      }
+      final observation = entry['observation'] as Map;
+      DesktopArchiveEvidence.validate(artifact, platform, observation);
+      final media = <MetadataMedia>[];
+      final digests = <String, String>{};
+      for (final raw in entry['artwork'] as List) {
+        final m = MetadataMedia.fromJson(
+            (raw['media'] as Map).cast<String, dynamic>());
+        final digest = raw['sha256'] as String;
+        final reference = m.providerReference;
+        if (reference == null ||
+            reference.providerPlatformId != {'nes': 3, 'gba': 12}[platform] ||
+            reference.mediaType != m.type ||
+            reference.region != m.region ||
+            reference.memberIndex != m.memberIndex ||
+            m.importReference != null ||
+            m.url != null ||
+            !{
+              'box-2D',
+              'box-2D-back',
+              'box-2D-side',
+              'box-texture',
+              'support-texture'
+            }.contains(m.type) ||
+            !RegExp(r'^[a-f0-9]{64}$').hasMatch(digest) ||
+            !digests.keys.every((k) => k != MetadataArtworkCache.key(m))) {
+          throw const FormatException('Invalid prepared provider media');
+        }
+        final header = members['images/$digest.png'];
+        if (header == null)
+          throw const FormatException('Missing prepared artwork');
+        final bytes = Uint8List.fromList(read(header));
+        if (bytes.length != raw['bytes'] ||
+            sha256.convert(bytes).toString() != digest ||
+            !validMetadataPng(bytes)) {
+          throw const FormatException('Prepared provider artwork changed');
+        }
+        media.add(m);
+        digests[MetadataArtworkCache.key(m)] = digest;
+      }
+      prepared.add((
+        edition: id,
+        platform: platform,
+        artifact: artifact,
+        observation: observation,
+        media: media,
+        digests: digests
+      ));
+    }
+    // All captured identities and bodies pass before any evidence is made usable.
+    final now = DateTime.now().toUtc();
+    await cache.root.create(recursive: true);
+    final staging = await cache.root.createTemp('desktop-import-');
+    try {
+      for (final item in prepared) {
+        for (final m in item.media) {
+          final digest = item.digests[MetadataArtworkCache.key(m)]!;
+          final file = File(p.join(staging.path, '$digest.png'));
+          await file.writeAsBytes(read(members['images/$digest.png']!),
+              flush: true);
+          final imported = await cache.importReviewedImage(file, m);
+          if (imported.blob.filename != '$digest.png') {
+            throw const FormatException('Desktop artwork was not normalized');
+          }
+          await shared.preserveBlob(imported.blob, now);
+          await MetadataArtworkCache.publish(db, imported.blob, now);
+          await DesktopArchiveEvidence.preserveArtwork(
+              shared.root,
+              item.artifact,
+              item.platform,
+              item.edition,
+              m,
+              imported.blob,
+              now);
+        }
+        await DesktopArchiveEvidence.preserve(
+            shared.root, item.artifact, item.platform, item.observation);
+      }
+    } finally {
+      await staging.delete(recursive: true);
+    }
+    return prepared.map((i) => i.edition).toList(growable: false);
   }
 }

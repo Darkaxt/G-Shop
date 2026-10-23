@@ -15,6 +15,7 @@ import '../services/metadata/metadata_artwork_cache.dart';
 import '../services/metadata/metadata_provider.dart';
 import '../services/metadata/metadata_refresh_jobs.dart';
 import '../services/metadata/packaging_resource_import.dart';
+import '../services/metadata/desktop_archive_evidence.dart';
 import '../services/metadata/screenscraper_provider.dart';
 import '../services/metadata/preview_video_cache.dart';
 import '../models/scraped_metadata.dart';
@@ -190,7 +191,20 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
         _jobs = MetadataRefreshJobs(database,
             sharedStore: sharedStore,
             readRomHeader: readRomHeader,
-            readArchiveIdentifier: readArchiveIdentifier),
+            readArchiveIdentifier:
+                sharedStore == null && readArchiveIdentifier == null
+                    ? null
+                    : (artifact, platform, cancel) async {
+                        final store = await sharedStore;
+                        if (store != null) {
+                          await store.requireAccess();
+                          final prepared = await DesktopArchiveEvidence.read(
+                              store.root, artifact, platform);
+                          if (prepared != null) return prepared;
+                        }
+                        return readArchiveIdentifier?.call(
+                            artifact, platform, cancel);
+                      }),
         _providers = providers,
         _screenScraper = screenScraperCredentials,
         _igdb = igdbCredentials,
@@ -322,10 +336,9 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
                 'Metadata database result code: ${error.getResultCode()}');
           }
           // Keep only application source locations, not arbitrary stack text.
-          final frames =
-              RegExp(r'package:g_shop/[A-Za-z0-9_./]+\.dart:\d+:\d+')
-                  .allMatches(stack.toString())
-                  .take(4);
+          final frames = RegExp(r'package:g_shop/[A-Za-z0-9_./]+\.dart:\d+:\d+')
+              .allMatches(stack.toString())
+              .take(4);
           for (final frame in frames) {
             debugPrint('Metadata operation frame: ${frame.group(0)}');
           }
@@ -488,9 +501,29 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
       if (shared == null || _artworkCache == null) {
         throw StateError('Choose shared metadata storage first');
       }
-      imported =
-          await PackagingResourceImport(_database, await _artworkCache!, shared)
-              .import(pack);
+      final importer =
+          PackagingResourceImport(_database, await _artworkCache!, shared);
+      imported = await importer.import(pack);
+      if (importer.archiveEditionIds.isNotEmpty) {
+        if (!_providers.containsKey('screenscraper')) {
+          throw StateError('ScreenScraper is unavailable for prepared sources');
+        }
+        final job = await _jobs.create(
+            providerId: 'screenscraper',
+            collectionGeneration: 'desktop-evidence-import',
+            editionIds: importer.archiveEditionIds);
+        _set(state.copyWith(
+            providerId: 'screenscraper',
+            report: job,
+            clearArtworkReport: true));
+        await _run(job.id);
+        if (state.report?.state != 'completed' ||
+            state.artworkReport?.state != 'completed') {
+          throw StateError(
+              'Prepared resource job must finish before the next pack');
+        }
+        imported = state.report?.counts['matched'] ?? 0;
+      }
       debugPrint('Metadata packaging import: games=$imported');
     });
     return imported;

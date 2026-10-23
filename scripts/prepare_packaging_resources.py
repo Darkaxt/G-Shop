@@ -21,7 +21,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 import requests
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageChops, ImageFilter, ImageStat
 from artwork_colour_cast import match_colour_cast
 
 PLATFORMS = {
@@ -57,8 +57,9 @@ def language_priority(languages):
 def compose_english_faces(game, english_resources, *, bodies=None, read=None):
     """Keep a donor's geometry/panels, substitute only its non-English faces.
 
-    The English resources are already matched to this game/edition by the
-    collector. No title inference, ROM identity change or unbound image search.
+    The English resources are already matched and selected per role by the
+    collector. Do not reintroduce provider precedence during composition.
+    No title inference, ROM identity change or unbound image search.
     """
     for face, role in [('front', 'box-2D'), ('back', 'box-2D-back')]:
         donor = next((r for r in game['resources'] if r['type'] == 'outer-box-' + face), None)
@@ -69,8 +70,8 @@ def compose_english_faces(game, english_resources, *, bodies=None, read=None):
             continue
         candidates = [r for r in english_resources if r['type'] == role and
             (r['importReference'].get('sourceLanguages') == ['en'] or r.get('region') == 'us')]
-        candidates.sort(key=lambda r: (r['importReference']['sourceId'] != 'launchbox',
-                                        r['importReference']['sha256']))
+        if len({r['importReference']['sha256'] for r in candidates}) > 1:
+            raise ValueError('Select one English face by quality before composition')
         if candidates:
             english = candidates[0]
             reference = {**english['importReference'], 'sourceLanguages': ['en'],
@@ -336,25 +337,26 @@ def normalized(value):
     return re.sub('[^a-z0-9]', '', text.replace('&', 'and'))
 
 
-def owner_key(game, edition):
+def owner_key(game, edition, provider='packaging'):
     game = dict(game)
     edition = dict(edition)
     game.pop('title', None)
     edition.pop('collectionCategory', None)
     for entity in [game, edition]:
-        entity['providerIds'] = {k: v for k, v in entity.get('providerIds', {}).items() if k == 'packaging'}
+        entity['providerIds'] = {k: v for k, v in entity.get('providerIds', {}).items() if k == provider}
         kept = []
         for evidence in entity.get('evidence', []):
             if evidence.get('source') == 'manual' and evidence.get('kind') == 'providerId':
                 try:
                     pair = json.loads(evidence['value'])
-                    if isinstance(pair, list) and len(pair) == 2 and pair[0] != 'packaging':
+                    if (isinstance(pair, list) and len(pair) == 2 and
+                            all(isinstance(v, str) and v.strip() for v in pair) and pair[0] != provider):
                         continue
                 except (ValueError, TypeError):
                     pass
             kept.append(evidence)
         entity['evidence'] = kept
-    return hashlib.sha256(json.dumps(['metadata-owner-v1', 'packaging', game, edition],
+    return hashlib.sha256(json.dumps(['metadata-owner-v1', provider, game, edition],
         ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
 
 
@@ -533,6 +535,106 @@ def png(body):
     return value
 
 
+def artwork_quality(body):
+    """Measured nomination, not proof of edition/printing or visual acceptance.
+
+    Resolution alone can reward enlarged blurry scans. Compare available detail
+    at a common display size; retain both measurements for the visual review.
+    """
+    with Image.open(io.BytesIO(body)) as image:
+        if image.width * image.height > 64_000_000 or getattr(image, 'n_frames', 1) != 1:
+            raise ValueError('Artwork exceeds static image budget')
+        image = ImageOps.exif_transpose(image)
+        width, height = image.size
+        scale = min(1, 1024 / max(width, height))
+        sample = image.convert('L').resize((512, 512), Image.Resampling.LANCZOS)
+        # Exclude the outer edge from the detail measurement. No source pixels
+        # are cropped from the actual imported resource.
+        fine = ImageChops.difference(sample, sample.filter(ImageFilter.GaussianBlur(.8))).crop((4,4,508,508))
+        coarse = ImageChops.difference(sample, sample.filter(ImageFilter.GaussianBlur(2))).crop((4,4,508,508))
+        fine_detail = ImageStat.Stat(fine).mean[0]
+        coarse_detail = ImageStat.Stat(coarse).mean[0]
+        ratio = fine_detail / coarse_detail if coarse_detail else 0
+        pixels = width * height * scale * scale
+        return {'width':width, 'height':height, 'usablePixels':round(pixels),
+            'detailRatio':round(ratio,6), 'nominationScore':round(pixels * ratio * ratio,3)}
+
+
+def choose_artwork(candidates, review=None):
+    """Keep provenance and use a reviewed hash before a measured nomination."""
+    measured, rejected = [], []
+    for candidate in candidates:
+        source_hash=hashlib.sha256(candidate['body']).hexdigest()
+        try:
+            quality=artwork_quality(candidate['body'])
+        except (OSError,ValueError,Image.DecompressionBombError):
+            rejected.append({**{k:v for k,v in candidate.items() if k!='body'},
+                'sourceSha256':source_hash,'rejection':'invalid-or-unsupported-image'})
+            continue
+        measured.append({**candidate, 'sourceSha256':source_hash,'quality':quality})
+    if not measured:
+        if review: raise ValueError('Reviewed artwork was not acquired')
+        return None, {'method':'unavailable', 'candidates':[],'rejected':rejected}
+    if review:
+        matches = [c for c in measured if c['sourceSha256'] == review.get('sourceSha256')
+                   and c['source'] == review.get('sourceId')]
+        if not matches or not str(review.get('reason','')).strip():
+            raise ValueError('Quality review does not identify one acquired image')
+        selected, method = matches[0], 'reviewed-source-hash'
+    else:
+        selected = max(measured, key=lambda c:(c['quality']['nominationScore'],c['sourceSha256']))
+        method = 'measured-nomination-requires-visual-sample'
+    audit = {'method':method, 'selectedSourceId':selected['source'],
+        'selectedSha256':selected['sourceSha256'],
+        'candidates':[{**{k:v for k,v in c.items() if k!='body'},
+            'decision':'selected' if c is selected else 'not-selected',
+            'decisionReason':review['reason'] if review else 'provisional-measured-detail-and-resolution'} for c in measured],
+        'rejected':rejected}
+    if review: audit['reviewReason'] = review['reason']
+    return selected, audit
+
+
+def seed_crawl_artwork(source, cache):
+    """Reuse validated image bodies acquired by the maintained Windows worker.
+
+    This seeds image transport cache only, never provider facts or acceptance.
+    The worker has already removed the API's non-image trailing framing byte.
+    Existing response bodies survive; a changed reviewed hash needs a new review.
+    """
+    seeded, reused, different = 0, 0, 0
+    for receipt in source.glob('*.artwork.json'):
+        for resource in json.loads(receipt.read_text(encoding='utf8')):
+            if resource.get('status') != 'matched': continue
+            media = resource['media']
+            ref = media.get('providerReference',{})
+            if media.get('type') not in ROLES.values() or ref.get('providerId') != 'screenscraper': continue
+            sha = resource['sha256']
+            if not re.fullmatch('[a-f0-9]{64}',sha) or resource['file'] != sha+'.png':
+                raise ValueError('Invalid retained crawl artwork path')
+            body = (source/resource['file']).read_bytes()
+            if len(body)!=resource['bytes'] or len(body)>4*1024*1024 or hashlib.sha256(body).hexdigest()!=sha:
+                raise ValueError('Retained crawl artwork changed')
+            with Image.open(io.BytesIO(body)) as image:
+                if image.format!='PNG' or max(image.size)>1024:
+                    raise ValueError('Invalid retained crawl image')
+                image.verify()
+            region = ref.get('region')
+            selector = ref['mediaType'] if region is None else f"{ref['mediaType']}({region})"
+            params={'systemeid':ref['providerPlatformId'],'jeuid':ref['providerGameId'],
+                    'media':selector,'outputformat':'png','maxwidth':1024,'maxheight':1024}
+            url='https://api.screenscraper.fr/api2/mediaJeu.php'
+            key=hashlib.sha256(json.dumps([url,params],sort_keys=True).encode()).hexdigest()
+            target=cache/(key+'.bin')
+            if target.exists():
+                if hashlib.sha256(target.read_bytes()).hexdigest()==sha: reused+=1
+                else: different+=1
+            else:
+                cache.mkdir(parents=True,exist_ok=True)
+                with target.open('xb') as output: output.write(body)
+                seeded+=1
+    return {'seeded':seeded,'reused':reused,'preservedDifferentBodies':different}
+
+
 def read_env(path):
     result = {}
     for line in path.read_text(encoding='utf-8-sig').splitlines():
@@ -541,6 +643,14 @@ def read_env(path):
             name, value = line.split('=', 1)
             result[name] = value.strip().strip('\"\'')
     return result
+
+
+class ScreenScraperUnavailable(RuntimeError):
+    def __init__(self, reason):
+        self.reason=reason
+        super().__init__('ScreenScraper quota is exhausted; uncached requests are paused'
+            if reason=='quotaExceeded' else 'ScreenScraper requires a rate-controlled request budget'
+            if reason=='unconfigured' else 'ScreenScraper artwork unavailable: '+reason)
 
 
 class ScreenScraperBudget:
@@ -589,13 +699,14 @@ class ScreenScraperBudget:
                 raise RuntimeError('ScreenScraper account limits are unavailable')
             if (limits['maxthreads'] < 1
                     or limits['requestskotoday'] >= limits['maxrequestskoperday']):
-                raise RuntimeError('ScreenScraper quota is exhausted; collection stopped')
+                self.remaining = 0
+                raise ScreenScraperUnavailable('quotaExceeded')
             # Include the access probe conservatively; never guess a reset time.
             self.remaining = max(0, limits['maxrequestsperday'] - limits['requeststoday'] - 1)
             self.interval = 60 / rate
             self.next_allowed = started + self.interval
         if self.remaining < 1:
-            raise RuntimeError('ScreenScraper quota is exhausted; collection stopped')
+            raise ScreenScraperUnavailable('quotaExceeded')
         delay = self.next_allowed - self.clock()
         if delay > 0:
             self.wait(delay)  # External API's advertised rate, not a completion timer.
@@ -613,7 +724,7 @@ def fetch(session, url, *, params=None, limit=32 * 1024 * 1024, provider_budget=
         return None if value.strip() == b'NOMEDIA' else value
     if urllib.parse.urlsplit(url).hostname == 'api.screenscraper.fr':
         if provider_budget is None:
-            raise RuntimeError('ScreenScraper requires a rate-controlled request budget')
+            raise ScreenScraperUnavailable('unconfigured')
         provider_budget.reserve(session)
     with session.get(url, params=params, stream=True, allow_redirects=False) as response:
         # No exception messages include authenticated request URLs.
@@ -638,6 +749,8 @@ def fetch(session, url, *, params=None, limit=32 * 1024 * 1024, provider_budget=
 def collect(args):
     global HTTP_CACHE
     HTTP_CACHE = getattr(args, 'http_cache', None) or args.launchbox.parent / 'resource-bodies'
+    if getattr(args,'crawl_artwork',None):
+        print(json.dumps({'crawlArtworkCache':seed_crawl_artwork(args.crawl_artwork,HTTP_CACHE)}),flush=True)
     scope = getattr(args, 'selection', 'top25')
     selection = (collection_selection if scope == 'collection' else ranked_selection)(
         args.projection, args.system)
@@ -672,6 +785,8 @@ def collect(args):
         'softname': 'SCREENSCRAPER_SOFTNAME', 'ssid': 'SCREENSCRAPER_USERNAME',
         'sspassword': 'SCREENSCRAPER_PASSWORD'}.items()}
     provider_budget = ScreenScraperBudget(auth) if all(auth.values()) else None
+    quality_reviews = json.loads(args.quality_review.read_text(encoding='utf8')) if getattr(args,'quality_review',None) else {}
+    screenscraper_unavailable = None
     def flush(processed):
         if manifest['games']:
             packs.extend(write_packaging_batches(batch_target(math.ceil(processed / 25)), manifest, bodies))
@@ -745,24 +860,23 @@ def collect(args):
                 resources.append({**panel, 'type': role})
         ids = set().union(*(by_name.get(normalized(name), set()) for name in
             [row['title'], *(x['text'] for x in metadata.get('titles', []))]))
+        face_candidates = {role:[] for role in ROLES.values()}
+        quality_report = {}
         if not full_box and len(ids) == 1:
             game_id = next(iter(ids))
             for type_name, role in ROLES.items():
                 candidates = [x for x in images.get(game_id, []) if x['Type'] == type_name
                     and REGIONS.get(x.get('Region', ''), 'unsupported') in regions]
-                # Deterministic source alternative, not an assertion of extra faces.
                 candidates.sort(key=lambda x: x['FileName'])
-                if not candidates:
-                    continue
-                image = candidates[0]
-                filename = image['FileName']
-                if not re.fullmatch(r'(?:r[0-9]+_)?[a-fA-F0-9-]+\.(jpg|png)', filename):
-                    raise ValueError('Unexpected LaunchBox image identity')
-                url = 'https://images.launchbox-app.com/' + filename
-                body = fetch(session, url)
-                if body:
-                    add(resources, role, REGIONS[image['Region']], body,
-                        source='launchbox', asset=game_id + '/' + filename, url=url)
+                for image in candidates:
+                    filename = image['FileName']
+                    if not re.fullmatch(r'(?:r[0-9]+_)?[a-fA-F0-9-]+\.(jpg|png)', filename):
+                        raise ValueError('Unexpected LaunchBox image identity')
+                    url = 'https://images.launchbox-app.com/' + filename
+                    body = fetch(session, url)
+                    if body:
+                        face_candidates[role].append({'body':body, 'region':REGIONS[image['Region']],
+                            'source':'launchbox', 'asset':game_id+'/'+filename, 'url':url})
         # Existing ScreenScraper facts supply the matched game identity. Only
         # extra same-edition faces/documents are requested; facts/scores stay intact.
         provider_id = metadata.get('providerGameId')
@@ -779,9 +893,9 @@ def collect(args):
             role, region = media['type'], media.get('region')
             if region not in regions or role not in {'box-2D', 'box-2D-back', 'box-2D-side', 'manuel'}:
                 continue
-            if role != 'manuel' and any(x['type'] == role for x in resources):
+            if role != 'manuel' and full_box:
                 continue
-            if not all(auth.values()) or not provider_id:
+            if not provider_id:
                 continue
             reference = media.get('providerReference')
             if not reference:
@@ -790,8 +904,14 @@ def collect(args):
             params = {**auth, 'systemeid': reference['providerPlatformId'], 'jeuid': provider_id,
                 'media': f'{role}({region})',
                 **({} if role == 'manuel' else {'outputformat': 'png', 'maxwidth': 1024, 'maxheight': 1024})}
-            body = fetch(session, 'https://api.screenscraper.fr/api2/' + endpoint,
-                params=params, provider_budget=provider_budget)
+            try:
+                body = fetch(session, 'https://api.screenscraper.fr/api2/' + endpoint,
+                    params=params, provider_budget=provider_budget)
+            except ScreenScraperUnavailable as failure:
+                # Exhausting this provider is not a stop condition for LaunchBox.
+                # Preserve its exact limitation rather than claiming paired review.
+                screenscraper_unavailable = failure.reason
+                continue
             if not body:
                 continue
             source_url = f'https://www.screenscraper.fr/gameinfos.php?plateforme={reference["providerPlatformId"]}&gameid={provider_id}'
@@ -809,14 +929,30 @@ def collect(args):
                             asset=f'{provider_id}/manuel({region})/{number}', url=source_url,
                             page=number, original=body)
             else:
-                add(resources, role, region, body, source='screenscraper',
-                    asset=f'{provider_id}/{role}({region})', url=source_url)
+                face_candidates[role].append({'body':body,'region':region,'source':'screenscraper',
+                    'asset':f'{provider_id}/{role}({region})','url':source_url})
+        for role, candidates in face_candidates.items():
+            if full_box: continue
+            selected, quality = choose_artwork(candidates,
+                quality_reviews.get(row['game']['id'],{}).get(role))
+            available = {c['source'] for c in candidates}
+            quality['providers'] = {
+                'launchbox':'available' if 'launchbox' in available else
+                    'ambiguous-game' if len(ids)>1 else 'no-index-match' if not ids else 'no-image-body',
+                'screenscraper':'available' if 'screenscraper' in available else
+                    screenscraper_unavailable or ('unconfigured' if not all(auth.values()) else 'no-bound-identity' if not provider_id else 'no-advertised-image-or-body')}
+            quality_report[role] = quality
+            if selected:
+                resources = [r for r in resources if r['type'] != role]
+                add(resources, role, selected['region'], selected['body'],
+                    source=selected['source'], asset=selected['asset'],url=selected['url'])
         composed = {'resources': resources}
         compose_english_faces(composed, resources.copy(), bodies=bodies)
         resources = composed['resources']
         report.append({'rank': row['rank'], 'title': row['title'],
             'gameId': row['game']['id'], 'editionId': edition['id'],
             'regions': sorted(regions), 'launchboxIds': sorted(ids),
+            'artworkQuality':quality_report,
             'roles': {role: sum(x['type'] == role for x in resources)
                 for role in sorted({x['type'] for x in resources})}})
         if resources:
@@ -840,6 +976,10 @@ def main():
     parser.add_argument('--launchbox', type=Path)
     parser.add_argument('--http-cache', type=Path,
         help='Exact artwork response-cache directory; defaults beside the LaunchBox index')
+    parser.add_argument('--quality-review', type=Path,
+        help='Private game-ID/role map of reviewed sourceId/sourceSha256/reason selections')
+    parser.add_argument('--crawl-artwork',type=Path,
+        help='Reuse validated completed Windows crawl image bodies before provider requests')
     parser.add_argument('--env', type=Path)
     parser.add_argument('--normalize-spines', type=Path,
         help='Reclassify a completed local pack without repeating provider requests')

@@ -1,6 +1,17 @@
 # Staged implementation plan
 
-Current execution, 2026-10-23, revision 167: **S26 ACTIVE**, sole active stage.
+Current execution, 2026-10-23, revision 169: **S26 ACTIVE**, sole active stage.
+For needed artwork faces, acquire both LaunchBox and ScreenScraper candidates;
+compare compatible resources per role and retain their hashes/selection reasons.
+Replace the former provider-first fallback selection. Preserve NintAndBox geometry,
+regional/modified-release gates and native quality acceptance.
+Prioritize the owner's 80-percent usable-coverage milestone for each current
+source collection. Refresh the full census and per-role published/recoverable
+intersection, quantify the exact shortfall and process supported collection-wide
+batches through normal publication/recovery. Preserve unresolved/modified rows
+and the wider full-coverage requirements; references and acquisitions are not
+usable coverage. Retire the alphabetical 25-ROM acquisition focus; Top 25 remains
+the native acceptance sample.
 Correct bracketed ScreenScraper support selectors and single-cartridge bindings;
 verify actual indexed artwork rather than treating parser omissions or malformed
 probes as source absence. Recollect affected parsed outputs and carry the acquired

@@ -304,7 +304,7 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
               Icons.restart_alt, _confirmMediaRebuild),
           const SizedBox(width: 8),
           _transportButton(
-              'Import artwork pack',
+              'Import prepared resources',
               'metadata-packaging-import',
               Icons.inventory_2_outlined,
               state.busy || ref.watch(metadataControlsProvider).busy
@@ -341,16 +341,28 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
 
   Future<void> _importPackaging() async {
     final selected = await FilePicker.platform.pickFiles(
-        type: FileType.custom, allowedExtensions: ['zip'], withData: false);
-    final path = selected?.files.single.path;
-    if (path == null || !mounted) return;
+        type: FileType.custom,
+        allowedExtensions: ['zip'],
+        withData: false,
+        allowMultiple: true);
+    final paths =
+        selected?.files.map((f) => f.path).whereType<String>().toList();
+    if (paths == null || paths.isEmpty || !mounted) return;
     final cloud = ref.read(metadataCloudProvider.notifier);
     await cloud.pause();
     try {
-      final imported = await ref
-          .read(metadataControlsProvider.notifier)
-          .importPackagingResources(File(path));
-      if (!ref.read(metadataControlsProvider).error && imported > 0) {
+      var imported = 0;
+      var stopped = false;
+      for (final path in paths) {
+        imported += await ref
+            .read(metadataControlsProvider.notifier)
+            .importPackagingResources(File(path));
+        if (ref.read(metadataControlsProvider).error) {
+          stopped = true;
+          break;
+        }
+      }
+      if (!stopped && imported > 0) {
         ref.read(metadataMediaRevisionProvider.notifier).state++;
         ref.read(gameDbChangedProvider.notifier).state++;
         if (mounted) {
@@ -360,7 +372,7 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
       } else if (mounted) {
         showConsoleNotification(context,
             message:
-                'Artwork was not imported. Check the pack and shared storage.');
+                'Resource import stopped. Check the pack, shared storage and saved job.');
       }
     } catch (_) {
       if (mounted) {

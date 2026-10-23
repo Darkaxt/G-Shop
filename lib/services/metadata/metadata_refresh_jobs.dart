@@ -13,6 +13,7 @@ import '../drive/drive_media.dart';
 import '../library_store.dart';
 import '../library_query.dart';
 import 'effective_overall_rating.dart';
+import 'desktop_archive_evidence.dart';
 import 'metadata_artwork_cache.dart';
 import 'metadata_provider.dart';
 import 'shared_metadata_store.dart';
@@ -2268,6 +2269,15 @@ class MetadataRefreshJobs {
         if (reviewed != null) {
           blob = reviewed.blob;
           retrievedAt = reviewed.retrievedAt;
+          reviewedReuse = true;
+        }
+      }
+      if (blob == null && provider.providerId == 'screenscraper') {
+        final prepared = await DesktopArchiveEvidence.artwork(
+            db, cache, item['edition_id'] as String, media);
+        if (prepared != null) {
+          blob = prepared.blob;
+          retrievedAt = prepared.retrievedAt;
           reviewedReuse = true;
         }
       }

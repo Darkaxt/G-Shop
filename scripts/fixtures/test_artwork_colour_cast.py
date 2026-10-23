@@ -24,6 +24,15 @@ def palette_image():
 
 
 class ColourCastTest(unittest.TestCase):
+    def test_channel_contrast_inversion_is_not_a_scan_colour_cast(self):
+        source = palette_image()
+        inverted = np.asarray(source).copy()
+        inverted[:, :, :2] = 255 - inverted[:, :, :2]
+        corrected, receipt = match_colour_cast(source, Image.fromarray(inverted))
+        self.assertFalse(receipt['applied'], receipt)
+        self.assertEqual(receipt['reason'], 'nonphysical-colour-transform')
+        self.assertEqual(source.tobytes(), corrected.tobytes())
+
     def test_one_global_cast_is_reversed_for_all_colours_and_alpha_is_untouched(self):
         reference = palette_image()
         original = np.asarray(reference).copy()

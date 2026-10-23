@@ -5,6 +5,82 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-24 resource coverage and paired artwork selection: **S26 ACTIVE**, sole
+active stage; specification/plan revision 169. The owner's milestone is at least
+80 percent usable resources for each current G&W/NES/GBA source collection, within
+the wider full-collection requirement. Top 25 remains native testing, not scope.
+The captured source census retains 53 G&W, 9,831 NES and 7,674 GBA archives, with derived
+patch builds separate. G&W's direct hardware/carton census represents 53 archives;
+scraped front/label counts cannot measure that console's baked model resources.
+
+For needed/replacement faces, the collector now acquires **both LaunchBox and
+ScreenScraper** candidates, retaining originals, hashes, measurements and selection
+reasons. A reviewed source hash overrides its explicitly provisional measured
+nomination. Bad image bodies remain diagnosed; SS quota exhaustion is recorded
+without stopping the independent LaunchBox lane. Completed Windows image bodies
+can seed the response cache without repeating API requests. NintAndBox geometry,
+colour continuity, edition gates and genuine label roles remain required.
+Actual six-game comparison covered 22 role pairs; the 16 reviewed face preferences
+selected 13 LaunchBox and three ScreenScraper images. This is image preference,
+not exact-printing or native acceptance. Source/installed skill 0.1.28 and pipeline
+reference hashes match and the installed guidance was reloaded.
+
+The new prepared-resource import feeds artifact-bound Windows raw evidence into
+the normal provider job; it does not import classifications or rewrite saved jobs.
+Prepared image reuse is edition/artifact scoped, not a fresh provider-body receipt.
+Stored ZIP batches remain at most 25 games; the UI supports sequential multi-pack
+selection and stops at an unfinished job. Actual preparation captured 224 completed
+results in nine packs; their canonical ownership keys/raw proof passed the app's
+actual validators. Focused controls/publication tests and affected Python checks
+pass. These acquisitions/preparations are **not published usable coverage**.
+
+Signed internal candidate `1.10.2+48` passed the normal release-configuration build
+and native tests through the shared gate (ticket 1731): observed two workers,
+no parallel projects, 3 GB Gradle heap and one test fork. In-process Kotlin was
+requested; native CMake pools constrain tasks. Helper/build exit were zero and daemon exit was
+verified. Native/task-specific verification limitations remain explicit in the
+helper report. APK SHA-256 is
+`487771b18e42f257b0598e5cab98b3adca6fb67114a0b0dfa36a6108d52042ea`, signer
+`075031272c9ccfa3229cdfe5266e0e50e85e4bd841111f320d83910290b55f1c`.
+The requested normal Drive sync completed all 1,405 saved game records. Candidate
+`+48` is now installed on Thor; package read-back and the installed APK SHA-256
+match the verified candidate, preserving app data. The original 1,000-item Windows
+acquisition finished: 977 matched and 23 unmatched; it is acquisition evidence,
+not usable coverage. A five-game NES/GBA diagnostic cohort then passed the normal
+prepared-resource import, fresh raw-ROM provider matching, artwork acquisition,
+reviewed packaging import and Drive publication. Read-back verified 139 actual
+image resources against current native ownership, packet records, file IDs,
+lengths and hashes. This covers Joust, Balloon Fight, Lode Runner, Atari Anniversary
+Advance and Catz. Catz legitimately selected the authenticated European label for
+its USA/Europe ROM; exact typed-selector/body evidence corroborates that choice.
+The normal sync completed 1,410 records; saved jobs and application data survive.
+Private receipts/evidence remain under the dated E: crawler root.
+
+The selected English faces now survive donor composition without reverting to
+provider priority. A real Balloon Fight donor exposed a nonphysical colour fit
+that inverted a channel and darkened text; the collector rejects that transform,
+retains the unmodified replacement, and the regenerated back passed visual review.
+Focused regression checks pass. The five-game import/publication proves resource
+transport and selection, **not full physical integration or Top 25 acceptance**:
+the three new NES archive bindings still need converted/bound 3D cartons, and the
+remaining collection-wide acquisition, resource preparation, publication/recovery
+and native acceptance criteria remain unresolved. The sole S26 stays ACTIVE;
+there is no final S26 release or verified 80-percent claim.
+
+Correct the early audit's interpretation: locally resident front/label bodies
+plus publication receipts (79 NES / 37 GBA) are **not an upper bound** on usable
+coverage, because verified cloud media can be evicted from the 2 GB device cache.
+The retained snapshot has 97 NES / 58 GBA selected front/label pairs with remote
+receipts. Those receipts alone also do not establish current identity, independent
+remote retrieval, all required physical resources or native acceptance. A separate
+read-only DriveFS retrieval now verifies owned current packet bindings and actual
+front/label image bodies for 98 NES and 58 GBA pairs. That integrity metric does
+not establish complete physical resources, strict label selection or native acceptance. Full-census
+binding/publication/recovery proof and the 80-percent milestone remain unresolved.
+Apply the verified paired-selection/import path to the remaining supported
+collection, generate/bind the required cartons and reconcile all physical resources.
+No final S26 release or acceptance claim is made at this checkpoint.
+
 2026-10-23 Windows acquisition and ScreenScraper label correction: **S26 ACTIVE**,
 sole active stage. Standalone Windows crawling now reuses the actual provider,
 matching models, bounded Java archive validator, PNG integrity gate and physical

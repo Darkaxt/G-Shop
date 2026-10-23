@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.26"
+  version: "0.1.28"
 ---
 
 # G-Shop Console Integration
@@ -62,15 +62,22 @@ accessories, controllers, displays and animations. Check original sources and
 private receipts; retain their hashes, artwork and attribution. Never publish ROM
 inventories, private models/artwork or credentials with application changes.
 
-For cartons, exhaust the existing applicable source chain: reviewed NintAndBox
-dump panels, public low-resolution .es previews, LaunchBox, then ScreenScraper.
+For cartons, preserve reviewed NintAndBox dump panels and applicable public
+low-resolution .es donor previews. For needed/replacement artwork faces request
+both LaunchBox and ScreenScraper, then choose the better compatible image per role.
+Provider order and pixel dimensions alone do not establish quality. Retain both
+candidates/hashes, selection reasons and required visual review; see section 3
+of the pipeline reference. Keep support-label textures separate from images of
+complete cartridges.
+Carry the selected face through donor composition. Never reselect by provider
+there; resolve distinct competing English faces upstream before composition.
 Consider front, back, spine and unfolded texture roles. A missing dump model or
 same-region catalogue binding is not evidence that no box can be produced.
 Inspect the original archive and retained model/panel catalogue as well as any
 partial extraction. A regional or non-English same-game carton remains a valid
 donor for the already-approved GBA composition: retain its geometry, sides and
-flaps, replace the necessary front/back with matched English LaunchBox art
-(then ScreenScraper), and reuse the existing collector colour-correction path.
+flaps, replace the necessary front/back with the better matched English
+LaunchBox/ScreenScraper art, and reuse the existing collector colour-correction path.
 Read section 4 of the pipeline reference for its source-selection and colour
 checks. Do not reject that donor solely because its language/printing differs,
 build a lower-fidelity flat-art box first, or request that approval again.

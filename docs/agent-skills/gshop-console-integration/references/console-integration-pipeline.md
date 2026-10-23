@@ -94,8 +94,27 @@ retain old evidence and deliberately recollect into a new output directory.
 - For each carton/face, use the existing ordered chain:
   1. reviewed local NintAndBox unfolded scans and reconstructed models;
   2. the public low-resolution NintAndBox .es preview for incomplete dump panels;
-  3. edition-compatible LaunchBox front/back/spine artwork;
-  4. ScreenScraper front/back/side/unfolded texture and bound manual roles.
+  3. for needed/replacement faces, acquire edition-compatible candidates from
+     both LaunchBox and ScreenScraper; compare front/back/spine by role;
+  4. keep unfolded textures, standalone support labels and bound manuals in their
+     appropriate roles; pictures of complete cartridges are not label textures.
+- Source order above protects NintAndBox carton construction; it does not make
+  LaunchBox or ScreenScraper a universal quality winner. Compare original delivered
+  dimensions, actual detail/text, cropping/margins, glare/damage, orientation,
+  game/platform/printing compatibility and colour continuity. Same-region scans
+  may depict different printings. More pixels may just enlarge blur.
+  Preserve both candidates and their hashes in the E: response cache; retain
+  candidate measurements and selected/rejected reasons in preparation receipts.
+  `prepare_packaging_resources.py --quality-review` accepts private game-ID/role
+  entries containing `sourceId`, `sourceSha256` and a concrete `reason`. A changed
+  or missing reviewed hash must fail explicitly. Without a reviewed choice, the
+  collector reports its measured nomination as requiring visual sample review;
+  that nomination is not accepted quality or a new provider-wide ranking.
+  The agent performs the review; this is not another owner approval checkpoint.
+  Native Top 25 validation still checks the selected images on actual 3D models.
+  Donor composition must preserve that per-role choice. Distinct English-face
+  candidates need upstream quality selection; the composer rejects ambiguity
+  instead of silently preferring LaunchBox again.
 - Additional potential artwork fallback: [The Cover Project](https://thecoverproject.net/).
   The owner supplied [Super C, cover 28510](https://thecoverproject.net/view.php?cover_id=28510),
   inspected in the browser on 2026-10-22: Custom Cover, US/NTSC, Universal Game
@@ -145,8 +164,8 @@ retain old evidence and deliberately recollect into a new output directory.
   and assembled contact sheets. Unknown language is not evidence of English.
   Retain originals and make an attributed derivative, without replacing the
   permanent source edition or changing the selected ROM identity.
-- For non-English front/back, use matched English LaunchBox faces first, then
-  ScreenScraper for missing faces. Fit to the donor's panel aspect without
+- For non-English front/back, request matched English faces from both LaunchBox
+  and ScreenScraper and choose the better compatible face. Fit to the donor's panel aspect without
   distorting the artwork. A different region/language alone must not discard
   the donor, demand repeated owner approval or trigger a generic carton first.
   If a replacement is absent or cannot be prepared, retain the donor face and its
@@ -164,6 +183,9 @@ retain old evidence and deliberately recollect into a new output directory.
   applied, the single RGB transform. A rejected fit is a colour-review result,
   not permission to force a correction, selectively repaint purple pixels or
   tint the mesh at runtime. Resolve a visible mismatch before acceptance.
+  Reject transforms that invert a primary channel's own contrast, even when a
+  positive determinant and aggregate error improvement pass. Different regional
+  layouts can otherwise produce a numerically plausible but visibly dark fit.
 - Bind the same derived front to preparation/flat artwork and the 3D carton.
   Review their handoff and the assembled front/side/back colour continuity,
   text, UV alignment, closures, unboxing and inspection. Preserve per-face

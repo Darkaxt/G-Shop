@@ -1,6 +1,28 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 167, 2026-10-23.
+Authoritative specification, revision 169, 2026-10-23.
+
+Owner artwork-quality direction, 2026-10-23 (CI-01/META-03, S26): when artwork
+faces need acquisition/replacement, request candidates from both LaunchBox and
+ScreenScraper and choose the best compatible resource per role. Provider order
+and image dimensions alone must not decide quality. Preserve NintAndBox carton
+geometry/panels, edition constraints, source hashes, colour continuity and the
+normal publication lane. Record candidate comparisons and selected/rejected
+reasons. Standalone label textures and pictures of complete cartridges are
+different roles. Measured nominations do not establish visual acceptance.
+
+Owner coverage direction, 2026-10-23 (CI-01/META-03, S26): prioritize reaching
+at least 80 percent usable resource coverage in each of the current G&W, NES and
+GBA source ROM collections. Use the entire current source-archive census, retaining
+revisions and modified releases in the denominator; keep derived patch builds
+separate. This is a delivery milestone toward the existing full-collection scope,
+not permission to omit the remaining archives, substitute artwork or weaken
+identity/integrity/publication/recovery requirements. Count a source archive only
+when its required physical-resource set is bound and published/recoverable through
+the normal lane. Report acquisitions, references and native testing separately.
+Prioritize collection-wide supported batches rather than an alphabetical 25-ROM
+acquisition cap. Top 25 remains the native testing sample. Maintain the same sole
+ACTIVE S26 and single final release boundary.
 
 ScreenScraper label correction, 2026-10-23 (CI-01/META-03, S26): preserve
 provider-returned support selectors including bracketed member numbers such as
