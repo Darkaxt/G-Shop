@@ -130,6 +130,25 @@ void main() {
         wire.requests.single.queryParameters['media'], 'support-texture(us)');
   });
 
+  test('bracketed cartridge support number reaches the real media selector',
+      () async {
+    final label = MetadataMedia(
+        type: 'support-texture',
+        region: 'eu',
+        memberIndex: 1,
+        providerReference: ScreenScraperMediaReference(
+            providerGameId: '42',
+            providerPlatformId: 12,
+            mediaType: 'support-texture',
+            region: 'eu',
+            memberIndex: 1,
+            bracketedMemberIndex: true));
+    final result = await provider.fetchArtwork(label, write: (_) async {});
+    expect(result.status, MetadataLookupStatus.matched);
+    expect(wire.requests.single.queryParameters['media'],
+        'support-texture(eu)[1]');
+  });
+
   test('image selector uses fixed authenticated endpoint and bounded output',
       () async {
     final received = <int>[];

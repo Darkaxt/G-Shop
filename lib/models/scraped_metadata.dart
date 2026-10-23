@@ -219,24 +219,32 @@ class ScreenScraperMediaReference {
   /// ScreenScraper appends disc/page numbers to the region in a media selector.
   final int? memberIndex;
 
+  /// Current API support selectors use `(eu)[1]`; older selectors use `(eu1)`.
+  /// Preserve the returned wire form without changing legacy cache identities.
+  final bool bracketedMemberIndex;
+
   ScreenScraperMediaReference(
       {required this.providerGameId,
       required this.providerPlatformId,
       required this.mediaType,
       this.region,
-      this.memberIndex}) {
+      this.memberIndex,
+      this.bracketedMemberIndex = false}) {
     if (!RegExp(r'^[1-9][0-9]*$').hasMatch(providerGameId) ||
         providerPlatformId <= 0 ||
         !RegExp(r'^[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$').hasMatch(mediaType) ||
         (region != null && !RegExp(r'^[a-z]{2,3}$').hasMatch(region!)) ||
-        (memberIndex != null && (memberIndex! < 1 || region == null))) {
+        (memberIndex != null && (memberIndex! < 1 || region == null)) ||
+        (bracketedMemberIndex && memberIndex == null)) {
       throw const FormatException('Invalid ScreenScraper media reference');
     }
   }
 
   String get providerId => 'screenscraper';
-  String get mediaSelector =>
-      region == null ? mediaType : '$mediaType($region${memberIndex ?? ''})';
+  String get mediaSelector => region == null
+      ? mediaType
+      : '$mediaType($region${bracketedMemberIndex ? '' : memberIndex ?? ''})'
+          '${bracketedMemberIndex ? '[$memberIndex]' : ''}';
 
   Map<String, dynamic> toJson() => {
         'providerId': providerId,
@@ -244,7 +252,8 @@ class ScreenScraperMediaReference {
         'providerPlatformId': providerPlatformId,
         'mediaType': mediaType,
         'region': region,
-        'memberIndex': memberIndex
+        'memberIndex': memberIndex,
+        if (bracketedMemberIndex) 'bracketedMemberIndex': true,
       };
 
   factory ScreenScraperMediaReference.fromJson(Map<String, dynamic> json) {
@@ -256,7 +265,8 @@ class ScreenScraperMediaReference {
         providerPlatformId: json['providerPlatformId'] as int,
         mediaType: json['mediaType'] as String,
         region: json['region'] as String?,
-        memberIndex: json['memberIndex'] as int?);
+        memberIndex: json['memberIndex'] as int?,
+        bracketedMemberIndex: json['bracketedMemberIndex'] as bool? ?? false);
   }
 }
 

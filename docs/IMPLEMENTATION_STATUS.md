@@ -5,6 +5,45 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-23 Windows acquisition and ScreenScraper label correction: **S26 ACTIVE**,
+sole active stage. Standalone Windows crawling now reuses the actual provider,
+matching models, bounded Java archive validator, PNG integrity gate and physical
+label policy. Persistent acquisition/cache/checkpoints stay on E:, compiler scratch
+on D:, ROM sources read-only on cloud-backed H:. The retained 50-entry metadata-only
+pass used no ROM bodies: two matched, nine review, 39 unmatched. Those outcomes
+are processed identities, not accepted resources or full-collection coverage.
+
+The owner's NightFire screenshot disproved the reported label absence. Real API
+selectors are `support-texture(eu)[1]` and `support-texture(us)[1]`; the parser
+discarded their bracketed support numbers and the unindexed diagnostic probe was
+invalid absence evidence. Corrected typed selector persistence/request handling,
+support consistency, single-cartridge publication/consumer mapping and separate
+multi-disc binding. Actual authenticated EU and US labels were downloaded, decoded,
+hash-verified and visually compared with the owner's screenshot. Focused checks
+cover the original parsing failure, exact request, normal publication/cache recovery,
+ambiguous selectors and retained multi-disc behavior. Analysis reports no errors
+or warnings in affected files; existing style information remains.
+
+The actual Windows launcher matched NightFire by bounded raw-member evidence and
+acquired front/back/spine, unfolded carton texture and authentic US label. The
+3,625,222-byte compressed-input budget is logical input size, not measured network
+traffic. Resuming preserved all five image bodies plus the artifact receipt and
+consumed no additional logical ROM budget. Artifact-bound raw evidence is committed
+before provider requests, so an artwork interruption can retain it. Output/checkpoint
+version 2 rejects pre-fix parsed receipts; the two previously matched cohort records
+were recollected with zero ROM reads. Old evidence is preserved.
+
+Source and installed console-integration skill 0.1.26 and pipeline reference match
+and the new source-absence/indexed-selector rules were reloaded. Private receipts
+remain under `E:/R-Shop Reference Assets/MetadataCrawl/2026-10-23` and
+`reports/uncovered-25-20261023`. The new NightFire resources are acquired, **not yet
+published or accepted on Thor**; installed APK remains internal `1.10.2+47`.
+No app identity, saved collector job, user filter or ROM was changed by this pass.
+Normal edition review/import, actual Drive recovery/native rendering and full
+NES/GBA resource coverage remain current-stage acceptance blockers. They remain
+owned by ACTIVE S26 alongside its other recorded gates and single final release;
+this source/tool checkpoint is not a delivered APK or completed S26.
+
 2026-10-23 next uncovered-cohort remediation: **S26 ACTIVE**, sole active stage.
 Fresh read-only census and saved requests retain 25 exact NES and 25 GBA source
 archives, separate from the full 9,831/7,674-source denominators and two built GBA

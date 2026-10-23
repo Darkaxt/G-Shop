@@ -193,3 +193,66 @@ credentials; publish from an exact committed source/tag and independently verify
 the downloaded GitHub asset. Provider credentials and source configuration are
 per-device, never compiled into the public APK. The private signing environment
 is not an application API-credential injection mechanism.
+
+# Explicit Windows metadata crawling
+
+`run_metadata_crawl.ps1` runs the existing ScreenScraper adapter under standalone
+Dart, without a running APK or Flutter engine. It uses the Android bounded 7z
+validator's actual Java source, shared matching models, PNG integrity checks and
+physical-label ambiguity rules. No provider logic or credentials are compiled
+into an APK for this operation. The optional Android collector remains available.
+
+Prepare a private manifest with `prepare_metadata_crawl.py --cohort <JSON>
+--artifacts <read-only-NDJSON> --root "nes=<mounted ROM root>" --root
+"gba=<mounted ROM root>" --output <private E: manifest>`. The artifact snapshot
+must finish with an explicit read-only end record. Missing/duplicate exact names
+remain gaps; they are never resolved by picking the first file. The helper lists
+filenames only and does not open ROM bodies.
+
+Then invoke `run_metadata_crawl.ps1 -Manifest <manifest> -OutputDirectory
+<E: cache> -RuntimeDirectory <task-owned D: scratch> -DartCommand <installed Dart>
+-JavaHome <installed JDK> -XzJar <existing pinned org.tukaani:xz 1.12 jar>`.
+The existing ignored `.env.local` or process environment supplies ScreenScraper
+credentials; do not pass their values on the command line or publish outputs.
+Run the launcher again with the same manifest/output to resume. It binds the
+checkpoint to the exact manifest, locks its output, preserves successful lookups
+and per-resource outcomes, and checks retained content hashes before reuse.
+Current output/checkpoint version 2 includes bracketed ScreenScraper support
+selectors. Version 1 outputs were parsed before this correction and cannot resume
+as current resource coverage: retain them as evidence and use a new output folder
+to recollect affected matched records. The input manifest remains version 1.
+Validated raw evidence has its own artifact-bound receipt, written before provider
+requests, so an interrupted artwork phase reuses that evidence without spending
+the ROM-read budget again. A reserved read interrupted before evidence is committed
+still consumes its conservative budget; use a deliberate new run if more reads
+are required.
+
+H: is cloud backed Google Drive, not an offline ROM disk. Persistent crawler
+cache/checkpoints/artwork belong on E:. Default `-MaxArchiveBytes 0` performs only
+metadata requests. An explicit positive budget permits targeted archive evidence
+reads within the cumulative sum of selected compressed archive sizes. This is a
+logical input-size budget, not measurement or a guarantee of actual network
+traffic: DriveFS owns hydration and caching. Archive contents are streamed and
+never installed, extracted to disk, changed or copied into metadata publication.
+Before using a raw member identifier, the reader verifies the complete container
+against every known Drive digest/size, validates its archive/ROM structure, and
+rechecks the container after reading. Modified/aftermarket/prototype filename
+markers restrict automatic raw binding; they do not assign official status.
+
+The worker prints committed processed/total/remaining item counts. Provider API
+calls are not resource coverage. Protocol rate/quota waits remain enforced;
+authentication, transient or quota failures retain the original operation and
+return a non-success status instead of automatically retrying. Saved review and
+unmatched outcomes are retained, not promoted to matches. Use a new deliberate
+manifest/output for a changed request or read budget.
+
+Outputs are private acquisition receipts, records and content-addressed validated
+PNG bodies. Carton faces retain their source region; a preferred reference face
+is not proof of an exact retail printing. Genuine personalized-label ambiguity
+remains unresolved. This worker does not directly rewrite application SQLite,
+change saved Android jobs or write arbitrary `metadata.json` into H:. Final
+resources still pass the existing identity-owned import/publication/recovery
+lane, including Drive ownership/app-property/digest checks, before they count as
+integrated. Never place cache files, credentials or ROM inventories on H: as a
+substitute for this final gate. Keep NintAndBox/LaunchBox precedence in the separate
+packaging collector; a metadata crawl does not supersede carton preparation.

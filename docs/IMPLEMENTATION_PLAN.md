@@ -1,6 +1,22 @@
 # Staged implementation plan
 
-Current execution, 2026-10-23, revision 165: **S26 ACTIVE**, sole active stage.
+Current execution, 2026-10-23, revision 167: **S26 ACTIVE**, sole active stage.
+Correct bracketed ScreenScraper support selectors and single-cartridge bindings;
+verify actual indexed artwork rather than treating parser omissions or malformed
+probes as source absence. Recollect affected parsed outputs and carry the acquired
+resources through normal edition review/publication/recovery/native acceptance.
+Run explicit Windows acquisition using H: and the existing provider logic,
+with archive integrity, resumable outcomes and actual processed/remaining counts.
+Treat H: as remote; keep persistent acquisition cache on E: and compiler scratch
+on D:. Default to metadata-only work, use explicit bounded raw-byte reads only
+where needed, and publish only validated final resources to H: through the
+existing owned publication/import lane.
+Prove the retained cohort before expanding the same path to full NES/GBA coverage;
+preserve separate publication/recovery/native acceptance and original Android jobs.
+Continue the retained cohort's edition checks: prefer existing H: bytes and a narrow scoped match/resource workflow,
+then apply it to supported candidates. Preserve original paused/completed jobs,
+identity safeguards and explicit uncertain/source-printing outcomes. Verify actual
+resource publication; do not count an alias candidate as completed integration.
 Focus on the next 25 uncovered source archives per existing console. Establish
 the exact private cohort and per-role cause first; implement evidence-backed
 shared fixes and verify the same cohort through the existing resource workflow.

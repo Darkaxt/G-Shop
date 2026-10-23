@@ -64,6 +64,28 @@ console at once or create new stages, workers or approval gates.
   Library need the ranked prefix, full alphabetical tail and visible source-labelled
   scores. Initial selection must use the finished result, not loading groups.
 
+The explicit Windows acquisition lane is documented in `scripts/README.md`:
+`prepare_metadata_crawl.py` binds an exact cohort/artifact snapshot to mounted
+filenames, and `run_metadata_crawl.ps1` runs the shared provider under Dart.
+Preserve its immutable manifest, hashed artwork, item outcomes, read budget and
+checkpoint. H: remains cloud backed; persistent caches/checkpoints belong on E:
+and compiler scratch on D:. Default zero archive-byte budget means no ROM body
+reads. Positive budgets are explicit targeted logical compressed-input budgets,
+not measured wire traffic. A completed metadata pass can still contain review or
+unmatched items and missing labels; it does not establish integrated coverage.
+Do not bypass the existing owned publication lane by dropping unregistered cache
+files or arbitrary metadata JSON onto H:.
+
+Source absence needs a correct request and a complete parsing path. In particular,
+ScreenScraper returns support selectors such as `support-texture(eu)[1]` with a
+separate support number. Preserve the exact indexed wire form in typed references;
+cross-check region/number and verify persistence, request, single-cartridge versus
+multi-disc mapping and normal publication/recovery. An unindexed `NOMEDIA` probe
+does not establish absence of that indexed label. Compare contrary public-page
+evidence before invoking CI-01, and invalidate parsed outcomes affected by a fix.
+Windows checkpoint/output version 2 rejects the older parser's version 1 receipts;
+retain old evidence and deliberately recollect into a new output directory.
+
 ## 3. Inventory all required resources and applicable source paths
 
 - Inventory console variants, physical media/shell/materials, authentic labels,

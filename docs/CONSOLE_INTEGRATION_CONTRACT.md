@@ -89,6 +89,14 @@ Top 25 resource or personalized-label criteria. Keep exact inventories private.
 Compare stable media identities before classifying a label as ambiguous: exact
 duplicate references identify one resource. Preserve unresolved distinct labels
 and individually bound disc members; do not rewrite retained provider evidence.
+Before declaring source artwork absent, inspect the provider's actual returned
+selector and parsing/rejection path. Preserve indexed forms such as ScreenScraper
+`support-texture(eu)[1]`, including region and support-number consistency. An
+unindexed probe's `NOMEDIA` or a parser omission does not establish absence of the
+indexed resource. Reconcile contrary public-page evidence. A single cartridge
+support numbered 1 must reach the cartridge consumer/publication role; multiple
+disc members retain their individual bindings. Invalidate affected parsed
+acquisition checkpoints after a parser fix before accepting their resource counts.
 
 If any required resource is absent, invalid or cannot be identified sufficiently
 to integrate faithfully, **pause the affected console integration**. Record the

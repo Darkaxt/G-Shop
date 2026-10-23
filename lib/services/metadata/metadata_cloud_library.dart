@@ -886,7 +886,9 @@ class MetadataCloudLibrary {
       }
       final labels =
           MetadataArtworkCache.physicalLabels(record, regions: regions);
-      if (labels.length == 1 && labels.single.memberIndex == null) {
+      if (labels.length == 1 &&
+          (labels.single.memberIndex == null ||
+              labels.single.memberIndex == 1)) {
         result.putIfAbsent(
             resourceName('support-texture', platform)!, () => labels.single);
       } else if (labels.isNotEmpty &&

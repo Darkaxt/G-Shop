@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:g_shop/models/library_identity.dart';
 import 'package:g_shop/services/metadata/metadata_provider.dart';
+import 'package:g_shop/services/metadata/metadata_rom_formats.dart';
+import 'package:g_shop/models/system_model.dart';
 
 RemoteArtifact artifact(
         {String name = 'Game.sfc',
@@ -22,6 +24,40 @@ RemoteArtifact artifact(
         providerChecksums: hashes ?? {'md5': 'a' * 32, 'sha1': 'b' * 40});
 
 void main() {
+  test(
+      'portable metadata format policy retains every supported standalone mapping',
+      () {
+    const formats = {
+      '.nes',
+      '.sfc',
+      '.smc',
+      '.z64',
+      '.n64',
+      '.v64',
+      '.nds',
+      '.gb',
+      '.gbc',
+      '.gba',
+      '.sms',
+      '.gg',
+      '.md',
+      '.gen',
+      '.pce',
+      '.lnx',
+      '.ngp',
+      '.ngc',
+      '.a26',
+      '.a52',
+      '.a78',
+      '.iso',
+      '.gcm'
+    };
+    expect(metadataStandaloneRomFormats, {
+      for (final system in SystemModel.supportedSystems)
+        if (system.romExtensions.any(formats.contains))
+          system.id: system.romExtensions.where(formats.contains).toSet()
+    });
+  });
   test('only mapped uncompressed files expose version-bound Drive ROM hashes',
       () {
     final raw = MetadataRomIdentifier.fromUncompressedDriveArtifact(

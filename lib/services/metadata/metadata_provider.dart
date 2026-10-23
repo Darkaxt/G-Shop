@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 
 import '../../models/library_identity.dart';
 import '../../models/scraped_metadata.dart';
-import '../../models/system_model.dart';
+import 'metadata_rom_formats.dart';
 
 enum RomIdentifierKind { rawRom, rawIso, container }
 
@@ -70,34 +70,6 @@ class MetadataRomIdentifier {
   /// only for explicitly supported, uncompressed standalone formats.
   static MetadataRomIdentifier? fromUncompressedDriveArtifact(
       RemoteArtifact artifact, String platformId) {
-    const standalone = {
-      '.nes',
-      '.sfc',
-      '.smc',
-      '.z64',
-      '.n64',
-      '.v64',
-      '.nds',
-      '.gb',
-      '.gbc',
-      '.gba',
-      '.sms',
-      '.gg',
-      '.md',
-      '.gen',
-      '.pce',
-      '.lnx',
-      '.ngp',
-      '.ngc',
-      '.a26',
-      '.a52',
-      '.a78',
-      '.iso',
-      '.gcm'
-    };
-    final system = SystemModel.supportedSystems
-        .where((s) => s.id == platformId)
-        .firstOrNull;
     final name = artifact.displayName;
     final dot = name.lastIndexOf('.');
     final extension = dot < 0 ? '' : name.substring(dot).toLowerCase();
@@ -107,8 +79,7 @@ class MetadataRomIdentifier {
         (artifact.sizeBytes ?? 0) <= 0 ||
         name.contains(RegExp(r'[/\\:\x00]')) ||
         dot < 1 ||
-        !standalone.contains(extension) ||
-        system?.romExtensions.contains(extension) != true) {
+        metadataStandaloneRomFormats[platformId]?.contains(extension) != true) {
       return null;
     }
     final md5 = artifact.providerChecksums['md5'];

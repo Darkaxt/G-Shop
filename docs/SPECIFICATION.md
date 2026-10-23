@@ -1,6 +1,41 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 165, 2026-10-23.
+Authoritative specification, revision 167, 2026-10-23.
+
+ScreenScraper label correction, 2026-10-23 (CI-01/META-03, S26): preserve
+provider-returned support selectors including bracketed member numbers such as
+`support-texture(eu)[1]`, their region and support-number cross-checks through
+typed-reference persistence, acquisition, cache recovery and publication. A single
+cartridge label numbered 1 belongs to that cartridge; multiple disc members remain
+individually bound. Do not infer source absence from a parser omission or a probe
+that changed the returned selector. Reconcile conflicting public-source evidence
+and invalidate cached parsed outcomes affected by an acquisition fix before
+counting coverage. This corrects the existing resource gate, not its scope.
+
+Owner Windows crawling direction, 2026-10-23 (CI-01/META-03, S26): run
+explicit acquisition on Windows against the existing H: ROM collection, without
+requiring ROM residency or a running crawler in the APK. Reuse the actual provider
+matching/response models and retain exact archive/member hash provenance, ambiguous
+and modified-edition safeguards, resumable outcomes, protocol quotas and measured
+progress. H: is the Google Drive virtual unit, subject to the same remote/network
+constraints; its pathname does not establish offline residency. Keep crawler-owned
+persistent caches, checkpoints and intermediates on E:, compiler scratch on D:,
+and only validated final publication on H:. Default to metadata-only crawling;
+reserve explicit bounded archive reads for evidence gaps, not every remote ROM.
+Keep credentials private and ROM sources read-only. Prepared results are
+not published/recovered/native-accepted coverage until those existing gates pass.
+Do not remove the app's existing optional collection controls as an incidental
+change. This continues sole ACTIVE S26 and its single final release boundary.
+
+Owner edition-review continuation, 2026-10-23 (CI-01/META-03, S26): continue
+the retained uncovered cohort, checking newly exposed source aliases against
+actual release/printing and modification evidence. Prefer the Windows/H: path
+and existing byte evidence before an owned download; use scoped matching/review; do not add
+remote-body fetching to a metadata read or restart the broad paused job. Preserve
+uncertain classifications and original jobs, retain explicit source/reference
+printing provenance, and publish only supported resources through the existing
+Drive lane. Verify resolved versus remaining roles on the same exact cohort.
+This continues sole ACTIVE S26 without opening a new console or final release.
 
 Owner uncovered-cohort remediation, 2026-10-23 (CI-01, S26): select the next
 25 uncovered source ROM archives in each of Game & Watch, NES and GBA using the

@@ -150,6 +150,60 @@ ScreenScraperProvider _provider(_Wire wire, {bool configured = true}) =>
         clock: () => DateTime.utc(2026, 9, 8));
 
 void main() {
+  test('bracketed support numbers retain real regional cartridge labels',
+      () async {
+    final game = _game();
+    game['medias'] = [
+      for (final region in ['eu', 'us'])
+        {
+          'type': 'support-texture',
+          'region': region,
+          'support': '1',
+          'url': _authenticatedMedia(media: 'support-texture($region)[1]')
+        }
+    ];
+    final wire = _Wire({
+      'response': {'jeu': game}
+    });
+    final api = _provider(wire);
+    addTearDown(api.close);
+    final result = await api.lookup(_request());
+    expect(result.status, MetadataLookupStatus.matched);
+    final labels = result.record!.media;
+    expect(labels, hasLength(2));
+    expect(labels.map((m) => m.providerReference!.mediaSelector),
+        ['support-texture(eu)[1]', 'support-texture(us)[1]']);
+    expect(labels.every((m) => m.memberIndex == 1 && m.url == null), isTrue);
+    final restored = MetadataRecord.fromJson(result.record!.toJson());
+    expect(restored.media.first.providerReference!.mediaSelector,
+        'support-texture(eu)[1]');
+  });
+  test('support selectors reject inconsistent or ambiguous member numbers',
+      () async {
+    for (final selector in [
+      'support-texture(eu1)[1]',
+      'support-texture(eu)[2]',
+      'support-texture[1]',
+      'support-texture(eu)[0]',
+    ]) {
+      final game = _game()
+        ..['medias'] = [
+          {
+            'type': 'support-texture',
+            'region': 'eu',
+            'support': '1',
+            'url': _authenticatedMedia(media: selector)
+          }
+        ];
+      final api = _provider(_Wire({
+        'response': {'jeu': game}
+      }));
+      addTearDown(api.close);
+      final result = await api.lookup(_request());
+      expect(result.status, MetadataLookupStatus.matched);
+      expect(result.record!.media, isEmpty, reason: selector);
+    }
+  });
   test('physical support texture has its own exact regional selection',
       () async {
     final game = _game();

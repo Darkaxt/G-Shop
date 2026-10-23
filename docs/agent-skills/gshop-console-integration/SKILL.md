@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.25"
+  version: "0.1.26"
 ---
 
 # G-Shop Console Integration
@@ -135,6 +135,16 @@ genuinely unsupported ranking or sparse coverage explicitly rather than acceptin
 an empty cohort or inventing ranks. Apply the authorized collection scope when a
 console uses a different, explicitly approved selection rule.
 
+For explicit acquisition, use the repository's Windows crawler when appropriate;
+APK ROM residency is not a prerequisite. H: is the Google Drive virtual unit,
+with remote/network limits. Keep crawler-owned persistent cache/checkpoints on E:,
+compiler scratch on D:, and only validated final publication on H:. Default to
+metadata-only crawling; use existing evidence and explicit bounded raw reads for
+identity gaps rather than hydrating every remote ROM. Reuse the actual provider,
+archive validator and label-ambiguity rules; preserve original Android jobs and
+keep acquisition outcomes distinct from normal publication/recovery/native proof.
+The pipeline reference points to the launcher and its exact resume contract.
+
 Verify the configured Google Drive account/root and the full collection's metadata
 and required artwork there before accepting resource coverage. For each game,
 record the required roles (including the cartridge/support label), edition/region
@@ -142,6 +152,13 @@ binding, remote resource identity and integrity evidence. A folder count, comple
 job, successful upload or another console's accepted cohort does not prove coverage.
 Keep provider-unavailable resources and owner-approved limitations explicit under
 CI-01; a missing database row alone does not establish an absent source asset.
+Before claiming source absence, trace the returned selector through parsing and
+the actual media request. ScreenScraper support selectors can be numbered after
+the region (`support-texture(eu)[1]`); retain that form and cross-check its support
+number. A probe missing `[1]` can return `NOMEDIA` for an available indexed label.
+Reconcile contrary public-page evidence and invalidate affected parsed collector
+checkpoints after repairs. Verify a single numbered cartridge label reaches the
+cartridge role while multi-disc members remain individually associated.
 
 Trace the same resource through Drive publication, shared-cache recovery, app
 projection and the rendered scene. Distinguish upstream absence, recovery failure,

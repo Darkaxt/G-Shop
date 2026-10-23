@@ -273,6 +273,78 @@ void main() {
         reason:
             'An explicit remote pull still publishes newly recovered facts');
   });
+  test(
+      'single indexed cartridge label publishes as cartridge and recovers locally',
+      () async {
+    final root =
+        await Directory.systemTemp.createTemp('gshop-indexed-cartridge-');
+    final db = await controlsDatabase();
+    await db.update('games', {'systemSlug': 'gba'});
+    final shared = await SharedMetadataStore.open(root,
+        factory: databaseFactoryFfiNoIsolate);
+    final provider = ControlsArtworkProvider();
+    final oldReply = provider.reply!;
+    provider.reply = (request, cancel) async {
+      final reply = await oldReply(request, cancel);
+      final label = MetadataMedia(
+          type: 'support-texture',
+          region: 'us',
+          memberIndex: 1,
+          providerReference: ScreenScraperMediaReference(
+              providerGameId: '42',
+              providerPlatformId: 12,
+              mediaType: 'support-texture',
+              region: 'us',
+              memberIndex: 1,
+              bracketedMemberIndex: true));
+      return MetadataLookupResult(
+          status: reply.status,
+          message: reply.message,
+          record: MetadataRecord.fromJson({
+            ...reply.record!.toJson(),
+            'media': [
+              ...reply.record!.media.map((m) => m.toJson()),
+              label.toJson()
+            ]
+          }));
+    };
+    final cache = MetadataArtworkCache(Future.value(db), shared.artworkRoot,
+        sharedStore: shared);
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {'screenscraper': provider},
+        screenScraperCredentials:
+            ScreenScraperCredentialStore(storage: MemorySecrets()),
+        igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+        artworkCache: Future.value(cache),
+        sharedStore: Future.value(shared),
+        catalogueChanged: () {});
+    final remote = MemoryMetadataDrive();
+    final cloud = MetadataCloudLibrary(
+        store: shared, remote: remote, accountId: 'account', rootId: 'root');
+    addTearDown(() async {
+      await controls.close();
+      controls.dispose();
+      await cloud.close();
+      await shared.close();
+      await db.close();
+    });
+    await controls.load();
+    await controls.refresh(systemSlug: 'gba');
+    await cloud.open();
+    await cloud.sync(Future.value(db), pull: false);
+    final names = remote.files.values
+        .where((f) => f.kind == 'artwork')
+        .map((f) => f.name)
+        .toList();
+    expect(names, contains('cartridge.png'));
+    expect(names, isNot(contains('disc-01.png')));
+    final edition = (await db.transaction((txn) =>
+            LibraryStore.catalogueEditions(txn, cacheRowId: 1).toList()))
+        .single;
+    expect((await cache.artworkForEdition(edition)).supportTexture, isNotNull);
+  });
+
   test('default media budget is two GiB, separate from ROMs and text', () {
     expect(MetadataCloudLibrary.defaultBudgetBytes, 2 * 1024 * 1024 * 1024);
   });
@@ -864,6 +936,13 @@ void main() {
             .where((f) => f.kind == 'artwork')
             .map((f) => f.name),
         containsAll(['disc-01.png', 'disc-02.png']));
+    expect(
+        (await MetadataArtworkCache(Future.value(source), oldStore.artworkRoot,
+                    sharedStore: oldStore)
+                .artworkForEdition(edition))
+            .supportTexture,
+        isNull,
+        reason: 'A multi-disc set must not become a single cartridge label');
     expect(
         remote.files.values.where((f) => f.kind == 'video').map((f) => f.name),
         ['trailer.mp4'],

@@ -6,7 +6,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import '../../models/scraped_metadata.dart';
-import 'metadata_credentials.dart';
+import 'screenscraper_credentials.dart';
 import 'metadata_provider.dart';
 
 /// Standalone ScreenScraper API v2 access. API contract and system IDs were
@@ -905,7 +905,14 @@ class ScreenScraperProvider
       return null;
     }
     final region = _text(entry['region']);
-    final memberIndex = entry['memberIndex'] as int?;
+    final support = entry['support'];
+    final supportIndex =
+        support == null ? null : int.tryParse(support.toString());
+    if (support != null && (supportIndex == null || supportIndex < 1)) {
+      return null;
+    }
+    final memberIndex = entry['memberIndex'] as int? ?? supportIndex;
+    if (supportIndex != null && memberIndex != supportIndex) return null;
     final reference = _mediaReference(url,
         providerGameId: providerGameId,
         providerPlatformId: providerPlatformId,
@@ -984,16 +991,20 @@ class ScreenScraperProvider
       return null;
     }
     final match = RegExp(
-            r'^([a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*)(?:\(([a-z]{2,3})([1-9][0-9]*)?\))?$')
+            r'^([a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*)(?:\(([a-z]{2,3})([1-9][0-9]*)?\))?(?:\[([1-9][0-9]*)\])?$')
         .firstMatch(selector);
     if (match == null ||
         match.group(1) != expectedType ||
         (expectedRegion != null && match.group(2) != expectedRegion)) {
       return null;
     }
-    final memberIndex =
-        match.group(3) == null ? null : int.tryParse(match.group(3)!);
-    if ((match.group(3) != null && memberIndex == null) ||
+    // A bracketed support number is not an absent label. Reject ambiguous
+    // double-numbered selectors, and cross-check the response's support field.
+    if (match.group(3) != null && match.group(4) != null) return null;
+    final indexText = match.group(4) ?? match.group(3);
+    final memberIndex = indexText == null ? null : int.tryParse(indexText);
+    if ((indexText != null &&
+            (memberIndex == null || match.group(2) == null)) ||
         (expectedMemberIndex != null && memberIndex != expectedMemberIndex)) {
       return null;
     }
@@ -1004,7 +1015,8 @@ class ScreenScraperProvider
         providerPlatformId: providerPlatformId,
         mediaType: match.group(1)!,
         region: match.group(2),
-        memberIndex: memberIndex);
+        memberIndex: memberIndex,
+        bracketedMemberIndex: match.group(4) != null);
   }
 
   /// API v2 documents both individual fields and grouped media objects at

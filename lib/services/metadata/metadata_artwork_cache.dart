@@ -1,9 +1,7 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:path/path.dart' as p;
@@ -13,6 +11,8 @@ import 'package:sqflite/sqflite.dart';
 import '../../models/scraped_metadata.dart';
 import '../library_store.dart';
 import 'metadata_provider.dart';
+import 'metadata_png.dart';
+import 'metadata_artwork_selection.dart';
 import 'shared_metadata_store.dart';
 
 class MetadataArtworkBlob {
@@ -54,9 +54,7 @@ class MetadataArtworkCache {
       byte_length INTEGER NOT NULL, retrieved_at TEXT NOT NULL
     )''');
 
-  static String key(MetadataMedia media) => sha256
-      .convert(utf8.encode(jsonEncode([media.toJson(), 'png-1024-v1'])))
-      .toString();
+  static String key(MetadataMedia media) => metadataMediaKey(media);
 
   /// Explicit edition review permits reuse of a local image, not stale facts.
   /// Bound the compressed body and encoded dimensions before native decoding.
@@ -304,43 +302,7 @@ class MetadataArtworkCache {
   /// metadata streams. Decode/resource limits are not inferred from MIME alone.
   static bool validNormalizedPng(Uint8List bytes) => _validPng(bytes);
 
-  static bool _validPng(Uint8List bytes) {
-    if (bytes.length < 57 ||
-        bytes.length > maxBytes ||
-        base64Encode(Uint8List.sublistView(bytes, 0, 8)) != 'iVBORw0KGgo=') {
-      return false;
-    }
-    final data = ByteData.sublistView(bytes);
-    var offset = 8;
-    var imageData = false;
-    while (offset + 12 <= bytes.length) {
-      final length = data.getUint32(offset);
-      final end = offset + length + 12;
-      if (end > bytes.length) return false;
-      final type = ascii.decode(bytes.sublist(offset + 4, offset + 8),
-          allowInvalid: true);
-      if (getCrc32(Uint8List.sublistView(bytes, offset + 4, end - 4)) !=
-          data.getUint32(end - 4)) {
-        return false;
-      }
-      if (offset == 8) {
-        if (type != 'IHDR' || length != 13) return false;
-        final width = data.getUint32(offset + 8);
-        final height = data.getUint32(offset + 12);
-        if (width < 1 || height < 1 || width > 1024 || height > 1024) {
-          return false;
-        }
-      } else if (type == 'IHDR' || type == 'acTL') {
-        return false; // No duplicate header or unbounded animation frames.
-      }
-      if (type == 'IDAT' && length > 0) imageData = true;
-      if (type == 'IEND') {
-        return length == 0 && imageData && end == bytes.length;
-      }
-      offset = end;
-    }
-    return false;
-  }
+  static bool _validPng(Uint8List bytes) => validMetadataPng(bytes);
 
   static Future<void> publish(DatabaseExecutor db, MetadataArtworkBlob blob,
           DateTime retrievedAt) =>
@@ -527,53 +489,8 @@ class MetadataArtworkCache {
   /// regional editions never borrow a foreign label; unresolved same-region
   /// alternatives remain ambiguous. Disc members stay individually associated.
   static List<MetadataMedia> physicalLabels(MetadataRecord record,
-      {Iterable<String> regions = const []}) {
-    String normalized(String value) => switch (value.trim().toLowerCase()) {
-          'usa' => 'us',
-          'europe' => 'eu',
-          'japan' || 'japon' => 'jp',
-          'world' => 'wor',
-          'france' => 'fr',
-          _ => value.trim().toLowerCase()
-        };
-    final explicit = regions
-        .map(normalized)
-        .where((v) => v.isNotEmpty && v != 'wor')
-        .toSet();
-    final evidence = record.matchEvidence['region'];
-    if (explicit.isEmpty &&
-        evidence is String &&
-        normalized(evidence) != 'wor') {
-      explicit.add(normalized(evidence));
-    }
-    // Repeated selectors identify the same cached body, not another physical
-    // edition. Keep distinct same-region alternatives unresolved below.
-    final labelsByKey = <String, MetadataMedia>{};
-    for (final media in record.media) {
-      if (media.type == 'support-texture') {
-        labelsByKey.putIfAbsent(key(media), () => media);
-      }
-    }
-    final labels = labelsByKey.values.toList();
-    final preferred = explicit.isNotEmpty
-        ? [...explicit, 'wor', '']
-        : ['wor', '', 'us', 'eu', 'jp'];
-    List<MetadataMedia> selected = [];
-    for (final region in preferred) {
-      selected =
-          labels.where((m) => normalized(m.region ?? '') == region).toList();
-      if (selected.isNotEmpty) break;
-    }
-    if (selected.isEmpty && explicit.isEmpty && labels.length == 1) {
-      selected = labels;
-    }
-    if (selected.length <= 1) return selected;
-    if (selected.every((m) => m.memberIndex != null) &&
-        selected.map((m) => m.memberIndex).toSet().length == selected.length) {
-      return selected;
-    }
-    return const [];
-  }
+          {Iterable<String> regions = const []}) =>
+      metadataPhysicalLabels(record, regions: regions);
 
   Future<({String? cover, String? supportTexture, List<String> screenshots})>
       artworkForEdition(String editionId, {bool coverOnly = false}) async {
@@ -594,15 +511,15 @@ class MetadataArtworkCache {
       if (record == null) continue;
       final selectedMedia =
           displayMedia(record, regions: regions, includePhysicalLabel: true);
-      final labels = selectedMedia
-          .where((m) => m.type == 'support-texture' && m.memberIndex == null)
-          .toList();
+      final labels =
+          selectedMedia.where((m) => m.type == 'support-texture').toList();
       for (final item in selectedMedia) {
         final isCover = {'box-2D', 'box-3D', 'cover'}.contains(item.type);
         if (coverOnly && !isCover) continue;
         final isScreenshot = {'ss', 'screenshot'}.contains(item.type);
         final isLabel = item.type == 'support-texture' &&
             labels.length == 1 &&
+            (item.memberIndex == null || item.memberIndex == 1) &&
             identical(item, labels.single);
         if ((!isCover || cover != null) &&
             !isScreenshot &&
