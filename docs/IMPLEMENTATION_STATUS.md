@@ -34,7 +34,7 @@ to 64/221 checked. Entry 65 then failed the existing `invalid_patch_size` guard;
 the page operation completed with its visible error. The read-only page observer
 was closed after that actual failure, and no later page taps were issued. Its
 source/version-bound cache retains 131 current documents (65 game/source pairs,
-including that invalid entry), with 58 original-binding groups/78 files. These
+including that invalid entry), with bindings for 58 games/78 original files. These
 cached counts are not 65 accepted games. This is an internal advancement blocker
 for full patch availability: inspect the exact offending descriptor and actual
 artifact, repair its upstream size/provenance through the existing publication
