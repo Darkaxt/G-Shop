@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.23"
+  version: "0.1.24"
 ---
 
 # G-Shop Console Integration
@@ -211,6 +211,11 @@ copy GBA's scores or claim another console's coverage from the GBA reference.
   and Game & Watch; its old trailer background must not mask the floor.
   Retain physical-unit calibration through normalization/import; use one camera
   scale for editions shown together. Preserve measured versus inferred provenance.
+  Model overlays retain reviewed integration metadata as well as identity and
+  width anchors: preserve `restingPitchRadians` for upright Table Top cabinets.
+  Validate their settled orientation; grounding alone also passes a cabinet on
+  its back. Verify one upright reflected display and a shaded physical LCD after
+  conversion; keep static optical proxies distinct from live reflection.
   Review folded/packed appendages and orthogonal packing orientation before
   shrinking contents to a carton axis. A reviewed inferred carton may expand
   uniformly to contain its real-scale contents; never silently enlarge a measured

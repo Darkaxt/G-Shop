@@ -1,6 +1,11 @@
 # Staged implementation plan
 
-Current execution, 2026-10-23, revision 163: **S26 ACTIVE**, sole active stage.
+Current execution, 2026-10-23, revision 164: **S26 ACTIVE**, sole active stage.
+Integrate the owner's CJ-71/CM-72/SM-73/PG-74 optical-repair overlay: verify source
+integrity and actual displays, convert with existing exact identities/width anchors,
+then promote only reviewed files with recovery and native settled/inspection proof.
+Retain and normally pause/resume original NES metadata job 109 if app restart is
+needed. Keep other handhelds/cartons and all wider S26 acceptance gates unchanged.
 Native `1.10.2+46` verifies the calibrated three-edition Game & Watch scene and
 its information/inspection return, visible floor and preserved job/migration.
 Complete the same floor correction for legacy GBA backgrounds: use the actual

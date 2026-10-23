@@ -5,6 +5,40 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-23 Table Top optical overlay: **S26 ACTIVE**, sole active stage. The
+owner's four-model ZIP (CJ-71, CM-72, SM-73, PG-74) has 21 matching file receipts;
+independent Khronos validation reports zero errors/warnings for all four (empty
+node/non-power-of-two image informational notices remain). Blender converted
+all four and rendered 16 source inspection views. Retained exact existing
+ROM/visual-edition identities and width estimates; credits, source photos,
+static-reflection limits and approximate sibling cabinet/lettering provenance
+remain in the private delivery and converted manifests.
+
+Initial native review caught lost `restingPitchRadians`: grounding tests alone
+allowed a cabinet to rest on its back. Restored the original upright value for
+all four, added explicit source/pair orientation regression checks, and reran
+the complete affected display/grounding and three-edition framing checks. They
+pass; focused Dart analysis is clean. Source/installed integration skill 0.1.24
+match SHA-256 `fc47f444ed32943aff3ebdcc13895e3c898835f92da4af87fe49e89f7ecf045c`.
+
+The private 24-file overlay is hash-verified on Thor; the original four model
+directories are retained for rollback. A subsequent exact four-manifest update
+restores upright presentation. All 125 known manifests reconcile: four intended
+changes and 121 unchanged. The APK remains signed internal `1.10.2+47`; no runtime
+code or APK replacement was necessary. Native painted/settled CJ-71, CM-72,
+PG-74 and SM-73, plus direct CJ-71 inspection, show the new single upright screen
+image. All four optical repairs pass this bounded resource review. Evidence is under the private
+`authored/tabletop-optics-20261023` and `reports/native/tabletop-optics-*` paths.
+
+Original metadata job 109 preserved exact checkpoints across normal pause/resume
+and both resource reloads, then completed its 9,831-item lookup pass: 99 matched
+(94 rated), 789 ambiguous, 3,450 need review, 15 invalid responses, 5,478 unmatched.
+These processed outcomes do not establish accepted full resource coverage. The
+full NES/GBA resource, patch catalogue entry-65, mixed-core appearance, launch
+matrix and final S26 release gates remain unresolved. No final release claimed.
+Expendable source-inspection scratch and copied integration fixtures were removed
+through exact reviewed cleanup tickets; requested models, reports and rollback remain.
+
 2026-10-23 installed floor/background verification: **S26 ACTIVE**, sole active
 stage. Signed CI `39886882373`, source
 `16229156852eb7a078db0ada133da1162f209205`, internal `1.10.2+47`, passed independent

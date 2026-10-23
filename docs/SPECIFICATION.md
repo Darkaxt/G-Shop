@@ -1,6 +1,18 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 163, 2026-10-23.
+Authoritative specification, revision 164, 2026-10-23.
+
+Owner Table Top optical-repair delivery, 2026-10-23 (CI-01/03, S26): inspect and
+integrate the supplied four-model overlay for CJ-71, CM-72, SM-73 and PG-74.
+Preserve exact existing ROM/visual-edition identities, shared physical-width
+calibration, cartons and the separate Panorama/Wide Screen resources. Verify one
+upright illuminated game image, a shaded untextured physical LCD beneath the roof,
+and the converted native presentation. Retain source/derived hashes and credits.
+The supplied reflection is a static proxy; three sibling cabinets have estimated
+family geometry/lettering and two screens use rectified box illustrations. Preserve
+those disclosed limits; do not claim live optics, factory CAD or emulated frames.
+This resource repair remains within sole ACTIVE S26 and does not close its wider
+full-collection, launch, patch-catalogue or final-release gates.
 
 Owner Game & Watch scale/layout correction, 2026-10-23 (CI-02/03): correct
 relative carton/hardware dimensions and the distribution of multi-edition pairs.
