@@ -125,7 +125,8 @@ class CollectionTest(unittest.TestCase):
                 panel_layouts=None, env=None, output=root/'all.zip')
             args.projection.write_bytes(b'projection fixture')
             with patch.object(packaging, 'collection_selection', return_value=rows), \
-                    patch.object(packaging, 'launchbox_index', return_value=(games, images)), \
+                    patch.object(packaging, 'launchbox_index', return_value=(games, images,
+                        {packaging.normalized(title): {key} for key, title in games.items()})), \
                     patch.object(packaging, 'website_box', return_value=None), \
                     patch.object(packaging, 'fetch', return_value=image.getvalue()) as fetch:
                 packaging.collect(args)

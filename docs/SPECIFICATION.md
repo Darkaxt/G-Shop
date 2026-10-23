@@ -1,6 +1,18 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 164, 2026-10-23.
+Authoritative specification, revision 165, 2026-10-23.
+
+Owner uncovered-cohort remediation, 2026-10-23 (CI-01, S26): select the next
+25 uncovered source ROM archives in each of Game & Watch, NES and GBA using the
+ranked-prefix/alphabetical-tail order, retaining exact edition identities and
+the full-collection denominator. Where no uncovered physical-resource entries
+remain, report zero rather than inventing a 25-item cohort. Trace missing roles
+through matching evidence, source catalogues, acquisition, publication/recovery
+and rendering. Identify and implement generic defects supported by that evidence,
+then recheck the same cohort and record resolved versus remaining gaps. Preserve
+ROMs, accepted identity/rating evidence, existing jobs and accounts. Missing
+physical resources retain CI-01; do not weaken matching to fill counts. This is
+within sole ACTIVE S26 and retains its single final-release boundary.
 
 Owner Table Top optical-repair delivery, 2026-10-23 (CI-01/03, S26): inspect and
 integrate the supplied four-model overlay for CJ-71, CM-72, SM-73 and PG-74.

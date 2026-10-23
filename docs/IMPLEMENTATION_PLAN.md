@@ -1,6 +1,11 @@
 # Staged implementation plan
 
-Current execution, 2026-10-23, revision 164: **S26 ACTIVE**, sole active stage.
+Current execution, 2026-10-23, revision 165: **S26 ACTIVE**, sole active stage.
+Focus on the next 25 uncovered source archives per existing console. Establish
+the exact private cohort and per-role cause first; implement evidence-backed
+shared fixes and verify the same cohort through the existing resource workflow.
+Report zero uncovered G&W entries if its complete hardware/packaging census
+continues to hold. Preserve wider S26 gates and no intermediate public release.
 Integrate the owner's CJ-71/CM-72/SM-73/PG-74 optical-repair overlay: verify source
 integrity and actual displays, convert with existing exact identities/width anchors,
 then promote only reviewed files with recovery and native settled/inspection proof.

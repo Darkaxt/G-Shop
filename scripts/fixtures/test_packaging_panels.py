@@ -22,6 +22,48 @@ spec.loader.exec_module(packaging)
 
 
 class PanelsTest(unittest.TestCase):
+    def test_missing_english_art_preserves_every_donor_face_and_provenance(self):
+        import copy
+        donor = [{'type': 'outer-box-' + face, 'region': 'us',
+                  'importReference': {'sourceId': 'nintandbox', 'sha256': face,
+                      'sourceLanguages': ['fr'], 'sourceRegion': 'eu',
+                      'reconstruction': 'regionalPackaging'}}
+                 for face in packaging.BOX_FACES]
+        game = {'resources': donor}
+        original = copy.deepcopy(game)
+        packaging.compose_english_faces(game, [])
+        self.assertEqual(game, original)
+
+    def test_front_replacement_retains_unavailable_back_and_remaining_panels(self):
+        donor = [{'type': 'outer-box-' + face, 'region': 'us',
+                  'importReference': {'sourceId': 'nintandbox', 'sha256': face,
+                      'sourceLanguages': ['fr'], 'sourceRegion': 'eu'}}
+                 for face in packaging.BOX_FACES]
+        english = {'type': 'box-2D', 'region': 'us', 'importReference': {
+            'sourceId': 'launchbox', 'sha256': 'english', 'sourceRegion': 'us'}}
+        game = {'resources': donor + [english]}
+        packaging.compose_english_faces(game, [english])
+        panels = {r['type']: r for r in game['resources']
+                  if r['type'].startswith('outer-box-')}
+        self.assertEqual(len(panels), 6)
+        self.assertEqual(panels['outer-box-front']['importReference']['sha256'], 'english')
+        for face in packaging.BOX_FACES[1:]:
+            self.assertEqual(panels['outer-box-' + face]['importReference']['sha256'], face)
+
+    def test_unreadable_replacement_does_not_remove_the_donor(self):
+        import copy
+        donor = {'type': 'outer-box-front', 'region': 'us', 'importReference': {
+            'sourceId': 'nintandbox', 'sha256': 'donor', 'sourceLanguages': ['fr']}}
+        english = {'type': 'box-2D', 'region': 'us', 'importReference': {
+            'sourceId': 'launchbox', 'sha256': 'english'}}
+        game = {'resources': [donor, english]}
+        original = copy.deepcopy(game)
+        def missing_body(path):
+            raise FileNotFoundError(path)
+        with self.assertRaises(FileNotFoundError):
+            packaging.compose_english_faces(game, [english], bodies={}, read=missing_body)
+        self.assertEqual(game, original)
+
     def test_reviewed_face_languages_keep_an_english_back_on_a_foreign_donor(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -72,7 +114,7 @@ class PanelsTest(unittest.TestCase):
                 launchbox=root/'Metadata.zip', env=root/'fixture.env',
                 panel_layouts=None, output=root/'pack.zip')
             with patch.object(packaging, 'ranked_selection', return_value=[row]), \
-                    patch.object(packaging, 'launchbox_index', return_value=({}, {})), \
+                    patch.object(packaging, 'launchbox_index', return_value=({}, {}, {})), \
                     patch.object(packaging, 'website_box', return_value=None), \
                     patch.object(packaging, 'read_env', return_value=credentials), \
                     patch.object(packaging, 'fetch', side_effect=fetch):
@@ -222,7 +264,7 @@ class PanelsTest(unittest.TestCase):
                 launchbox=root / 'index.zip', env=None, panel_layouts=path,
                 output=root / 'pack.zip')
             with patch.object(packaging, 'ranked_selection', return_value=[row]), \
-                    patch.object(packaging, 'launchbox_index', return_value=({}, {})), \
+                    patch.object(packaging, 'launchbox_index', return_value=({}, {}, {})), \
                     patch.object(packaging, 'website_box', side_effect=AssertionError('Dump must win')), \
                     patch.object(packaging, 'fetch', side_effect=AssertionError('No provider request needed')):
                 packaging.collect(args)

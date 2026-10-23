@@ -94,6 +94,13 @@ console at once or create new stages, workers or approval gates.
 - Preserve region/language/edition and source hashes at every step. Reuse verified
   resources and provider budgets. Do not scrape during ordinary browsing or expose
   credentials in URLs, output, reports or repository content.
+- Search LaunchBox's explicit `GameAlternateName` links as well as canonical
+  `Game.Name`. Resolve their `DatabaseID` against the selected platform before
+  reading images; preserve all conflicting IDs rather than taking the first.
+  Alternate names expose candidates, including compilations/localized names;
+  they do not establish a ROM revision, retail printing or modified-release art.
+  Recheck the actual cohort against the source index after a collector correction
+  and separate new candidate coverage from accepted/imported/published resources.
 - A missing dump catalogue binding means only that lane has no match. Investigate
   remaining sources, aliases and fixable integration defects before escalating.
   Search the original archive listing and retained edition/model/panel catalogue;
@@ -120,6 +127,9 @@ console at once or create new stages, workers or approval gates.
   ScreenScraper for missing faces. Fit to the donor's panel aspect without
   distorting the artwork. A different region/language alone must not discard
   the donor, demand repeated owner approval or trigger a generic carton first.
+  If a replacement is absent or cannot be prepared, retain the donor face and its
+  original language/source provenance. Remove it only after a real replacement
+  is prepared; a preferred-language search must not silently delete usable panels.
 - Reuse `apply_panel_layouts`, `compose_english_faces` and `fit_panel` in
   `scripts/prepare_packaging_resources.py`; use
   `scripts/artwork_colour_cast.py::match_colour_cast` for the established

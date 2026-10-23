@@ -71,7 +71,6 @@ def compose_english_faces(game, english_resources, *, bodies=None, read=None):
             (r['importReference'].get('sourceLanguages') == ['en'] or r.get('region') == 'us')]
         candidates.sort(key=lambda r: (r['importReference']['sourceId'] != 'launchbox',
                                         r['importReference']['sha256']))
-        game['resources'].remove(donor)
         if candidates:
             english = candidates[0]
             reference = {**english['importReference'], 'sourceLanguages': ['en'],
@@ -108,6 +107,9 @@ def compose_english_faces(game, english_resources, *, bodies=None, read=None):
                 # derived image, rather than returning to the original scan.
                 game['resources'] = [r for r in game['resources'] if r['type'] != role]
                 game['resources'].append({**english, 'importReference': reference})
+            # Retain the reviewed panel until a real replacement is prepared.
+            # An absent English face must not turn a complete donor into a gap.
+            game['resources'].remove(donor)
             game['resources'].append({**english, 'type': 'outer-box-' + face,
                                       'region': donor.get('region'), 'importReference': reference})
             for resource in game['resources']:
@@ -466,8 +468,8 @@ def file_sha256(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
-def launchbox_index(source, wanted_names, system='gba'):
-    games, images = {}, {}
+def launchbox_records(source):
+    """Stream top-level records, releasing each XML element before advancing."""
     with zipfile.ZipFile(source) as archive, archive.open('Metadata.xml') as stream:
         root = None
         depth = 0
@@ -478,18 +480,43 @@ def launchbox_index(source, wanted_names, system='gba'):
                     root = node
                 continue
             if depth == 2:
-                if node.tag == 'Game' and node.findtext('Platform') == PLATFORMS[system][0]:
-                    name = node.findtext('Name', '')
-                    if normalized(name) in wanted_names:
-                        games[node.findtext('DatabaseID')] = name
-                elif node.tag == 'GameImage' and node.findtext('DatabaseID') in games:
-                    item = {child.tag: child.text or '' for child in node}
-                    if item.get('Type') in ROLES:
-                        images.setdefault(item['DatabaseID'], []).append(item)
+                yield node.tag, {child.tag: child.text or '' for child in node}
                 root.remove(node)
                 node.clear()
             depth -= 1
-    return games, images
+
+
+def launchbox_index(source, wanted_names, system='gba'):
+    """Resolve exact canonical/declared aliases; retain conflicting IDs.
+
+    Aliases identify artwork candidates, never a ROM revision or physical SKU.
+    Read images after resolving platform ownership so XML section order cannot
+    hide alias-only images or admit another console's same-named release.
+    """
+    platform_games, matching_names = {}, {}
+    for kind, item in launchbox_records(source):
+        identity = item.get('DatabaseID')
+        if kind == 'Game' and item.get('Platform') == PLATFORMS[system][0]:
+            platform_games[identity] = item.get('Name', '')
+            name = normalized(item.get('Name', ''))
+        elif kind == 'GameAlternateName':
+            name = normalized(item.get('AlternateName', ''))
+        else:
+            continue
+        if identity and name in wanted_names:
+            matching_names.setdefault(identity, set()).add(name)
+    games = {identity: platform_games[identity] for identity in matching_names
+             if identity in platform_games}
+    names, images = {}, {}
+    for identity in games:
+        for name in matching_names[identity]:
+            names.setdefault(name, set()).add(identity)
+    if games:
+        for kind, item in launchbox_records(source):
+            if (kind == 'GameImage' and item.get('DatabaseID') in games
+                    and item.get('Type') in ROLES):
+                images.setdefault(item['DatabaseID'], []).append(item)
+    return games, images, names
 
 
 def png(body):
@@ -635,10 +662,7 @@ def collect(args):
         return
     wanted = {normalized(name) for row in selection for name in
         [row['title'], *(x['text'] for x in (row['metadata'] or {}).get('titles', []))]}
-    games, images = launchbox_index(args.launchbox, wanted, args.system)
-    by_name = {}
-    for key, title in games.items():
-        by_name.setdefault(normalized(title), set()).add(key)
+    games, images, by_name = launchbox_index(args.launchbox, wanted, args.system)
     session = requests.Session()
     manifest = {'version': 1, 'platform': args.system, 'games': []}
     bodies, report, packs = {}, [], []

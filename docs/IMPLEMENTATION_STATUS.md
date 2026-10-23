@@ -5,6 +5,35 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-23 next uncovered-cohort remediation: **S26 ACTIVE**, sole active stage.
+Fresh read-only census and saved requests retain 25 exact NES and 25 GBA source
+archives, separate from the full 9,831/7,674-source denominators and two built GBA
+hacks. G&W retains all 53 represented archives; no missing physical cohort was
+invented. NES has 17 unmatched, seven review and one matched/missing-carton entry.
+GBA has 13 unmatched, nine pending in the original paused broad job 76, one
+review and two matched entries with unpublished back/spine roles. Pending entries
+are not provider failures; no original lookup job or accepted identity was changed.
+
+Applied two shared collector repairs: preserve regional donor faces until a real
+English replacement is prepared, and resolve explicit LaunchBox alternate names
+through platform-owned DatabaseIDs while retaining collisions. Real source-index
+recheck exposes candidates for 18/25 NES (previously 14) and 24/25 GBA (previously
+11); these 17 newly exposed candidate rows are not accepted boxes. The alias pass
+also locates a local Casino Kid donor for the Japanese 100 Man Dollar Kid title.
+Focused collector checks and actual two-edition pack generation pass. Source and
+installed integration skill 0.1.25 are identical and reloaded, with the pipeline
+reference updated for alias/ambiguity and donor-preservation review.
+
+Normal app picker import repaired the two 007: Everything or Nothing GBA editions:
+six regional front/back/spine PNGs, including four missing published roles. Normal
+Drive sync completed; exact six-media receipts are verified, device image bodies
+independently match their hashes and edition/ScreenScraper facts are unchanged.
+The private `reports/uncovered-25-20261023/REPORT.md` and publication receipt list
+every archive's cause/action and source evidence. NES's 25 and GBA's remaining 23
+selected entries still require identity/label/carton work; new physical unboxing
+acceptance remains unverified. S26's wider gates and single final release remain
+open. No APK change or final release is claimed for these desktop/resource repairs.
+
 2026-10-23 Table Top optical overlay: **S26 ACTIVE**, sole active stage. The
 owner's four-model ZIP (CJ-71, CM-72, SM-73, PG-74) has 21 matching file receipts;
 independent Khronos validation reports zero errors/warnings for all four (empty
