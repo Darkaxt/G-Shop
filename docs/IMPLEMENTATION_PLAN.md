@@ -1,6 +1,11 @@
 # Staged implementation plan
 
 Current execution, 2026-10-23, revision 163: **S26 ACTIVE**, sole active stage.
+Native `1.10.2+46` verifies the calibrated three-edition Game & Watch scene and
+its information/inspection return, visible floor and preserved job/migration.
+Complete the same floor correction for legacy GBA backgrounds: use the actual
+model-stage condition to retire background playback and review the next signed
+candidate. Preserve the same collector and existing calibrated resource set.
 Implement PATCH-LAUNCH-01 / PATCH-CHAIN-01 as one integrated outcome: source-bound
 local availability, selection before animation, dependency resolution and ordered
 verified build/reuse, then existing launch/save handoff. Verify focused behavioral

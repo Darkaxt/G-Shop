@@ -166,6 +166,10 @@ Use one pool for a whole composition, including multi-edition arrangements; do
 not add one beneath each nested model view. Preserve physical scale, framing,
 touch/controller hit areas and Reduced Motion. Apply to lower collector/game
 and launch views, not upper gallery cards or non-3D/resource content.
+Use the same model-stage condition for the floor and background media. The themed
+red background must remain readable beneath 3D models; stop/dispose background
+video, stop slideshow timing and omit its playback button in that stage. Preserve
+saved preview preferences and the separate ordinary video/resource modes.
 
 The console-section preview is a large rotating composition of the applicable
 console models and representative games/accessories. Preserve provided collector

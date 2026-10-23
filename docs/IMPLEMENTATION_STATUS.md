@@ -5,6 +5,43 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-23 native physical-scale review: **S26 ACTIVE**, sole active stage.
+Signed CI `39882222717`, source `1b4baae`, internal `1.10.2+46`, passed package,
+production signature/icon and installed-byte checks (APK SHA-256
+`ca05a473bc5ecd27b2900122aec97379687ab376cbc8aa796e5b9098e1f457fd`).
+All 16 stopped database/preference files were byte-identical across installation.
+The reviewed 125-file Game & Watch delta was activated with exact pre/post hashes
+and per-file recovery; the refined CJ-71 mesh is unchanged. Native painted events
+and inspected screenshots show all three Donkey Kong Jr. editions fully settled,
+correct comparative scale, the rear-centre arc and a visible shared diffuse red
+floor. Direct Table Top inspection, translucent/blurred information with 120-second
+rotation and return to all three models at yaw -0.2 pass. NES StarTropics also
+shows its actual carton, personalized cartridge, sleeve and readable red floor.
+Evidence: retained private native `physical-update-three-editions-settled`,
+`physical-update-tabletop-info-verified`, `physical-update-shared-layout-restored`
+and `physical-update-nes-floor` reports/captures.
+
+Native schema 44 retains exact patch builds, all 49 cached documents/24 prepared
+games and all published/pending catalogue generations. Job 109's paused counts
+and 3,877-request checkpoint matched exactly, then normal Resume continued the
+same 9,831-item job. The fresh native path comparison reads one exact-name record
+in one indexed query (478 JSON characters), versus 3,827 records/39 queries in
+the former scan. This does not establish full catalogue/resource coverage.
+
+The GBA review found an additional floor blocker: the legacy 3D overview still
+renders/plays its blurred trailer background. The same model-stage predicate now
+controls floor/background/video disposal/slideshow and playback chrome, retaining
+normal video/resource modes and saved preferences. The integrated preview/player
+lifecycle, shared floor pixel and audio checks pass, including ordinary playback
+followed by native-player disposal on entering each 3D generation. Source analysis
+reports only eight pre-existing brace-style infos in the preview. The next signed
+native GBA review remains required; do not accept that appearance
+from floor-widget presence. CORE-LOOK-01 has four exact reference-only presets
+applied/static-verified for actual private FCEUmm, Mupen64Plus-Next, PCSX-ReARMed
+and Snes9x cores; existing config/remap/options hashes were retained. Main-agent
+readback confirms their hashes. Runtime shader loading and mixed-display-core
+bindings remain open. No final S26 release or complete collection coverage claimed.
+
 2026-10-23 Game & Watch physical-scale correction: **S26 ACTIVE**, sole active
 stage. Native painted/settled evidence confirms CJ-71 Table Top is already installed
 from the large refinement package; the earlier screenshot caught its box before

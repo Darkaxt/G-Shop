@@ -17,6 +17,10 @@ Keep the single diffuse red ellipse and its zero-alpha edge, strengthen and spre
 its illumination beneath the composition without changing physical model scale,
 camera, controls or upper gallery. Verify actual native single/multi-model views;
 widget presence alone does not establish visible floor acceptance.
+Use the same model-stage predicate for the floor and background playback. During
+a 3D model overview, retain the themed red background, retire the old background
+video player and slideshow, and omit their playback control. Keep the existing
+video/resource modes available outside that stage; do not change saved preferences.
 
 Owner core-appearance addition, 2026-10-23 (already authorized, CORE-LOOK-01):
 configure the installed RetroArch cores for the original systems' CRT or LCD

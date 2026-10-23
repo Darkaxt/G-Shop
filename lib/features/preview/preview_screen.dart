@@ -250,6 +250,11 @@ class _PreviewScreenState extends State<PreviewScreen>
 
   PreviewSettings get settings => PreviewSettings.fromJson(
       (_snapshot?['settings'] as Map? ?? const {}).cast<String, dynamic>());
+  bool get _hasModelStage =>
+      settings.modelVisible &&
+      _snapshot?['threeD'] == true &&
+      _snapshot?['gallery'] != true &&
+      (_snapshot?['details'] != true || _snapshot?['sceneView'] == true);
   List<String> get screenshots =>
       (_snapshot?['screenshots'] as List? ?? const []).cast<String>();
   double get _volume => settings.sound
@@ -316,7 +321,8 @@ class _PreviewScreenState extends State<PreviewScreen>
 
   void _updatePlayback(bool changed) {
     final prefs = settings;
-    final path = _snapshot?['sceneView'] != true &&
+    final path = !_hasModelStage &&
+            _snapshot?['sceneView'] != true &&
             !_paused &&
             _snapshot?['gallery'] != true &&
             prefs.background == PreviewBackground.video
@@ -325,7 +331,8 @@ class _PreviewScreenState extends State<PreviewScreen>
     _slideshow?.cancel();
     _slideshow = null;
     // Presentation timing, not synchronization or completion control.
-    if (_snapshot?['sceneView'] != true &&
+    if (!_hasModelStage &&
+        _snapshot?['sceneView'] != true &&
         !_paused &&
         prefs.background == PreviewBackground.slideshow &&
         screenshots.length > 1) {
@@ -495,7 +502,8 @@ class _PreviewScreenState extends State<PreviewScreen>
         (!details || snapshot['sceneView'] == true);
     final player = _video;
     Widget? background;
-    if (snapshot['sceneView'] != true &&
+    if (!_hasModelStage &&
+        snapshot['sceneView'] != true &&
         prefs.background != PreviewBackground.off &&
         !_paused) {
       if (player != null &&
@@ -530,7 +538,9 @@ class _PreviewScreenState extends State<PreviewScreen>
                                 ? prefs.brightness * .35
                                 : prefs.brightness,
                             child: background)),
-                  if (player != null && player.value.isInitialized)
+                  if (!_hasModelStage &&
+                      player != null &&
+                      player.value.isInitialized)
                     Positioned(
                         right: 16,
                         top: 16,
@@ -552,11 +562,7 @@ class _PreviewScreenState extends State<PreviewScreen>
                                     icon: Icon(value.isPlaying
                                         ? Icons.pause
                                         : Icons.play_arrow)))),
-                  if (prefs.modelVisible &&
-                      snapshot['threeD'] == true &&
-                      !gallery &&
-                      (!details || snapshot['sceneView'] == true))
-                    const SceneFloor(),
+                  if (_hasModelStage) const SceneFloor(),
                   SafeArea(
                       child: Padding(
                           padding: EdgeInsets.symmetric(

@@ -18,14 +18,18 @@ import 'package:g_shop/features/preview/scene_floor.dart';
 
 class _Player extends VideoPlayerPlatform {
   final events = StreamController<VideoEvent>();
+  int created = 0, disposed = 0;
   @override
   Future<void> init() async {}
   @override
-  Future<int?> createWithOptions(VideoCreationOptions options) async => 1;
+  Future<int?> createWithOptions(VideoCreationOptions options) async =>
+      ++created;
   @override
   Stream<VideoEvent> videoEventsFor(int playerId) => events.stream;
   @override
-  Future<void> dispose(int playerId) async {}
+  Future<void> dispose(int playerId) async {
+    disposed++;
+  }
 
   @override
   Future<void> setMixWithOthers(bool value) async {}
@@ -46,6 +50,67 @@ class _Player extends VideoPlayerPlatform {
 }
 
 void main() {
+  testWidgets('3D model stage retires background playback across generations',
+      (tester) async {
+    final original = VideoPlayerPlatform.instance;
+    final player = _Player();
+    VideoPlayerPlatform.instance = player;
+    const channel = MethodChannel('com.darkaxt.gshop/preview_view');
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (_) async => null);
+    addTearDown(() async {
+      VideoPlayerPlatform.instance = original;
+      messenger.setMockMethodCallHandler(channel, null);
+      await player.events.close();
+    });
+    await tester.pumpWidget(const MaterialApp(home: PreviewScreen()));
+    var revision = 0;
+    Future<void> show(String system, {required bool threeD}) async {
+      await messenger.handlePlatformMessage(
+          channel.name,
+          const StandardMethodCodec().encodeMethodCall(MethodCall('snapshot', {
+            'revision': ++revision,
+            'actionEpoch': revision,
+            'identity': 'floor-video-$revision',
+            'system': system,
+            'filename': 'Fixture.rom',
+            'title': 'Fixture',
+            'video': '/fixture.mp4',
+            'threeD': threeD,
+            'mediaLoading': true,
+            'reducedMotion': true,
+            'settings': const PreviewSettings().toJson(),
+          })),
+          (_) {});
+      await tester.idle();
+      await tester.pump();
+      await tester.idle(); // Join the retired player's post-frame disposal.
+      // Stream cancellation can complete through a root-zone Future outside
+      // the widget clock. Join that boundary, without advancing presentation time.
+      await tester.runAsync(() => Future<void>.value());
+      await tester.idle();
+    }
+
+    await show('gba', threeD: false);
+    expect(player.created, 1);
+    player.events.add(VideoEvent(
+        eventType: VideoEventType.initialized,
+        duration: const Duration(seconds: 10),
+        size: const Size(320, 240)));
+    await tester.idle();
+    await tester.pump();
+    expect(find.byTooltip('Pause video'), findsOneWidget);
+    for (final system in ['gba', 'nes', 'gameandwatch']) {
+      await show(system, threeD: true);
+      expect(player.created, 1, reason: system);
+      expect(find.byTooltip('Pause video'), findsNothing);
+      expect(find.byType(SceneFloor), findsOneWidget);
+      expect(player.disposed, 1, reason: system);
+      expect(tester.takeException(), isNull);
+    }
+    await tester.pumpWidget(const SizedBox());
+    await tester.idle();
+  });
   testWidgets(
       'all consoles share the lower 3D floor without changing other modes',
       (tester) async {

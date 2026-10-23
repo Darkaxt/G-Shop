@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.22"
+  version: "0.1.23"
 ---
 
 # G-Shop Console Integration
@@ -204,6 +204,11 @@ copy GBA's scores or claim another console's coverage from the GBA reference.
   Verify visible contrast beneath actual single/multi-model native scenes; widget
   presence or source wiring alone cannot accept the appearance. A faint detached
   spot below the composition does not satisfy the shared floor requirement.
+  Use the same model-stage predicate for floor and background media: retire
+  background video/slideshow and their playback control during 3D overviews,
+  keeping the red themed background readable. Preserve saved preferences and
+  separate video/resource modes. Verify a legacy GBA overview as well as NES
+  and Game & Watch; its old trailer background must not mask the floor.
   Retain physical-unit calibration through normalization/import; use one camera
   scale for editions shown together. Preserve measured versus inferred provenance.
   Review folded/packed appendages and orthogonal packing orientation before
