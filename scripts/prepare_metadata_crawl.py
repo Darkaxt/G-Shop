@@ -25,6 +25,16 @@ def prepare(cohort, artifacts, roots):
             members = row['edition'].get('members', [])
             request = (row.get('lookup') or {}).get('request')
             artifact = by_id.get(json.dumps(members[0]['artifactId'], sort_keys=True)) if len(members) == 1 else None
+            display_path = artifact.get('displayPath') if artifact else None
+            if display_path:
+                parts = display_path.replace('\\', '/').split('/')
+                if any(part in {'', '.', '..'} for part in parts):
+                    paths = []
+                elif parts[0] == root.name:
+                    # The recorded source path distinguishes different copies.
+                    # A missing recorded copy must never select a sibling instead.
+                    paths = [path for path in paths
+                             if path.relative_to(root).parts == tuple(parts[1:])]
             if len(paths) != 1 or not artifact or not request:
                 gaps.append({'editionId': row['editionId'], 'archive': row['archive'],
                              'pathCandidates': len(paths), 'artifactPresent': bool(artifact),
@@ -33,8 +43,10 @@ def prepare(cohort, artifacts, roots):
             request = dict(request, romIdentifier=None)
             # Filename markers constrain automatic binding, never establish a new
             # classification. Retain exact raw evidence for human edition review.
-            restricted = re.search(r'\((?:Proto\b|Beta\b|Demo\b|Aftermarket\b|Unl\b|Pirate\b|T-|Hack\b)',
-                                   row['archive'], re.I) is not None
+            restricted = re.search(
+                r'[\[(](?:Proto\b|Beta\b|Demo\b|Aftermarket\b|Unl\b|Pirate\b|T-|Hack\b)'
+                r'|[\[(][^\])]*\b(?:hack|patch|translation|translated|dub|undub|uncensor(?:ed)?)\b',
+                row['archive'], re.I) is not None
             tags = set(request['contentTags'])
             evidence = row['edition'].get('evidence', [])
             conflicting_evidence = any(
@@ -42,12 +54,16 @@ def prepare(cohort, artifacts, roots):
                  {'driveHeader', 'driveLocalArchive'}) or
                 (e.get('source') == 'manual' and e.get('kind') == 'contentClassification'
                  and 'unknown' in tags) for e in evidence)
-            allow = (not restricted and tags <= {'unknown', 'official'} and
+            relative = paths[0].relative_to(root).parts
+            disk_system = platform == 'nes' and relative[0].casefold() == 'disk system'
+            allow = (not restricted and not disk_system and tags <= {'unknown', 'official'} and
                      not conflicting_evidence and
                      not request.get('baseProviderGameId') and not row['edition'].get('patchId') and
                      not row['edition'].get('isTranslation') and not row['edition'].get('translatedLanguages'))
             items.append({'request': request, 'archive': {'path': str(paths[0].absolute()),
-                          'artifact': artifact}, 'allowRawBinding': allow})
+                          'artifact': artifact}, 'allowRawBinding': allow,
+                          **({'rawBindingHoldReason': 'disk-system-media-in-nes-folder'}
+                             if disk_system else {})})
     return {'version': 1, 'items': items}, gaps
 
 

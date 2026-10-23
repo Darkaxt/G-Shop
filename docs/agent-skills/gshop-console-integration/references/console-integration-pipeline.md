@@ -73,6 +73,15 @@ and compiler scratch on D:. Default zero archive-byte budget means no ROM body
 reads. Positive budgets are explicit targeted logical compressed-input budgets,
 not measured wire traffic. A completed metadata pass can still contain review or
 unmatched items and missing labels; it does not establish integrated coverage.
+Separate exact-ROM lookup failures, regional/role source gaps, local path/title
+resolution defects and unprocessed import/reconstruction/publication work. Verify
+missing roles against the provider's actual current selectors, not only the
+filtered release record. Other-region media is not an exact-edition replacement.
+Use the recorded source-relative path to distinguish duplicate archive basenames;
+never choose another copy when that recorded path is missing. Retain nested media
+families (for example Disk System inside NES) in the census, while preventing
+their automatic cartridge/provider binding. Bracketed modification markers such
+as `[Color hack ...]` also require separate binding, without changing classification.
 Do not bypass the existing owned publication lane by dropping unregistered cache
 files or arbitrary metadata JSON onto H:.
 
@@ -111,6 +120,10 @@ retain old evidence and deliberately recollect into a new output directory.
   collector reports its measured nomination as requiring visual sample review;
   that nomination is not accepted quality or a new provider-wide ranking.
   The agent performs the review; this is not another owner approval checkpoint.
+  An exact target-title LaunchBox link takes precedence over broader localized
+  alternate titles that point to other games. Retain all candidate IDs/reasons;
+  collisions on the target title itself remain ambiguous. This resolves artwork
+  candidates and does not prove a physical printing or modified-ROM edition.
   Native Top 25 validation still checks the selected images on actual 3D models.
   Donor composition must preserve that per-role choice. Distinct English-face
   candidates need upstream quality selection; the composer rejects ambiguity

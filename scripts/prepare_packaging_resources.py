@@ -521,6 +521,19 @@ def launchbox_index(source, wanted_names, system='gba'):
     return games, images, names
 
 
+def launchbox_resolution(title, alternate_titles, names):
+    """An exact target-title link wins over broader regional alternate names.
+
+    Keep every candidate in the audit; a collision on the target itself remains
+    ambiguous. This chooses artwork candidates, never a physical printing/ROM.
+    """
+    primary = set(names.get(normalized(title), set()))
+    candidates = primary.union(*(names.get(normalized(t), set()) for t in alternate_titles))
+    return {'selectedIds': sorted(primary if primary else candidates),
+            'candidateIds': sorted(candidates),
+            'method': 'exact-target-title' if primary else 'provider-alternate-titles'}
+
+
 def png(body):
     with Image.open(io.BytesIO(body)) as image:
         if image.width * image.height > 64_000_000:
@@ -858,8 +871,9 @@ def collect(args):
             for face, role in [('front', 'box-2D'), ('back', 'box-2D-back'), ('right', 'box-2D-side')]:
                 panel = next(r for r in resources if r['type'] == 'outer-box-' + face)
                 resources.append({**panel, 'type': role})
-        ids = set().union(*(by_name.get(normalized(name), set()) for name in
-            [row['title'], *(x['text'] for x in metadata.get('titles', []))]))
+        resolution = launchbox_resolution(row['title'],
+            [x['text'] for x in metadata.get('titles', [])], by_name)
+        ids = set(resolution['selectedIds'])
         face_candidates = {role:[] for role in ROLES.values()}
         quality_report = {}
         if not full_box and len(ids) == 1:
@@ -952,6 +966,7 @@ def collect(args):
         report.append({'rank': row['rank'], 'title': row['title'],
             'gameId': row['game']['id'], 'editionId': edition['id'],
             'regions': sorted(regions), 'launchboxIds': sorted(ids),
+            'launchboxResolution': resolution,
             'artworkQuality':quality_report,
             'roles': {role: sum(x['type'] == role for x in resources)
                 for role in sorted({x['type'] for x in resources})}})

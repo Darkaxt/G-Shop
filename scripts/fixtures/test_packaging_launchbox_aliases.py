@@ -49,12 +49,28 @@ class LaunchBoxAliasesTest(unittest.TestCase):
         self.assertEqual(set(games), {'1', '2'})
         self.assertEqual(names['sharedalias'], {'1', '2'})
 
+    def test_exact_target_title_survives_another_regional_alias(self):
+        names = {'familystadium87': {'163003'}, 'rbibaseball': {'1404'}}
+        actual = packaging.launchbox_resolution('Family Stadium 87', ['RBI Baseball'], names)
+        self.assertEqual(actual['selectedIds'], ['163003'])
+        self.assertEqual(actual['candidateIds'], ['1404', '163003'])
+        self.assertEqual(actual['method'], 'exact-target-title')
+
+    def test_target_title_collision_is_not_resolved_by_a_convenient_alias(self):
+        actual = packaging.launchbox_resolution('Shared Alias', ['Only One'],
+            {'sharedalias': {'1', '2'}, 'onlyone': {'1'}})
+        self.assertEqual(actual['selectedIds'], ['1', '2'])
+        actual = packaging.launchbox_resolution('Unknown', ['Shared Alias'],
+            {'sharedalias': {'1', '2'}})
+        self.assertEqual(actual['selectedIds'], ['1', '2'])
+
     def test_collector_uses_alias_without_replacing_target_identity(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             row = {'rank': None, 'cache_row_id': 1, 'title': 'Regional Compilation',
                 'game': {'id': 'game', 'platformId': 'gba'},
-                'edition': {'id': 'edition', 'regions': ['eu'], 'tags': []}, 'metadata': None}
+                'edition': {'id': 'edition', 'regions': ['eu'], 'tags': []},
+                'metadata': {'titles': [{'text': 'Different Compilation'}]}}
             args = SimpleNamespace(system='gba', selection='collection',
                 projection=root/'projection.gz', launchbox=self.source(root),
                 panel_layouts=None, env=None, output=root/'pack.zip')
@@ -70,6 +86,9 @@ class LaunchBoxAliasesTest(unittest.TestCase):
             self.assertEqual(game['editionId'], 'edition')
             self.assertEqual(game['gameId'], 'game')
             self.assertEqual(game['resources'][0]['importReference']['assetId'].split('/')[0], '1')
+            report = json.loads(args.output.with_suffix('.report.json').read_text())
+            self.assertEqual(report[0]['launchboxResolution']['candidateIds'], ['1', '2'])
+            self.assertEqual(report[0]['launchboxResolution']['selectedIds'], ['1'])
 
 
 if __name__ == '__main__':

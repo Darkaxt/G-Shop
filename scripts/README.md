@@ -207,9 +207,13 @@ into an APK for this operation. The optional Android collector remains available
 Prepare a private manifest with `prepare_metadata_crawl.py --cohort <JSON>
 --artifacts <read-only-NDJSON> --root "nes=<mounted ROM root>" --root
 "gba=<mounted ROM root>" --output <private E: manifest>`. The artifact snapshot
-must finish with an explicit read-only end record. Missing/duplicate exact names
-remain gaps; they are never resolved by picking the first file. The helper lists
-filenames only and does not open ROM bodies.
+must finish with an explicit read-only end record. The recorded source-relative
+path distinguishes repeated archive basenames; missing recorded copies and genuinely
+ambiguous names remain gaps rather than selecting another copy. Nested Disk System
+media inside the NES root remains inventoried but cannot acquire an automatic NES
+cartridge binding. Parenthesized/bracketed modification markers also constrain
+automatic binding without inventing a classification. The helper lists filenames
+only and does not open ROM bodies.
 
 Then invoke `run_metadata_crawl.ps1 -Manifest <manifest> -OutputDirectory
 <E: cache> -RuntimeDirectory <task-owned D: scratch> -DartCommand <installed Dart>

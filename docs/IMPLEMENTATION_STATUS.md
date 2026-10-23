@@ -5,6 +5,43 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-24 coverage root-cause review: **S26 ACTIVE**, sole active stage, unchanged
+specification/plan revision 169. The completed selected 1,000-ROM batch matched
+489/500 NES and 488/500 GBA archives by raw ROM hash/size; 467 NES and 458 GBA
+returned front-plus-label image bodies. This selected high-yield sample is not a
+whole-collection estimate, physical-resource acceptance or published coverage.
+The immediate deficit is predominantly unprocessed import/carton/publication work.
+
+Fresh ScreenScraper inspections of 42 distinct games corroborated the 52 matched
+archives missing a front and/or label: 36 label gaps have only other-region
+textures, 12 advertise no label texture; six front gaps have only other-region
+fronts and seven advertise no front. No compatible-role parser omission was found
+in this sample. Release applicability remains separate from source-role absence.
+All 23 unmatched ROM titles have LaunchBox game entries; those title-level links
+do not establish the exact ROM revision, modified edition or physical printing.
+Five matching-region fronts were acquired from LaunchBox and visually reviewed,
+including a Family Stadium '87 ambiguity fixed below; they await the normal
+edition-owned import, carton preparation and publication lane.
+
+Preparation and resolution defects are corrected with regression evidence and actual
+inventory/provider data: recorded relative paths resolve the 586 basename
+ambiguities; 780 Disk System entries nested inside the NES root remain in the
+denominator with separate media-family holds; bracketed Color hack/translation
+markers now hold automatic retail binding (24 GBA entries in the captured supported
+manifest, including five unmatched items in the completed batch). The revised
+full-census preparation has zero unresolved paths, retaining all 17,505 NES/GBA
+source entries. Finally, an exact target-title LaunchBox link now survives broader
+regional aliases pointing to other games; genuine target-title collisions stay
+ambiguous and all candidate IDs remain recorded. Family Stadium '87 now resolves
+its own Japanese artwork instead of being blocked by the R.B.I. Baseball 2 alias.
+
+The source/installed integration skill is now 0.1.29 with these diagnostic rules.
+Only desktop preparation and guidance changed; installed APK +48 is unchanged.
+The 80-percent criterion, full physical-resource bindings, collection publication/
+recovery and native Top 25 acceptance remain unresolved. No final S26 release is
+claimed. Continue by processing the already-acquired resources through those gates,
+while preserving role/region and distinct disk/modified-release requirements.
+
 2026-10-24 resource coverage and paired artwork selection: **S26 ACTIVE**, sole
 active stage; specification/plan revision 169. The owner's milestone is at least
 80 percent usable resources for each current G&W/NES/GBA source collection, within
