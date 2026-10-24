@@ -66,6 +66,14 @@ class CartonOrientationTest(unittest.TestCase):
         self.assertEqual(result['clockwiseCorrectionDegrees'],0)
         self.assertIn('nintendo',result['candidates'][0]['anchors'])
 
+    def test_sideways_legal_copy_cannot_override_conflicting_upright_title_text(self):
+        records={angle:{'text':''} for angle in [0,90,180,270]}
+        records[0]['text']='TAITO Be a legend in your own time Game Pak'
+        records[90]['text']='Kage Nintendo System Taito'
+        result=orientation.orientation_evidence(records,title='Legend of Kage, The')
+        self.assertEqual(result['status'],'uncertain')
+        self.assertIsNone(result['clockwiseCorrectionDegrees'])
+
     def test_changed_mesh_or_texture_cannot_be_validated(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder)

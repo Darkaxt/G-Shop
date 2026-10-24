@@ -16,6 +16,26 @@ import prepare_packaging_resources as packaging
 
 
 class LaunchBoxAliasesTest(unittest.TestCase):
+    def test_no_intro_articles_resolve_real_linked_images_without_dropping_articles(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source=Path(folder)/'Metadata.zip'
+            xml='''<LaunchBox>
+              <Game><DatabaseID>1</DatabaseID><Name>The Polar Express</Name><Platform>Nintendo Game Boy Advance</Platform></Game>
+              <Game><DatabaseID>2</DatabaseID><Name>The Incredibles: Rise of the Underminer</Name><Platform>Nintendo Game Boy Advance</Platform></Game>
+              <Game><DatabaseID>3</DatabaseID><Name>Polar Express</Name><Platform>Nintendo Game Boy Advance</Platform></Game>
+              <Game><DatabaseID>4</DatabaseID><Name>The Polar Express</Name><Platform>Nintendo Entertainment System</Platform></Game>
+              <Game><DatabaseID>5</DatabaseID><Name>L'Aigle de Guerre</Name><Platform>Nintendo Game Boy Advance</Platform></Game>
+              <GameImage><DatabaseID>1</DatabaseID><Type>Box - Front</Type><Region>Europe</Region><FileName>00000001-0000-0000-0000-000000000000.png</FileName></GameImage>
+              <GameImage><DatabaseID>2</DatabaseID><Type>Box - Back</Type><Region>Europe</Region><FileName>00000002-0000-0000-0000-000000000000.png</FileName></GameImage>
+            </LaunchBox>'''
+            with zipfile.ZipFile(source,'w') as archive:archive.writestr('Metadata.xml',xml)
+            games,images,names=packaging.launchbox_index(source,
+                {packaging.normalized(t) for t in ['Polar Express, The','Incredibles, The - Rise of the Underminer',"Aigle de Guerre, L'"]},'gba')
+        self.assertEqual(set(games),{'1','2','5'})
+        self.assertEqual(set(images),{'1','2'})
+        self.assertEqual(packaging.launchbox_resolution('Polar Express, The',[],names)['selectedIds'],['1'])
+        self.assertEqual(packaging.launchbox_resolution('Incredibles, The - Rise of the Underminer',[],names)['selectedIds'],['2'])
+
     def source(self, root):
         source = root / 'Metadata.zip'
         # Deliberately put aliases and images before games: XML section order
@@ -76,7 +96,9 @@ class LaunchBoxAliasesTest(unittest.TestCase):
                 panel_layouts=None, env=None, output=root/'pack.zip')
             args.projection.write_bytes(b'projection fixture')
             output = io.BytesIO()
-            Image.new('RGB', (8, 12), 'navy').save(output, format='PNG')
+            artwork=Image.new('RGB', (8, 12), 'navy')
+            artwork.paste('white',(2,2,6,5))
+            artwork.save(output, format='PNG')
             with patch.object(packaging, 'collection_selection', return_value=[row]), \
                     patch.object(packaging, 'website_box', return_value=None), \
                     patch.object(packaging, 'fetch', return_value=output.getvalue()):

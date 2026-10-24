@@ -6,10 +6,16 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
-from prepare_metadata_crawl import prepare
+from prepare_metadata_crawl import prepare,physical_resource_family
 
 
 class PreparationTest(unittest.TestCase):
+    def test_program_matching_does_not_establish_a_cartridge_for_other_source_media(self):
+        self.assertEqual(physical_resource_family('gba','GBA/Multiboot/Animal Crossing - Excitebike.7z'),'multiboot')
+        self.assertEqual(physical_resource_family('gba','GBA/e-Reader/Card.7z'),'e-reader-card')
+        self.assertEqual(physical_resource_family('nes','NES/Disk System/Game.7z'),'disk-system')
+        self.assertEqual(physical_resource_family('gba','GBA/Excitebike.7z'),'cartridge')
+        self.assertIsNone(physical_resource_family('gba',None))
     def sample(self, filename='Game.7z'):
         identity = {'providerId': 'drive', 'sourceId': 'source', 'accountId': 'owner',
                     'providerFileId': 'file'}

@@ -53,7 +53,7 @@ def archive_regions(filename):
 
 def is_retail_reference(filename):
     return '[' not in filename and not re.search(
-        r'\((?:Aftermarket|Pirate|Proto[^)]*|Beta[^)]*|Demo[^)]*|[^)]*(?:Virtual Console|Switch|Collection|Archives|Retro-Bit|FamicomBox|Classic Mini|Classics Mini Mix|Disney Classic Games|QUByte Classics)[^)]*)\)',filename,re.I)
+        r'\((?:Aftermarket|Pirate|Proto[^)]*|Beta[^)]*|Demo[^)]*|[^)]*(?:Virtual Console|Switch|Collection|Archives|Retro-Bit|Evercade|Capcom Town|Toaplan Arcade Garage|FamicomBox|Classic Mini|Classics Mini Mix|Disney Classic Games|QUByte Classics)[^)]*)\)',filename,re.I)
 
 
 def apply_prepared_references(catalogue, prepared, imports, filenames):

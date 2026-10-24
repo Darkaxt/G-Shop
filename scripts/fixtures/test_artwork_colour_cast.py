@@ -24,6 +24,19 @@ def palette_image():
 
 
 class ColourCastTest(unittest.TestCase):
+    def test_unrelated_low_contrast_reference_cannot_flatten_the_artwork(self):
+        source = palette_image().convert('RGB')
+        pixels = np.asarray(source) / 255
+        random = np.random.default_rng(0)
+        noise = random.normal(0, .07, (12, 16, 3))
+        noise = np.asarray(Image.fromarray(np.round(np.clip(noise + .5, 0, 1)
+            * 255).astype('uint8')).resize(source.size)) / 255 - .5
+        target = Image.fromarray(np.round(np.clip(pixels * .1 +
+            np.array([.25, .32, .28]) + noise, 0, 1) * 255).astype('uint8'))
+        corrected, receipt = match_colour_cast(source, target)
+        self.assertFalse(receipt['applied'], receipt)
+        self.assertEqual(source.convert('RGBA').tobytes(), corrected.tobytes())
+
     def test_channel_contrast_inversion_is_not_a_scan_colour_cast(self):
         source = palette_image()
         inverted = np.asarray(source).copy()

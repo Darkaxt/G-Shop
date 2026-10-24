@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
+import 'package:g_shop/models/scraped_metadata.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:g_shop/models/library_identity.dart';
@@ -34,6 +37,84 @@ Map<String, dynamic> item() {
 }
 
 void main() {
+  test(
+      'exact provider media reuse preserves member identity and rejects changed bytes',
+      () async {
+    final source = await Directory.systemTemp.createTemp('gshop-crawl-reuse-');
+    final output =
+        await Directory.systemTemp.createTemp('gshop-crawl-reuse-output-');
+    addTearDown(() => source.delete(recursive: true));
+    addTearDown(() => output.delete(recursive: true));
+    final media = MetadataMedia.fromJson({
+      'type': 'support-texture',
+      'region': 'us',
+      'memberIndex': 1,
+      'providerReference': {
+        'providerId': 'screenscraper',
+        'providerGameId': '7',
+        'providerPlatformId': 12,
+        'mediaType': 'support-texture',
+        'region': 'us',
+        'memberIndex': 1,
+        'bracketedMemberIndex': true
+      }
+    });
+    final bytes = image.encodePng(image.Image(width: 16, height: 16));
+    final digest = sha256.convert(bytes).toString();
+    await File('${source.path}/$digest.png').writeAsBytes(bytes);
+    final receipt = File('${source.path}/${'a' * 64}.artwork.json');
+    await receipt.writeAsString(jsonEncode([
+      {
+        'media': media.toJson(),
+        'status': 'matched',
+        'sha256': digest,
+        'file': '$digest.png',
+        'bytes': bytes.length
+      }
+    ]));
+    final index = await indexRetainedCrawlArtwork([source]);
+    final reused = await reuseCrawlArtwork(media, output, index);
+    expect(reused!['media'], media.toJson());
+    expect(File(reused['reusedFromArtworkReceipt'] as String).absolute.uri,
+        receipt.absolute.uri);
+    expect(await File('${output.path}/$digest.png').readAsBytes(), bytes);
+    final other = MetadataMedia.fromJson({
+      ...media.toJson(),
+      'region': 'eu',
+      'providerReference': <String, dynamic>{
+        ...(media.toJson()['providerReference'] as Map<String, dynamic>),
+        'region': 'eu'
+      }
+    });
+    expect(await reuseCrawlArtwork(other, output, index), isNull);
+    final second = MetadataMedia.fromJson({
+      ...media.toJson(),
+      'memberIndex': 2,
+      'providerReference': <String, dynamic>{
+        ...(media.toJson()['providerReference'] as Map<String, dynamic>),
+        'memberIndex': 2
+      }
+    });
+    expect(await reuseCrawlArtwork(second, output, index), isNull);
+    final changedBytes = image.encodePng(image.Image(width: 17, height: 16));
+    final changedDigest = sha256.convert(changedBytes).toString();
+    await File('${source.path}/$changedDigest.png').writeAsBytes(changedBytes);
+    await File('${source.path}/${'b' * 64}.artwork.json')
+        .writeAsString(jsonEncode([
+      {
+        'media': media.toJson(),
+        'status': 'matched',
+        'sha256': changedDigest,
+        'bytes': changedBytes.length,
+        'file': '$changedDigest.png'
+      }
+    ]));
+    final ambiguous = await indexRetainedCrawlArtwork([source]);
+    expect(await reuseCrawlArtwork(media, output, ambiguous), isNull);
+    await File('${source.path}/$digest.png').writeAsBytes([1, 2, 3]);
+    expect(
+        () => reuseCrawlArtwork(media, output, index), throwsFormatException);
+  });
   test('manifest rejects duplicate editions and preasserted raw identities',
       () {
     final i = item();

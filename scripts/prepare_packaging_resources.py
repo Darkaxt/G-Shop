@@ -334,6 +334,11 @@ def augment_panels(source, target, recipes, *, panels_only=False, website_fallba
 
 def normalized(value):
     text = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode().lower()
+    # No-Intro moves a leading article behind the main title, before a subtitle.
+    # Keep the article instead of dropping it or introducing fuzzy title links.
+    article = re.match(r"^(.+?),\s*(the|an|a|l')(?=\s*(?:-|:|$))(.*)$", text)
+    if article:
+        text = article[2] + (' ' if not article[2].endswith("'") else '') + article[1] + article[3]
     return re.sub('[^a-z0-9]', '', text.replace('&', 'and'))
 
 
@@ -559,6 +564,14 @@ def artwork_quality(body):
             raise ValueError('Artwork exceeds static image budget')
         image = ImageOps.exif_transpose(image)
         width, height = image.size
+        # Some advertised provider backs are opaque green placeholders, with
+        # at most one level of JPEG noise. A decodable PNG is not necessarily
+        # artwork. Keep this source-candidate check separate from normalization:
+        # deliberately reconstructed plain carton faces remain valid resources.
+        rgba=image.convert('RGBA')
+        visible=rgba.getchannel('A').getbbox()
+        blank=(visible is None or max(high-low for low,high in
+            rgba.crop(visible).convert('RGB').getextrema())<=2)
         scale = min(1, 1024 / max(width, height))
         sample = image.convert('L').resize((512, 512), Image.Resampling.LANCZOS)
         # Exclude the outer edge from the detail measurement. No source pixels
@@ -570,7 +583,30 @@ def artwork_quality(body):
         ratio = fine_detail / coarse_detail if coarse_detail else 0
         pixels = width * height * scale * scale
         return {'width':width, 'height':height, 'usablePixels':round(pixels),
+            'contentStatus':'blank-or-transparent-placeholder' if blank else 'nonuniform',
             'detailRatio':round(ratio,6), 'nominationScore':round(pixels * ratio * ratio,3)}
+
+
+def normalize_role_image(role, body, *, clockwise_rotation=0):
+    """Keep the existing spine rotation and normalized pixels in one operation.
+
+    Model preparation uses the same role orientation as normal artwork packs.
+    Return the rotation for provenance; never infer it later from the filename.
+    """
+    if type(clockwise_rotation) is not int or clockwise_rotation not in {0,90,180,270}:
+        raise ValueError('Reviewed image rotation must be orthogonal')
+    rotation=clockwise_rotation
+    if rotation:
+        with Image.open(io.BytesIO(body)) as image:
+            output=io.BytesIO();image.rotate(-rotation,expand=True).save(output,format='PNG')
+            body=output.getvalue()
+    if role=='box-2D-side':
+        with Image.open(io.BytesIO(body)) as image:
+            if image.width>image.height:
+                output=io.BytesIO()
+                image.transpose(Image.Transpose.ROTATE_270).save(output,format='PNG')
+                body=output.getvalue();rotation=(rotation+90)%360
+    return png(body),rotation
 
 
 def choose_artwork(candidates, review=None):
@@ -584,11 +620,18 @@ def choose_artwork(candidates, review=None):
             rejected.append({**{k:v for k,v in candidate.items() if k!='body'},
                 'sourceSha256':source_hash,'rejection':'invalid-or-unsupported-image'})
             continue
+        if quality['contentStatus']!='nonuniform':
+            rejected.append({**{k:v for k,v in candidate.items() if k!='body'},
+                'sourceSha256':source_hash,'quality':quality,'rejection':quality['contentStatus']})
+            continue
         measured.append({**candidate, 'sourceSha256':source_hash,'quality':quality})
     if not measured:
         if review: raise ValueError('Reviewed artwork was not acquired')
         return None, {'method':'unavailable', 'candidates':[],'rejected':rejected}
     if review:
+        rotation=review.get('rotationDegrees',0)
+        if type(rotation) is not int or rotation not in {0,90,180,270}:
+            raise ValueError('Quality review rotation must be orthogonal')
         matches = [c for c in measured if c['sourceSha256'] == review.get('sourceSha256')
                    and c['source'] == review.get('sourceId')]
         if not matches or not str(review.get('reason','')).strip():
@@ -603,7 +646,9 @@ def choose_artwork(candidates, review=None):
             'decision':'selected' if c is selected else 'not-selected',
             'decisionReason':review['reason'] if review else 'provisional-measured-detail-and-resolution'} for c in measured],
         'rejected':rejected}
-    if review: audit['reviewReason'] = review['reason']
+    if review:
+        audit['reviewReason'] = review['reason']
+        audit['reviewRotationDegrees']=rotation
     return selected, audit
 
 
@@ -811,17 +856,9 @@ def collect(args):
                 'publicationVerified': False, 'packs': packs}, indent=2), encoding='utf8')
         manifest['games'].clear()
         bodies.clear()
-    def add(resources, role, region, body, *, source, asset, url, page=None, panel=None, original=None):
+    def add(resources, role, region, body, *, source, asset, url, page=None, panel=None, original=None, clockwise_rotation=0):
         source_body = original or body
-        rotation = 0
-        if role == 'box-2D-side':
-            with Image.open(io.BytesIO(body)) as image:
-                if image.width > image.height:
-                    output = io.BytesIO()
-                    image.transpose(Image.Transpose.ROTATE_270).save(output, format='PNG')
-                    body = output.getvalue()
-                    rotation = 90
-        data = png(body)
+        data,rotation = normalize_role_image(role,body,clockwise_rotation=clockwise_rotation)
         digest = hashlib.sha256(data).hexdigest()
         bodies[digest] = data
         resources.append({'type': role, 'region': region,
@@ -884,7 +921,7 @@ def collect(args):
                 candidates.sort(key=lambda x: x['FileName'])
                 for image in candidates:
                     filename = image['FileName']
-                    if not re.fullmatch(r'(?:r[0-9]+_)?[a-fA-F0-9-]+\.(jpg|png)', filename):
+                    if not re.fullmatch(r'(?:r[0-9]+_)?[a-fA-F0-9-]+\.(jpg|jpeg|png)', filename):
                         raise ValueError('Unexpected LaunchBox image identity')
                     url = 'https://images.launchbox-app.com/' + filename
                     body = fetch(session, url)
@@ -947,8 +984,28 @@ def collect(args):
                     'asset':f'{provider_id}/{role}({region})','url':source_url})
         for role, candidates in face_candidates.items():
             if full_box: continue
+            # Missing original-region printing may still have a usable same-game
+            # English reference. This fallback is carton artwork only, never a
+            # cartridge/label or a claim about the ROM's physical edition.
+            available_choice,_=choose_artwork(candidates)
+            donor_fallback=available_choice is None
+            if donor_fallback and len(ids)==1:
+                game_id=next(iter(ids))
+                for image in sorted(images.get(game_id,[]),key=lambda x:x['FileName']):
+                    region=REGIONS.get(image.get('Region',''),'unsupported')
+                    if ROLES.get(image['Type'])!=role or region not in {'us','eu'} or region in regions:
+                        continue
+                    filename=image['FileName']
+                    if not re.fullmatch(r'(?:r[0-9]+_)?[a-fA-F0-9-]+\.(jpg|jpeg|png)',filename):
+                        raise ValueError('Unexpected LaunchBox image identity')
+                    url='https://images.launchbox-app.com/'+filename
+                    body=fetch(session,url)
+                    if body:
+                        candidates.append({'body':body,'region':region,'source':'launchbox',
+                            'asset':game_id+'/'+filename,'url':url})
             selected, quality = choose_artwork(candidates,
                 quality_reviews.get(row['game']['id'],{}).get(role))
+            if donor_fallback:quality['referenceDonorFallback']=True
             available = {c['source'] for c in candidates}
             quality['providers'] = {
                 'launchbox':'available' if 'launchbox' in available else
@@ -959,7 +1016,13 @@ def collect(args):
             if selected:
                 resources = [r for r in resources if r['type'] != role]
                 add(resources, role, selected['region'], selected['body'],
-                    source=selected['source'], asset=selected['asset'],url=selected['url'])
+                    source=selected['source'], asset=selected['asset'],url=selected['url'],
+                    clockwise_rotation=quality.get('reviewRotationDegrees',0))
+                if selected['region'] not in regions:
+                    resource=resources[-1]
+                    resource['region']=sorted(regions)[0]
+                    resource['importReference'].update(sourceRegion=selected['region'],
+                        reconstruction='composite',**({'sourceLanguages':['en']} if selected['region']=='us' else {}))
         composed = {'resources': resources}
         compose_english_faces(composed, resources.copy(), bodies=bodies)
         resources = composed['resources']

@@ -286,9 +286,48 @@ image fails explicitly. Otherwise the measured nomination remains labelled as
 requiring the visual sample; it is not a claim of accepted quality. Review real
 legibility, cropping, damage/glare, printing and colour continuity; resolution
 alone cannot decide. The existing NintAndBox donor/colour path remains in place.
+Blank/transparent provider placeholders are rejected before nomination, including
+solid green images with at most two levels of channel noise. This check does not
+reject explicitly reconstructed plain carton faces. When no valid original-region
+carton face remains, the collector checks the same resolved LaunchBox game's US/EU
+faces and preserves source-region/composite provenance. That fallback never binds
+labels, changes ROM identity or proves an exact physical printing.
 Donor composition preserves the selected face; distinct English alternatives
 must be resolved upstream instead of being reordered by provider during fitting.
+LaunchBox names canonicalize No-Intro's relocated articles (also before subtitles)
+without deleting them, changing console scope or resolving ambiguous IDs by guess.
+The fixed public image origin accepts validated `.jpg`, `.jpeg` and `.png` leaves.
 `--crawl-artwork <completed Windows output>` seeds validated acquired face bodies
 into that response cache to avoid repeat API requests. It does not import facts,
 classifications, acceptance or publication. Support textures and shell-inclusive
 cartridge pictures remain different roles.
+
+Model-baking preparation uses `normalize_role_image(role, body)` from the same
+collector to keep horizontal-spine rotation and normalized PNG bytes together.
+An explicit hash-bound quality review may include `rotationDegrees` to correct
+an inspected selected source face. Pass it as `clockwise_rotation` when using
+the helper directly; retain its original-source digest and returned rotation.
+Preserve its returned rotation in provenance. The colour-cast helper also requires
+its held-out prediction to beat a constant-colour baseline; otherwise a low-detail
+regional back can spuriously reward erasing the selected artwork's contrast.
+
+The Windows crawl can reuse exact typed provider-image receipts with
+`run_metadata_crawl.ps1 -ReuseArtworkDirectory <completed version-2 crawl>`
+(`crawl_metadata.dart --reuse-artwork`). It verifies size/hash before reuse and
+keeps provider, region and indexed member identity separate; conflicting cached
+bodies require a fresh request. Each ROM still receives its own matching evidence.
+Reused images retain their source receipt rather than claiming a fresh response.
+`prepare_metadata_crawl.py` records source-path `physicalResourceFamily` separately
+from `allowRawBinding`: a program match does not establish retail media for GBA
+Multiboot/e-Reader or Disk System inside NES.
+
+For uncertain assembled-panel OCR, inspect the retained mapped views first, then
+run `review_carton_orientation.py --model-dir <candidate import> --review <JSON>`.
+The private receipt contains `version: 1`, `originalReportSha256`,
+`modelManifestSha256`, `geometrySha256`, a nonempty `reviewer`, and `panels` for
+exactly the uncertain sides. Each side supplies `assembledImageSha256`,
+`clockwiseCorrectionDegrees: 0` and a concrete visual `reason`. The helper verifies
+current mesh, textures, UV-mapped images, original OCR views and opening evidence;
+it preserves the original report/pending manifest and writes a separate reviewed
+report plus the normal accepted manifest. It cannot waive known rotation or
+animation failure, auto-review weak text, or overwrite an accepted model.

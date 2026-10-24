@@ -24,6 +24,17 @@ def image(size=128, blur=0):
 
 
 class ArtworkQualityTest(unittest.TestCase):
+    def test_uniform_provider_placeholders_cannot_be_selected(self):
+        blank=Image.new('RGB',(705,700),(0,255,0))
+        blank.putpixel((0,0),(0,254,0))  # Observed JPEG framing noise is not artwork.
+        stream=io.BytesIO();blank.save(stream,format='PNG');placeholder=stream.getvalue()
+        selected,audit=packaging.choose_artwork([
+            {'source':'screenscraper','body':placeholder},
+            {'source':'launchbox','body':image()}])
+        self.assertEqual(selected['source'],'launchbox')
+        self.assertEqual(audit['rejected'][0]['rejection'],'blank-or-transparent-placeholder')
+        self.assertIsNone(packaging.choose_artwork([{'source':'screenscraper','body':placeholder}])[0])
+
     def test_completed_crawl_bodies_avoid_repeated_authenticated_fetch(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);source=root/'crawl';source.mkdir();cache=root/'cache'
@@ -51,6 +62,10 @@ class ArtworkQualityTest(unittest.TestCase):
         self.assertEqual(selected['source'],'screenscraper')
         self.assertEqual(audit['method'],'reviewed-source-hash')
         self.assertEqual(len(audit['candidates']),2)
+        _,rotated=packaging.choose_artwork(candidates,{**review,'rotationDegrees':90})
+        self.assertEqual(rotated['reviewRotationDegrees'],90)
+        with self.assertRaisesRegex(ValueError,'rotation'):
+            packaging.choose_artwork(candidates,{**review,'rotationDegrees':45})
         self.assertNotIn('body',audit['candidates'][0])
         with self.assertRaisesRegex(ValueError,'Quality review'):
             packaging.choose_artwork(candidates,{**review,'sourceSha256':'f'*64})
@@ -60,6 +75,40 @@ class ArtworkQualityTest(unittest.TestCase):
         self.assertIsNotNone(selected)
         self.assertEqual(audit['method'],'measured-nomination-requires-visual-sample')
         self.assertEqual(audit['candidates'][0]['quality']['width'],128)
+
+    def test_missing_regional_face_uses_explicit_same_game_carton_donor(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);(root/'projection.gz').write_bytes(b'fixture')
+            valid=image();stream=io.BytesIO();Image.new('RGB',(64,64),'lime').save(stream,format='PNG');blank=stream.getvalue()
+            row={'rank':None,'title':'Game','cache_row_id':1,'game':{'id':'g','platformId':'gba'},
+                'edition':{'id':'e','gameId':'g','regions':['jp'],'tags':[]},
+                'metadata':{'providerGameId':'7','media':[{'type':role,'region':'jp',
+                    'providerReference':{'providerPlatformId':12}} for role in ['box-2D','box-2D-back']]}}
+            name='r2_ae215e37-c830-41e3-bc4f-ba24952bf79c.jpeg'
+            images={'1':[{'Type':'Box - Back','Region':'North America','FileName':name}]}
+            args=SimpleNamespace(selection='collection',system='gba',projection=root/'projection.gz',
+                launchbox=root/'index.zip',env=root/'credentials',panel_layouts=None,
+                quality_review=None,output=root/'pack.zip')
+            auth={k:'fixture' for k in ['SCREENSCRAPER_DEVID','SCREENSCRAPER_DEVPASSWORD',
+                'SCREENSCRAPER_SOFTNAME','SCREENSCRAPER_USERNAME','SCREENSCRAPER_PASSWORD']}
+            def fetch(_session,url,**kwargs):
+                if 'images.launchbox-app.com' in url:return valid
+                if 'mediaManuel' in url:return None
+                return blank if kwargs['params']['media'].startswith('box-2D-back') else valid
+            with patch.object(packaging,'collection_selection',return_value=[row]), \
+                 patch.object(packaging,'launchbox_index',return_value=({'1':'Game'},images,{'game':{'1'}})), \
+                 patch.object(packaging,'website_box',return_value=None), \
+                 patch.object(packaging,'read_env',return_value=auth),patch.object(packaging,'fetch',side_effect=fetch):
+                packaging.collect(args)
+            with zipfile.ZipFile(args.output) as archive:
+                resources=json.loads(archive.read('packaging.json'))['games'][0]['resources']
+            front=next(r for r in resources if r['type']=='box-2D')
+            back=next(r for r in resources if r['type']=='box-2D-back')
+            self.assertEqual(front['region'],'jp')
+            self.assertEqual(back['region'],'jp')
+            self.assertEqual(back['importReference']['sourceRegion'],'us')
+            self.assertEqual(back['importReference']['reconstruction'],'composite')
+            self.assertEqual(back['importReference']['sourceId'],'launchbox')
 
     def test_bad_provider_body_does_not_hide_the_other_valid_candidate(self):
         body=image()
@@ -76,7 +125,11 @@ class ArtworkQualityTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder)
             lb,ss=image(256),image(128)
-            ids=['00000001-0000-0000-0000-000000000000.png',
+            encoded=io.BytesIO()
+            with Image.open(io.BytesIO(lb)) as original:
+                original.convert('RGB').save(encoded,format='JPEG')
+            jpeg=encoded.getvalue()
+            ids=['r2_ae215e37-c830-41e3-bc4f-ba24952bf79c.jpeg',
                  '00000002-0000-0000-0000-000000000000.png',
                  '00000003-0000-0000-0000-000000000000.png']
             images={'1':[{'Type':kind,'Region':'North America','FileName':name}
@@ -97,6 +150,7 @@ class ArtworkQualityTest(unittest.TestCase):
             auth={k:'fixture' for k in ['SCREENSCRAPER_DEVID','SCREENSCRAPER_DEVPASSWORD',
                 'SCREENSCRAPER_SOFTNAME','SCREENSCRAPER_USERNAME','SCREENSCRAPER_PASSWORD']}
             def fetch(_session,url,**kwargs):
+                if url.endswith('.jpeg'):return jpeg
                 return lb if 'images.launchbox-app.com' in url else None if 'mediaManuel' in url else ss
             with patch.object(packaging,'collection_selection',return_value=[row]), \
                  patch.object(packaging,'launchbox_index',return_value=({'1':'Game'},images,{'game':{'1'}})), \

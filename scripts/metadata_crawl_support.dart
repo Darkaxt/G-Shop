@@ -44,6 +44,63 @@ Future<void> verifyRetainedCrawlArtwork(Map resource, Directory output) async {
   }
 }
 
+typedef RetainedCrawlArtwork = ({
+  Map<String, dynamic> resource,
+  Directory directory,
+  String receipt
+});
+
+String crawlArtworkIdentity(MetadataMedia media) => jsonEncode(media.toJson());
+
+Future<Map<String, RetainedCrawlArtwork>> indexRetainedCrawlArtwork(
+    List<Directory> directories) async {
+  final result = <String, RetainedCrawlArtwork>{};
+  final ambiguous = <String>{};
+  for (final directory in directories) {
+    if (!await directory.exists()) continue;
+    await for (final file in directory.list()) {
+      if (file is! File ||
+          !RegExp(r'[/\\][a-f0-9]{64}\.artwork\.json$').hasMatch(file.path)) {
+        continue;
+      }
+      for (final raw in jsonDecode(await file.readAsString()) as List) {
+        final resource = (raw as Map).cast<String, dynamic>();
+        if (resource['status'] != 'matched') continue;
+        final key =
+            crawlArtworkIdentity(MetadataMedia.fromJson(resource['media']));
+        if (ambiguous.contains(key)) continue;
+        final previous = result[key];
+        if (previous != null &&
+            (previous.resource['sha256'] != resource['sha256'] ||
+                previous.resource['bytes'] != resource['bytes'])) {
+          result.remove(key);
+          ambiguous.add(key);
+          continue;
+        }
+        result[key] =
+            (resource: resource, directory: directory, receipt: file.path);
+      }
+    }
+  }
+  return result;
+}
+
+Future<Map<String, dynamic>?> reuseCrawlArtwork(MetadataMedia media,
+    Directory output, Map<String, RetainedCrawlArtwork> index) async {
+  final source = index[crawlArtworkIdentity(media)];
+  if (source == null) return null;
+  await verifyRetainedCrawlArtwork(source.resource, source.directory);
+  final file = File('${source.directory.path}/${source.resource['file']}');
+  final target = File('${output.path}/${source.resource['file']}');
+  if (!await target.exists()) await file.copy(target.path);
+  await verifyRetainedCrawlArtwork(source.resource, output);
+  return {
+    ...source.resource,
+    'media': media.toJson(),
+    'reusedFromArtworkReceipt': source.receipt
+  };
+}
+
 Future<void> verifyRetainedCrawlResult(
     Map result, String manifest, String key, Directory output) async {
   if (result['version'] != 2 ||

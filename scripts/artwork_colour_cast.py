@@ -73,6 +73,16 @@ def match_colour_cast(source, reference):
     # distance (~26 levels per channel), but require at least 20% improvement.
     if after > .18 or after > before * .8:
         return unchanged('cast-not-corroborated', errorBefore=before, errorAfter=after)
+    # A different layout with a flat/dark background can reward almost erasing
+    # the source's colour range. Absolute improvement over the uncorrected scan
+    # alone does not establish corresponding artwork. On the held-out pixels,
+    # require the fitted artwork to outperform an unstructured constant-colour
+    # prediction learned only from the training pixels by the same 20% margin.
+    constant = np.median(y, axis=0)
+    baseline = float(np.median(np.linalg.norm(b[check, :3] - constant, axis=1)))
+    if after > baseline * .8:
+        return unchanged('artwork-correspondence-not-corroborated',
+            errorBefore=before, errorAfter=after, errorConstantBaseline=baseline)
     pixels = np.asarray(original).copy()
     rgb = pixels[:, :, :3].astype(float) / 255
     pixels[:, :, :3] = np.round(np.clip(rgb @ matrix[:3] + matrix[3], 0, 1) * 255).astype(np.uint8)
@@ -80,4 +90,5 @@ def match_colour_cast(source, reference):
         'applied': True, 'method': 'rgb-affine-v1',
         'matrix': matrix.tolist(), 'errorBefore': before, 'errorAfter': after,
         'anchors': len(anchors), 'dominantSamples': int(max(counts)),
+        'errorConstantBaseline': baseline,
     }

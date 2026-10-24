@@ -7,7 +7,8 @@ param(
   [Parameter(Mandatory)][string]$JavaHome,
   [Parameter(Mandatory)][string]$XzJar,
   [string]$CredentialsFile = '.env.local',
-  [long]$MaxArchiveBytes = 0
+  [long]$MaxArchiveBytes = 0,
+  [string]$ReuseArtworkDirectory
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
@@ -28,10 +29,14 @@ $classes = [IO.Path]::GetFullPath($RuntimeDirectory)
 if ($LASTEXITCODE -ne 0) { throw 'Archive reader compilation failed.' }
 Push-Location $repo
 try {
+  $taskReuseArguments = @()
+  if ($ReuseArtworkDirectory) {
+    $taskReuseArguments = @('--reuse-artwork', [IO.Path]::GetFullPath($ReuseArtworkDirectory))
+  }
   & $DartCommand (Join-Path $PSScriptRoot 'crawl_metadata.dart') `
     --manifest ([IO.Path]::GetFullPath($Manifest)) `
     --output ([IO.Path]::GetFullPath($OutputDirectory)) `
     --java $java --archive-classpath "$classes$([IO.Path]::PathSeparator)$XzJar" `
-    --credentials ([IO.Path]::GetFullPath($CredentialsFile)) --max-archive-bytes $MaxArchiveBytes
+    --credentials ([IO.Path]::GetFullPath($CredentialsFile)) --max-archive-bytes $MaxArchiveBytes @taskReuseArguments
   if ($LASTEXITCODE -ne 0) { throw 'Metadata crawl requires attention; retain its checkpoint.' }
 } finally { Pop-Location }

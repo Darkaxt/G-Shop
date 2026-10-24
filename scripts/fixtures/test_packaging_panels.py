@@ -111,7 +111,9 @@ class PanelsTest(unittest.TestCase):
     def test_screenscraper_front_fills_missing_launchbox_front(self):
         import zipfile
         body = io.BytesIO()
-        Image.new('RGB', (32, 48), 'navy').save(body, format='PNG')
+        artwork=Image.new('RGB', (32, 48), 'navy')
+        artwork.paste('white',(8,8,24,20))
+        artwork.save(body, format='PNG')
         row = {'rank': 1, 'title': 'Bound NES game', 'game': {'id': 'game'},
             'edition': {'id': 'edition', 'regions': ['us']},
             'metadata': {'titles': [], 'providerGameId': '42', 'media': [

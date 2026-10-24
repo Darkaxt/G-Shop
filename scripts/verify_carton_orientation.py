@@ -111,15 +111,27 @@ def orientation_evidence(records, *, title):
         anchors = detected & (brands | expected)
         candidates.append({'clockwiseDegrees': angle, 'anchors': sorted(anchors),
             'score': sum(len(word) for word in anchors),
+            'titleScore': sum(len(word) for word in detected & expected),
             'text': records[angle].get('text', ''),
             'textAngle': records[angle].get('textAngle')})
-    ordered = sorted(candidates, key=lambda row: (-row['score'], row['clockwiseDegrees']))
+    # Legal columns can legitimately contain more publisher/brand words than
+    # the main face. Prefer corroborated title direction; competing title
+    # directions require inspection rather than allowing legal copy to win.
+    titled=sorted((row for row in candidates if row['titleScore']),
+        key=lambda row:(-row['titleScore'],row['clockwiseDegrees']))
+    title_established=bool(titled and titled[0]['titleScore']>=6 and
+        titled[0]['titleScore']-(titled[1]['titleScore'] if len(titled)>1 else 0)>=4)
+    title_conflict=len(titled)>1 and not title_established
+    ordered = (titled if title_established else
+        sorted(candidates, key=lambda row: (-row['score'], row['clockwiseDegrees'])))
+    if len(ordered)==1:ordered+= [row for row in candidates if row is not ordered[0]][:1]
     best, second = ordered[:2]
-    established = best['score'] >= 6 and best['score'] - second['score'] >= 4
+    established = not title_conflict and (title_established or
+        best['score'] >= 6 and best['score'] - second['score'] >= 4)
     status = ('upright' if best['clockwiseDegrees'] == 0 else 'rotated') if established else 'uncertain'
     return {'status': status,
         'clockwiseCorrectionDegrees': best['clockwiseDegrees'] if established else None,
-        'method': 'Relative orthogonal OCR with exact title/brand anchors; engine supplies no confidence',
+        'method': 'Relative orthogonal OCR with title direction before brand/legal copy; conflicting title evidence requires review; engine supplies no confidence',
         'candidates': candidates}
 
 

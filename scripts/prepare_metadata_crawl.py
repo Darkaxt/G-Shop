@@ -6,6 +6,17 @@ import subprocess
 from pathlib import Path
 
 
+def physical_resource_family(platform, display_path):
+    """Source media family is independent of a provider's program/title match."""
+    if not display_path:return None
+    folders={re.sub(r'[^a-z0-9]','',part.casefold())
+        for part in display_path.replace('\\','/').split('/')[:-1]}
+    if platform=='nes' and 'disksystem' in folders:return 'disk-system'
+    if platform=='gba' and 'ereader' in folders:return 'e-reader-card'
+    if platform=='gba' and 'multiboot' in folders:return 'multiboot'
+    return 'cartridge' if platform in {'nes','gba'} else None
+
+
 def prepare(cohort, artifacts, roots):
     by_id = {json.dumps(a['id'], sort_keys=True): a for a in artifacts}
     items, gaps = [], []
@@ -62,6 +73,7 @@ def prepare(cohort, artifacts, roots):
                      not row['edition'].get('isTranslation') and not row['edition'].get('translatedLanguages'))
             items.append({'request': request, 'archive': {'path': str(paths[0].absolute()),
                           'artifact': artifact}, 'allowRawBinding': allow,
+                          'physicalResourceFamily':physical_resource_family(platform,display_path or str(paths[0])),
                           **({'rawBindingHoldReason': 'disk-system-media-in-nes-folder'}
                              if disk_system else {})})
     return {'version': 1, 'items': items}, gaps

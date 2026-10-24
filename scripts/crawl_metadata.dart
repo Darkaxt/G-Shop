@@ -13,7 +13,7 @@ import 'metadata_crawl_support.dart';
 Future<void> main(List<String> args) async {
   if (args.contains('--help') || args.isEmpty) {
     stdout.writeln('crawl_metadata.dart --manifest FILE --output DIRECTORY '
-        '--archive-classpath CLASSPATH [--java java] [--credentials .env.local] [--max-archive-bytes N]');
+        '--archive-classpath CLASSPATH [--java java] [--credentials .env.local] [--max-archive-bytes N] [--reuse-artwork DIRECTORY]');
     return;
   }
   try {
@@ -34,7 +34,8 @@ Future<void> run(List<String> args) async {
     '--archive-classpath',
     '--java',
     '--credentials',
-    '--max-archive-bytes'
+    '--max-archive-bytes',
+    '--reuse-artwork'
   };
   for (var n = 0; n < args.length; n += 2) {
     if (!allowed.contains(args[n]) ||
@@ -114,6 +115,16 @@ Future<void> run(List<String> args) async {
     }
     var quota = access.quota!;
     var budget = quota.maxRequestsPerDay! - quota.requestsToday!;
+    final reusableSource = options['--reuse-artwork'];
+    if (reusableSource != null) {
+      final prior = jsonDecode(
+          await File('$reusableSource/checkpoint.json').readAsString()) as Map;
+      if (prior['version'] != 2) {
+        throw const FormatException('Reuse needs current typed-media receipts');
+      }
+    }
+    final retainedArtwork = await indexRetainedCrawlArtwork(
+        [if (reusableSource != null) Directory(reusableSource), output]);
     state.remove('blockedStatus');
     Future<bool> slot() async {
       if (budget <= 0 ||
@@ -298,6 +309,13 @@ Future<void> run(List<String> args) async {
             await verifyRetainedCrawlArtwork(retained.single, output);
             continue;
           }
+          final reused =
+              await reuseCrawlArtwork(media, output, retainedArtwork);
+          if (reused != null) {
+            resourceResults.add(reused);
+            await writeCrawlJson(artworkFile, resourceResults);
+            continue;
+          }
           if (!await slot()) {
             state['blockedStatus'] = 'quotaExceeded';
             artworkBlocked = true;
@@ -329,6 +347,13 @@ Future<void> run(List<String> args) async {
           }
           resourceResults.add(resource);
           await writeCrawlJson(artworkFile, resourceResults);
+          if (resource['status'] == 'matched') {
+            retainedArtwork[crawlArtworkIdentity(media)] = (
+              resource: resource,
+              directory: output,
+              receipt: artworkFile.path
+            );
+          }
         }
       }
       if (artworkBlocked) {

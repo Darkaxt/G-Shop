@@ -16,7 +16,8 @@ class NesEditionReferences(unittest.TestCase):
 
     def test_virtual_reissues_do_not_claim_retail_cartons(self):
         for tag in ['Virtual Console', '3DS Virtual Console', 'Switch',
-                'Mega Man Legacy Collection', 'Retro-Bit Generations', 'FamicomBox']:
+                'Mega Man Legacy Collection', 'Retro-Bit Generations', 'FamicomBox',
+                'Evercade', 'Capcom Town', 'Toaplan Arcade Garage']:
             self.assertFalse(catalogue.is_retail_reference(f'Fixture (USA) ({tag}).7z'))
         self.assertTrue(catalogue.is_retail_reference('Fixture (USA) (Rev 1).7z'))
 

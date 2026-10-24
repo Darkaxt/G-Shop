@@ -5,6 +5,100 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-24 processing continuation: **S26 ACTIVE**, sole active stage; revision
+169 and the final release boundary are unchanged. The retained 977 matched
+source results have completed all 40 normal UI metadata and artwork import packs
+on Thor. Their original Drive publication remains running; do not resubmit or
+restart it. Its event observer and private E: receipts retain exact progress.
+The import loop has returned, so normal browsing is safe; a fresh projected
+census now verifies zero dirty edition/cache rows. Publication read-back is pending.
+
+Reviewed additive NES cartons are installed without replacing existing editions:
+119 new models bind 128 original physical-release archives. Twenty digital
+rerelease bindings remain held; nine otherwise reviewed model candidates are
+unbound. The active catalogue has 754 editions and 597 archive bindings, SHA-256
+`bb7db69c9134d723d39307c51ebd039be255072a90803ba423ae8691524d504a`.
+All 1,409 transferred files were verified; the preceding catalogue is retained
+at the exact task-owned device model-history path. Installation integrity does
+not establish native scene acceptance or cloud model recovery.
+
+The full retained body audit found 100 advertised solid-green back images,
+including near-uniform compression noise; no such front or support-label body
+was found. Candidate selection now rejects those placeholders and checks the
+same game's other-region carton faces before the approved explicit plain-face
+reconstruction. All 977 candidate sets were re-evaluated; three missing backs
+were recovered from alternative printings. GBA preparation retains 488 games,
+481 complete panel sets and per-face original/derived provenance. Twenty-one
+inspection pages were reviewed; two sideways Famicom Mini faces were corrected
+with source-bound rotations shared by gallery and carton. Their assembled/native
+verification remains pending. Source-path Multiboot/e-Reader/Disk System families
+stay distinct from retail-cartridge bindings even when the program matches.
+
+Related shared preparation fixes preserve role-specific spine orientation,
+reject colour fits that erase detail, and distinguish uncertain main-title OCR
+from vertical legal columns. Explicit mapped-panel visual review retains original
+OCR evidence and cannot waive known rotation or failed opening. The actual
+Sapphire blue-reference correction still passes the new colour correspondence
+check. Focused desktop/import checks pass; no APK behavior changed. The Windows
+crawler additionally reuses only hash/size-verified exact typed provider media,
+retaining region/member distinctions and independent ROM matches. The remaining
+8,057 supported source gaps are now running through the original Windows crawl,
+with the exact manifest, archive budget and retained-image reuse receipt saved.
+Completed results are also compared with LaunchBox using their retained typed
+ScreenScraper bodies. These acquisitions are not published or usable coverage.
+
+Current-identity reconciliation prepared 25 resource packs for 126 NES and 463
+GBA archives. All 5,301 resource descriptors passed the actual app model parser,
+and all transferred files were hash-verified on Thor. Twenty candidates remain
+held: fifteen digital/nonretail bindings, two Multiboot entries and three missing
+current region facts. Two of the latter have explicit Europe filenames and need
+regional identity resolution rather than replacement scans. Import admission is
+correctly disabled while the earlier Drive publication owns the lane; keep the
+prepared packs staged and observe that original operation to completion.
+
+The current full Game & Watch integrity census verifies all 53 source archives
+against their retained CRC-binding receipt and unchanged Drive archive digests.
+Each exact primary exterior and carton is installed, physically calibrated and
+has matching geometry/texture hashes; Helmet's MCU revision keeps the shared
+exterior. The inspected visual-variant set has 123 installed manifests without
+integrity errors. Its extra 2021 Zelda carton is absent; this does not change the
+53-archive primary binding count and remains a separate variant resource gap.
+This read-only census does not establish fresh visual or cloud-recovery acceptance.
+
+The full 8,057-item public LaunchBox candidate pass and its article-matching
+correction have terminated successfully. Of 182 repaired title links, 180 gained
+image bodies; the resulting 4,400 entries have acquired candidates. The remaining
+outcomes are 3,555 unresolved names, 71 ambiguous IDs and 31 without acquired images.
+Those counts are source acquisition, not physical acceptance. The actual full
+Drive census has 4,284 GBA cartridge entries, 3,259 e-Reader card entries and 131
+Multiboot payloads; NES has 9,051 cartridge and 780 Disk System entries. All stay
+in the unchanged 53/9,831/7,674 denominators. Card data cannot be diagnosed as
+ordinary cartridges missing their host game's label or box.
+
+Collection-wide acquisition exposed valid LaunchBox `.jpeg` leaves and No-Intro
+relocated articles/subtitles that the desktop collector missed. Both paths are
+corrected with focused reproduction and collector/panel regression evidence; the
+retained unavailable outcomes were re-evaluated with the current resolver.
+The desktop and NES cartridge gates also now recognize Evercade, Capcom Town and
+Toaplan Arcade Garage as unestablished original physical editions. Two pre-existing
+Capcom Town carton bindings were withdrawn with atomic promotion and verified
+rollback history; every model and all other bindings remain unchanged. The staged
+589-game resource set contains none of those newly excluded markers. APK +48
+remains installed; the new cartridge guard still requires the next integrated S26
+candidate and native verification. No intermediate release is authorized.
+
+Source and installed integration skill 0.1.33 have matching hashes and were
+reloaded after these maintenance updates. Independent pinned No-Intro hash/size
+corroboration is retained as diagnostic evidence, not another production provider
+or permission to assign a physical printing from a program hash.
+
+Private processing evidence is under
+`E:/R-Shop Reference Assets/MetadataCrawl/2026-10-23/coverage80/processing-1000`.
+The 80-percent/full-collection, publication/recovery, native Top 25 and wider S26
+acceptance criteria remain unresolved. Continue the original operation through
+completion, import the current-identity-bound resource packs and verify normal
+publication/recovery while retaining the running full supported collection pass.
+
 2026-10-24 coverage root-cause review: **S26 ACTIVE**, sole active stage, unchanged
 specification/plan revision 169. The completed selected 1,000-ROM batch matched
 489/500 NES and 488/500 GBA archives by raw ROM hash/size; 467 NES and 458 GBA

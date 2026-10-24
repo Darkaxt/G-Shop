@@ -19,6 +19,24 @@ import prepare_packaging_resources as packaging
 
 
 class CollectionTest(unittest.TestCase):
+    def test_role_normalization_keeps_the_spine_rotation_with_its_pixels(self):
+        image=Image.new('RGB',(60,12),'red')
+        image.paste('blue',(0,0,30,12))
+        encoded=io.BytesIO();image.save(encoded,format='PNG')
+        body,rotation=packaging.normalize_role_image('box-2D-side',encoded.getvalue())
+        with Image.open(io.BytesIO(body)) as result:
+            self.assertEqual(result.size,(12,60))
+            self.assertEqual(result.convert('RGB').tobytes(),
+                image.transpose(Image.Transpose.ROTATE_270).tobytes())
+        self.assertEqual(rotation,90)
+        again,second=packaging.normalize_role_image('box-2D-side',body)
+        self.assertEqual(again,body)
+        self.assertEqual(second,0)
+        upright,correction=packaging.normalize_role_image('box-2D',encoded.getvalue(),clockwise_rotation=90)
+        with Image.open(io.BytesIO(upright)) as result:
+            self.assertEqual(result.convert('RGB').tobytes(),image.transpose(Image.Transpose.ROTATE_270).tobytes())
+        self.assertEqual(correction,90)
+
     def collection_rows(self):
         rows = []
         for i in range(28):
@@ -117,7 +135,9 @@ class CollectionTest(unittest.TestCase):
                            'FileName': f'{i:08x}-0000-0000-0000-000000000000.png'}]
                   for i in range(28)}
         image = io.BytesIO()
-        Image.new('RGB', (8, 12), 'navy').save(image, format='PNG')
+        cover=Image.new('RGB', (8, 12), 'navy')
+        cover.paste('white',(2,2,6,5))
+        cover.save(image, format='PNG')
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             args = SimpleNamespace(selection='collection', system='nes',

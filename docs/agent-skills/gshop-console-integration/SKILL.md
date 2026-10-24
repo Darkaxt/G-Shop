@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.29"
+  version: "0.1.33"
 ---
 
 # G-Shop Console Integration
@@ -61,6 +61,9 @@ families and carton printings. Inventory required models, labels, textures,
 accessories, controllers, displays and animations. Check original sources and
 private receipts; retain their hashes, artwork and attribution. Never publish ROM
 inventories, private models/artwork or credentials with application changes.
+Use the recorded source path to retain distinct media families, including GBA
+Multiboot/e-Reader and Disk System inside NES. A raw-program match can establish
+game information without establishing a cartridge, label or carton for that source.
 
 For cartons, preserve reviewed NintAndBox dump panels and applicable public
 low-resolution .es donor previews. For needed/replacement artwork faces request
@@ -69,6 +72,10 @@ Provider order and pixel dimensions alone do not establish quality. Retain both
 candidates/hashes, selection reasons and required visual review; see section 3
 of the pipeline reference. Keep support-label textures separate from images of
 complete cartridges.
+Reject blank/transparent provider placeholders before source selection; a valid
+PNG and a successful media request do not prove printed artwork. Preserve the
+rejected hash and try the acquired alternative. Deliberately reconstructed plain
+faces are separate, explicitly derived resources under the existing carton policy.
 Carry the selected face through donor composition. Never reselect by provider
 there; resolve distinct competing English faces upstream before composition.
 Consider front, back, spine and unfolded texture roles. A missing dump model or
@@ -96,6 +103,13 @@ or replacement preparation fails; language preference must not destroy usable ar
 The Cover Project is also registered as a potential artwork fallback; see the
 pipeline reference for its custom-case/retail distinction and provenance limits.
 It is not a NintAndBox-equivalent carton net or an already-implemented provider.
+Before declaring a LaunchBox title absent, check No-Intro's relocated articles
+and subtitles through the shared normalizer, retaining all words, platform scope
+and ambiguous IDs. Valid public `.jpeg` artwork is supported alongside `.jpg`
+and `.png`; do not let a filename filter terminate collection processing.
+Evercade, Capcom Town and Toaplan Arcade Garage sources do not establish original
+NES/GBA cartridge printings. Keep their identities and any unproven physical
+bindings separate, just as for Virtual Console and compilation rereleases.
 
 **Pause the affected integration when any required resource is missing, invalid
 or lacks a sufficiently established physical binding.** Report the exact resource
@@ -298,6 +312,11 @@ the Blender opening comparison. Judge the actual UV-mapped printing, retaining
 hash-bound OCR candidates and uncertain results. Source image rotation/material
 names alone are insufficient. Do not rotate a valid compensating scan/UV pair,
 automatically correct weak OCR or conceal a source fault with a gallery camera.
+Resolve uncertain OCR only through an explicit visual review bound to the actual
+assembled images and unchanged model; retain the original OCR result. Known
+rotation and failed opening remain repair requirements. Keep the collector's
+role-specific spine normalization when baking artwork into a model, and reject
+colour corrections that erase artwork detail to imitate an unrelated background.
 Section 4 of the pipeline reference records the converter flags and evidence.
 
 After the required feature is integrated, exercise its complete normal workflow

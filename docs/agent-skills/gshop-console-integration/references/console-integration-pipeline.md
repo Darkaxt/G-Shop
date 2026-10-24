@@ -82,6 +82,12 @@ never choose another copy when that recorded path is missing. Retain nested medi
 families (for example Disk System inside NES) in the census, while preventing
 their automatic cartridge/provider binding. Bracketed modification markers such
 as `[Color hack ...]` also require separate binding, without changing classification.
+Count e-Reader card data and Multiboot payloads separately within the unchanged
+source census; a missing cartridge label is not their resource diagnosis. Check
+their own physical/launch requirements instead of borrowing the host game's box
+or reporting thousands of card records as absent ordinary-game results. Explicit
+modern rerelease markers (including Evercade, Capcom Town and Toaplan Arcade
+Garage) also require their own physical applicability review.
 Do not bypass the existing owned publication lane by dropping unregistered cache
 files or arbitrary metadata JSON onto H:.
 
@@ -94,6 +100,14 @@ does not establish absence of that indexed label. Compare contrary public-page
 evidence before invoking CI-01, and invalidate parsed outcomes affected by a fix.
 Windows checkpoint/output version 2 rejects the older parser's version 1 receipts;
 retain old evidence and deliberately recollect into a new output directory.
+LaunchBox matching preserves provider-declared aliases and also canonicalizes
+No-Intro's relocated articles before punctuation normalization, including the
+main title before a subtitle. Relocate the article rather than deleting it; keep
+same-platform collisions ambiguous. Accept validated public JPEG `.jpeg` leaves
+as well as `.jpg`/`.png`, keeping the fixed origin and path constraints. After
+repairing such a matching filter, re-evaluate affected unavailable outcomes using
+the retained bodies and current resolver, rather than carrying old absence claims
+into the final coverage ledger.
 
 ## 3. Inventory all required resources and applicable source paths
 
@@ -112,6 +126,13 @@ retain old evidence and deliberately recollect into a new output directory.
   dimensions, actual detail/text, cropping/margins, glare/damage, orientation,
   game/platform/printing compatibility and colour continuity. Same-region scans
   may depict different printings. More pixels may just enlarge blur.
+  Reject blank/transparent source bodies, including opaque green placeholders
+  with tiny compression noise. Decoding, dimensions and HTTP success alone do
+  not establish artwork. Keep the rejected hash, compare valid acquired sources,
+  then check the same game's other-region carton faces when no valid local-region
+  face remains. Preserve the actual source region and explicit composite/reference
+  provenance while binding to the target region; this permission is carton-only,
+  never a different cartridge shell, label, physical printing or ROM identity.
   Preserve both candidates and their hashes in the E: response cache; retain
   candidate measurements and selected/rejected reasons in preparation receipts.
   `prepare_packaging_resources.py --quality-review` accepts private game-ID/role
@@ -192,6 +213,12 @@ retain old evidence and deliberately recollect into a new output directory.
   corresponding artwork/verified colour-reference pixels, not unrelated art
   or merely a similar palette. Dominant colour anchors need corroboration from
   other corresponding colours; retain the helper's stability/held-out checks.
+  The held-out correction must also beat a constant reference-colour prediction;
+  otherwise a different low-contrast layout can reward flattening genuine art.
+  A lower absolute RGB error alone is insufficient. Keep the original selected
+  face when that correspondence check rejects a transform, and reprepare affected
+  derivatives before conversion/publication. The Clu Clu Land back regression
+  covers this failure separately from channel-contrast inversion.
   Record applied/skipped reason, source/reference/derived hashes and, when
   applied, the single RGB transform. A rejected fit is a colour-review result,
   not permission to force a correction, selectively repaint purple pixels or
@@ -226,6 +253,35 @@ retain old evidence and deliberately recollect into a new output directory.
   Keep report/word/image hashes. Exact title/brand anchors are relative evidence;
   the engine supplies no confidence score. Sparse/stylized/unsupported-language
   or tied results stay review-required, without an automatic pass or rotation.
+  After inspecting the actual assembled images, `review_carton_orientation.py`
+  can resolve an uncertain result with a private review receipt. Bind the original
+  report, candidate manifest, geometry and each uncertain assembled-image hash;
+  record the reviewer, zero required rotation and a concrete visible reason.
+  The helper rechecks current mesh/textures/UV panels and retains original OCR
+  candidates plus `ocrStatus: uncertain`. It cannot waive known rotation, changed
+  evidence or a missing/invalid opening, and never replaces an accepted import.
+  Stylized text is a visual-review case, not permission to lower OCR thresholds.
+  Upright main text can coexist with vertical publisher/legal columns. Conflicting
+  title directions stay uncertain; do not let extra legal-copy words establish a
+  rotation. A corrected OCR algorithm may produce a separately retained recheck
+  report; pass that exact contained report with `--report` to the review helper,
+  preserving both the original result and the source-bound visual observations.
+- When baking selected flat artwork into a GLB, use
+  `prepare_packaging_resources.py::normalize_role_image` so horizontal spine
+  pixels and their provenance rotate together, exactly as in the normal pack.
+  Retain original source hashes; a normalized front alone does not verify sides.
+  Infer hardware/media compatibility from the ROM's actual region and edition,
+  never from other-region artwork retained as a donor candidate.
+  Keep digital rereleases separate from original physical editions; a regional
+  filename and raw-program match do not establish a retail carton for that release.
+  Use source-path media-family evidence too: Multiboot, e-Reader cards and Disk
+  System files retain their own physical-resource requirements. Keep their program
+  matches without promoting another release's retail cartridge or printing.
+  For an explicitly inspected source-face correction, `--quality-review` can
+  include `rotationDegrees` of 0/90/180/270. The collector normalizes those pixels
+  and provenance together; preparation and carton faces must share the derived
+  image. Preserve source hashes. This does not auto-rotate a scan whose original
+  mesh UVs already compensate for its direction; assembled review still governs.
 - The converter independently checks the original Blender opening against its
   converted hinges. OCR passing does not establish animation correctness, and
   a correct hinge does not establish upright printing. A rejected/uncertain box

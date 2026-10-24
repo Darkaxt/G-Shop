@@ -13,7 +13,10 @@ void main() {
       'Wii and Wii U Virtual Console',
       'Retro-Bit Generations',
       'Mega Man Legacy Collection',
-      'FamicomBox'
+      'FamicomBox',
+      'Evercade',
+      'Capcom Town',
+      'Toaplan Arcade Garage'
     ]) {
       expect(
           NesCartridgeModel.referencesFor('Super Mario Bros. (USA) ($tag).7z'),
