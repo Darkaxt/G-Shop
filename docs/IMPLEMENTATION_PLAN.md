@@ -1,6 +1,17 @@
 # Staged implementation plan
 
-Current execution, 2026-10-25, revision 176: **S26 ACTIVE**, sole active stage.
+Current execution, 2026-10-25, revision 177: **S26 ACTIVE**, sole active stage.
+Current maintenance outcome: enforce the owner's H: curated / E: temporary /
+D: project-data / Thor validation roles. Inspect superseded import generations,
+retain required assets/provenance, retire obsolete working files through reviewed
+cleanup tickets, and verify the retained current inputs. Whole-file duplicate
+equality is not the sole criterion for obsolete generated packages. Keep this
+bounded maintenance within S26; no second implementation stage is active.
+Verified maintenance checkpoint: another 14.98 GB of obsolete packages retired
+with preserved payloads/provenance; project catalogue r17 on D: passes the complete
+consumer replay with unchanged identities. Retained unique packages still need
+value/identity review; this checkpoint does not establish that every remaining
+E: working generation is necessary or close wider S26 acceptance.
 The storage impediment is resolved. All 2,524 residual title groups completed
 provider search; the bounded DS/DSi worker returned and its decisions were
 integrated by the main agent. The full 26,995-source consumer replay passes for

@@ -1,12 +1,22 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 176, 2026-10-25.
+Authoritative specification, revision 177, 2026-10-25.
+
+Owner storage/lifecycle direction, 2026-10-25: H: holds curated final data,
+E: holds temporary processing, D: holds project data, and Thor is the validation
+endpoint. Retire generated data when it no longer has value; exact whole-file
+duplicates are not the only eligible class. Confirm active consumers, retained
+unique assets and current recovery prerequisites before removing superseded
+working generations. Keep compact project provenance on D: rather than retaining
+every generated package. Publish curated resources to the existing H: lane only
+after its normal acceptance checks. Existing working checkout paths remain stable;
+this instruction does not require incidental repository relocation.
 
 Owner reference-storage cleanup, 2026-10-25: trim redundant/generated files in
 `E:/R-Shop Reference Assets`. Preserve original scans/archives, unique models,
-active inputs and provenance. Remove only reviewed exact generated duplicates
-through the installed transactional cleanup helper; retain canonical later copies
-and an exact removed/retained hash ledger. This maintenance does not authorize
+active inputs and provenance. Remove reviewed redundant or obsolete generated
+data through the installed transactional cleanup helper; retain current required
+copies and an exact removed/retained ledger. This maintenance does not authorize
 SSD TRIM, reformatting, artwork removal by age, or broad source retirement.
 
 Owner residual-resolution direction, 2026-10-25 (CATALOGUE-ALL): work through all
@@ -104,9 +114,10 @@ requiring ROM residency or a running crawler in the APK. Reuse the actual provid
 matching/response models and retain exact archive/member hash provenance, ambiguous
 and modified-edition safeguards, resumable outcomes, protocol quotas and measured
 progress. H: is the Google Drive virtual unit, subject to the same remote/network
-constraints; its pathname does not establish offline residency. Keep crawler-owned
-persistent caches, checkpoints and intermediates on E:, compiler scratch on D:,
-and only validated final publication on H:. Default to metadata-only crawling;
+constraints; its pathname does not establish offline residency. Keep active
+crawler caches/checkpoints and intermediates on E:, durable project datasets and
+decisions on D:, and only validated curated publication on H:. Retire temporary
+generations when they no longer serve current work or recovery. Default to metadata-only crawling;
 reserve explicit bounded archive reads for evidence gaps, not every remote ROM.
 Keep credentials private and ROM sources read-only. Prepared results are
 not published/recovered/native-accepted coverage until those existing gates pass.

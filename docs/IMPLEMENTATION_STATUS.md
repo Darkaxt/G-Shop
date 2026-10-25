@@ -5,7 +5,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-25 continuation under specification revision 176: S26 is ACTIVE,
+2026-10-25 continuation under specification revision 177: S26 is ACTIVE,
 the sole active stage, after verified E: access recovery following the owner restart.
 CATALOGUE-ALL is the current outcome: complete Windows filename/provider-index
 mappings for all remaining supported source folders. Thor, APK installation,
@@ -14,6 +14,25 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+Owner storage correction is now authoritative: H: curated final data, E: temporary
+processing, D: project data, Thor validation. The prior 8.90 GB duplicate pass did
+not establish a need to retain every other generated generation. The next review
+retired 261 superseded ZIP packages plus four provenance files relocated to D:,
+reclaiming another 14,981,624,005 bytes through transaction
+`56e7b957f14294cd48dfc4295212ddd5` (`applied`, no errors). Every removed package's
+artwork payload survives in the 248 verified current packages. Seventy-six older
+packages with uncovered media remain pending further value/identity review; their
+uniqueness is not proof that they must be retained indefinitely. Original assets
+and active reconstruction/publication recovery inputs were outside this set.
+The exact ledger and read-back receipt are in D:/RShopPrivate/retention/2026-10-25.
+Completed catalogue project data now lives in
+`D:/RShopPrivate/Catalogue/catalogue-r17/mappings-r17.json`, with 221 copied and
+hash-verified dependencies/artifacts. Its full normal consumer replay verifies
+26,995 source rows / 25,634 bound identities, byte-for-byte identical rows to r16.
+Operational references use D:; archived proof bytes retain their original source
+paths. H: curated data and Thor were unchanged. The four temporary E: audit
+scripts and their directory were removed through transaction
+`eff769d92f53d826ccd061ba02aaa4e1` (`applied`, no errors). Broader S26 remains ACTIVE.
 The complete residual review is integrated in private catalogue-r16. All 2,524
 title groups completed retained provider searches. The normal consumer replay
 passes for all 26,995 sources: 25,634 bound (94.96%), 1,361 unresolved; 1,757 of
@@ -80,7 +99,7 @@ claiming app container/emulator support. This pass reads no ROM bodies or artwor
 and spends no per-ROM ScreenScraper API requests. The subsequent ambiguity
 correction reads only the selected 20 archives and retains their 20 API responses.
 E: owns all cache/output; this mapping pass makes no H: writes.
-Installed integration guidance is 0.1.60, validated and read back with matching
+Installed integration guidance is 0.1.61, validated and read back with matching
 source/installed hash. Wider S26 remains unfinished; this is not 80% physical-resource
 acceptance, a native installation, or a final application release.
 The maintained packaging collector now consumes source/edition-bound catalogue

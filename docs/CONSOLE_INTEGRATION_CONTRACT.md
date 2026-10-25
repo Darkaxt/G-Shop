@@ -376,6 +376,18 @@ commit and one normal signed release with independent delivery verification.
 
 ## Current implementation pointers
 
+Storage follows the owner's H: curated final data / E: temporary processing /
+D: project data / Thor validation roles. Publish accepted resources through the
+existing Drive lane; do not turn the tablet into the required bulk-processing
+host. Keep compact provenance and maintained project datasets on D:. Retire
+superseded crawl, texture, conversion and import generations when they no longer
+have a current consumer or unique/recovery value. Different ZIP bytes alone do
+not establish useful differences: inspect their payloads and retained identities.
+Use reviewed transactional cleanup, preserving current resumable inputs and
+required acceptance evidence; no blanket age-based purge or indefinite retention
+of every generated iteration. Existing working checkout paths stay stable unless
+relocation is explicitly requested.
+
 Use these existing components; do not introduce another preview/launch owner:
 
 - Gallery: `lib/widgets/library_model_presentation.dart` and the existing card.

@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.60"
+  version: "0.1.61"
 ---
 
 # G-Shop Console Integration
@@ -55,6 +55,16 @@ repeated description of the integration process. Historical evidence establishes
 the precedent and permission; verify the new console's actual delivered behavior.
 
 ## Resource gate first
+
+Use H: for curated final resources through the existing publication lane, E: for
+temporary processing, D: for project data, and Thor for validation. Do not retain
+every crawl/conversion/import generation indefinitely. Once superseded working
+data has no current consumer or unique/recovery value, retire it through the
+installed transactional cleanup workflow and keep compact provenance on D:.
+Different ZIP bytes do not prove different useful content: inspect members and
+the retained current resource identities before preserving obsolete packages.
+Keep active resumable inputs until their replacement or publication is verified.
+Leave existing maintained checkout paths stable unless relocation is requested.
 
 When the owner requests advance catalogue mapping, finish that Windows filename/
 provider-index outcome independently of device installation, publication and 3D
