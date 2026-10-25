@@ -1,6 +1,11 @@
 # Staged implementation plan
 
-Current execution, 2026-10-25, revision 173: **S26 ACTIVE**, sole active stage.
+Current execution, 2026-10-25, revision 174: **S26 ACTIVE**, sole active stage.
+Current correction is verified: all 119 spacing cases, 20 identity conflicts and
+the Metal Gear Solid 3D alias resolve in private catalogue-r8. The full 26,995-row
+consumer replays successfully; 140 newly bound sources and no previously bound
+provider-ID changes. Scoped decisions retain regional/revision evidence and
+provider discrepancies. Prior deliveries remain unchanged.
 Current owner-requested outcome **CATALOGUE-ALL**: resolve Windows filename/index
 mappings for the remaining supported consoles now, independently
 of their 3D assets. Acceptance requires a complete current source census, scoped
@@ -11,9 +16,9 @@ and the independently running publication are not prerequisites. This outcome
 does not activate another stage or waive S26's existing acceptance/delivery gates.
 CATALOGUE-ALL reconciliation: the full Windows filename/index pass and its consumer
 are verified. Current H: has 26,995 additional source files across 23 populated
-platform folders: 23,737 unique candidates (87.93%), 3,258 explicit unresolved rows.
+platform folders: 23,877 unique candidates (88.45%), 3,118 explicit unresolved rows.
 Fresh membership also agrees with the retained 17,558-source primary map. Both
-maps together account for 44,553 sources, with 36,175 candidates (81.20%). These
+maps together account for 44,553 sources, with 36,315 candidates (81.51%). These
 figures describe title candidates, including separately labelled non-program and
 modified entries; they do not satisfy the physical-resource coverage milestone.
 The exact remaining names/reasons and per-platform counts are private E: outputs.

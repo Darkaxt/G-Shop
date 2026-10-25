@@ -196,6 +196,7 @@ def indexes(inventory_path, launchbox, cache, output, existing_cache=None):
             platforms[platform].append(system)
     games = {key: {} for key in active}
     aliases = collections.defaultdict(set)
+    alias_regions = collections.defaultdict(lambda: collections.defaultdict(set))
     observed, arcade_fields = set(), None
     for kind, record in launchbox_records(launchbox):
         if kind == 'Game':
@@ -207,12 +208,15 @@ def indexes(inventory_path, launchbox, cache, output, existing_cache=None):
                     'title': record['Name'], 'platformName': record['Platform'], 'aliases': []}
         elif kind == 'GameAlternateName':
             aliases[record['DatabaseID']].add(record.get('AlternateName', ''))
+            if record.get('Region'):
+                alias_regions[record['DatabaseID']][record.get('AlternateName', '')].add(record['Region'])
     for system in games:
         missing = set(active[system]['launchbox'])-observed
         if missing and not active[system].get('allowMissingLaunchbox'):
             raise ValueError('Unrecognised LaunchBox platform '+str(missing))
         for identity, game in games[system].items():
             game['aliases'] = sorted(aliases[identity]-{game['title'], ''})
+            game['aliasRegions'] = {name: sorted(regions) for name, regions in alias_regions[identity].items()}
     ss, sources, issues = {}, {}, {}
     with requests.Session() as session:
         for system, config in active.items():
@@ -290,7 +294,63 @@ def match(title, names):
             'method': 'spacing-candidate' if ids else 'none', 'ids': sorted(ids)}
 
 
-def resolve_source(source, index, cache):
+def regional_alias(source, finding, games):
+    if finding['status'] != 'ambiguous' or finding['method'] != 'declared-alias':
+        return finding
+    source_regions = {part.strip().casefold() for tag in re.findall(r'\(([^)]*)\)', source['filename'])
+                      for part in tag.split(',') if part.strip().casefold() in REGIONS}
+    region_names = {'north america': {'usa', 'canada'}, 'oceania': {'australia', 'new zealand'},
+                    'the netherlands': {'netherlands'}, 'united states': {'usa'}}
+    selected = []
+    for identity in finding['ids']:
+        game = games[identity]
+        for alias, regions in game.get('aliasRegions', {}).items():
+            actual_regions = {country for region in regions for country in
+                              region_names.get(region.casefold(), {region.casefold()})}
+            if title_key(alias) == title_key(source['title']) and source_regions & actual_regions:
+                selected.append(identity)
+                break
+    if len(selected) == 1:
+        return {'status': 'unique', 'method': 'regional-declared-alias',
+                'ids': selected, 'originalCandidateIds': finding['ids']}
+    return finding
+
+
+def load_title_aliases(path):
+    if path is None:
+        return {}
+    document = read(path)
+    if document.get('version') != 1:
+        raise ValueError('Unsupported reviewed title-alias format')
+    for evidence in document.get('evidence', []):
+        if sha(evidence['path']) != evidence['sha256']:
+            raise ValueError('Reviewed title-alias evidence changed')
+    result = {}
+    selectors = set()
+    for rule in document['rules']:
+        if not rule.get('reason') or not rule.get('providers'):
+            raise ValueError('Title-alias review requires providers and a reason')
+        key = rule['system'], title_key(rule['sourceTitle'])
+        selector = key, tuple(sorted(rule.get('regions', []))), tuple(sorted(rule.get('tags', [])))
+        if selector in selectors:
+            raise ValueError('Duplicate reviewed title-alias selector')
+        selectors.add(selector)
+        result.setdefault(key, []).append(rule)
+    return result
+
+
+def reviewed_alias(source, rules):
+    tags = {tag.casefold().strip() for tag in re.findall(r'\(([^)]*)\)', source['filename'])}
+    regions = {part.strip() for tag in tags for part in tag.split(',') if part.strip() in REGIONS}
+    applicable = [rule for rule in rules.get((source['system'], title_key(source['title'])), [])
+        if set(r.casefold() for r in rule.get('regions', [])) <= regions
+        and set(t.casefold() for t in rule.get('tags', [])) <= tags]
+    if len(applicable) > 1:
+        raise ValueError('Conflicting applicable title-alias reviews')
+    return applicable[0] if applicable else None
+
+
+def resolve_source(source, index, cache, reviews=None):
     """One cached resolver per platform/family, shared by producer and consumer."""
     from prepare_catalogue_bindings import corroborate_providers
     system = source['system']
@@ -308,30 +368,50 @@ def resolve_source(source, index, cache):
             ss_names.setdefault(normalized(game['title'], word_boundaries=True), {})[identity] = game['title']
         cache[key] = games, lookups, lb_names, ss_names
     games, lookups, lb_names, ss_names = cache[key]
+    review = reviewed_alias(source, reviews or {})
     matches, providers = {}, {}
     for provider in games:
         found = match(source['title'], lookups[provider])
+        if provider == 'launchbox':
+            found = regional_alias(source, found, games[provider])
+        if review and provider in review['providers']:
+            candidate = review['providers'][provider]
+            actual = games[provider].get(candidate['id'])
+            if not actual or candidate['title'] != actual['title']:
+                raise ValueError('Reviewed title alias has a foreign ID/title/platform')
+            if (found['status'] == 'unique' and found['method'] in {'canonical','declared-alias'}
+                    and found['ids'] != [candidate['id']]):
+                raise ValueError('Reviewed alias conflicts with a unique exact title')
+            found = {'status': 'unique', 'method': 'reviewed-scoped-alias',
+                     'ids': [candidate['id']], 'reviewReason': review['reason']}
+        if review and provider in review.get('blockedProviders', []):
+            found = {'status': 'reviewed-provider-conflict', 'method': 'reviewed-provider-exclusion',
+                     'ids': [], 'reviewReason': review['reason']}
         found['names'] = [games[provider][i]['title'] for i in found['ids']]
         matches[provider] = found
         if found['status'] == 'unique':
             game = games[provider][found['ids'][0]]
-            providers[provider] = {**game, 'method': 'exact-'+found['method']}
-            providers[provider].pop('aliases')
-    providers = corroborate_providers(providers, games['launchbox'], lb_names, ss_names)
+            providers[provider] = {**{k:v for k,v in game.items() if k not in {'aliases','aliasRegions'}},
+                                   'method': 'exact-'+found['method']}
+    blocked = set(review.get('blockedProviders', [])) if review else set()
+    providers = corroborate_providers(providers, games['launchbox'],
+        {} if 'launchbox' in blocked else lb_names,
+        {} if 'screenscraper' in blocked else ss_names)
     for provider, candidate in providers.items():
         game = games[provider][candidate['id']]
-        providers[provider] = {**{k: v for k, v in game.items() if k != 'aliases'}, **candidate}
+        providers[provider] = {**{k: v for k, v in game.items() if k not in {'aliases','aliasRegions'}}, **candidate}
     return matches, providers
 
 
-def mapping(inventory_path, index_path, output):
+def mapping(inventory_path, index_path, output, title_aliases=None):
     inventory_data, index = read(inventory_path), read(index_path)
     if index['inventorySha256'] != sha(inventory_path):
         raise ValueError('Indexes belong to another source census')
     rows, summaries, cache = [], {}, {}
+    reviews = load_title_aliases(title_aliases)
     for source in inventory_data['rows']:
         system = source['system']
-        matches, providers = resolve_source(source, index, cache)
+        matches, providers = resolve_source(source, index, cache, reviews)
         rows.append({**source, 'providers': providers, 'matches': matches,
             'status': 'bound-candidate' if providers else 'unresolved',
             'identityLevel': 'filename-title-candidate', 'physicalEditionVerified': False})
@@ -353,6 +433,7 @@ def mapping(inventory_path, index_path, output):
     document = {'version': 1, 'scope': 'filename-catalogue-candidates',
         'inventoryPath': str(inventory_path), 'inventorySha256': sha(inventory_path),
         'indexPath': str(index_path), 'indexSha256': sha(index_path),
+        **({'titleAliasesPath': str(title_aliases), 'titleAliasesSha256': sha(title_aliases)} if title_aliases else {}),
         'sourceCount': len(rows), 'bound': sum(bool(r['providers']) for r in rows),
         'romBodiesRead': 0, 'artworkDownloads': 0, 'screenScraperApiRequests': 0,
         'systems': summaries, 'rows': rows}
@@ -373,6 +454,10 @@ def load_mapping(path):
     if sha(inventory_path) != document['inventorySha256'] or sha(index_path) != document['indexSha256']:
         raise ValueError('Catalogue mapping input changed')
     inventory_data, index = read(inventory_path), read(index_path)
+    alias_path = Path(document['titleAliasesPath']) if document.get('titleAliasesPath') else None
+    if alias_path and sha(alias_path) != document.get('titleAliasesSha256'):
+        raise ValueError('Reviewed title-alias input changed')
+    reviews = load_title_aliases(alias_path)
     if (inventory_data['registrySha256'] != sha(REGISTRY) or
             inventory_data['supportedSystems'] != registry() or
             index['inventorySha256'] != sha(inventory_path)):
@@ -397,7 +482,7 @@ def load_mapping(path):
             game = games.get(row['system'], {}).get(candidate['id']) if games else None
             if not game or any(candidate.get(k) != game.get(k) for k in ['id', 'title', 'platformId', 'platformName']):
                 raise ValueError('Filename binding has a foreign provider ID')
-        matches, providers = resolve_source(original, index, cache)
+        matches, providers = resolve_source(original, index, cache, reviews)
         if row['providers'] != providers or row['matches'] != matches:
             raise ValueError('Filename binding differs from exact index evidence')
         result[key] = row
@@ -421,6 +506,7 @@ def main():
     p = sub.add_parser('match')
     for key in ['inventory', 'index', 'output']:
         p.add_argument('--'+key, type=Path, required=True)
+    p.add_argument('--title-aliases', type=Path)
     p = sub.add_parser('verify')
     p.add_argument('--mapping', type=Path, required=True)
     p.add_argument('--system')
@@ -431,7 +517,7 @@ def main():
     elif args.command == 'indexes':
         indexes(args.inventory, args.launchbox, args.cache, args.output, args.existing_cache)
     elif args.command == 'match':
-        mapping(args.inventory, args.index, args.output)
+        mapping(args.inventory, args.index, args.output, args.title_aliases)
     else:
         rows = load_mapping(args.mapping)
         if args.system or args.source_path:

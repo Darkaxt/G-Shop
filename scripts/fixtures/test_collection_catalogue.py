@@ -5,10 +5,73 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from prepare_collection_catalogue import filename_title, inventory, lookup, match, registry, source_games, screenscraper_csv
+from prepare_collection_catalogue import (filename_title, inventory, lookup, match, registry,
+    source_games, screenscraper_csv, regional_alias, load_title_aliases, resolve_source, title_key)
 
 
 class CollectionCatalogueTest(unittest.TestCase):
+    def test_regional_alias_resolves_same_name_without_merging_different_games(self):
+        games={'1':{'title':'Castle','aliases':['Mickey Mouse'], 'aliasRegions':{'Mickey Mouse':['Japan']}},
+               '2':{'title':'Castle 2','aliases':['Mickey Mouse'], 'aliasRegions':{'Mickey Mouse':['Europe']}}}
+        finding=match('Mickey Mouse',lookup(games))
+        self.assertEqual(finding['status'],'ambiguous')
+        self.assertEqual(regional_alias({'title':'Mickey Mouse','filename':'Mickey Mouse (Japan).7z'},finding,games)['ids'],['1'])
+        self.assertEqual(regional_alias({'title':'Mickey Mouse','filename':'Mickey Mouse (Europe).7z'},finding,games)['ids'],['2'])
+        self.assertEqual(regional_alias({'title':'Mickey Mouse','filename':'Mickey Mouse (World).7z'},finding,games)['status'],'ambiguous')
+
+    def test_reviewed_title_order_alias_is_scoped_and_rejects_foreign_ids(self):
+        source={'system':'n3ds','family':'root','title':'Metal Gear Solid 3D - Snake Eater',
+                'filename':'Metal Gear Solid 3D - Snake Eater (USA).zcci'}
+        game={'id':'7','title':'Metal Gear Solid: Snake Eater 3D','aliases':[], 'platformName':'Nintendo 3DS'}
+        index={'platforms':{'n3ds':{'7':game}},'screenscraper':{'n3ds':{}}}
+        rule={'system':'n3ds','sourceTitle':source['title'],'reason':'Reviewed 3D marker relocation',
+              'providers':{'launchbox':{'id':'7','title':game['title']}}}
+        reviews={('n3ds',title_key(source['title'])):[rule]}
+        self.assertEqual(resolve_source(source,index,{})[1],{})
+        matches,providers=resolve_source(source,index,{},reviews)
+        self.assertEqual(providers['launchbox']['id'],'7')
+        self.assertEqual(matches['launchbox']['method'],'reviewed-scoped-alias')
+        rule['providers']['launchbox']['id']='8'
+        with self.assertRaisesRegex(ValueError,'foreign'):
+            resolve_source(source,index,{},reviews)
+
+    def test_reviewed_alias_retains_region_and_revision_selectors(self):
+        from prepare_collection_catalogue import reviewed_alias
+        rule={'system':'gbc','sourceTitle':'Chromanoids','regions':['World'],'tags':['v1.0'],
+              'providers':{'screenscraper':{'id':'1','title':'Chromanoids'}},'reason':'Exact revision proof'}
+        reviews={('gbc','chromanoids'):[rule]}
+        source={'system':'gbc','title':'Chromanoids','filename':'Chromanoids (World) (v1.0).7z'}
+        self.assertIs(reviewed_alias(source,reviews),rule)
+        source['filename']='Chromanoids (World) (v1.1).7z'
+        self.assertIsNone(reviewed_alias(source,reviews))
+
+    def test_excluded_provider_is_not_restored_by_corroboration(self):
+        source={'system':'gb','family':'root','title':'Mickey Mouse',
+                'filename':'Mickey Mouse (Japan).7z'}
+        game={'id':'1','title':'Correct Game','aliases':['Mickey Mouse']}
+        index={'platforms':{'gb':{'1':game}},'screenscraper':{'gb':{
+            '2':{'id':'2','title':'Correct Game','aliases':[]}}}}
+        rule={'system':'gb','sourceTitle':'Mickey Mouse','regions':['Japan'],
+              'reason':'Provider groups a different regional game',
+              'providers':{'launchbox':{'id':'1','title':'Correct Game'}},
+              'blockedProviders':['screenscraper']}
+        self.assertIn('screenscraper',resolve_source(source,index,{})[1])
+        matches,providers=resolve_source(source,index,{}, {('gb','mickey mouse'):[rule]})
+        self.assertEqual(set(providers),{'launchbox'})
+        self.assertEqual(matches['screenscraper']['status'],'reviewed-provider-conflict')
+
+    def test_reviewed_alias_evidence_changes_are_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            from prepare_collection_catalogue import sha
+            evidence=Path(folder)/'evidence.json'
+            evidence.write_text('original')
+            rules=Path(folder)/'rules.json'
+            rules.write_text(json.dumps({'version':1,'evidence':[{'path':str(evidence),'sha256':sha(evidence)}],'rules':[]}))
+            self.assertEqual(load_title_aliases(rules),{})
+            evidence.write_text('changed')
+            with self.assertRaisesRegex(ValueError,'evidence changed'):
+                load_title_aliases(rules)
+
     def test_registry_covers_actual_supported_app_systems(self):
         systems = registry()
         self.assertEqual(systems['ps2']['screenscraperId'], 58)

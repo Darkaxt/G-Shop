@@ -343,6 +343,7 @@ no device, APK, ROM bodies, artwork or per-ROM API requests participate.
 python -B scripts/prepare_collection_catalogue.py inventory --root <mounted-rom-root> --output <inventory.json>
 python -B scripts/prepare_collection_catalogue.py indexes --inventory <inventory.json> --launchbox <Metadata.zip> --cache <E-cache> --output <indexes.json>
 python -B scripts/prepare_collection_catalogue.py match --inventory <inventory.json> --index <indexes.json> --output <mappings.json>
+python -B scripts/prepare_collection_catalogue.py match --inventory <inventory.json> --index <indexes.json> --title-aliases <reviewed-rules.json> --output <reviewed-mappings.json>
 python -B scripts/prepare_collection_catalogue.py verify --mapping <mappings.json>
 ```
 
@@ -356,6 +357,21 @@ PSP Minis and 64DD. Real word boundaries, numeric operators and non-Latin titles
 survive. Blank index rows stay diagnosed without discarding the platform;
 duplicate IDs fail. Firmware, updates, DLC, modified programs, auxiliary archives
 and unrecognised app containers remain distinct, visible source entries.
+
+LaunchBox alternate-name regions are retained and can disambiguate an exact
+regional alias. Review actionable spacing, segmentation and reordered-subtitle
+candidates rather than leaving them indefinitely unresolved. Record decisions in
+the optional version-1 `--title-aliases` JSON: `evidence` contains path/SHA-256
+receipts; each `rules` entry names `system`, `sourceTitle`, `reason` and
+`providers` (provider name to exact `id`/`title`). Optional `regions` and `tags`
+restrict a decision to its actual release/revision. `blockedProviders` excludes a
+documented contradictory provider grouping. Rules cannot override an existing
+unique canonical/declared-alias result, reference foreign platform IDs or overlap
+for the same source. The mapping captures the rules hash; verification checks its
+evidence and replays every decision. Do not globally remove word boundaries or
+reorder title words. A provider hash match with a compressed-size discrepancy, or
+a name-only fallback with different hashes, must retain that distinction in its
+review evidence instead of claiming an exact raw-ROM match.
 
 When a real owner census exists, reuse the result through the normal producer:
 

@@ -1,6 +1,15 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 173, 2026-10-25.
+Authoritative specification, revision 174, 2026-10-25.
+
+Owner matching correction, 2026-10-25 (CATALOGUE-ALL): resolve the identified
+119 spacing/typography cases, 20 provider-ID conflicts and the Metal Gear Solid
+3D title-order alias using the available source/index and regional/revision
+evidence. Record reusable scoped decisions and apply them through the verified
+mapping consumer; enumeration is not completion. Preserve source membership,
+different games/sequels and prior immutable deliveries. Escalate evidence gathering
+for actual identity conflicts rather than treating obvious title variants as
+missing resources. This remains within sole ACTIVE S26 and needs no device.
 
 Owner priority correction, 2026-10-25 (CATALOGUE-ALL): continue the Windows
 filename/provider-index mapping now, without making Thor, APK installation or

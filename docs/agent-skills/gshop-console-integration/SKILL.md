@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.57"
+  version: "0.1.58"
 ---
 
 # G-Shop Console Integration
@@ -67,6 +67,17 @@ texture archives distinct; do not turn them into cartridge/artwork owners. Verif
 the mapping consumer and eventual real-owner promotion without inventing native
 game/edition IDs. This completes only the requested mapping scope, not physical
 resource coverage or wider console acceptance.
+
+Resolve actionable spacing, segmentation and reordered-subtitle candidates in
+the same pass; enumeration alone is unfinished work. Preserve LaunchBox alternate
+name regions and use exact regional aliases before declaring ID conflicts.
+Record reviewed exceptions with `--title-aliases`, scoped to platform, source
+title and applicable region/revision, with hashed evidence and exact indexed IDs.
+Retain documented provider exclusions when a catalogue groups different games.
+Do not relax word boundaries or reorder arbitrary titles globally. Distinguish
+complete raw-hash/size agreement, compressed-size discrepancies and name-based
+responses with different ROM hashes. Rebuild and replay the entire mapping
+consumer, verify the requested cases, and prove existing bound IDs are preserved.
 
 Bind actual ROM/revision identities separately from physical hardware, cartridge
 families and carton printings. Inventory required models, labels, textures,

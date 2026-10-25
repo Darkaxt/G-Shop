@@ -5,7 +5,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-25 continuation under specification revision 173: S26 remains ACTIVE.
+2026-10-25 continuation under specification revision 174: S26 remains ACTIVE.
 CATALOGUE-ALL is the current outcome: complete Windows filename/provider-index
 mappings for all remaining supported source folders. Thor, APK installation,
 ongoing native publication and missing 3D assets do not gate this work. Preserve
@@ -14,12 +14,22 @@ source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
 The CATALOGUE-ALL Windows pass now accounts for all 26,995 additional mounted
-source files across 23 populated platforms. It produces 23,737 unique catalogue
-candidates (87.93%) and 3,258 explicit unresolved entries. A fresh primary-folder
+source files across 23 populated platforms. It produces 23,877 unique catalogue
+candidates (88.45%) and 3,118 explicit unresolved entries. A fresh primary-folder
 inventory independently agrees with all 17,558 retained G&W/NES/GBA source paths;
-the combined census is 44,553 sources, 36,175 candidates (81.20%), 8,378 unresolved.
+the combined census is 44,553 sources, 36,315 candidates (81.51%), 8,238 unresolved.
 Private deliverables are under MetadataCrawl/2026-10-25/all-console-catalogue:
-`mappings-r6.json`, `summary-r6.json`, `coverage-r6.csv`, `unresolved-r6.csv`.
+`mappings-r8.json`, `correction-summary-r8.json`, `resolved-corrections-r8.csv`,
+`unresolved-r8.csv`. All 119 spacing candidates, 20 conflicting-ID sources and
+the Metal Gear Solid 3D alias now resolve: 140 additional sources, with zero
+previously bound provider IDs changed. Region-bearing LaunchBox aliases and
+hashed, release-scoped review rules are replayed by the normal consumer.
+Targeted read-only checks of the 20 ambiguous archives preserve raw identities:
+17 agree on all three hashes and raw size; one agrees on all hashes but the
+provider reports compressed size; two are regional-name matches with different
+provider ROM hashes. Those two remain catalogue candidates, not exact ROM
+matches. A conflicting Japanese Mickey Mouse ScreenScraper grouping is excluded
+while the correct LaunchBox identity remains bound. No artwork was acquired.
 Every candidate passes the source/index/platform integrity consumer, including
 recomputed exact/declared-alias/corroborated decisions. Normal owner promotion
 and an actual packaging fixture pass; missing native owners remain unpromoted.
@@ -30,8 +40,10 @@ Firmware, DLC, updates and auxiliary archives remain in the census with distinct
 roles; Switch currently contains three firmware archives and no game programs.
 199 compressed 3DS containers and 26 Wii WADs can be filename-mapped without
 claiming app container/emulator support. This pass reads no ROM bodies or artwork
-and spends no per-ROM ScreenScraper API requests. E: owns all cache/output; this
-mapping pass makes no H: writes. Installed integration guidance is 0.1.57, read back with matching
+and spends no per-ROM ScreenScraper API requests. The subsequent ambiguity
+correction reads only the selected 20 archives and retains their 20 API responses.
+E: owns all cache/output; this mapping pass makes no H: writes.
+Installed integration guidance is 0.1.58, read back with matching
 source/installed hash. Wider S26 remains ACTIVE; this is not 80% physical-resource
 acceptance, a native installation, or a final application release.
 The maintained packaging collector now consumes source/edition-bound catalogue
