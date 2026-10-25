@@ -277,6 +277,34 @@ unchanged. A paused/blocked import stops the batch and retains its normal job.
 Preparation, a successful import and final verified publication/recovery are
 different outcomes; never count pack membership as usable coverage.
 
+For an actual completed exact raw-ROM response, `--reuse-lookup` additionally
+retains its captured request/record/evidence and excludes ratings. The current app
+validates those facts against the current artifact/edition and runs the normal
+durable metadata and artwork jobs without a second provider access/lookup. The
+original retrieval time remains unchanged; only the local job generation changes.
+This explicit mode pauses if its retained response or required body is missing
+or changed. It never silently spends another request. Legacy packs still use
+fresh provider matching; existing saved jobs are not rewritten. Publication and
+recovery remain the same required normal lane.
+
+After a resumed crawl adds results to a previously committed preparation, repeat
+`--edition-id <current manifest edition>` to prepare only the verified delta.
+Selection rejects missing, duplicate or stale current editions before producing
+output. The receipt retains the unchanged full checkpoint, total manifest count,
+selected membership and unselected identity reviews; a subset is never reported
+as full coverage. Verify the earlier preparation's source/pack identities and its
+normal commit receipt before excluding those editions. This does not complete or
+cancel an earlier publication, alter its saved job, or authorize a second crawl.
+
+When review disproves a provider identity despite its reported raw-hash match,
+use `--review-holds <JSON>` with `{"version":1,"holds":[{"key":"<item SHA-256>",
+"sourceSha256":"<retained result SHA-256>","reason":"<observed conflict>"}]}`.
+Preparation retains the original checkpoint, excludes that exact record from
+import, and records the hold separately from missing artwork. Changed source
+bytes, unowned keys and unused selected reviews fail rather than silently reusing
+a stale decision. Reviews outside an explicit edition subset remain recorded as
+unselected reviews. Do not replace the provider ID from an artwork title alone.
+
 For needed/replacement box faces, `prepare_packaging_resources.py` now acquires
 both LaunchBox and ScreenScraper candidates. It preserves original image bodies
 in the E: HTTP cache, reports dimensions/detail measurements, all candidate hashes
@@ -301,6 +329,119 @@ The fixed public image origin accepts validated `.jpg`, `.jpeg` and `.png` leave
 into that response cache to avoid repeat API requests. It does not import facts,
 classifications, acceptance or publication. Support textures and shell-inclusive
 cartridge pictures remain different roles.
+
+### Reuse audited catalogue IDs
+
+For advance filename-only mapping across supported systems, use
+`prepare_collection_catalogue.py`. Its explicit `catalogue_platforms.json` names
+LaunchBox namespaces and mounted-folder aliases; app system IDs, ROM extensions
+and ScreenScraper IDs are checked against the current Dart registries. H: is read
+for filenames only. Public indexes and private JSON stay in the chosen E: cache;
+no device, APK, ROM bodies, artwork or per-ROM API requests participate.
+
+```powershell
+python -B scripts/prepare_collection_catalogue.py inventory --root <mounted-rom-root> --output <inventory.json>
+python -B scripts/prepare_collection_catalogue.py indexes --inventory <inventory.json> --launchbox <Metadata.zip> --cache <E-cache> --output <indexes.json>
+python -B scripts/prepare_collection_catalogue.py match --inventory <inventory.json> --index <indexes.json> --output <mappings.json>
+python -B scripts/prepare_collection_catalogue.py verify --mapping <mappings.json>
+```
+
+Repeated `inventory --exclude-system <id>` preserves independently reviewed
+systems. Every included source retains its exact system/relative path, provider
+IDs/platform, index hashes and a candidate or unresolved outcome. The verifier
+rechecks complete source membership and exact canonical/declared-alias evidence;
+`verify --system <id> --source-path <folder/relative-file>` resolves one source.
+Scoped parsing handles DS release numbers, 3DS title-ID/container decorations,
+PSP Minis and 64DD. Real word boundaries, numeric operators and non-Latin titles
+survive. Blank index rows stay diagnosed without discarding the platform;
+duplicate IDs fail. Firmware, updates, DLC, modified programs, auxiliary archives
+and unrecognised app containers remain distinct, visible source entries.
+
+When a real owner census exists, reuse the result through the normal producer:
+
+```powershell
+python -B scripts/prepare_catalogue_bindings.py --filename-mapping <mappings.json> --census <clean-census.ndjson> --launchbox <Metadata.zip> --output <owner-bindings.json>
+```
+
+Promotion requires a unique current Drive artifact and edition, preserving their
+version/checksums/owner. Missing owners stay unpromoted; firmware, updates, DLC and
+auxiliary archives cannot become program-artwork owners. The collector's edition,
+modification, resource-review and publication gates remain. A title candidate is
+neither a raw-ROM match nor accepted physical-resource coverage.
+
+`prepare_catalogue_bindings.py` joins a complete private title-index audit to the
+actual clean native census by current Drive artifact and edition membership. It
+checks provider IDs/titles against the captured LaunchBox platform index and
+ScreenScraper public `screenscraper-<platform>-gameslist.csv` exports beside the
+title index. It retains every source as a candidate binding or an unresolved
+result. Optional reviewed manual overrides are JSON, with exact archive SHA-256,
+reason and hash-bound evidence; ambiguous/loose matches are never guessed.
+
+```powershell
+python -B scripts/prepare_catalogue_bindings.py --audit <title-match-details.json> `
+  --census <clean-census.ndjson> --launchbox <Metadata.zip> `
+  --title-index <launchbox-title-index.json> --manual <reviewed-manual.json> `
+  --output <private-bindings.json>
+python -B scripts/prepare_packaging_resources.py --system nes --selection collection `
+  --catalogue-bindings <private-bindings.json> --binding-census <clean-census.ndjson> `
+  --launchbox <Metadata.zip> --http-cache <existing-E-response-cache> `
+  --env .env.local --output <private-packaging.zip>
+```
+
+The binding JSON supplies the exact provider ID, including NES sources routed to
+the Famicom Disk System catalogue, while output keeps the original library
+platform/game/edition and owner identity. Changed index/census/source/edition
+bindings, foreign IDs and changed titles fail before acquisition. Without
+`--projection`, collection selection reuses the captured clean native query and
+metadata rows; it never copies a running SQLite database. With `--projection`,
+the existing selection must agree with the captured binding identity.
+
+An artwork candidate does not overwrite existing ROM-matched metadata, ratings
+or classification. A conflicting retained ScreenScraper identity remains visible
+in the report. A bound, unmodified game with unknown edition region may acquire
+reference carton faces under the existing composite policy: the original edition
+regions stay empty, imported reference art uses `wor`, and actual source regions
+remain in provenance. This does not resolve physical printing, permit cartridge
+labels/manuals under an unknown region, or count as native acceptance. Modified
+sources and absent bindings retain their explicit unresolved gates. Prepared packs
+still require review, normal import/publication, recovery and native validation.
+
+The producer also fills a missing provider from the other provider's exact
+canonical/declared name, within the same platform. It retains the anchor ID and
+word boundaries; a loose name collision or absent anchor does not become a match.
+This links both artwork catalogues without another search/download or a new ROM
+identity claim. Reviewed original donor faces also supply absent flat gallery
+roles, preserving their prepared pixels and provenance when no replacement exists.
+
+`--prepared-resources <reviewed-preparation.json>` keeps complete previously
+reviewed packs in their existing delivery queue. It verifies pack content hashes,
+current owner identity and all nine carton/gallery roles before skipping duplicate
+acquisition. Its report says those resources still await delivery; it does not
+claim that preparation is publication. Use retained NintAndBox `--panel-layouts`
+for the remaining bound donors before provider acquisition.
+
+After a reviewed binding correction, repeat `--edition-id <current-edition-id>`
+with `--selection collection` to acquire only the affected real query members.
+Unknown/duplicate IDs fail before acquisition. The selection and batch receipts
+retain `coverageScope: selected-editions`, the full `collectionSelected` count and
+the exact `editionFilter`; this subset never replaces the full collection census
+or establishes full-collection completion. Resume checks the unchanged filter as
+well as the original source/index/owner inputs.
+
+LaunchBox artwork country names retain their own region codes (including
+Australia/Canada and individual European/Asian countries). If the target-region
+and existing English/world reference tiers have no usable face, a compatible
+same-game regional donor can supply a reference face. Preserve its source region
+and composite provenance; never relabel that printing as English or as the target
+SKU. Broad unmapped areas such as Oceania/South America are not silently assigned
+to a particular country. Cartridge labels remain outside this carton-only rule.
+
+`--resume` continues the same full-collection output at its committed 25-item
+boundary. Selection, index/review inputs, report identities and every committed
+pack's bytes/hash must agree. Changed inputs or an uncommitted output require
+inspection. Completed packs are kept byte-for-byte, while cached responses from
+an interrupted tail remain reusable. No arbitrary retries or alternate job are
+started automatically.
 
 Model-baking preparation uses `normalize_role_image(role, body)` from the same
 collector to keep horizontal-spine rotation and normalized PNG bytes together.
@@ -331,3 +472,16 @@ current mesh, textures, UV-mapped images, original OCR views and opening evidenc
 it preserves the original report/pending manifest and writes a separate reviewed
 report plus the normal accepted manifest. It cannot waive known rotation or
 animation failure, auto-review weak text, or overwrite an accepted model.
+
+`prepare_retained_nes_panels.py` carries unchanged selected NES cartons through
+the same packaging import lane. Supply the selected catalogue, retained source
+library, actual native manifest/hash receipt, reconciled binding list and a new
+output directory. It checks source GLB, native manifest and every crop digest,
+then prepares the six outer faces plus matching flat front/back/spine roles.
+The optional `--panel-review` supplies model-ID entries with `manifestSha256`,
+`reason`, `nativeAssembledEvidence` and per-face `sourcePanel`, `sourceSha256`
+and orthogonal `clockwiseDegrees`. Use it only after inspecting the actual mapped
+native faces; a compensating UV/name mapping must not be undone in the mesh.
+Preparation does not establish canonical ownership, publication or native acceptance.
+Compare existing complete packaging choices and bind these candidates only to a
+fresh clean census through the normal import and Drive verification workflow.

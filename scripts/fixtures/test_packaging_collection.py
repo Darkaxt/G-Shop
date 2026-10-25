@@ -144,6 +144,7 @@ class CollectionTest(unittest.TestCase):
                 projection=root/'projection.gz', launchbox=root/'metadata.zip',
                 panel_layouts=None, env=None, output=root/'all.zip')
             args.projection.write_bytes(b'projection fixture')
+            args.launchbox.write_bytes(b'index fixture')
             with patch.object(packaging, 'collection_selection', return_value=rows), \
                     patch.object(packaging, 'launchbox_index', return_value=(games, images,
                         {packaging.normalized(title): {key} for key, title in games.items()})), \

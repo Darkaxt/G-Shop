@@ -1,6 +1,35 @@
 # Staged implementation plan
 
-Current execution, 2026-10-23, revision 169: **S26 ACTIVE**, sole active stage.
+Current execution, 2026-10-25, revision 173: **S26 ACTIVE**, sole active stage.
+Current owner-requested outcome **CATALOGUE-ALL**: resolve Windows filename/index
+mappings for the remaining supported consoles now, independently
+of their 3D assets. Acceptance requires a complete current source census, scoped
+provider IDs/aliases, source/index integrity, explicit unresolved rows and usable
+JSON consumed by the normal mapping path. Keep E: cache/H: final-output boundaries;
+no ROM-body/artwork acquisition solely for title matching. Thor, APK installation
+and the independently running publication are not prerequisites. This outcome
+does not activate another stage or waive S26's existing acceptance/delivery gates.
+CATALOGUE-ALL reconciliation: the full Windows filename/index pass and its consumer
+are verified. Current H: has 26,995 additional source files across 23 populated
+platform folders: 23,737 unique candidates (87.93%), 3,258 explicit unresolved rows.
+Fresh membership also agrees with the retained 17,558-source primary map. Both
+maps together account for 44,553 sources, with 36,175 candidates (81.20%). These
+figures describe title candidates, including separately labelled non-program and
+modified entries; they do not satisfy the physical-resource coverage milestone.
+The exact remaining names/reasons and per-platform counts are private E: outputs.
+Normal real-owner promotion/packaging and stale-source rejection pass focused
+verification. Wider S26 resource/publication/native/release gates remain open.
+Apply the full filename/index audit as source/edition-bound provider mappings
+consumed by the maintained resource collector. Record reviewed manual resolutions
+in JSON, verify index/platform/source ownership and reject stale/conflicting
+bindings. Reuse cached bodies before acquisition; retain uncertain resources and
+the existing publication/recovery/native acceptance gates. The binding fix is an
+advancement requirement of S26, not another implementation stage or a title-only
+substitute for usable resource coverage.
+Complete the Windows-to-native response-reuse path with exact captured response
+and source validation, no imported ratings, durable resume and normal publication.
+Prove it against retained actual inputs and on Thor without interrupting its
+original publication. Source checks alone do not close this integration criterion.
 For needed artwork faces, acquire both LaunchBox and ScreenScraper candidates;
 compare compatible resources per role and retain their hashes/selection reasons.
 Replace the former provider-first fallback selection. Preserve NintAndBox geometry,

@@ -67,6 +67,44 @@ def match_colour_cast(source, reference):
     # accepted a visibly darkened fit between different regional back layouts.
     if np.any(np.diag(matrix[:3]) <= 0):
         return unchanged('nonphysical-colour-transform')
+    # Regional branding can move dark type onto a bright background. Spatial
+    # residuals then reward lifting every black in the replacement, even when
+    # the donor retains real dark printing elsewhere. Independently observed
+    # dark ink in both scans must corroborate the same global correction. Use
+    # held-out samples and require a real patch (16 samples, not a lone speck).
+    # This is a rejection check, never a mask, local repaint or copied pixels.
+    dark_source = a[check, :3]
+    dark_reference = b[check, :3]
+    dark_source = dark_source[dark_source.max(axis=1) < .2]
+    dark_reference = dark_reference[dark_reference.max(axis=1) < .2]
+    if len(dark_source) >= 16 and len(dark_reference) >= 16:
+        source_ink = np.median(dark_source, axis=0)
+        reference_ink = np.median(dark_reference, axis=0)
+        predicted_ink = np.clip(source_ink @ matrix[:3] + matrix[3], 0, 1)
+        ink_error = float(np.linalg.norm(predicted_ink - reference_ink))
+        # Reuse the held-out cast tolerance below; a majority colour improving
+        # cannot excuse dark print failing that same corroboration criterion.
+        if ink_error > .18:
+            return unchanged('dark-print-not-corroborated',
+                errorBefore=before, errorDarkPrint=ink_error,
+                sourceInk=source_ink.tolist(), referenceInk=reference_ink.tolist())
+    # Small neutral lettering can disappear in the blurred 64px fitting sample.
+    # Independently inspect finer, unblurred print in both scans before applying
+    # the same global transform. This only rejects a fit; it never masks pixels
+    # or selectively changes the lettering, artwork or reference colours.
+    def fine_print(image):
+        pixels = np.asarray(image.convert('RGBA').resize((256, 256),
+            Image.Resampling.LANCZOS), dtype=float) / 255
+        return pixels[:, :, :3][pixels[:, :, 3] > .98]
+    fine_source, fine_reference = fine_print(source), fine_print(reference)
+    source_print, reference_print = paper(fine_source), paper(fine_reference)
+    if source_print is not None and reference_print is not None:
+        predicted = np.clip(source_print @ matrix[:3] + matrix[3], 0, 1)
+        error = float(np.linalg.norm(predicted - reference_print))
+        if error > .18:
+            return unchanged('bright-print-not-corroborated',
+                errorBefore=before, errorPrint=error, printSampleResolution=256,
+                sourcePrint=source_print.tolist(), referencePrint=reference_print.tolist())
     observed = np.column_stack([a[check, :3], np.ones(np.count_nonzero(check))])
     after = float(np.median(np.linalg.norm(np.clip(observed @ matrix, 0, 1) - b[check, :3], axis=1)))
     # Regional text/layout and print grain differ; allow a median 0.18 RGB-vector

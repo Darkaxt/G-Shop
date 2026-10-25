@@ -16,6 +16,8 @@ import unicodedata
 def title(value):
     value=value.split('(')[0].split('[')[0].strip()
     value=unicodedata.normalize('NFKD',value).encode('ascii','ignore').decode().lower()
+    value=re.sub(r'(?<=[a-z0-9])\s+\+\s+(?=[a-z0-9])',' ',value)
+    value=re.sub(r'-(?=\d)','minus',value).replace('+','plus')
     for roman,number in [('iv','4'),('iii','3'),('ii','2')]:
         value=re.sub(r'\b'+roman+r'\b',number,value)
     value=re.sub('[^a-z0-9]','',value)
@@ -31,14 +33,36 @@ def regions(edition):
         'HOL':'Europe','AUS':'Australia','EEC':'Europe','EUR':'Europe',
         'JPN':'Japan','KOR':'Korea','HKG':'Hong Kong','ASI':'Asia'}
     found={mapping[c] for c in codes}
-    if '(HVC-' in leaf or '_FC-' in leaf or 'Famicom' in leaf:
-        found={'Japan'}
     if not found:
-        if '(HVC-' in leaf or '_FC-' in leaf or 'Famicom' in leaf: found={'Japan'}
-        elif '_AME' in leaf: found={'USA','Canada'}
+        if '_AME' in leaf: found={'USA','Canada'}
         elif '_EUR' in leaf: found={'Europe'}
         elif '_ASI' in leaf: found={'Asia'}
+        elif '(HVC-' in leaf or '_FC-' in leaf or 'Famicom' in leaf: found={'Japan'}
     return sorted(found)
+
+
+def is_famicom_box(edition):
+    """Hardware format does not overwrite an explicit export printing region."""
+    leaf=edition['editionFolder'].split('\\')[-1]
+    return '(HVC-' in leaf or '_FC-' in leaf or 'Famicom' in leaf or 'Japan' in regions(edition)
+
+
+def source_region_code(edition):
+    """Retain the donor printing's region; custom/ambiguous is unknown.
+
+    An AUS product code is more specific than the archive's EUR grouping.
+    This provenance never establishes the target ROM's physical edition.
+    """
+    found = set(regions(edition))
+    european = {'Europe', 'France', 'Germany', 'Spain', 'Italy'}
+    specific = found - european
+    codes = {'USA': 'us', 'Canada': 'ca', 'Australia': 'au', 'Japan': 'jp',
+             'Korea': 'kr', 'Hong Kong': 'hk', 'Asia': 'asi'}
+    if len(specific) == 1:
+        return codes[next(iter(specific))]
+    if found and not specific:
+        return 'eu'
+    return None
 
 
 def archive_regions(filename):
@@ -53,7 +77,7 @@ def archive_regions(filename):
 
 def is_retail_reference(filename):
     return '[' not in filename and not re.search(
-        r'\((?:Aftermarket|Pirate|Proto[^)]*|Beta[^)]*|Demo[^)]*|[^)]*(?:Virtual Console|Switch|Collection|Archives|Retro-Bit|Evercade|Capcom Town|Toaplan Arcade Garage|FamicomBox|Classic Mini|Classics Mini Mix|Disney Classic Games|QUByte Classics)[^)]*)\)',filename,re.I)
+        r'\((?:Aftermarket|Pirate|Possible Proto[^)]*|Sample[^)]*|Kiosk[^)]*|Test Program[^)]*|Proto[^)]*|Beta[^)]*|Demo[^)]*|[^)]*(?:Virtual Console|Switch|Collection|Archives|Retro-Bit|Evercade|Capcom Town|Toaplan Arcade Garage|Animal Crossing|Limited Run Games|Star Fox - Assault|FamicomBox|Classic Mini|Classics Mini Mix|Disney Classic Games|QUByte Classics)[^)]*)\)',filename,re.I)
 
 
 def apply_prepared_references(catalogue, prepared, imports, filenames):

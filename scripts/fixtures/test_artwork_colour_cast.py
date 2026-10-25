@@ -24,6 +24,35 @@ def palette_image():
 
 
 class ColourCastTest(unittest.TestCase):
+    def test_small_white_print_cannot_be_darkened_when_both_scans_retain_white(self):
+        source = palette_image().resize((512, 384), Image.Resampling.NEAREST)
+        pixels = np.asarray(source).copy()
+        target = pixels.copy()
+        target[:, :, :3] = np.round(target[:, :, :3] * .55)
+        # Small white type survives in both scans but moved regional text is
+        # blurred away at the 64px fitting resolution. It must still reject a
+        # transform that turns the replacement's white lettering grey.
+        for y in range(5, 60, 8):
+            for x in range(5, 120, 8):
+                pixels[y:y+3, x:x+3, :3] = 255
+                target[y+80:y+83, x+200:x+203, :3] = 255
+        source = Image.fromarray(pixels)
+        corrected, receipt = match_colour_cast(source, Image.fromarray(target))
+        self.assertFalse(receipt['applied'], receipt)
+        self.assertEqual(source.tobytes(), corrected.tobytes())
+
+    def test_changed_regional_printing_cannot_wash_out_shared_dark_ink(self):
+        source = palette_image()
+        target = np.asarray(source).copy()
+        target[:, :, :3] = np.round(target[:, :, :3] * .65 + 60)
+        # A changed bright regional layout dominates corresponding pixels, but
+        # both scans still contain dark printing at different positions.
+        target[:24, :24, :3] = [5, 10, 10]
+        corrected, receipt = match_colour_cast(source, Image.fromarray(target))
+        self.assertFalse(receipt['applied'], receipt)
+        self.assertEqual(receipt['reason'], 'dark-print-not-corroborated')
+        self.assertEqual(source.tobytes(), corrected.tobytes())
+
     def test_unrelated_low_contrast_reference_cannot_flatten_the_artwork(self):
         source = palette_image().convert('RGB')
         pixels = np.asarray(source) / 255

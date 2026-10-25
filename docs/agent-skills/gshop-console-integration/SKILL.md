@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.33"
+  version: "0.1.57"
 ---
 
 # G-Shop Console Integration
@@ -56,14 +56,33 @@ the precedent and permission; verify the new console's actual delivered behavior
 
 ## Resource gate first
 
+When the owner requests advance catalogue mapping, finish that Windows filename/
+provider-index outcome independently of device installation, publication and 3D
+assets. Use the maintained `prepare_collection_catalogue.py` and explicit platform
+registry; retain exact source-relative paths, index hashes and unresolved rows.
+Diagnose filename conventions and malformed index rows before claiming absent
+provider results. DS scene numbers, 3DS title-ID/container decorations, PSP Minis
+and 64DD namespaces require their scoped parsing. Keep firmware, updates, DLC and
+texture archives distinct; do not turn them into cartridge/artwork owners. Verify
+the mapping consumer and eventual real-owner promotion without inventing native
+game/edition IDs. This completes only the requested mapping scope, not physical
+resource coverage or wider console acceptance.
+
 Bind actual ROM/revision identities separately from physical hardware, cartridge
 families and carton printings. Inventory required models, labels, textures,
 accessories, controllers, displays and animations. Check original sources and
 private receipts; retain their hashes, artwork and attribution. Never publish ROM
 inventories, private models/artwork or credentials with application changes.
 Use the recorded source path to retain distinct media families, including GBA
-Multiboot/e-Reader and Disk System inside NES. A raw-program match can establish
+Multiboot/e-Reader/Play-Yan, explicitly marked firmware and Disk System/Network
+System/Family BASIC tapes inside NES. A raw-program match can establish
 game information without establishing a cartridge, label or carton for that source.
+Inspect actual archive members when the decoder rejects a source. The e-Reader
+folder can contain multi-strip `.raw` cards and multi-member `.sav` memory-dump
+collections; neither is an ordinary cartridge ROM. A decoder rejection is not
+proof of archive corruption or provider/resource absence. Preserve exact container
+hashes, independent archive CRC results and the actual unsupported format/budget
+reason without changing the original checkpoint or silently widening its budget.
 
 For cartons, preserve reviewed NintAndBox dump panels and applicable public
 low-resolution .es donor previews. For needed/replacement artwork faces request
@@ -72,12 +91,40 @@ Provider order and pixel dimensions alone do not establish quality. Retain both
 candidates/hashes, selection reasons and required visual review; see section 3
 of the pipeline reference. Keep support-label textures separate from images of
 complete cartridges.
+Exact title matching must retain meaningful suffix operators and numeric minus
+signs: `Final Fantasy ++`, `Super Mario Bros. 3 +` and `Super Mario Bros. -2`
+are distinct candidates. Preserve ordinary spaced compilation joins and verify
+both positive matches and collision rejection against the actual provider index.
+Keep non-Latin title text and modification suffixes during accent folding. Loose
+retrieval keys may nominate candidates, but canonical disambiguation must retain
+word boundaries: `Castle Quest`/`Castlequest` and `Final Fantasy III`/`Final Fantasy
+I•II` can identify different games. Do not erase a Chinese/Japanese suffix and
+then classify the resulting collision as missing artwork. Recheck the full
+retained manifest after matching changes, preserve prior outcomes and source
+hashes, and carry changed candidates through per-role review and normal delivery.
+A Famicom `HVC` hardware code does not overwrite an explicit Asian export
+printing region. Keep hardware-family compatibility separate from source-region
+provenance; verify catalogue metadata independently of unchanged model hashes.
+A provider-reported raw hash match can still carry erroneous game identity.
+Check concrete contradictory volume/sequel printing against the requested ROM
+and localized provider names. Preserve that source response; do not silently
+change its provider ID from an artwork match. Hold the affected metadata and
+physical resources using source-hash-bound reviewed exclusions in desktop import
+preparation. Retain the original checkpoint and count the hold separately from
+provider absence. Review per-role images even when their declared type is correct:
+a source labelled as a back scan may actually be a rendered 3D front. Prefer a
+verified flat alternative and correct upright orientation through the same
+hash-bound gallery and carton panel mapping.
 Reject blank/transparent provider placeholders before source selection; a valid
 PNG and a successful media request do not prove printed artwork. Preserve the
 rejected hash and try the acquired alternative. Deliberately reconstructed plain
 faces are separate, explicitly derived resources under the existing carton policy.
 Carry the selected face through donor composition. Never reselect by provider
 there; resolve distinct competing English faces upstream before composition.
+Inspect actual title/key art and descriptive/barcode faces against their assigned
+front/back roles, even for a retained donor. Correct a proven role reversal with
+source-hash-bound mapping evidence, preserving original panels and receipts; do
+not infer roles from provider order, text density or platform-name mentions alone.
 Consider front, back, spine and unfolded texture roles. A missing dump model or
 same-region catalogue binding is not evidence that no box can be produced.
 Inspect the original archive and retained model/panel catalogue as well as any
@@ -85,6 +132,13 @@ partial extraction. A regional or non-English same-game carton remains a valid
 donor for the already-approved GBA composition: retain its geometry, sides and
 flaps, replace the necessary front/back with the better matched English
 LaunchBox/ScreenScraper art, and reuse the existing collector colour-correction path.
+Check independently observed dark and fine bright printing as well as overall
+correspondence: changed regional branding must not wash out black ink or darken
+white lettering. Preserve unblurred fine-detail evidence; a downsampled fit can
+erase the small glyphs that disprove the proposed global cast.
+Reject an uncorroborated global fit, preserve original replacement colours and
+re-review affected retained derivatives before import or promotion. No selective
+repaint or local donor-pixel copying. Keep the actual Sapphire reference control.
 Read section 4 of the pipeline reference for its source-selection and colour
 checks. Do not reject that donor solely because its language/printing differs,
 build a lower-fidelity flat-art box first, or request that approval again.
@@ -97,7 +151,75 @@ not ask the owner to approve it again. Trace fixable acquisition/binding/renderi
 omissions before reporting a genuine source gap.
 Check provider-declared alternate names as well as canonical titles in the
 LaunchBox index, retaining platform ownership and ambiguous IDs. An artwork alias
-is a candidate link, not proof of ROM revision, physical printing or modification
+must not compete with a distinct exact canonical title: a sequel may declare its
+predecessor's title as an alias. Prefer exact canonical names, then exact target
+aliases, then provider alternate titles; retain genuine collisions and all IDs.
+Keep donor-printing provenance separate from target-region ownership. An AUS code
+under an EUR archive grouping remains Australian; unknown/custom donor regions
+remain unknown rather than defaulting to Europe. Correct retained derivatives
+through new immutable identities without rewriting their original receipts.
+Carton-only reference fallback also checks LaunchBox `World` and unspecified
+region art when a target-region face is unavailable. Preserve the original world
+or unknown source region, use explicit composite provenance and retain the known
+target region separately. This never permits foreign/unknown cartridge labels.
+Inspect competing printings: a sharp console/accessory bundle front can belong
+to the same title but cannot be fitted to a standard game carton. Use a reviewed
+compatible source hash or retain the affected printing for review.
+Carry an index-only audit into the actual collector with source/edition-bound
+provider IDs, not another disconnected report. Use `prepare_catalogue_bindings.py`
+and the packaging collector's `--catalogue-bindings` / `--binding-census` inputs;
+retain manual decisions against exact source hashes and reviewed evidence.
+Reject stale identities/indexes and foreign-platform IDs before acquisition.
+Preserve nested catalogue namespaces (for example FDS inside NES) without changing
+the library platform. Reuse the E: response cache and retain explicit unresolved
+rows. Candidate IDs cannot overwrite conflicting raw-ROM metadata. Under the
+existing reference-carton policy, empty edition regions need not discard bound
+same-game carton faces: retain unknown edition regions, use `wor` for reference
+art, and preserve actual source-region/composite provenance. This does not resolve
+physical printing or permit unknown-region labels/manuals. Verify actual prepared
+packs and normal delivery; mapping totals alone are not resource acceptance.
+Fill a missing provider through the other provider's exact scoped canonical or
+declared name only with a unique, retained anchor; preserve word-boundary and
+numeric/operator collisions. Keep reviewed donor gallery faces when replacements
+are absent. Reuse complete reviewed preparation via `--prepared-resources` and
+its content/owner checks, retain NintAndBox panel inputs for remaining games, and
+resume committed collection batches with `--resume` instead of duplicating work.
+For reviewed binding corrections, use the actual collection's explicit
+`--edition-id` subset and retain its full-census count/filter receipts; never
+manufacture query rows/ranks or count a corrected subset as full coverage.
+Existing owned raw-ROM matches can corroborate localized catalogue names after
+checking the current provider ownership key, source fingerprint and actual
+platform ID. Preserve separate source-media families and physical-printing gates.
+Check actual artwork country names before declaring provider absence. Preserve
+Australia/Canada and individual European/Asian country codes. A same-game regional
+reference follows the target/English/world tiers, retaining its source region;
+this cannot establish an English printing, target SKU or cartridge label.
+Inspection-sheet captions must join actual packed edition IDs, since held or
+previously reviewed report rows can be absent from a particular ZIP.
+Before rebuilding another revision's carton, check complete reviewed same-game
+resource sets against the scoped catalogue IDs. Require all shared provider IDs
+to agree, keep target ownership and per-face source provenance (including explicit
+unknown regions), and apply the existing reference/composite permission only.
+Never carry a donor's labels, ratings or ROM facts across editions. Modified and
+different-media sources retain their own gates; validate the prepared handoff and
+normal publication/recovery before counting reused resources as coverage.
+Same-game provider agreement alone cannot establish compatible packaging geometry.
+For NES reuse, filter western NES versus Famicom carton/media families before
+language or artwork preferences. Preserve unknown/export-family cases as explicit
+holds. Inspect keyboard/accessory bundle fronts separately; do not fit them to a
+standard cartridge carton. A staged candidate remains unaccepted, and a superseded
+device staging copy must be retired through the exact cleanup workflow before it
+can be mistaken for the final import cohort.
+When a paused Windows crawl adds completed results after an earlier normal import,
+verify that earlier preparation and its exact commit receipt before selecting a
+delta with `prepare_desktop_crawl_import.py --edition-id`. Retain the full original
+manifest/checkpoint, exact selected membership and selected/unselected provider
+identity reviews. Do not clone a truncated census or restart an already committed
+cohort to obtain fresh diagnostics. A retained raw response enriches its request
+with the observed ROM identifier; verify that identifier against the archive
+observation and container/source checksums rather than comparing it to the original
+null field. Apply normal import, publication/recovery and acceptance to the delta.
+An artwork alias is a candidate link, not proof of ROM revision, physical printing or modification
 compatibility. Preserve a regional donor face when no English replacement exists
 or replacement preparation fails; language preference must not destroy usable art.
 The Cover Project is also registered as a potential artwork fallback; see the
@@ -107,9 +229,12 @@ Before declaring a LaunchBox title absent, check No-Intro's relocated articles
 and subtitles through the shared normalizer, retaining all words, platform scope
 and ambiguous IDs. Valid public `.jpeg` artwork is supported alongside `.jpg`
 and `.png`; do not let a filename filter terminate collection processing.
-Evercade, Capcom Town and Toaplan Arcade Garage sources do not establish original
+Evercade, Capcom Town, Toaplan Arcade Garage and Animal Crossing embedded sources do not establish original
 NES/GBA cartridge printings. Keep their identities and any unproven physical
 bindings separate, just as for Virtual Console and compilation rereleases.
+Explicit `Possible Proto`, Sample, Kiosk, Test Program and limited reissue markers
+also require separate physical bindings; uncertainty must not silently become a
+confirmed original retail printing. A program revision alone is not a new mesh.
 
 **Pause the affected integration when any required resource is missing, invalid
 or lacks a sufficiently established physical binding.** Report the exact resource
@@ -138,11 +263,38 @@ Reconcile all batches and verify full-census bindings/integrity through the norm
 resource lane before reporting coverage complete. Read section 2 of the pipeline
 reference for the separate full-census and acceptance-sample gates.
 
+Reconcile the complete selected model catalogue against that handoff, including
+unchanged original cartons, not only newly reconstructed cohorts. Existing meshes
+can be valid while their original panels have never entered normal publication.
+Use `scripts/prepare_retained_nes_panels.py` for hash-bound original NES panels;
+compare already published choices before replacement. Its optional panel review
+binds logical roles and orthogonal rotations to the actual native manifest and
+source crop hashes. Inspect assembled UV-mapped faces first: a source scan's
+misleading name or quarter turn can already be compensated by the model. Normalize
+the flat role without rotating that valid model or breaking its opening geometry.
+Keep damaged/obscured selections out of acceptance and prefer an intact compatible
+reviewed reference with its actual printing provenance retained.
+
 During collection, verify the normal metadata/artwork UI reports measured item
 progress from the durable job snapshot, including remaining items. Keep artwork
 and lookup phases separate; provider request counts and processed review/failure
 outcomes do not establish accepted resources. Preserve the original job/checkpoint
-through normal pause/resume when validating an app update.
+through normal pause/resume when validating an app update. The Drive publication
+view must also use its actual completed/total snapshot, percentage and remaining
+count; a determinate collector does not excuse an indeterminate publication bar.
+Use an indeterminate bar only while that phase has no known total. Preserve a
+newer hash-bound artwork review when reusing cached acquisition rows: unchanged
+provider/title IDs do not establish that their previous source choice is current.
+
+Reconcile every source census row into processed, pending or explicitly held
+cohorts before claiming collection coverage. Rows omitted from a working manifest
+are not automatically existing metadata; verify their actual canonical records.
+Preserve supplemental modified, aftermarket and separate-media rows in the full
+denominator. At a provider quota boundary retain the original checkpoint, exact
+remaining count and account-only quota evidence. Do not convert pending rows to
+source absence, guess the reset time or bypass the limit through another endpoint.
+Finish independent work and resume that same owned operation when actual quota
+becomes available.
 
 For the authorized console, establish the actual eligible, distinct Top 25 cohort
 from the app's canonical ranked query and current filters/preferences. Retain the
@@ -165,6 +317,32 @@ identity gaps rather than hydrating every remote ROM. Reuse the actual provider,
 archive validator and label-ambiguity rules; preserve original Android jobs and
 keep acquisition outcomes distinct from normal publication/recovery/native proof.
 The pipeline reference points to the launcher and its exact resume contract.
+An explicit `prepare_desktop_crawl_import.py --reuse-lookup` pack can retain the
+completed exact Windows response, avoiding a duplicate native provider request.
+Verify its current artifact, canonical edition, raw member proof and typed media;
+retain original retrieval time and exclude ratings. The normal durable job still
+owns classification, artwork binding and publication. Missing/changed prepared
+evidence pauses this import; do not conceal it with another crawl. Verify durable
+resume and real import/publication before claiming the Windows path integrated.
+Distinguish decoder incompatibility from corrupt archives. The bounded 7z reader
+permits repeated zero-filled kDummy alignment properties, while retaining unique
+actual fields, CRC, member-name and output-budget checks. Validate a repaired
+decoder against the affected real bytes and an independent member fingerprint.
+Keep running frozen crawlers/checkpoints intact; retain old failures and prepare
+a deliberate affected-cohort follow-up rather than modifying their runtime.
+Limit this explicit physical-resource import to acquired box/support-label roles;
+do not queue trailers, screenshots or fanart merely because the retained metadata
+advertises them. Preserve provider-declared terminal unavailable/review outcomes
+and reject placeholder bodies before packing. Those outcomes allow the batch to
+continue but never count as usable resources. A missing or changed matched body
+still pauses the affected job. Offline response reuse bypasses provider access and
+API backoff without changing their saved state. An explicit later retry/refetch
+uses the normal fresh-provider lane and its access/backoff checks; resuming the
+original job retains its prepared response.
+Keep unattempted advertised or derived regional selectors outside that import's
+snapshotted artwork scope. Record them as acquisition gaps, never as unavailable
+provider results or permission to borrow a foreign label. Validate the real pack
+against the app's current role selection, including unresolved region facts.
 
 Verify the configured Google Drive account/root and the full collection's metadata
 and required artwork there before accepting resource coverage. For each game,
@@ -180,6 +358,16 @@ number. A probe missing `[1]` can return `NOMEDIA` for an available indexed labe
 Reconcile contrary public-page evidence and invalidate affected parsed collector
 checkpoints after repairs. Verify a single numbered cartridge label reaches the
 cartridge role while multi-disc members remain individually associated.
+
+The presence of a raw metadata JSON row does not establish current ownership.
+Before counting selected labels, apply `LibraryStore.metadataIdentity` against
+the actual stored provider ownership key, then use the production label selector.
+Match the published provider record, identity and selected media to the current
+owned record and independently retrieved body. Preserve stale rows as evidence;
+exclude them from accepted coverage. Preparation still requires a clean census:
+after normal import commits, complete the actual normal library projection refresh
+before taking that snapshot. Do not weaken its dirty-row guard or restart the
+already committed import to satisfy a diagnostic observer.
 
 Trace the same resource through Drive publication, shared-cache recovery, app
 projection and the rendered scene. Distinguish upstream absence, recovery failure,
@@ -264,7 +452,7 @@ copy GBA's scores or claim another console's coverage from the GBA reference.
   uniformly to contain its real-scale contents; never silently enlarge a measured
   carton. Check every sequential edition at its actual painted settled state
   before reporting a supplied model absent; a closed last box can be mid-sequence.
-- Lower default camera: reserve 10–15% per edge for text and buttons, targeting
+- Lower default camera: reserve 10â€“15% per edge for text and buttons, targeting
   12.5%. Fit the whole animated composition to the central 75% rectangle without
   changing relative physical scales. Preserve aspect ratio, allowing extra space
   on the non-limiting axis. Check closed/extracted/settled/rotating and multi-edition
@@ -302,6 +490,12 @@ LCD/Game A behavior are different requirements, not interchangeable templates.
 
 Use existing model loaders, Blender authoring/conversion and app diagnostics.
 Retain original assets; create attributed launch derivatives where authorized.
+Before promoting an expanded catalogue, parse its actual complete bytes with the
+app's loader contract and exercise its added model/texture/badge loaders. Check
+both catalogue byte limits and entry limits against full-collection growth;
+verified transfer hashes cannot reveal a catalogue rejected wholesale at runtime.
+Preserve the last compatible selection until the required app update can safely
+be installed; retain new model files and an exact catalogue rollback.
 Validate actual meshes/UVs/hinges, insertion apertures, controller/cable contacts
 and screen anchors. Do not replace those measurements with bounding-box guesses
 or a single attractive camera angle. Keep authoring probes separate from full

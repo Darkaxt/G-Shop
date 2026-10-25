@@ -22,6 +22,64 @@ spec.loader.exec_module(packaging)
 
 
 class PanelsTest(unittest.TestCase):
+    def test_named_country_art_and_regional_reference_donors_are_preserved(self):
+        import zipfile
+        for source_region,target_region,expected_source in [
+                ('Australia','au',None),('Canada','ca',None),('Germany','fr','de')]:
+            with self.subTest(source_region=source_region),tempfile.TemporaryDirectory() as folder:
+                root=Path(folder);encoded=io.BytesIO()
+                image=Image.new('RGB',(32,48),'navy');image.paste('white',(8,8,24,20));image.save(encoded,format='PNG')
+                row={'rank':1,'title':'Fixture','game':{'id':'game'},
+                     'edition':{'id':'edition','regions':[target_region]},'metadata':None}
+                index=({'42':'Fixture'},{'42':[{'Type':'Box - Front','Region':source_region,
+                    'FileName':'aabbccdd.png'}]},{packaging.normalized('Fixture'):{'42'}})
+                args=SimpleNamespace(system='gba',projection=root/'projection.gz',launchbox=root/'index.zip',
+                    env=None,panel_layouts=None,output=root/'pack.zip')
+                with patch.object(packaging,'ranked_selection',return_value=[row]), \
+                        patch.object(packaging,'launchbox_index',return_value=index), \
+                        patch.object(packaging,'website_box',return_value=None), \
+                        patch.object(packaging,'fetch',return_value=encoded.getvalue()):
+                    packaging.collect(args)
+                self.assertTrue(args.output.exists(),'Named-country artwork was discarded')
+                with zipfile.ZipFile(args.output) as archive:
+                    game=json.loads(archive.read('packaging.json'))['games'][0]
+                resource=next(r for r in game['resources'] if r['type']=='box-2D')
+                self.assertEqual(resource['region'],target_region)
+                if expected_source:
+                    self.assertEqual(resource['importReference']['sourceRegion'],expected_source)
+                    self.assertEqual(resource['importReference']['reconstruction'],'composite')
+                    self.assertNotEqual(resource['importReference'].get('sourceLanguages'),['en'])
+
+    def test_world_or_unspecified_carton_art_stays_a_reference_donor(self):
+        import zipfile
+        for source_region, expected in [('World', 'wor'), ('', None)]:
+            with self.subTest(source_region=source_region), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                image = Image.new('RGB', (32, 48), 'navy')
+                image.paste('white', (8, 8, 24, 20))
+                body = io.BytesIO()
+                image.save(body, format='PNG')
+                row = {'rank': 1, 'title': 'Fixture', 'game': {'id': 'game'},
+                       'edition': {'id': 'edition', 'regions': ['us']},
+                       'metadata': {'titles': [], 'media': []}}
+                index = ({'42': 'Fixture'}, {'42': [{'DatabaseID': '42',
+                    'Type': 'Box - Front', 'Region': source_region,
+                    'FileName': 'aabbccdd.png'}]}, {packaging.normalized('Fixture'): {'42'}})
+                args = SimpleNamespace(system='gba', projection=root/'projection.gz',
+                    launchbox=root/'index.zip', env=None, panel_layouts=None,
+                    output=root/'pack.zip')
+                with patch.object(packaging, 'ranked_selection', return_value=[row]), \
+                        patch.object(packaging, 'launchbox_index', return_value=index), \
+                        patch.object(packaging, 'website_box', return_value=None), \
+                        patch.object(packaging, 'fetch', return_value=body.getvalue()):
+                    packaging.collect(args)
+                with zipfile.ZipFile(args.output) as archive:
+                    game = json.loads(archive.read('packaging.json'))['games'][0]
+                front = next(r for r in game['resources'] if r['type'] == 'box-2D')
+                self.assertEqual(front['region'], 'us')
+                self.assertEqual(front['importReference']['sourceRegion'], expected)
+                self.assertEqual(front['importReference']['reconstruction'], 'composite')
+
     def test_composition_requires_a_selected_face_instead_of_provider_precedence(self):
         donor = {'type': 'outer-box-front', 'region': 'us',
                  'importReference': {'sourceId': 'nintandbox', 'sha256': 'donor',

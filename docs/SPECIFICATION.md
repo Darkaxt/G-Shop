@@ -1,6 +1,43 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 169, 2026-10-23.
+Authoritative specification, revision 173, 2026-10-25.
+
+Owner priority correction, 2026-10-25 (CATALOGUE-ALL): continue the Windows
+filename/provider-index mapping now, without making Thor, APK installation or
+the independently running publication pass a prerequisite. Prepare working
+source-bound catalogue mappings for
+the remaining supported consoles. Missing 3D consoles, boxes or cartridges do
+not block this mapping-only outcome. Inventory actual H: source filenames, reuse
+the public provider indexes and E: cache, and retain exact source/edition and
+provider platform/ID provenance, reviewed manual aliases and explicit unresolved
+conflicts. Reconcile every source and verify that the JSON is usable by the
+normal mapping consumer; do not equate title mappings with physical-resource
+coverage. Execute this outcome within S26 without opening another ACTIVE
+stage, acquiring ROM bodies/artwork merely for title matching, or starting their
+3D integrations. Existing S26 acceptance and final-delivery requirements remain.
+
+Owner catalogue-binding direction, 2026-10-24 (CI-01/META-03, S26): consume the
+full H: filename/index audit in the real resource pipeline, rather than stopping
+at match counts or repeating individual provider searches. Preserve explicit
+JSON provider bindings and reviewed manual naming/edition resolutions where
+supported by the available evidence. Bind decisions to the current source path,
+canonical game/edition, actual provider platform/ID and index provenance; reject
+stale or conflicting overrides. Keep title matching separate from ROM identity
+and physical-printing acceptance. Reuse acquired resources, retain unresolved
+entries in the full census, and carry the corrected bindings through normal
+preparation, import, publication/recovery and native acceptance. This continues
+sole ACTIVE S26 and its existing single final-release boundary.
+
+Windows acquisition reconciliation (CI-01/META-03, S26): explicit prepared
+imports may retain the actual completed provider response instead of spending a
+second request on the same archive. Verify its captured request, exact raw hash
+and size, current Drive artifact/version, canonical edition, provider/platform,
+typed media and provenance. Keep the original retrieval time, exclude ratings,
+and run classification, durable job commits, artwork binding and Drive publication
+through the existing owned lane. Missing/changed prepared evidence pauses that
+import without silently starting another crawl. Existing fresh-lookup imports
+and saved jobs remain supported. This implements the already-authorized Windows
+workflow; it does not weaken physical-edition or coverage acceptance.
 
 Owner artwork-quality direction, 2026-10-23 (CI-01/META-03, S26): when artwork
 faces need acquisition/replacement, request candidates from both LaunchBox and

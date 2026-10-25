@@ -14,7 +14,8 @@ def main():
     parser.add_argument('--roles', nargs='+', default=['box-2D', 'box-2D-back', 'box-2D-side', 'manual-page'])
     args = parser.parse_args()
     report_file = args.pack.with_suffix('.report.json')
-    report = json.loads(report_file.read_text()) if report_file.exists() else None
+    report = json.loads(report_file.read_text(encoding='utf8')) if report_file.exists() else []
+    titles = {row['editionId']: row['title'] for row in report if row.get('editionId')}
     args.output.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(args.pack) as archive:
         games = json.loads(archive.read('packaging.json'))['games']
@@ -23,7 +24,7 @@ def main():
             draw = ImageDraw.Draw(sheet)
             for index, game in enumerate(games[start:start + 8]):
                 top = index * 240
-                title = report[start + index]['title'] if report else 'Classified edition'
+                title = titles.get(game['editionId'], game.get('title', game['editionId']))
                 draw.text((12, top + 4), f'{start + index + 1}. {title}', fill='white')
                 for col, role in enumerate(args.roles):
                     draw.text((col * 340 + 12, top + 22), role, fill='#aaaaaa')

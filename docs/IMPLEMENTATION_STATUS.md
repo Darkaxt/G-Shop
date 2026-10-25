@@ -5,8 +5,410 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-25 continuation under specification revision 173: S26 remains ACTIVE.
+CATALOGUE-ALL is the current outcome: complete Windows filename/provider-index
+mappings for all remaining supported source folders. Thor, APK installation,
+ongoing native publication and missing 3D assets do not gate this work. Preserve
+the original publication operation independently. Acceptance requires the full
+source census, scoped index provenance, explicit unresolved rows and a verified
+mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
+no additional implementation stage is active.
+The CATALOGUE-ALL Windows pass now accounts for all 26,995 additional mounted
+source files across 23 populated platforms. It produces 23,737 unique catalogue
+candidates (87.93%) and 3,258 explicit unresolved entries. A fresh primary-folder
+inventory independently agrees with all 17,558 retained G&W/NES/GBA source paths;
+the combined census is 44,553 sources, 36,175 candidates (81.20%), 8,378 unresolved.
+Private deliverables are under MetadataCrawl/2026-10-25/all-console-catalogue:
+`mappings-r6.json`, `summary-r6.json`, `coverage-r6.csv`, `unresolved-r6.csv`.
+Every candidate passes the source/index/platform integrity consumer, including
+recomputed exact/declared-alias/corroborated decisions. Normal owner promotion
+and an actual packaging fixture pass; missing native owners remain unpromoted.
+Scoped fixes recover DS release-number filenames, 3DS title/product decorations,
+PSP Minis/64DD namespaces and apostrophe/article typography. The malformed blank
+DS index row is retained as evidence without discarding the other 5,038 records.
+Firmware, DLC, updates and auxiliary archives remain in the census with distinct
+roles; Switch currently contains three firmware archives and no game programs.
+199 compressed 3DS containers and 26 Wii WADs can be filename-mapped without
+claiming app container/emulator support. This pass reads no ROM bodies or artwork
+and spends no per-ROM ScreenScraper API requests. E: owns all cache/output; this
+mapping pass makes no H: writes. Installed integration guidance is 0.1.57, read back with matching
+source/installed hash. Wider S26 remains ACTIVE; this is not 80% physical-resource
+acceptance, a native installation, or a final application release.
+The maintained packaging collector now consumes source/edition-bound catalogue
+JSON, including reviewed manual IDs and the nested FDS namespace. It rejects
+changed source artifacts, owner identities, index hashes, missing/wrong-platform
+IDs and changed provider titles before acquisition. Artwork bindings cannot
+replace conflicting raw-ROM metadata. The clean native census can supply the
+actual collection query and existing metadata without stopping/copying the live
+SQLite database. Focused real-pack regressions pass, including manual ID and FDS
+resources reaching the normal packaging ZIP with unchanged target identities.
+
+The r6 private full-source JSON accounts for all 17,558 H: archives exactly once:
+12,427 have a unique candidate and 5,131 remain explicitly unresolved. Seven
+Game & Watch manual decisions use retained archive hashes, CRCs and the already
+reviewed primary exterior policy; all 53 now have a candidate on both providers.
+NES has 8,355 and GBA 4,019 candidate-bound source archives. Both provider IDs and
+titles were checked against the captured platform indexes. These are acquisition
+bindings, not accepted physical resources. The clean collection additionally
+retains two locally generated Advance Wars patch builds, explaining its 7,676
+GBA members versus 7,674 H: archives; they are not discarded or borrowed originals.
+Exact corroborated provider names add 681 cross-provider links without loosening
+word boundaries or numeric/operator distinctions. Including three further manual
+G&W links, the original r4 input remains unchanged for the running full collectors.
+Four reviewed GBA compilation aliases and 37 current owned raw-ROM anchors are
+now recorded as explicit additional manual decisions in r6 (48 decisions total).
+Each raw anchor was checked against its native provider ownership key, complete
+current game/edition and exact public platform ID; no additional ROM/API reads.
+The r6 provider-bound source counts are LB/SS 53/53 G&W, 7,460/7,249 NES and
+3,778/3,768 GBA. Nine new Multiboot program mappings remain separate from physical
+resource acquisition. The maintained collector now supports exact current-edition
+subsets with the full census count and immutable filter retained in its receipts.
+The later r7 binding JSON adds 11 reviewed captured raw-ROM anchors (59 manual
+decisions total), reaching 12,438 bound sources and 5,120 unresolved sources.
+GBA has 4,030 candidates, with LB/SS 3,789/3,779; NES and G&W remain unchanged.
+Raw/container hashes, current source artifacts, public platform IDs and localized
+titles were checked without further ROM/API reads. A contradictory Yu-Gi-Oh!
+Expert 3 EX / Expert 2 provider result is held in the next source import, alongside
+the earlier known volume conflict. Ten eligible new GBA mappings have reached the
+actual resource collector; the Virtual Console source remains a separate physical
+binding hold. All previous preparation inputs remain immutable.
+The desktop import preparer now supports explicit current-manifest edition deltas,
+with unchanged full checkpoint/membership receipts, stale/duplicate selection
+rejection and retained selected/unselected provider reviews. Focused regression
+verification passes. The pending terminal-crawl delta will verify the earlier
+136 committed packs before excluding their 3,390 exact source editions; no new
+native import or publication has been started.
+The actual G&W collector completed all 53 sources. Retained reviewed NintAndBox
+crops cover 45 editions; provider artwork supplies the eight supplied-atlas
+carton cases. Two further backs were recovered from the retained NintAndBox
+library, with explicit 180-degree gallery corrections and inspected derivatives;
+the original UV-mapped resources remain unchanged. Three final r6 prepared packs
+now contain 53 fronts, 53 backs, 53 spines and 268 outer panels (427 media entries),
+all accepted by the actual app
+media model with current owner and content checks. All 53 front/back pairs were
+visually inspected in nine contact sheets plus the two corrected backs.
+The superseded unreviewed r5 transfer plan was never applied. These resources are not yet
+published or accepted on Thor. The shared collector also now preserves donor
+gallery faces without an English replacement and supports content-verified
+25-item batch resume. Complete reviewed packs are retained without duplicate
+acquisition, with an explicit awaiting-delivery report.
+The full NES/GBA passes now reuse the verified 2,771-game reviewed preparation;
+447 retained NES donor layouts are supplied before provider acquisition. The
+first 25-item diagnostic NES prefix is preserved, and its response cache is reused
+in the corrected pass rather than overwriting its inputs. The full NES pass is
+terminal at 9,831/9,831. Independent verification checked all 394 ZIPs
+(7,210,400,310 bytes), 9,224 image members, current owners and reported roles:
+3,899 editions have new resources and 886 retain the reviewed preparation.
+The 1,323 unresolved-region and 809 modified-binding outcomes remain explicit.
+The 14-edition reviewed NES mapping correction is now running through the
+maintained consumer; the regional correction follows that operation. The existing
+same-game reference-carton preparation helper is also being applied to NES after
+its terminal full census, preserving all shared provider IDs and source printing
+provenance. Prepared resources still require printing review and normal delivery.
+The 14-edition correction is terminal: 11 prepared entries were inspected in two
+identity-captioned sheets, with two Family BASIC keyboard-bundle fronts held for
+separate packaging geometry. The same-game NES reuse diagnostic exposed a hardware
+family error: provider agreement alone allowed western NES cartons for Japanese
+Famicom releases. The original 419-candidate r1 preparation remains diagnostic;
+it was never imported. The corrected r2 selection filters compatible hardware
+families before language preference, yielding 50 candidates and 374 explicit holds
+(including the five prior raw-provider conflicts). Its actual app-contract check
+passed all 50 current owners and 450 media roles across two packs. The superseded
+device copy was removed through reviewed cleanup transaction
+`8cf852f6cadd21c63c14a87a4be3fdc4`: 19 files and the empty task directory,
+943,953,314 bytes, terminal state `applied`. The initial content/ctime snapshot
+failures were diagnosed before cleanup; all original hashes were retained and
+verified. Source files and audit evidence remain on E:.
+The NES regional repair is terminal for all 402 selected current editions. Its
+17 packs contain 343 resource-bearing entries. All 49 front/back contact sheets
+were inspected; 38 editions are explicitly held for contradictory titles,
+variant/compilation printing, bundle geometry or unrectified media roles. The
+remaining 305 reference candidates are retained in 13 separately filtered packs.
+These are reviewed acquired images, not completed carton geometry or accepted
+published coverage. Existing full-census outcomes remain unchanged and explicit.
+The GBA pass is
+terminal at 7,676/7,676. Independent verification checked all 305 new ZIPs
+(4,123,875,652 bytes), their 3,078 image members, exact current owners and every
+reported role: 1,455 editions have new resources and 1,885 reuse the separately
+reviewed preparation. This is acquisition integrity, not physical acceptance.
+GBA's 3,580 unresolved-region and 341 modified-binding outcomes remain explicit.
+The r6 correction subset has also reached the actual consumer for all 18 eligible
+GBA editions, reusing 15 reviewed entries, preparing two new face sets and retaining
+one then-empty source result. The nine Multiboot rows are held separately.
+Inspection of the two actual new face sets passes upright game/front/back checks.
+Their captions now join packed edition IDs, fixing a reproduced mislabelling bug
+when held/retained report rows were absent from a ZIP. The original Thor publication
+remains active; the current inspected native frame shows 3,017/5,772, 2,755
+remaining. No publication cancellation or duplicate import was performed.
+The final three G&W packs and their manifest are now staged on Thor through the
+manifest-bound archive transfer, with all four destination files hash-verified.
+They still require normal import/publication and native acceptance.
+The 22:01 UTC account-only check confirms ScreenScraper has reset to 0/20,000
+requests. Resume the original remaining-supported manifest/checkpoint through
+the reviewed private `resume_remaining_supported.ps1`, retaining its frozen Java
+runtime, 11,510,386,053-byte budget and 7,076 completed outcomes. The two current
+NES/GBA preparation processes retain their exhausted local API budgets, leaving
+this resumed crawl as the sole live ScreenScraper acquisition lane. The current
+NES checkpoint has advanced past 3,625/9,831; completed/processed counts include
+explicit gaps and do not measure acceptance.
+The actual LaunchBox region audit found 1,228 country-specific image entries
+across 580 catalogue IDs discarded by the former limited region map. Exact
+country mappings and a final regional-reference tier now pass the affected
+regressions while retaining source-country/composite provenance. The GBA repair
+cohort is 47 eligible current editions plus one separate media-family hold; its
+maintained subset consumer is terminal. Two packs contain 35 fronts and 31 backs.
+All five actual contact sheets were inspected; four rows retain printing holds
+for the Goodboy Galaxy back illustration and Mojie Qibing's separate physical
+printing/classification, rather than claiming those source roles accepted.
+Broad Oceania/South America
+entries remain unmapped rather than being assigned a fictitious country.
+The installed/source integration skill is 0.1.54 with these corrections.
+
+Reusing reviewed same-game GBA carton resource sets yields 237 additional
+reference candidates after the current source-family, retail/modification and
+shared-provider agreement checks. Their ten packs preserve original panel pixels
+and per-face provenance; no labels, ratings or ROM facts are borrowed. An explicit
+comparison confirms zero source-region changes, including preserved unknowns.
+The actual app handoff check passes all 2,133 media roles, owners, image hashes,
+unique roles and front/gallery coherence. This does not establish exact printing,
+normal publication or native acceptance. Their 12-file delivery (ten ZIPs,
+preparation and host check log) is now hash-verified and placed on Thor at
+`/storage/emulated/0/Download/GShop-gba-reference-candidates-20261025` through
+transfer `ab6a78b2e8d54e7c8415bc0a48057224`; local/remote staging was removed.
+Keep this separate from the original 112-pack r7 observer, whose expected cohort
+must not silently change. Native import remains after the original publication's
+actual terminal event. The original raw crawl is advancing again after its
+retained-body verification (last inspected 7,161/8,057), without a duplicate job.
+Next action: finish collection-wide NES/GBA processing,
+then normal import/publication and native acceptance. Preserve the
+original live publication and staged 112 reviewed packs; no duplicate import or
+intermediate release. The reset was confirmed from the actual account response;
+its time was not assumed.
+
+2026-10-24 index-only audit requested by the owner: enumerate current H: names
+without reading ROM contents, download fresh LaunchBox metadata and the public
+ScreenScraper game-title CSVs, then match locally. All 17,558 source files reconcile
+with the existing census (53 Game & Watch / 9,831 NES / 7,674 GBA). The audit
+preserves meaningful title/hardware parentheses and routes the 780 NES Disk System
+paths to the actual FDS catalogue. One-ID canonical/declared-alias title matches
+are 47 / 7,430 / 3,740 for LaunchBox and 47 / 6,110 / 3,073 for the public
+ScreenScraper CSVs. Their public-index union is 49 / 8,319 / 3,978
+(92.45% / 84.62% / 51.84%). Reusing already retained provider-declared SS names
+raises the union to 49 / 8,341 / 3,992, without a new API request. Loose candidates
+and multiple-ID conflicts are excluded. The public CSV is a canonical-name list;
+its misses are not proof that no regional alias or game exists on the website.
+All 3,259 e-Reader entries lack an exact indexed title; the main GBA folder has
+3,641/3,818 title matches (95.36%) including retained aliases. This is catalogue
+title coverage, never ROM identity, usable artwork, physical models, publication
+or native acceptance. The E: title-index-audit folder retains source hashes,
+website/export total verification, all per-file IDs/statuses and REPORT.md. Zero
+ROM bodies, artwork or provider API requests were used; the original Thor
+publication and its observer remain untouched. S26 remains ACTIVE.
+
+The preceding full LaunchBox recheck processed all 8,057 retained manifest items.
+Preserving suffix `+`/`++` and numeric `-2` separates three originals from their
+modified-title collisions. Eighteen false ambiguities are removed; the subsequent
+compilation-join check retains all three valid multi-game matches. Candidate
+acquisition is now 4,446 rows, with 22 actual title ambiguities, 3,555 index misses
+and 34 rows without acquired images. These remain acquisition outcomes, not
+native usable coverage. Original raw-source processing reached the verified provider quota boundary.
+
+The subsequent full Unicode/word-boundary recheck is terminal for all 8,057
+entries: 4,457 acquired candidate rows, 3,556 literal index misses, ten unresolved
+title conflicts and 34 rows without acquired images. Twelve formerly ambiguous
+rows now resolve without dropping non-Latin modification names or merging
+`Final Fantasy III` with `Final Fantasy I•II`/`Castle Quest` with `Castlequest`.
+The `1943` FamicomBox shorthand no longer receives an ASCII-erased alias match;
+its independently captured ScreenScraper names and metadata remain preserved.
+These literal-title results do not prove source absence. Six recovered Fire
+Emblem rows still await the original quota-limited source crawl. The other six
+recovered rows are Japanese Famicom references, including Virtual Console
+rereleases, with no current applicable cartridge binding. Five actual comparison
+pages were inspected; none of the thirteen changed rows overlaps the final 112
+staged packaging packs. Retain their acquired faces without borrowing another
+physical media family or counting the matching repair as usable coverage. The
+installed/source integration skill is now 0.1.49 with verified byte parity.
+
+An actual HVC/Asian export case also disproved conflating hardware format with
+printing country. The source-region correction preserves nine Asian printings
+and their Famicom hardware compatibility. The r7 catalogue changes only those
+nine region fields: 1,274 model manifests and 1,096 archive bindings are unchanged.
+It passes the actual app catalogue/model loaders and its single 418,223-byte
+transfer is verified. After the original publication completed, the exact signed
++49-r9 candidate was installed and read back; r7 was promoted through its guarded
+script. The selected 418,223-byte catalogue has SHA-256
+`23108235e6261e0b883e85979e58e59e07b9971d1d190944c904214d97c6d8bb`.
+The earlier 980-edition catalogue is retained at its exact recovery path. Native
+appearance and cloud model recovery remain unaccepted. The r6 promotion must not run.
+
+Current continuation, 2026-10-24: S26 remains the sole **ACTIVE** stage, with
+revision 170, full collection denominators and the final release boundary
+unchanged. Processing continues through validation rather than another partial
+coverage report. The original 8,057-archive Windows crawl is terminal at the verified provider
+quota boundary: 7,076 processed, 981 pending. Its 3,391 matches, 353 unmatched,
+3,295 decoder/format-budget outcomes and 37 review outcomes are preserved in the
+original checkpoint. An account-only check confirms 20,000/20,000 requests used;
+no reset time is assumed and no alternate provider endpoint bypass is attempted.
+Resume the same manifest/checkpoint/read budget only when the provider reports
+available quota. This blocks completion of source acquisition, not independent
+preparation, normal import/publication or validation. The original native Drive
+publication reached its actual completion event at 14:09:08Z: all 40 metadata and
+40 artwork packs completed, including historical preservation and cache
+verification. Its original observer exited successfully. Installation and
+catalogue promotion occurred only after that terminal evidence.
+Neither source results nor staged candidates establish usable published coverage.
+
+The full source partition reconciles all 17,505 NES/GBA archives, plus 53
+Game & Watch archives. It identifies 634 supplemental held sources omitted from
+the previous working cohorts: 608 disks, seven modified/aftermarket NES copies
+and 19 GBA colour hacks. These have no current metadata records; they are not
+existing covered games. All held rows remain in the denominator with unresolved
+physical/source applicability, separately from provider misses and pending work.
+
+The final available paired-source pass is terminal for 3,391 captured matches.
+All 932 additional GBA panel candidates are prepared (931 complete sets); 42
+source/colour pages and four correction pages were actually inspected. Twenty-one
+games receive 22 face corrections: seven upright rotations, three better flat
+rear scans and twelve rejected global colour fits. These candidates remain
+unpublished and have not passed native acceptance. One Vol.3 ROM has a provably
+contradictory Vol.1 provider record; its metadata and physical resources are held
+by exact source hash rather than importing the wrong identity. The maintained
+preparation exclusion reproduces the missing guard and now passes its changed-
+source regression. The reconciled source batch now contains 3,390 games in 136
+stored ZIPs. It passes the actual app import contract; all 137 transfer members
+(7,865,216,558 bytes including the receipt) are verified and placed on Thor, with
+all transfer staging removed. The real Android picker selected exactly 136 ZIPs
+from the r5 source folder and submitted them once at approximately 14:24Z. The
+original observer retains responsibility through native commits and publication.
+All 136 metadata and 136 artwork jobs are now terminal and committed (last pair
+463/464 at 16:46:44Z). The following normal Drive publication is still running.
+The latest native status capture reports 2,543/5,772 games (44%, 3,229 remaining),
+with the original PID 18538 and observer session 88490 retained. This publication
+counter is not collection coverage. A bounded browsing diagnostic preserved the
+saved filters: NightFire search returned no matches under those filters; the
+ordinary GBA browser completed cached discovery with 24 ranked matches and
+face-attached score badges. Mega Man Zero 3 and Sapphire remained in the lower
+preview's loading state in the captured views, so personalized-label rendering
+has not passed acceptance. The foreground is returned to the shared-folder
+publication status. No safe public checkpoint/pause exists for applying r10
+mid-upload; the ordinary pause joins the whole operation and the exposed stop
+path initiates a destructive media rebuild. Neither was used.
+A dirty browsing projection in Settings caused the diagnostic observer to stop;
+the native operation continued. The actual normal Library refresh then completed,
+and its separate 150,413-row read-only census has zero dirty projection rows.
+The original dirty snapshot and diagnostic failures remain preserved. Preparation
+still requires the clean census; that guard was not relaxed. Do not import r3/r4 packs. The r7 art finalizer includes both reviewed GBA
+cohorts and their source-hash-bound corrections/identity hold.
+
+Reconciliation also found 463 selected NES carton bindings omitted from the
+reconstructed-artwork cohorts. The unchanged original panels now have a maintained
+hash-bound handoff helper. All sixteen contact pages were inspected; actual native
+UV checks show two apparent scan-role/orientation faults are already compensated
+by the existing meshes. Their flat resources are corrected without rotating the
+models or opening geometry. Four damaged/sticker-obscured selections have intact
+existing reference replacements staged in r8; it is not yet promoted. All 9,786
+files for its 1,046 selected native carton models match their immutable manifests.
+These preparation/integrity checks do not establish published resource coverage
+or native visual acceptance. Final label accounting will reject stale metadata
+ownership before using the production label selector and published body receipts.
+The final clean-snapshot handoff contains 886 NES and 1,885 GBA game sets in 112
+packs, plus nine existing complete sets requiring read-back. It passes the actual
+app ownership/role/body contracts. All 113 transfer members (6,956,712,966 bytes)
+are verified on Thor, and both local/remote transfer staging are cleared. These
+packs remain unimported until the active source publication finishes. The actual
+current ownership audit rejects no stale rows in this snapshot and selects 4,298
+unambiguous labels; this does not establish their remote bodies or full resource
+sets. Integration skill 0.1.48 added retained-carton reconciliation, compensating
+native UV mappings, current provider ownership and the clean projection handoff;
+the later matching maintenance above is installed as 0.1.49 with source parity.
+
+Publication profiling of the retained acquired facts found 156,270 media
+references, causing 312,540 separate artwork/response SQL reads before display
+aliases and repeated edition exports. The existing exporter now reads at most
+128 keys per indexed query and restores the original media order. A regression
+first reproduced 274 artwork reads for its multi-page fixture, then verified
+four bounded reads and byte-identical scoped/full packets, including missing
+bodies, duplicate references and provider/generation isolation. The affected
+shared-store and cloud publication/recovery tests pass. Signed candidate +49-r10
+is retained with SHA-256
+`30d42e7492cc9b21198207a269367c64b81cef55e2f39fb4da53bf2cf00b5092`.
+Its gated release build and native tests passed with verified two-worker,
+3-GiB Gradle/in-process Kotlin configuration and daemon exit. It is not installed;
+the original native publication must first reach its actual terminal event.
+After Thor returned to the launcher, the existing app task was brought forward
+without restarting PID 18538. Separate read-only publication snapshots confirm
+new owned folders and verified resource receipts continue to commit. No running
+publication or original collector job was cancelled or replayed.
+
+The canonical-title/alias collision and catalogue capacity defects are reproduced
+and corrected. The 1,274-edition/1,096-binding candidate and all 39 additional
+repaired models, textures and front-surface badges pass the actual app loaders.
+Its transfers verified all 418 model files and the r7 catalogue. The installed
+candidate now selects the 1,274-edition catalogue; original model manifests and
+rollback catalogues remain preserved. No original metadata job was restarted.
+
+The live Drive publication view exposed a separate measured-progress gap: the
+known game total was displayed beside an indeterminate bar. The actual settings
+widget regression reproduces the old null value and now passes with 0/total,
+partial/total, terminal/total and unknown-phase states. The existing mounted-reader
+and cloud lifecycle checks also pass. The signed +49-r9 candidate passed the shared gate, effective 2-worker/3-GiB
+profile, daemon exit, package version and signer verification. Its SHA-256 is
+`eef9aed66a2e55efcf7cecb65c1cedc34270d9958ad0c7dcee42720cae52c930`;
+installation succeeded at 14:10:43Z and the installed base APK digest equals the
+candidate. Native resource acceptance remains pending. The completed 2,528-result comparison pass reapplies both newer reviewed NES source
+choices rather than trusting unchanged LaunchBox IDs in an older cache row.
+
+Fine white printing disproved 64 further retained global colour fits. All eleven
+before/source/donor pages and all seven six-pose pages for 39 immutable NES
+repairs were inspected. Original source colours, prior provenance repairs and
+opening geometry are retained; two uncertain OCR fronts were accepted only after
+actual mapped-panel review. Fourteen GBA games also have source-colour/face-role
+repairs, including a hash-bound Yoshi donor front/back correction. Original files
+and rejected receipts are preserved. The installed integration skill now records
+fine-print and actual panel-role checks.
+
+The app parser also exposed a provenance representation gap: a reviewed composite
+with an unknown custom donor region was rejected, despite its distinct known
+target region. Reproduced tests now preserve the unknown donor region without
+inventing Europe or weakening exact regional-printing provenance. All 587
+corrected priority game records (5,283 artwork roles, 24 packs) pass the actual app
+model. Normal import/publication and native acceptance remain pending. The signed
++49-r7 candidate predates this last parser fix; signed +49-r8 passed its shared
+gate, effective resource profile, daemon exit and package/signature checks. Safe
+installation still awaits the original publication. No intermediate public release is authorized.
+
+Further face review recovered Arkanoid and Super Spike V'Ball + Nintendo World
+Cup using compatible existing alternatives instead of their controller/console
+bundle fronts. Both new cartons pass text orientation, six opening views and
+actual app model/texture/badge loading. The completed 2,376-result paired pass
+also found two missing GBA Video fronts filtered out solely because LaunchBox
+catalogued them as World. The maintained carton-only fallback now admits World
+and unspecified donor regions with explicit composite provenance. Both fronts
+are acquired, reconstructed and inspected; cartridge labels remain exact-source
+only. All 537 captured GBA candidates now have complete reference panel sets,
+including one corrected sideways Tales of the World front/back pair. Reference
+panel preparation remains separate from native physical-media applicability,
+identity-owned import and publication.
+
+The remaining source preparation is complete for its captured 2,311 matches
+(93 stored ZIP packs), and the actual app import contract passes. Later crawl
+results remain pending capture/import. Newly captured source comparisons retain
+both providers and reuse existing bodies. The held-source and separate-media
+ledgers remain part of the unchanged full collection census. Sampled e-Reader
+failures contain .raw card payloads rather than ordinary cartridge programs;
+all 3,295 decoder-failure archives now independently pass their exact retained
+Drive container SHA-256 and 7-Zip CRC test (4,583 members). Their causes are 3,243
+card-strip containers, six saved-memory collections, 15 Play-Yan data archives,
+four firmware archives, 15 Family BASIC tapes, six Network System containers,
+two multi-member NES archives, three corrected padding cases awaiting the serial
+follow-up, and one valid 64-MiB GBA Video archive beyond the specified 32-MiB
+work budget. No corruption is established. Source families now distinguish the
+six saved-memory collections. Their physical resources/launch applicability are
+not silently borrowed from base games, and the original decoder budgets remain
+unchanged.
+
 2026-10-24 processing continuation: **S26 ACTIVE**, sole active stage; revision
-169 and the final release boundary are unchanged. The retained 977 matched
+170 and the final release boundary are unchanged. The retained 977 matched
 source results have completed all 40 normal UI metadata and artwork import packs
 on Thor. Their original Drive publication remains running; do not resubmit or
 restart it. Its event observer and private E: receipts retain exact progress.
@@ -16,7 +418,7 @@ census now verifies zero dirty edition/cache rows. Publication read-back is pend
 Reviewed additive NES cartons are installed without replacing existing editions:
 119 new models bind 128 original physical-release archives. Twenty digital
 rerelease bindings remain held; nine otherwise reviewed model candidates are
-unbound. The active catalogue has 754 editions and 597 archive bindings, SHA-256
+unbound. This earlier catalogue had 754 editions and 597 archive bindings, SHA-256
 `bb7db69c9134d723d39307c51ebd039be255072a90803ba423ae8691524d504a`.
 All 1,409 transferred files were verified; the preceding catalogue is retained
 at the exact task-owned device model-history path. Installation integrity does
@@ -34,18 +436,94 @@ with source-bound rotations shared by gallery and carton. Their assembled/native
 verification remains pending. Source-path Multiboot/e-Reader/Disk System families
 stay distinct from retail-cartridge bindings even when the program matches.
 
+The next 232 NES candidates have completed front/back and all six assembled
+closed/mid/open inspection views. Seven uncertain OCR results received explicit
+hash-bound mapped-panel review; the original aggregate conversion exit remains
+retained. Additive deployment preparation preserves a repeated existing Zelda
+model and its original orientation receipt rather than replacing that edition.
+The resulting additive generation has 226 new models and 241 new archive
+bindings, with 15 digital rerelease rows held (including Animal Crossing).
+Transfer and additive promotion are verified against all 2,646 files. A subsequent
+whole-catalogue audit removed four older Animal Crossing embedded-ROM bindings
+without removing models. The active catalogue now has 980 editions/834 archive
+bindings, SHA-256 `158d8fe052b35c1602008ac4f953040306a59cb0c841013336a43dc0dec3e9cd`.
+Both prior catalogues have exact rollback paths. These installation/authoring
+checks do not establish native or published coverage.
+The next completed comparison covers 1,329 source matches. Its additional 143
+Western NES carton candidates have passed source-panel inspection and are now
+running through the same gated conversion, mapped orientation and six-pose
+opening review. Their 158 candidate archive bindings remain unpromoted.
+
+Further mapped-panel review found a colour-fit defect: changed regional branding
+can make the spatial fit wash out genuine dark printing while still improving its
+median error. Those candidates are held. The shared correction now requires dark
+printing independently present in both scans to corroborate the same global
+transform; rejected fits retain the replacement's original colours. The original
+Sapphire blue-reference correction remains unchanged and passes. Retained NES/GBA
+derivatives are being audited against their exact sources before affected faces
+are regenerated and re-reviewed. Prior installation integrity does not waive
+this artwork-quality gate; the prepared packaging packs remain unimported.
+The exact-source audit completed with 140 applied-fit checks: 126 were unchanged
+and 14 NES faces on 13 cartons were regenerated using their original colours.
+No retained GBA correction failed this new check. All seven before/original/donor
+comparison pages and all three repaired opening-view pages were inspected.
+The next 143-model cohort completed all 24 six-pose pages; four defective colour
+derivatives remain preserved and are replaced by reviewed new identities.
+Additive installation of the reviewed generation is hash-verified against all
+1,753 files, preserving every previous edition and an exact rollback catalogue.
+The active NES catalogue now has 1,131 editions/991 archive bindings, SHA-256
+`0a718bffa9ba1e89895d29301750b707b13ff77cdafc641982a6af21549a8f2f`.
+An older `Possible Proto` retail binding was removed; shared script/runtime guards
+and regression checks now hold that source separately. Native acceptance remains
+pending. Corrected normal artwork packs contain 124 NES and 463 GBA games; the
+Animal Crossing and possible-prototype rows are held, not imported as retail.
+
 Related shared preparation fixes preserve role-specific spine orientation,
 reject colour fits that erase detail, and distinguish uncertain main-title OCR
 from vertical legal columns. Explicit mapped-panel visual review retains original
 OCR evidence and cannot waive known rotation or failed opening. The actual
 Sapphire blue-reference correction still passes the new colour correspondence
-check. Focused desktop/import checks pass; no APK behavior changed. The Windows
+check. Focused desktop/import checks pass. Installed +48 is unchanged while its
+original publication runs. The preliminary +49 candidate predates the completed
+physical-role/outcome guards. The current internal candidate is +49-r5, SHA-256
+`114c5379d65b0b6d2295febfe8d105ae25ce106b0e262b30b1d1012a75e49e12`.
+Its signed build includes response reuse, explicit role/outcome scope, the Animal
+Crossing/possible-prototype binding guards and the 7z padding fix. The shared build gate verified the
+worker/JVM profile and daemon exit; the signing certificate matches the installed
+app. Installation waits for the original publication to finish. Native
+reuse/import/publication acceptance is pending.
+All 68 stored ZIPs for the 1,081 captured source results and 587 corrected
+packaging sets have been transferred and hash-verified in one normal-import
+selection folder. Both transfer staging roots were removed. These packs are
+unimported; transfer and the signed candidate are not published coverage.
+The focused normal-import tests cover source/response rejection, offline reuse,
+fresh-runner recovery and unchanged saved jobs. The revised cohort contains 1,081
+captured results in 44 packs; every captured response passes the actual app parser
+and canonical owner/raw proof check. Physical-only selection, retained unavailable
+outcomes, placeholder rejection and explicit fresh retries are covered by the
+focused checks. Current native selection exposes five unattempted derived/front
+selectors in five captures. Their role/region evidence is retained as gaps;
+offline reuse neither requests them nor treats them as provider-unavailable.
+The superseded 940-result R1 packs were never imported; after diagnosing stale
+Android FUSE ctime attributes, a fresh strict snapshot/ticket removed exactly
+their 40 staged members (2,289,805,676 bytes), with no residuals.
+This is acquisition evidence, not native or published coverage. The Windows
 crawler additionally reuses only hash/size-verified exact typed provider media,
 retaining region/member distinctions and independent ROM matches. The remaining
 8,057 supported source gaps are now running through the original Windows crawl,
 with the exact manifest, archive budget and retained-image reuse receipt saved.
 Completed results are also compared with LaunchBox using their retained typed
 ScreenScraper bodies. These acquisitions are not published or usable coverage.
+
+Archive diagnostics reproduced valid repeated zero-filled 7z alignment properties
+being rejected as duplicate fields. The shared reader now permits that padding
+while retaining field uniqueness, CRC, name and work-budget constraints. Its
+regression checks pass; three affected real archives also match independent 7-Zip
+raw fingerprints. Five other checked failures are Network System data outside
+the NES cartridge profile. The six Network System source rows now have a separate
+physical family in the census, without changing any source denominator. The
+original running crawler/runtime is unchanged; repaired-input provider follow-up
+must wait for that operation's terminal boundary.
 
 Current-identity reconciliation prepared 25 resource packs for 126 NES and 463
 GBA archives. All 5,301 resource descriptors passed the actual app model parser,

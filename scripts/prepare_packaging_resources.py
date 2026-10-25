@@ -26,6 +26,7 @@ from artwork_colour_cast import match_colour_cast
 
 PLATFORMS = {
     'nes': ('Nintendo Entertainment System', 'NES'),
+    'fds': ('Nintendo Famicom Disk System', 'Famicom Disk System'),
     'snes': ('Super Nintendo Entertainment System', 'Super Nintendo'),
     'n64': ('Nintendo 64', 'Nintendo 64'),
     'gb': ('Nintendo Game Boy', 'Game Boy'),
@@ -44,7 +45,14 @@ PLATFORMS = {
 ROLES = {'Box - Front': 'box-2D', 'Box - Back': 'box-2D-back',
          'Box - Spine': 'box-2D-side'}
 REGIONS = {'North America': 'us', 'United States': 'us', 'Europe': 'eu',
-           'Japan': 'jp', 'World': 'wor', '': None}
+           'Japan': 'jp', 'World': 'wor', '': None,
+           'Australia': 'au', 'Canada': 'ca', 'United Kingdom': 'uk',
+           'France': 'fr', 'Germany': 'de', 'Spain': 'es', 'Italy': 'it',
+           'The Netherlands': 'nl', 'Netherlands': 'nl', 'Norway': 'no',
+           'Finland': 'fi', 'Brazil': 'br', 'Asia': 'asi', 'China': 'cn',
+           'Korea': 'kr', 'Hong Kong': 'hk', 'Russia': 'ru'}
+REFERENCE_CARTON_REGIONS = frozenset({'us', 'eu', 'wor', None})
+REGIONAL_CARTON_REGIONS = frozenset(REGIONS.values())
 HTTP_CACHE = None
 BOX_FACES = ('front', 'back', 'left', 'right', 'top', 'bottom')
 
@@ -117,6 +125,15 @@ def compose_english_faces(game, english_resources, *, bodies=None, read=None):
                 if resource['type'].startswith('outer-box-'):
                     resource['importReference'] = {**resource['importReference'],
                                                    'reconstruction': 'composite'}
+
+
+def retain_donor_gallery_faces(game):
+    """Use the retained prepared donor where no gallery replacement exists."""
+    for face, role in [('front', 'box-2D'), ('back', 'box-2D-back'), ('right', 'box-2D-side')]:
+        if not any(r['type'] == role for r in game['resources']):
+            donor = next((r for r in game['resources'] if r['type'] == 'outer-box-' + face), None)
+            if donor:
+                game['resources'].append({**donor, 'type': role})
 
 
 def website_box(row, system, session):
@@ -313,6 +330,7 @@ def augment_panels(source, target, recipes, *, panels_only=False, website_fallba
                 print(json.dumps({'rank': row['rank'], 'websitePanels': len(resources)}), flush=True)
         for game in manifest['games']:
             compose_english_faces(game, english_resources[game['gameId']], bodies=bodies, read=original.read)
+            retain_donor_gallery_faces(game)
         if panels_only:
             for game in manifest['games']:
                 game['resources'] = [r for r in game['resources'] if r['type'].startswith('outer-box-')]
@@ -332,14 +350,24 @@ def augment_panels(source, target, recipes, *, panels_only=False, website_fallba
     print(json.dumps({'classifiedGames': count, 'pack': str(target)}))
 
 
-def normalized(value):
-    text = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode().lower()
+def normalized(value, *, word_boundaries=False):
+    # Fold accents without deleting a non-Latin title or modification suffix.
+    text = ''.join(c for c in unicodedata.normalize('NFKD', value)
+                   if not unicodedata.combining(c)).casefold()
+    # A spaced join between names remains a compilation separator, as does '/'.
+    text = re.sub(r'(?<=[a-z0-9])\s+\+\s+(?=[a-z0-9])', ' ', text)
+    # Suffix operators can distinguish a separate release/hack, not just spacing:
+    # Final Fantasy ++, Super Mario Bros. 3 + and Super Mario Bros. -2.
+    text = re.sub(r'-(?=\d)', 'minus', text).replace('+', 'plus')
     # No-Intro moves a leading article behind the main title, before a subtitle.
     # Keep the article instead of dropping it or introducing fuzzy title links.
     article = re.match(r"^(.+?),\s*(the|an|a|l')(?=\s*(?:-|:|$))(.*)$", text)
     if article:
         text = article[2] + (' ' if not article[2].endswith("'") else '') + article[1] + article[3]
-    return re.sub('[^a-z0-9]', '', text.replace('&', 'and'))
+    text = text.replace('&', 'and')
+    if word_boundaries:
+        return re.sub(r'[\W_]+', ' ', text).strip()
+    return ''.join(c for c in text if c.isalnum())
 
 
 def owner_key(game, edition, provider='packaging'):
@@ -493,7 +521,7 @@ def launchbox_records(source):
             depth -= 1
 
 
-def launchbox_index(source, wanted_names, system='gba'):
+def launchbox_index(source, wanted_names, system='gba', *, forced_ids=()):
     """Resolve exact canonical/declared aliases; retain conflicting IDs.
 
     Aliases identify artwork candidates, never a ROM revision or physical SKU.
@@ -512,11 +540,14 @@ def launchbox_index(source, wanted_names, system='gba'):
             continue
         if identity and name in wanted_names:
             matching_names.setdefault(identity, set()).add(name)
-    games = {identity: platform_games[identity] for identity in matching_names
+    forced_ids = set(forced_ids)
+    if not forced_ids <= platform_games.keys():
+        raise ValueError('Catalogue binding ID absent from LaunchBox platform index')
+    games = {identity: platform_games[identity] for identity in set(matching_names) | forced_ids
              if identity in platform_games}
     names, images = {}, {}
     for identity in games:
-        for name in matching_names[identity]:
+        for name in matching_names.get(identity, ()):
             names.setdefault(name, set()).add(identity)
     if games:
         for kind, item in launchbox_records(source):
@@ -526,17 +557,23 @@ def launchbox_index(source, wanted_names, system='gba'):
     return games, images, names
 
 
-def launchbox_resolution(title, alternate_titles, names):
-    """An exact target-title link wins over broader regional alternate names.
+def launchbox_resolution(title, alternate_titles, names, game_names):
+    """An exact canonical title wins over another game's alias of that title.
 
     Keep every candidate in the audit; a collision on the target itself remains
     ambiguous. This chooses artwork candidates, never a physical printing/ROM.
     """
-    primary = set(names.get(normalized(title), set()))
+    target = normalized(title)
+    primary = set(names.get(target, set()))
+    canonical = {identity for identity in primary
+                 if normalized(game_names[identity], word_boundaries=True) ==
+                    normalized(title, word_boundaries=True)}
     candidates = primary.union(*(names.get(normalized(t), set()) for t in alternate_titles))
-    return {'selectedIds': sorted(primary if primary else candidates),
+    return {'selectedIds': sorted(canonical or primary or candidates),
             'candidateIds': sorted(candidates),
-            'method': 'exact-target-title' if primary else 'provider-alternate-titles'}
+            'canonicalIds': sorted(canonical),
+            'method': 'exact-canonical-title' if canonical else
+                      'exact-target-alias' if primary else 'provider-alternate-titles'}
 
 
 def png(body):
@@ -810,33 +847,113 @@ def collect(args):
     if getattr(args,'crawl_artwork',None):
         print(json.dumps({'crawlArtworkCache':seed_crawl_artwork(args.crawl_artwork,HTTP_CACHE)}),flush=True)
     scope = getattr(args, 'selection', 'top25')
-    selection = (collection_selection if scope == 'collection' else ranked_selection)(
-        args.projection, args.system)
+    if scope == 'collection' and not args.projection and getattr(args, 'binding_census', None):
+        from prepare_catalogue_bindings import census_selection
+        selection = census_selection(args.binding_census, args.system)
+    else:
+        selection = (collection_selection if scope == 'collection' else ranked_selection)(
+            args.projection, args.system)
+    collection_selected = len(selection)
+    edition_filter = getattr(args, 'edition_ids', None) or []
+    selection_scope = {}
+    if edition_filter:
+        if (scope != 'collection' or len(edition_filter) != len(set(edition_filter)) or
+                not set(edition_filter) <= {r['edition']['id'] for r in selection}):
+            raise ValueError('Invalid current collection edition selection')
+        selection = [r for r in selection if r['edition']['id'] in set(edition_filter)]
+        selection_scope = {'coverageScope': 'selected-editions',
+            'collectionSelected': collection_selected, 'editionFilter': sorted(edition_filter)}
+    bindings = {}
+    if getattr(args, 'catalogue_bindings', None):
+        from prepare_catalogue_bindings import load_bindings
+        bindings = load_bindings(args.catalogue_bindings, getattr(args, 'binding_census', None),
+            args.launchbox, selection, args.system)
+    retained = {}
+    retained_hash = None
+    if getattr(args, 'prepared_resources', None):
+        from prepare_catalogue_bindings import retained_preparation
+        retained = retained_preparation(args.prepared_resources, selection, args.system)
+        retained_hash = file_sha256(args.prepared_resources)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     batch_count = math.ceil(len(selection) / 25)
     def batch_target(index):
         return args.output if batch_count <= 1 else args.output.with_name(
             f'{args.output.stem}.batch-{index:04d}{args.output.suffix}')
-    for index in range(1, batch_count + 1):
-        if batch_target(index).exists():
-            raise FileExistsError(batch_target(index))
+    resume = getattr(args, 'resume', False)
+    processed_before, previous_report, previous_packs = 0, [], []
     if scope == 'collection':
-        census = {'scope': scope, 'platform': args.system,
-            'projectionSha256': file_sha256(args.projection),
+        census = {'scope': scope, 'platform': args.system, **selection_scope,
+            **({'projectionSha256': file_sha256(args.projection)} if args.projection else
+               {'censusSha256': file_sha256(args.binding_census)}),
+            'inputs': {name: file_sha256(path) if path and not
+                (name == 'launchbox' and getattr(args, 'inventory_only', False)) else None for name in
+                ['launchbox', 'catalogue_bindings', 'panel_layouts', 'quality_review', 'prepared_resources']
+                for path in [getattr(args, name, None)]},
             'editions': [{'gameId': r['game']['id'], 'editionId': r['edition']['id'],
                 'cacheRowId': r['cache_row_id'], 'identityKey': owner_key(r['game'], r['edition']),
                 'metadataAvailable': r['metadata'] is not None} for r in selection]}
-        with args.output.with_suffix('.selection.json').open('x', encoding='utf8') as output:
-            json.dump(census, output, indent=2)
+        selection_path = args.output.with_suffix('.selection.json')
+        if resume and selection_path.exists():
+            if json.loads(selection_path.read_text(encoding='utf8')) != census:
+                raise ValueError('Collection or reviewed inputs changed before resume')
+            progress = args.output.with_suffix('.batches.json')
+            if progress.exists():
+                state = json.loads(progress.read_text(encoding='utf8'))
+                processed_before = state['processed']
+                if (state['selected'] != len(selection) or
+                        not 0 <= processed_before <= len(selection) or
+                        processed_before != len(selection) and processed_before % 25):
+                    raise ValueError('Invalid committed collection progress')
+                previous_report = json.loads(args.output.with_suffix('.report.json').read_text(encoding='utf8'))
+                if (len(previous_report) != processed_before or
+                        [(r['gameId'], r['editionId']) for r in previous_report] !=
+                        [(r['game']['id'], r['edition']['id']) for r in selection[:processed_before]]):
+                    raise ValueError('Committed collection report differs from selection')
+                previous_packs = state['packs']
+                allowed = {batch_target(i).name for i in range(1, math.ceil(processed_before / 25)+1)}
+                if (len({r['file'] for r in previous_packs}) != len(previous_packs) or
+                        any(r['file'] not in allowed for r in previous_packs)):
+                    raise ValueError('Committed pack names differ from collection progress')
+                for receipt in previous_packs:
+                    path = args.output.parent / receipt['file']
+                    if (path.name != receipt['file'] or path.stat().st_size != receipt['bytes'] or
+                            file_sha256(path) != receipt['sha256']):
+                        raise ValueError('Committed collection pack changed before resume')
+            elif args.output.with_suffix('.report.json').exists():
+                raise ValueError('Uncommitted collection report needs inspection before resume')
+        else:
+            with selection_path.open('x', encoding='utf8') as output:
+                json.dump(census, output, indent=2)
+    elif resume:
+        raise ValueError('Collection resume requires --selection collection')
+    committed = {receipt['file'] for receipt in previous_packs}
+    for index in range(1, batch_count + 1):
+        path = batch_target(index)
+        if path.exists() and path.name not in committed:
+            raise FileExistsError('Uncommitted output needs inspection: '+str(path))
     if getattr(args, 'inventory_only', False):
-        print(json.dumps({'scope': scope, 'selected': len(selection), 'acquisitionStarted': False}))
+        print(json.dumps({'scope': scope, **selection_scope, 'selected': len(selection), 'acquisitionStarted': False}))
+        return
+    if resume and processed_before == len(selection):
+        print(json.dumps({'scope': scope, **selection_scope, 'selected': len(selection), 'packs': previous_packs,
+            'prepared': sum(p['games'] for p in previous_packs), 'publicationVerified': False}))
         return
     wanted = {normalized(name) for row in selection for name in
         [row['title'], *(x['text'] for x in (row['metadata'] or {}).get('titles', []))]}
-    games, images, by_name = launchbox_index(args.launchbox, wanted, args.system)
+    namespaces = {args.system} | {b['cataloguePlatform'] for b in bindings.values()}
+    indexes = {namespace: launchbox_index(args.launchbox, wanted, namespace,
+        forced_ids={b['providers']['launchbox']['id'] for b in bindings.values()
+            if b['cataloguePlatform'] == namespace and 'launchbox' in b['providers']})
+        for namespace in sorted(namespaces)}
+    for binding in bindings.values():
+        if 'launchbox' in binding['providers']:
+            candidate = binding['providers']['launchbox']
+            actual = indexes[binding['cataloguePlatform']][0][candidate['id']]
+            if candidate['title'].strip() != actual.strip():
+                raise ValueError('Catalogue binding title differs from LaunchBox index')
     session = requests.Session()
     manifest = {'version': 1, 'platform': args.system, 'games': []}
-    bodies, report, packs = {}, [], []
+    bodies, report, packs = {}, previous_report, previous_packs
     credentials = read_env(args.env) if args.env else {}
     auth = {target: credentials.get(source, '') for target, source in {
         'devid': 'SCREENSCRAPER_DEVID', 'devpassword': 'SCREENSCRAPER_DEVPASSWORD',
@@ -851,7 +968,7 @@ def collect(args):
         args.output.with_suffix('.report.json').write_text(json.dumps(report, indent=2), encoding='utf8')
         if scope == 'collection':
             args.output.with_suffix('.batches.json').write_text(json.dumps({
-                'scope': scope, 'selected': len(selection), 'processed': processed,
+                'scope': scope, **selection_scope, 'selected': len(selection), 'processed': processed,
                 'preparationFinished': processed == len(selection),
                 'publicationVerified': False, 'packs': packs}, indent=2), encoding='utf8')
         manifest['games'].clear()
@@ -869,15 +986,38 @@ def collect(args):
               **({'rotationDegrees': rotation} if rotation else {}),
               **({'panel': panel} if panel else {})}})
     for position, row in enumerate(selection, 1):
+        if position <= processed_before:
+            continue
         resources = []
         edition = row['edition']
+        if edition['id'] in retained:
+            resources = retained[edition['id']]['resources']
+            report.append({'editionId': edition['id'], 'gameId': row['game']['id'],
+                'title': row['title'], 'rank': row['rank'], 'regions': sorted(edition['regions']),
+                'roles': {r['type']: 1 for r in resources},
+                'disposition': 'retained-reviewed-preparation-awaiting-delivery',
+                'preparationSha256': retained_hash,
+                'publicationVerified': False})
+            if position % 25 == 0 or position == len(selection):
+                flush(position)
+            continue
+        binding = bindings.get((row['game']['id'], edition['id']))
+        games, images, by_name = indexes[binding['cataloguePlatform'] if binding else args.system]
         regions = set(edition['regions'])
         metadata = row['metadata'] or {}
         # These remain in the full census. A title match alone cannot establish
         # the printing of a hack/translation or an edition with unknown region.
         modified = (row['game'].get('baseGameId') or edition.get('patchId') or
             edition.get('isTranslation') or set(edition.get('tags', [])) &
-                {'Hack', 'T-Eng', 'Dub', 'Undub', 'Uncensor'})
+                {'Hack', 'T-Eng', 'Dub', 'Undub', 'Uncensor'} or
+            binding and binding.get('modifiedContext'))
+        reference_carton = bool(binding and not regions and not modified)
+        if reference_carton:
+            # Existing best-effort carton policy allows a same-game reference
+            # without inventing the ROM edition's printing country. Never use
+            # this acquisition scope for labels, manuals or classification.
+            regions = {'wor'}
+        candidate_regions = REFERENCE_CARTON_REGIONS if reference_carton else regions
         if scope == 'collection' and (not regions or modified):
             report.append({'editionId': edition['id'], 'gameId': row['game']['id'],
                 'title': row['title'], 'rank': None, 'regions': sorted(regions), 'roles': {},
@@ -893,7 +1033,7 @@ def collect(args):
             resources = local['games'][0]['resources']
         complete_layout = all(any(r['type'] == 'outer-box-' + face for r in resources) for face in BOX_FACES)
         if not complete_layout:
-            web = website_box(row, args.system, session)
+            web = website_box(row, binding['cataloguePlatform'] if binding else args.system, session)
             if web:
                 resources = [r for r in resources if not r['type'].startswith('outer-box-')]
                 for resource in web:
@@ -904,12 +1044,12 @@ def collect(args):
             'en' in r['importReference'].get('sourceLanguages', ['en']) or
             'mul' in r['importReference'].get('sourceLanguages', [])
             for r in resources if r['type'] in {'outer-box-front', 'outer-box-back'})
-        if full_box:
-            for face, role in [('front', 'box-2D'), ('back', 'box-2D-back'), ('right', 'box-2D-side')]:
-                panel = next(r for r in resources if r['type'] == 'outer-box-' + face)
-                resources.append({**panel, 'type': role})
         resolution = launchbox_resolution(row['title'],
-            [x['text'] for x in metadata.get('titles', [])], by_name)
+            [x['text'] for x in metadata.get('titles', [])], by_name, games)
+        if binding and 'launchbox' in binding['providers']:
+            candidate = binding['providers']['launchbox']
+            resolution = {'selectedIds': [candidate['id']], 'method': candidate['method'],
+                'cataloguePlatform': binding['cataloguePlatform'], 'titleResolution': resolution}
         ids = set(resolution['selectedIds'])
         face_candidates = {role:[] for role in ROLES.values()}
         quality_report = {}
@@ -917,7 +1057,7 @@ def collect(args):
             game_id = next(iter(ids))
             for type_name, role in ROLES.items():
                 candidates = [x for x in images.get(game_id, []) if x['Type'] == type_name
-                    and REGIONS.get(x.get('Region', ''), 'unsupported') in regions]
+                    and REGIONS.get(x.get('Region', ''), 'unsupported') in candidate_regions]
                 candidates.sort(key=lambda x: x['FileName'])
                 for image in candidates:
                     filename = image['FileName']
@@ -926,7 +1066,7 @@ def collect(args):
                     url = 'https://images.launchbox-app.com/' + filename
                     body = fetch(session, url)
                     if body:
-                        face_candidates[role].append({'body':body, 'region':REGIONS[image['Region']],
+                        face_candidates[role].append({'body':body, 'region':REGIONS.get(image.get('Region', '')),
                             'source':'launchbox', 'asset':game_id+'/'+filename, 'url':url})
         # Existing ScreenScraper facts supply the matched game identity. Only
         # extra same-edition faces/documents are requested; facts/scores stay intact.
@@ -934,15 +1074,31 @@ def collect(args):
         extra_media = list(metadata.get('media', []))
         platform_id = next((m['providerReference']['providerPlatformId'] for m in extra_media
             if m.get('providerReference')), None)
+        if binding and 'screenscraper' in binding['providers']:
+            # Artwork candidates do not replace the independently owned raw-ROM
+            # metadata record. A conflicting retained identity is kept visible.
+            candidate = binding['providers']['screenscraper']
+            if not provider_id or str(provider_id) == candidate['id']:
+                provider_id, platform_id = candidate['id'], candidate['platformId']
+                extra_media = [m for m in extra_media if
+                    m.get('providerReference', {}).get('providerPlatformId') == platform_id]
+                advertised = {(m['type'], m.get('region')) for m in extra_media}
+                for role in ['box-2D', 'box-2D-back', 'box-2D-side']:
+                    for region in sorted(candidate_regions - {None}):
+                        if (role, region) not in advertised:
+                            extra_media.append({'type': role, 'region': region,
+                                'providerReference': {'providerPlatformId': platform_id}})
         # Legacy metadata discarded mediaManuelJeu selectors. Probe the documented
         # manual selector against the already-bound game/region; NOMEDIA is not a match.
-        if platform_id is not None and not any(m['type'] == 'manuel' and m.get('region') in regions for m in extra_media):
+        if not reference_carton and platform_id is not None and not any(m['type'] == 'manuel' and m.get('region') in regions for m in extra_media):
             for region in sorted(regions):
                 extra_media.append({'type': 'manuel', 'region': region,
                     'providerReference': {'providerPlatformId': platform_id}})
         for media in extra_media:
             role, region = media['type'], media.get('region')
-            if region not in regions or role not in {'box-2D', 'box-2D-back', 'box-2D-side', 'manuel'}:
+            if (region not in candidate_regions or
+                    role not in {'box-2D', 'box-2D-back', 'box-2D-side', 'manuel'} or
+                    reference_carton and role == 'manuel'):
                 continue
             if role != 'manuel' and full_box:
                 continue
@@ -991,18 +1147,24 @@ def collect(args):
             donor_fallback=available_choice is None
             if donor_fallback and len(ids)==1:
                 game_id=next(iter(ids))
-                for image in sorted(images.get(game_id,[]),key=lambda x:x['FileName']):
-                    region=REGIONS.get(image.get('Region',''),'unsupported')
-                    if ROLES.get(image['Type'])!=role or region not in {'us','eu'} or region in regions:
-                        continue
-                    filename=image['FileName']
-                    if not re.fullmatch(r'(?:r[0-9]+_)?[a-fA-F0-9-]+\.(jpg|jpeg|png)',filename):
-                        raise ValueError('Unexpected LaunchBox image identity')
-                    url='https://images.launchbox-app.com/'+filename
-                    body=fetch(session,url)
-                    if body:
-                        candidates.append({'body':body,'region':region,'source':'launchbox',
-                            'asset':game_id+'/'+filename,'url':url})
+                attempted=set(candidate_regions)
+                for allowed in [REFERENCE_CARTON_REGIONS,REGIONAL_CARTON_REGIONS]:
+                    if choose_artwork(candidates)[0] is not None:
+                        break
+                    for image in sorted(images.get(game_id,[]),key=lambda x:x['FileName']):
+                        region=REGIONS.get(image.get('Region',''),'unsupported')
+                        if (ROLES.get(image['Type'])!=role or
+                                region not in allowed or region in attempted):
+                            continue
+                        filename=image['FileName']
+                        if not re.fullmatch(r'(?:r[0-9]+_)?[a-fA-F0-9-]+\.(jpg|jpeg|png)',filename):
+                            raise ValueError('Unexpected LaunchBox image identity')
+                        url='https://images.launchbox-app.com/'+filename
+                        body=fetch(session,url)
+                        if body:
+                            candidates.append({'body':body,'region':region,'source':'launchbox',
+                                'asset':game_id+'/'+filename,'url':url})
+                    attempted.update(allowed)
             selected, quality = choose_artwork(candidates,
                 quality_reviews.get(row['game']['id'],{}).get(role))
             if donor_fallback:quality['referenceDonorFallback']=True
@@ -1018,18 +1180,27 @@ def collect(args):
                 add(resources, role, selected['region'], selected['body'],
                     source=selected['source'], asset=selected['asset'],url=selected['url'],
                     clockwise_rotation=quality.get('reviewRotationDegrees',0))
-                if selected['region'] not in regions:
+                if reference_carton or selected['region'] not in regions:
                     resource=resources[-1]
                     resource['region']=sorted(regions)[0]
                     resource['importReference'].update(sourceRegion=selected['region'],
                         reconstruction='composite',**({'sourceLanguages':['en']} if selected['region']=='us' else {}))
         composed = {'resources': resources}
         compose_english_faces(composed, resources.copy(), bodies=bodies)
+        retain_donor_gallery_faces(composed)
         resources = composed['resources']
         report.append({'rank': row['rank'], 'title': row['title'],
             'gameId': row['game']['id'], 'editionId': edition['id'],
-            'regions': sorted(regions), 'launchboxIds': sorted(ids),
+            'regions': sorted(edition['regions']), 'launchboxIds': sorted(ids),
+            **({'artworkScope': 'reference-carton', 'physicalPrintingEstablished': False}
+                if reference_carton else {}),
             'launchboxResolution': resolution,
+            **({'catalogueBinding': {'archive': binding['archive'],
+                'cataloguePlatform': binding['cataloguePlatform'], 'providers': binding['providers'],
+                'screenscraperIdentityConflict': bool(metadata.get('providerGameId') and
+                    'screenscraper' in binding['providers'] and
+                    str(metadata['providerGameId']) != binding['providers']['screenscraper']['id'])}}
+                if binding else {}),
             'artworkQuality':quality_report,
             'roles': {role: sum(x['type'] == role for x in resources)
                 for role in sorted({x['type'] for x in resources})}})
@@ -1039,19 +1210,30 @@ def collect(args):
         print(json.dumps(report[-1]), flush=True)
         if position % 25 == 0 or position == len(selection):
             flush(position)
-    print(json.dumps({'scope': scope, 'selected': len(selection), 'packs': packs,
+    print(json.dumps({'scope': scope, **selection_scope, 'selected': len(selection), 'packs': packs,
         'prepared': sum(p['games'] for p in packs), 'publicationVerified': False}))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--system', choices=PLATFORMS)
+    # FDS is an artwork namespace for nested NES members, not a new library platform.
+    parser.add_argument('--system', choices=[p for p in PLATFORMS if p != 'fds'])
     parser.add_argument('--projection', type=Path)
     parser.add_argument('--selection', choices=['top25', 'collection'], default='top25',
         help='Top 25 testing sample (default), or every current collection edition')
     parser.add_argument('--inventory-only', action='store_true',
         help='Write the complete collection identity census without acquiring resources')
+    parser.add_argument('--resume', action='store_true',
+        help='Continue the same collection from content-verified committed batch receipts')
+    parser.add_argument('--edition-id', dest='edition_ids', action='append',
+        help='Acquire an explicit current collection subset after a binding correction; repeat per edition')
     parser.add_argument('--launchbox', type=Path)
+    parser.add_argument('--catalogue-bindings', type=Path,
+        help='Source/edition-bound audited and manually reviewed artwork candidate JSON')
+    parser.add_argument('--binding-census', type=Path,
+        help='Exact clean read-only census captured by --catalogue-bindings')
+    parser.add_argument('--prepared-resources', type=Path,
+        help='Retain complete reviewed preparation packs without reacquiring or duplicating their games')
     parser.add_argument('--http-cache', type=Path,
         help='Exact artwork response-cache directory; defaults beside the LaunchBox index')
     parser.add_argument('--quality-review', type=Path,
@@ -1071,6 +1253,10 @@ def main():
         help='For an existing pack, check the public lower-res .es preview only where dump panels are absent')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
+    if bool(args.catalogue_bindings) != bool(args.binding_census):
+        parser.error('--catalogue-bindings and --binding-census must be supplied together')
+    if args.edition_ids and (args.selection != 'collection' or args.augment_pack or args.normalize_spines):
+        parser.error('--edition-id requires normal --selection collection')
     if args.inventory_only and (args.selection != 'collection' or args.augment_pack or args.normalize_spines):
         parser.error('--inventory-only requires normal --selection collection')
     if args.augment_pack:
@@ -1084,8 +1270,9 @@ def main():
     elif args.normalize_spines:
         normalize_spines(args.normalize_spines, args.output)
     else:
-        if not all([args.system, args.projection, args.launchbox]):
-            parser.error('--system, --projection and --launchbox are required for collection')
+        if (not args.system or not args.launchbox or
+                not (args.projection or (args.binding_census and args.selection == 'collection'))):
+            parser.error('--system and --launchbox require --projection or collection --binding-census')
         collect(args)
 
 
