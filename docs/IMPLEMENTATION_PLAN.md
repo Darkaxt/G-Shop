@@ -1,7 +1,22 @@
 # Staged implementation plan
 
-Current execution, 2026-10-25, revision 174: **S26 ACTIVE**, sole active stage.
-Current correction is verified: all 119 spacing cases, 20 identity conflicts and
+Current execution, 2026-10-25, revision 176: **S26 ACTIVE**, sole active stage.
+The storage impediment is resolved. All 2,524 residual title groups completed
+provider search; the bounded DS/DSi worker returned and its decisions were
+integrated by the main agent. The full 26,995-source consumer replay passes for
+catalogue-r16: 25,634 bound (94.96%), 1,361 explicit unresolved sources, 1,757
+newly resolved from the original 3,118. Every original residual has a disposition
+and query/review evidence. No previously bound source lost its identity; thirteen
+documented Satellaview IDs were refined from series to stadium/minigame records.
+Fifteen deliberate negative identity guards and all 54 final worker-delta sources
+pass integrated verification. The unchanged primary map gives a combined
+38,072 / 44,553 filename-candidate census (85.45%). Finish the versioned local
+data receipt against the verified source commit; broader S26 physical-resource,
+native/publication and final application-release acceptance remains unfinished.
+Owner-requested reference cleanup is separately limited to exact duplicate
+generated files, retaining originals, later canonical copies and provenance.
+
+Historical r8 correction: all 119 spacing cases, 20 identity conflicts and
 the Metal Gear Solid 3D alias resolve in private catalogue-r8. The full 26,995-row
 consumer replays successfully; 140 newly bound sources and no previously bound
 provider-ID changes. Scoped decisions retain regional/revision evidence and

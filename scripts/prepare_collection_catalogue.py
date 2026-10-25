@@ -74,20 +74,40 @@ def filename_title(filename, system=None):
     stem = PurePosixPath(filename).stem.replace('_', ' ')
     if system == 'nds':
         # Scene release numbers are catalogue decoration, unlike game sequels.
-        stem = re.sub(r'^\d{4,5}\s+-\s+', '', stem)
+        stem = re.sub(r'^(?:\d{4,5}|[xz]\d{3,5})\s+-\s+', '', stem, flags=re.I)
     if system == 'n3ds':
         # Preserve the title ID in sourcePath, not as part of the game title.
         stem = re.sub(r'^0004[0-9a-fA-F]{12}\s+', '', stem)
         stem = re.sub(r'\.(?:piratelegit|legit|standard)$', '', stem, flags=re.I)
         stem = re.sub(r'\s*\((?:(?:CTR|KTR)-[A-Z]-[A-Z0-9]{4}(?:-\d{2})?|v\d[^)]*|[JUEKWT]+|DLC|Update)\)', '', stem)
+    country_codes = {'us', 'eu', 'jp', 'au', 'unknown'}
     for group in re.finditer(r'\(([^)]*)\)', stem):
-        if all(r.strip().casefold() in REGIONS for r in group[1].split(',')):
+        parts = [r.strip().casefold() for r in group[1].split(',')]
+        if (any(r in REGIONS | country_codes for r in parts) and
+                all(r in REGIONS | country_codes or re.fullmatch(r'rev\s+[^,]+', r) for r in parts)):
             return re.sub(r'\s+', ' ', stem[:group.start()]).strip()
     # Tags without a recognised region: remove only release annotations. A
     # parenthesised subtitle can be part of the title and must survive.
     stem = re.sub(r'\s*\[(?:!|n|b\d*|h[^]]*|t[^]]*|BIOS)\]', '', stem, flags=re.I)
-    stem = re.sub(r'\s*\((?:Rev [^)]*|v\d[^)]*|Beta[^)]*|Proto[^)]*|Demo[^)]*|Unl|En(?:,[A-Z][a-z])+|Disc \d[^)]*)\)', '', stem)
+    stem = re.sub(r'\s*\((?:Rev [^)]*|v\d[^)]*|Beta[^)]*|Proto[^)]*|Demo[^)]*|Unl|En(?:,[A-Z][a-z])+|Disc \d[^)]*|Undub|Uncensored|Orchestrated|English Translation)\)', '', stem, flags=re.I)
+    if system == 'n3ds' and re.search(r'\((?:Undub|Uncensored|Orchestrated|English Translation)\)', filename, re.I):
+        stem = re.sub(r'\s*\((?:homuhomu|code)\)', '', stem, flags=re.I)
     return re.sub(r'\s+', ' ', stem).strip()
+
+
+def source_kind(filename, system):
+    folders = {p.casefold() for p in Path(filename).parts[:-1]}
+    name = Path(filename).name
+    if {'texture packs', 'textures'} & folders:
+        return 'auxiliary-resource'
+    if ('firmware' in folders or '[bios]' in name.casefold() or
+            (system == 'snes' and title_key(filename_title(name, system)) == 'sufami turbo')):
+        return 'firmware'
+    if re.search(r'(?i)(?:^0004008c|\(DLC\))', name):
+        return 'dlc'
+    if re.search(r'(?i)(?:^0004000e|\(Update\))', name):
+        return 'update'
+    return 'program'
 
 
 def inventory(root, output, exclude_systems=()):
@@ -127,10 +147,7 @@ def inventory(root, output, exclude_systems=()):
                         'sourcePath': folder+'/'+relative, 'folder': folder,
                         'appContainerSupported': suffix in set(settings['extensions']) | {'.zip', '.7z'},
                         'title': filename_title(relative, system),
-                        'sourceKind': ('auxiliary-resource' if {'texture packs', 'textures'} & {p.casefold() for p in Path(relative).parts[:-1]} else
-                            'firmware' if 'firmware' in {p.casefold() for p in Path(relative).parts[:-1]} or '[BIOS]' in name else
-                            'dlc' if re.search(r'(?i)(?:^0004008c|\(DLC\))', name) else
-                            'update' if re.search(r'(?i)(?:^0004000e|\(Update\))', name) else 'program'),
+                        'sourceKind': source_kind(relative, system),
                         'family': relative.split('/')[0] if '/' in relative else 'root',
                         'modifiedContext': bool(re.search(r'(?i)(?:^|/)(?:hacks|color hacks|t-en|translations)(?:/|$)|\((?:hack|patched|translation|english translation|undub|uncensored|orchestrated)|\[Scarlet Study English', relative))})
                     count += 1
@@ -251,7 +268,7 @@ def indexes(inventory_path, launchbox, cache, output, existing_cache=None):
 def title_key(title, *, word_boundaries=True):
     # A missing typographic apostrophe does not create a word boundary. Keep
     # actual spaces and numeric operators, so Castle Quest is not Castlequest.
-    title = re.sub(r"(?<=\w)['’](?=\w)", '', title)
+    title = re.sub(r"(?<=\w)['’](?=\w)", '', title.replace('™', '').replace('®', ''))
     article = re.match(r'^(.+?),\s*(le|la|les|der|die|das|el|los|las|il|lo|gli|un|une|des)(?=\s*(?:-|:|$))(.*)$', title, re.I)
     if article:
         title = article[2]+' '+article[1]+article[3]
@@ -270,6 +287,12 @@ def lookup(games):
     return result
 
 
+def catalogue_family(source):
+    if source['system'] == 'n64' and re.search(r'\(64DD\)', source['filename'], re.I):
+        return '64dd'
+    return source['family'].casefold()
+
+
 def source_games(source, provider, games):
     # Minis is an explicit source family and a separate LaunchBox namespace.
     # The parent app system remains PSP. Avoid duplicate-title cross-family IDs.
@@ -277,7 +300,7 @@ def source_games(source, provider, games):
         platform = 'Sony PSP Minis' if source['family'].casefold() == 'minis' else 'Sony PSP'
         return {key: game for key, game in games.items() if game['platformName'] == platform}
     if source['system'] == 'n64' and provider == 'launchbox':
-        platform = 'Nintendo 64DD' if source['family'].casefold() == '64dd' else 'Nintendo 64'
+        platform = 'Nintendo 64DD' if catalogue_family(source) == '64dd' else 'Nintendo 64'
         return {key: game for key, game in games.items() if game['platformName'] == platform}
     return games
 
@@ -331,7 +354,8 @@ def load_title_aliases(path):
         if not rule.get('reason') or not rule.get('providers'):
             raise ValueError('Title-alias review requires providers and a reason')
         key = rule['system'], title_key(rule['sourceTitle'])
-        selector = key, tuple(sorted(rule.get('regions', []))), tuple(sorted(rule.get('tags', [])))
+        selector = (key, tuple(sorted(rule.get('regions', []))), tuple(sorted(rule.get('tags', []))),
+                    tuple(sorted(rule.get('sourcePaths', []))))
         if selector in selectors:
             raise ValueError('Duplicate reviewed title-alias selector')
         selectors.add(selector)
@@ -344,7 +368,8 @@ def reviewed_alias(source, rules):
     regions = {part.strip() for tag in tags for part in tag.split(',') if part.strip() in REGIONS}
     applicable = [rule for rule in rules.get((source['system'], title_key(source['title'])), [])
         if set(r.casefold() for r in rule.get('regions', [])) <= regions
-        and set(t.casefold() for t in rule.get('tags', [])) <= tags]
+        and set(t.casefold() for t in rule.get('tags', [])) <= tags
+        and (not rule.get('sourcePaths') or source.get('sourcePath') in rule['sourcePaths'])]
     if len(applicable) > 1:
         raise ValueError('Conflicting applicable title-alias reviews')
     return applicable[0] if applicable else None
@@ -354,14 +379,26 @@ def resolve_source(source, index, cache, reviews=None):
     """One cached resolver per platform/family, shared by producer and consumer."""
     from prepare_catalogue_bindings import corroborate_providers
     system = source['system']
-    family = source['family'].casefold() if system in {'psp', 'n64'} else ''
-    key = system, family
+    family = catalogue_family(source) if system in {'psp', 'n64'} else ''
+    broadcast_source = system == 'snes' and (
+        source['family'].casefold() == 'satellaview' or
+        bool(re.match(r'^BS\s', source['title'], re.I)))
+    key = system, family, broadcast_source
     if key not in cache:
         games = {provider: source_games(source, provider, systems[system]) for provider, systems in
                  [('launchbox', index['platforms']), ('screenscraper', index['screenscraper'])]}
-        lookups = {provider: lookup(values) for provider, values in games.items()}
+        lookups = {provider: lookup({identity: game for identity, game in values.items()
+            if not (system == 'snes' and provider == 'launchbox' and
+                    game.get('platformName') == 'Nintendo Satellaview')})
+            for provider, values in games.items()}
+        if system == 'snes':
+            lookups['satellaview'] = lookup({identity: game for identity, game in games['launchbox'].items()
+                if game.get('platformName') == 'Nintendo Satellaview'})
         lb_names, ss_names = {}, {}
         for identity, game in games['launchbox'].items():
+            if (system == 'snes' and not broadcast_source and
+                    game.get('platformName') == 'Nintendo Satellaview'):
+                continue
             for title in [game['title'], *game['aliases']]:
                 lb_names.setdefault(normalized(title, word_boundaries=True), set()).add(identity)
         for identity, game in games['screenscraper'].items():
@@ -372,6 +409,12 @@ def resolve_source(source, index, cache, reviews=None):
     matches, providers = {}, {}
     for provider in games:
         found = match(source['title'], lookups[provider])
+        if (provider == 'launchbox' and system == 'snes' and
+                found['status'] in {'unmatched', 'loose-candidate'} and
+                broadcast_source):
+            broadcast = match(source['title'], lookups['satellaview'])
+            if broadcast['status'] in {'unique', 'ambiguous'}:
+                found = broadcast
         if provider == 'launchbox':
             found = regional_alias(source, found, games[provider])
         if review and provider in review['providers']:

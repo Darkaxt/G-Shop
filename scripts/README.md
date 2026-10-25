@@ -352,8 +352,11 @@ systems. Every included source retains its exact system/relative path, provider
 IDs/platform, index hashes and a candidate or unresolved outcome. The verifier
 rechecks complete source membership and exact canonical/declared-alias evidence;
 `verify --system <id> --source-path <folder/relative-file>` resolves one source.
-Scoped parsing handles DS release numbers, 3DS title-ID/container decorations,
-PSP Minis and 64DD. Real word boundaries, numeric operators and non-Latin titles
+Scoped parsing handles DS numeric and x/z scene release numbers, 3DS title-ID/
+container decorations, short country tags, PSP Minis and tagged 64DD translations.
+SNES collection indexes also retain Nintendo Satellaview; broadcast lookup must
+not replace an established SNES canonical match without an explicit reviewed
+episode refinement. Real word boundaries, numeric operators and non-Latin titles
 survive. Blank index rows stay diagnosed without discarding the platform;
 duplicate IDs fail. Firmware, updates, DLC, modified programs, auxiliary archives
 and unrecognised app containers remain distinct, visible source entries.
@@ -363,8 +366,11 @@ regional alias. Review actionable spacing, segmentation and reordered-subtitle
 candidates rather than leaving them indefinitely unresolved. Record decisions in
 the optional version-1 `--title-aliases` JSON: `evidence` contains path/SHA-256
 receipts; each `rules` entry names `system`, `sourceTitle`, `reason` and
-`providers` (provider name to exact `id`/`title`). Optional `regions` and `tags`
-restrict a decision to its actual release/revision. `blockedProviders` excludes a
+`providers` (provider name to exact `id`/`title`). Optional `regions`, `tags` and
+`sourcePaths` restrict a decision to its actual release/revision and exact source
+membership. Use exact source paths for retail versus demo/Download Play records;
+matching title text alone must not spread a reviewed choice to those variants.
+`blockedProviders` excludes a
 documented contradictory provider grouping. Rules cannot override an existing
 unique canonical/declared-alias result, reference foreign platform IDs or overlap
 for the same source. The mapping captures the rules hash; verification checks its
@@ -372,6 +378,16 @@ evidence and replays every decision. Do not globally remove word boundaries or
 reorder title words. A provider hash match with a compressed-size discrepancy, or
 a name-only fallback with different hashes, must retain that distinction in its
 review evidence instead of claiming an exact raw-ROM match.
+
+When retained catalogue exports omit a release, a current official platform search
+can supply additional canonical/regional-name evidence. Keep the response hash,
+actual platform ID and review decision with the projected record; a search result
+alone is not acceptance. Filter foreign-platform results even when the request was
+platform-scoped. Empty result sentinels and rejected short queries are distinct
+from a proved absent game. Preserve exact-source negative decisions so a later
+alias import cannot restore a previously rejected edition. Replay the complete
+consumer and account for every changed old ID, including documented refinements
+from a series record to its exact episode. Keep prior delivered maps immutable.
 
 When a real owner census exists, reuse the result through the normal producer:
 
@@ -501,3 +517,14 @@ native faces; a compensating UV/name mapping must not be undone in the mesh.
 Preparation does not establish canonical ownership, publication or native acceptance.
 Compare existing complete packaging choices and bind these candidates only to a
 fresh clean census through the normal import and Drive verification workflow.
+
+The full catalogue residual review preserves exact source paths when applying
+manual naming decisions. DS `xNNN`/`zNNN` prefixes are scene decorations only in
+the DS namespace; tagged 64DD translations keep their hardware namespace. SNES
+includes the original Nintendo Satellaview records with broadcast-scoped name
+corroboration, so their aliases cannot leak into an ordinary retail source.
+`source_kind` retains firmware/DLC/update/auxiliary roles, including the untagged
+SNES SuFami Turbo BIOS. Provider name-search candidates supplement an index only
+after actual platform/ID validation; they do not establish raw ROM or physical
+printing identity. Hash-bound exact-source review rules and the full mapping
+consumer remain the delivery boundary.

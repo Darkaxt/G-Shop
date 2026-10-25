@@ -1,6 +1,24 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 174, 2026-10-25.
+Authoritative specification, revision 176, 2026-10-25.
+
+Owner reference-storage cleanup, 2026-10-25: trim redundant/generated files in
+`E:/R-Shop Reference Assets`. Preserve original scans/archives, unique models,
+active inputs and provenance. Remove only reviewed exact generated duplicates
+through the installed transactional cleanup helper; retain canonical later copies
+and an exact removed/retained hash ledger. This maintenance does not authorize
+SSD TRIM, reformatting, artwork removal by age, or broad source retirement.
+
+Owner residual-resolution direction, 2026-10-25 (CATALOGUE-ALL): work through all
+3,118 remaining r8 sources, using reviewed manual mappings when needed. Delegate
+one bounded data-resolution cohort to a same-model Low-effort agent; retain main
+ownership of integration and full-census verification. Use retained full provider
+indexes and available public identity evidence. Apply every substantiated match;
+retain exact per-source evidence for genuinely absent/conflicting entries rather
+than inventing provider IDs. Preserve proven earlier assignments and source
+membership; record any newly evidenced refinement from a broad series record to
+its exact regional/episode identity, retaining the original immutable delivery.
+This continues sole ACTIVE S26, without Thor, APK work or artwork acquisition.
 
 Owner matching correction, 2026-10-25 (CATALOGUE-ALL): resolve the identified
 119 spacing/typography cases, 20 provider-ID conflicts and the Metal Gear Solid

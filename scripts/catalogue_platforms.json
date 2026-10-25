@@ -2,7 +2,7 @@
   "version": 1,
   "platforms": {
     "nes": {"launchbox": ["Nintendo Entertainment System"]},
-    "snes": {"launchbox": ["Super Nintendo Entertainment System"]},
+    "snes": {"launchbox": ["Super Nintendo Entertainment System", "Nintendo Satellaview"]},
     "n64": {"launchbox": ["Nintendo 64", "Nintendo 64DD"]},
     "gc": {"launchbox": ["Nintendo GameCube"]},
     "wii": {"launchbox": ["Nintendo Wii"], "inventoryExtensions": [".wad"]},

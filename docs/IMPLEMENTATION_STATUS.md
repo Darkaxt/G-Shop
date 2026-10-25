@@ -5,7 +5,8 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-25 continuation under specification revision 174: S26 remains ACTIVE.
+2026-10-25 continuation under specification revision 176: S26 is ACTIVE,
+the sole active stage, after verified E: access recovery following the owner restart.
 CATALOGUE-ALL is the current outcome: complete Windows filename/provider-index
 mappings for all remaining supported source folders. Thor, APK installation,
 ongoing native publication and missing 3D assets do not gate this work. Preserve
@@ -13,6 +14,42 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+The complete residual review is integrated in private catalogue-r16. All 2,524
+title groups completed retained provider searches. The normal consumer replay
+passes for all 26,995 sources: 25,634 bound (94.96%), 1,361 unresolved; 1,757 of
+the previous 3,118 gaps now resolve. Every original residual has a disposition
+and retained query/review evidence. The exact negative guards for fifteen source
+paths pass, as do the 54 final worker-delta assignments. No previously bound
+source lost its identity. Thirteen explicitly reviewed Satellaview IDs were
+refined from a broad series record to the exact stadium/minigame identity;
+immutable r8 and the old/new receipts remain available.
+The primary G&W/NES/GBA map is unchanged. Combined: 38,072 candidates / 44,553
+source files (85.45%), 6,481 unresolved. These are filename catalogue candidates,
+not usable box/label coverage or native acceptance. Generic repairs include
+DS x/z scene prefixes, short country tags, tagged 64DD namespaces, omitted
+Satellaview records and broadcast-scoped corroboration/cache isolation. SuFami
+Turbo BIOS is classified as firmware rather than an invented game. Fresh focused
+source and normal-packaging regressions pass. The local r16 data receipt follows
+the verified source commit; no application release or Thor work belongs to this
+mapping-only outcome. Wider S26 remains unfinished.
+
+Owner-requested reference cleanup completed through transaction
+`54134788c4c6b949cfb242c1f40bb838`: 2,181 byte-identical generated files and 130
+empty directories removed, 8,895,521,897 bytes reclaimed. All retained copies
+passed SHA-256 verification and unchanged post-apply checks. The 677 excluded
+regular files remain, including manifests/provenance and nonidentical content;
+original NintAndBox archive, unique models and active mapping inputs are preserved.
+The installed helper reports `applied`, with no errors or residual candidates.
+
+Historical execution impediment, now resolved after restart: exact E: catalogue reads did not return,
+including the current integration summary. Direct C:/D: reads and the explicit
+installed Python runtime work; the E: object binding still exists. There is no
+observed access-denied result or established disk-failure diagnosis. Original
+provider-search and integration operations are retained, not duplicated, killed
+or classified as finished. The owner restarted Windows; E: reads now work and the
+old process sessions no longer exist. The retained query cache was resumed and
+the complete query/review and consumer replay now pass as recorded above.
+The following paragraphs retain the previous verified r8 delivery as history.
 The CATALOGUE-ALL Windows pass now accounts for all 26,995 additional mounted
 source files across 23 populated platforms. It produces 23,877 unique catalogue
 candidates (88.45%) and 3,118 explicit unresolved entries. A fresh primary-folder
@@ -43,8 +80,8 @@ claiming app container/emulator support. This pass reads no ROM bodies or artwor
 and spends no per-ROM ScreenScraper API requests. The subsequent ambiguity
 correction reads only the selected 20 archives and retains their 20 API responses.
 E: owns all cache/output; this mapping pass makes no H: writes.
-Installed integration guidance is 0.1.58, read back with matching
-source/installed hash. Wider S26 remains ACTIVE; this is not 80% physical-resource
+Installed integration guidance is 0.1.60, validated and read back with matching
+source/installed hash. Wider S26 remains unfinished; this is not 80% physical-resource
 acceptance, a native installation, or a final application release.
 The maintained packaging collector now consumes source/edition-bound catalogue
 JSON, including reviewed manual IDs and the nested FDS namespace. It rejects

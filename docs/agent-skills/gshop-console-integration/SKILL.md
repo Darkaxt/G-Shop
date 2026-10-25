@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.58"
+  version: "0.1.60"
 ---
 
 # G-Shop Console Integration
@@ -61,8 +61,9 @@ provider-index outcome independently of device installation, publication and 3D
 assets. Use the maintained `prepare_collection_catalogue.py` and explicit platform
 registry; retain exact source-relative paths, index hashes and unresolved rows.
 Diagnose filename conventions and malformed index rows before claiming absent
-provider results. DS scene numbers, 3DS title-ID/container decorations, PSP Minis
-and 64DD namespaces require their scoped parsing. Keep firmware, updates, DLC and
+provider results. DS numeric and x/z scene numbers, short country tags, 3DS
+title-ID/container decorations, PSP Minis, tagged 64DD translations and the
+Nintendo Satellaview namespace require their scoped parsing. Keep firmware, updates, DLC and
 texture archives distinct; do not turn them into cartridge/artwork owners. Verify
 the mapping consumer and eventual real-owner promotion without inventing native
 game/edition IDs. This completes only the requested mapping scope, not physical
@@ -77,7 +78,26 @@ Retain documented provider exclusions when a catalogue groups different games.
 Do not relax word boundaries or reorder arbitrary titles globally. Distinguish
 complete raw-hash/size agreement, compressed-size discrepancies and name-based
 responses with different ROM hashes. Rebuild and replay the entire mapping
-consumer, verify the requested cases, and prove existing bound IDs are preserved.
+consumer, verify the requested cases, and prove existing bound IDs are preserved
+except explicitly evidenced corrections. Record exact episode/regional refinements
+and retain the immutable previous delivery. Scope review rules by exact source
+paths when retail, demo, Download Play or system-tool records share title text.
+Retain negative source/ID decisions so later alias projection cannot restore a
+rejected edition. A regional alias without edition evidence is not sufficient
+when the actual source leaves that edition unspecified.
+
+Check omitted provider namespaces and current official canonical/regional names
+before classifying a residual as catalogue absence. Retain actual platform IDs,
+response hashes and reviewed projections; reject foreign-platform search results
+even when the API request included a platform filter. Distinguish empty-result
+sentinels, rejected short queries and genuinely unavailable catalogue entries.
+Search responses nominate candidates; finish review and replay the full consumer
+before publishing updated coverage. Do not count a pending search or compilation.
+After a storage failure or restart, verify retained receipts before resuming.
+Preserve an interrupted empty/partial receipt with its exact hash, then rebuild it
+from a verified complete cached provider body when available. An empty interrupted
+file is not an empty provider result. Confirm the old process ended before
+restarting its resumable operation; keep all completed responses and decisions.
 
 Bind actual ROM/revision identities separately from physical hardware, cartridge
 families and carton printings. Inventory required models, labels, textures,

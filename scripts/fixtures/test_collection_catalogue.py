@@ -5,11 +5,26 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from prepare_collection_catalogue import (filename_title, inventory, lookup, match, registry,
+from prepare_collection_catalogue import (filename_title, source_kind, inventory, lookup, match, registry,
     source_games, screenscraper_csv, regional_alias, load_title_aliases, resolve_source, title_key)
 
 
 class CollectionCatalogueTest(unittest.TestCase):
+    def test_source_role_preserves_firmware_and_addon_boundaries(self):
+        cases = [
+            ('SNES/SuFami Turbo (Japan).7z', 'snes', 'firmware'),
+            ('SNES/SuFami Turbo Adventures (Japan).7z', 'snes', 'program'),
+            ('Nintendo - DS/[BIOS] Nintendo DS.7z', 'nds', 'firmware'),
+            ('Firmware/Boot ROM.bin', 'gba', 'firmware'),
+            ('Texture Packs/Game.zip', 'n64', 'auxiliary-resource'),
+            ('0004008C0007AE00 Game (DLC).zcia', 'n3ds', 'dlc'),
+            ('0004000E0007AE00 Game (Update).zcia', 'n3ds', 'update'),
+            ('Game (USA).7z', 'snes', 'program'),
+        ]
+        for filename, system, expected in cases:
+            with self.subTest(filename=filename):
+                self.assertEqual(source_kind(filename, system), expected)
+
     def test_regional_alias_resolves_same_name_without_merging_different_games(self):
         games={'1':{'title':'Castle','aliases':['Mickey Mouse'], 'aliasRegions':{'Mickey Mouse':['Japan']}},
                '2':{'title':'Castle 2','aliases':['Mickey Mouse'], 'aliasRegions':{'Mickey Mouse':['Europe']}}}
@@ -72,6 +87,16 @@ class CollectionCatalogueTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'evidence changed'):
                 load_title_aliases(rules)
 
+    def test_exact_source_rule_does_not_capture_same_title_download_play(self):
+        from prepare_collection_catalogue import reviewed_alias
+        source={'system':'nds','title':'Cooking Mama 2','filename':'Cooking Mama 2 (Japan).7z',
+                'sourcePath':'Nintendo - DS/6000 - Cooking Mama 2 (Japan).7z'}
+        rule={'sourcePaths':[source['sourcePath']]}
+        rules={('nds',title_key(source['title'])):[rule]}
+        self.assertIs(reviewed_alias(source,rules),rule)
+        source['sourcePath']='Nintendo - DS/Download Play/Cooking Mama 2 (Japan).7z'
+        self.assertIsNone(reviewed_alias(source,rules))
+
     def test_registry_covers_actual_supported_app_systems(self):
         systems = registry()
         self.assertEqual(systems['ps2']['screenscraperId'], 58)
@@ -94,6 +119,14 @@ class CollectionCatalogueTest(unittest.TestCase):
         self.assertEqual(filename_title('Final Fantasy ++ (Japan).zip'), 'Final Fantasy ++')
         self.assertEqual(filename_title('游戏 (China).7z'), '游戏')
         self.assertEqual(filename_title('0001 - Electroplankton (Japan).7z', 'nds'), 'Electroplankton')
+        self.assertEqual(filename_title('x001 - Known (Japan) (Demo).7z', 'nds'), 'Known')
+        self.assertEqual(filename_title('z1234 - Known (Europe).7z', 'nds'), 'Known')
+        self.assertEqual(filename_title('x001 - Known (Japan).7z', 'gb'), 'x001 - Known')
+        self.assertEqual(filename_title('Pyoro 64 (Unknown) (PAL) (Aftermarket).7z','n64'), 'Pyoro 64')
+        self.assertEqual(filename_title('ViviD Dolls (JP, Rev 2).7z','n64'), 'ViviD Dolls')
+        self.assertEqual(filename_title('STELLA GLOW (Undub).zcci','n3ds'), 'STELLA GLOW')
+        self.assertEqual(title_key('Fantasy Life™'),title_key('Fantasy Life'))
+        self.assertNotEqual(title_key('Final Fantasy ++'),title_key('Final Fantasy'))
         self.assertEqual(filename_title('1942 - Game (USA).zip', 'snes'), '1942 - Game')
         self.assertEqual(filename_title('0004000000030800 Mario Kart 7 (CTR-P-AMKE) (v2.4.0) (U).legit.zcci', 'n3ds'), 'Mario Kart 7')
         self.assertEqual(filename_title('0004008C0007AE00 New Super Mario Bros. 2 (CTR-M-ABEE-00) (v0.3.0) (W).piratelegit.zcia', 'n3ds'), 'New Super Mario Bros. 2')
@@ -126,6 +159,41 @@ class CollectionCatalogueTest(unittest.TestCase):
         scoped = source_games({'system': 'psp', 'family': 'Minis'}, 'launchbox', games)
         self.assertEqual(set(scoped), {'2'})
         self.assertEqual(match('Game', lookup(scoped))['ids'], ['2'])
+
+    def test_translated_64dd_tag_preserves_namespace_and_cache_scope(self):
+        games={'1':{'id':'1','platformName':'Nintendo 64','title':'Game','aliases':[]},
+               '2':{'id':'2','platformName':'Nintendo 64DD','title':'Game','aliases':[]}}
+        index={'platforms':{'n64':games},'screenscraper':{'n64':{}}}
+        source={'system':'n64','family':'Translations','title':'Game',
+                'filename':'Translations/Game (Japan) (64DD) [T-En].7z'}
+        cache={}
+        self.assertEqual(resolve_source(source,index,cache)[1]['launchbox']['id'],'2')
+        source['filename']='Translations/Game (Japan) [T-En].7z'
+        self.assertEqual(resolve_source(source,index,cache)[1]['launchbox']['id'],'1')
+
+    def test_satellaview_namespace_recovers_missing_titles_preserving_existing_ids(self):
+        games={'1':{'id':'1','platformName':'Super Nintendo Entertainment System','title':'Known','aliases':[]},
+               '2':{'id':'2','platformName':'Nintendo Satellaview','title':'Known','aliases':[]},
+               '3':{'id':'3','platformName':'Nintendo Satellaview','title':'Broadcast','aliases':[]}}
+        index={'platforms':{'snes':games},'screenscraper':{'snes':{}}}
+        source={'system':'snes','family':'Satellaview','title':'Known','filename':'Satellaview/Known (Japan).7z'}
+        cache={}
+        self.assertEqual(resolve_source(source,index,cache)[1]['launchbox']['id'],'1')
+        source.update(title='Broadcast',filename='Satellaview/Broadcast (Japan).7z')
+        self.assertEqual(resolve_source(source,index,cache)[1]['launchbox']['id'],'3')
+        source.update(family='root',filename='Broadcast (Japan).7z')
+        self.assertNotIn('launchbox',resolve_source(source,index,cache)[1])
+
+    def test_satellaview_corroboration_does_not_escape_broadcast_source_scope(self):
+        game={'id':'3','platformName':'Nintendo Satellaview','title':'Broadcast','aliases':[]}
+        index={'platforms':{'snes':{'3':game}},'screenscraper':{'snes':{
+            '4':{'id':'4','platformId':4,'title':'Broadcast','aliases':[]}}}}
+        source={'system':'snes','family':'root','title':'Broadcast',
+                'filename':'Broadcast (Japan).7z'}
+        cache={}
+        self.assertNotIn('launchbox',resolve_source(source,index,cache)[1])
+        source.update(family='Satellaview',filename='Satellaview/Broadcast (Japan).7z')
+        self.assertEqual(resolve_source(source,index,cache)[1]['launchbox']['id'],'3')
 
     def test_filename_map_reaches_normal_collector_and_rejects_changed_source(self):
         import zipfile
