@@ -293,6 +293,11 @@ def sequel_number_key(title):
     return key + ('|edition:#' if title.rstrip().endswith('#') else '')
 
 
+def release_lookup_title(title):
+    """Ignore only trailing numeric three-part versions/dates, never named mods."""
+    return re.sub(r'(?:\s+\(\d{1,4}(?:[.-]\d{1,4}){2}\))+$', '', title)
+
+
 def lookup(games):
     result = {'canonical': collections.defaultdict(set), 'declared-alias': collections.defaultdict(set),
               'loose': collections.defaultdict(set)}
@@ -570,6 +575,21 @@ def resolve_source(source, index, cache, reviews=None, *, matcher_version=1):
                 method = 'provider-card-identifier'
             if len(identities) == 1:
                 found = {'status': 'unique', 'method': method, 'ids': sorted(identities)}
+        if (matcher_version >= 4 and found['status'] in {'unmatched', 'loose-candidate'} and
+                source.get('sourceKind') == 'program' and
+                source['family'].casefold() not in {'download play', 'multiboot'}):
+            query = release_lookup_title(source['title'])
+            if query != source['title']:
+                candidate = match(query, lookups[provider])
+                if candidate['status'] in {'unmatched', 'loose-candidate'}:
+                    identities = lookups['sequel-numbers'][provider].get(sequel_number_key(query), set())
+                    if identities:
+                        candidate = {'status': 'unique' if len(identities) == 1 else 'ambiguous',
+                                     'method': 'catalogue-title-spelling', 'ids': sorted(identities)}
+                if candidate['status'] in {'unique', 'ambiguous'}:
+                    found = {**candidate, 'method': 'release-annotation-' + candidate['method'], 'lookupTitle': query}
+        if matcher_version >= 4:
+            found = qualified_alias(source, found, games[provider])
         if review and provider in review['providers']:
             candidate = review['providers'][provider]
             actual = games[provider].get(candidate['id'])
@@ -615,7 +635,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
     reviews = load_title_aliases(title_aliases)
     for source in inventory_data['rows']:
         system = source['system']
-        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=3)
+        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=4)
         rows.append({**source, 'providers': providers, 'matches': matches,
             'status': 'bound-candidate' if providers else 'unresolved',
             'identityLevel': 'filename-title-candidate', 'physicalEditionVerified': False})
@@ -634,7 +654,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
                 'ambiguous' if any(m['status'] == 'ambiguous' for m in r['matches'].values()) else
                 'spacing-review' if any(m['status'] == 'loose-candidate' for m in r['matches'].values()) else
                 'no-exact-index-title' for r in subset if not r['providers']))}
-    document = {'version': 1, 'matcherVersion': 3, 'scope': 'filename-catalogue-candidates',
+    document = {'version': 1, 'matcherVersion': 4, 'scope': 'filename-catalogue-candidates',
         'inventoryPath': str(inventory_path), 'inventorySha256': sha(inventory_path),
         'indexPath': str(index_path), 'indexSha256': sha(index_path),
         **({'titleAliasesPath': str(title_aliases), 'titleAliasesSha256': sha(title_aliases)} if title_aliases else {}),
@@ -655,7 +675,7 @@ def load_mapping(path):
     if document.get('version') != 1 or document.get('scope') != 'filename-catalogue-candidates':
         raise ValueError('Unsupported filename binding format')
     matcher_version = document.get('matcherVersion', 1)
-    if matcher_version not in {1, 2, 3}:
+    if matcher_version not in {1, 2, 3, 4}:
         raise ValueError('Unsupported catalogue matcher version')
     inventory_path, index_path = Path(document['inventoryPath']), Path(document['indexPath'])
     if sha(inventory_path) != document['inventorySha256'] or sha(index_path) != document['indexSha256']:

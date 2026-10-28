@@ -368,14 +368,21 @@ Older maps without `matcherVersion` replay version 1. Publisher/author qualifier
 only with explicit source tags or the library platform, retaining unresolved
 same-platform collisions. A generic matching improvement must not invalidate an
 immutable older map's replay.
-Current producer output records matcher version 3. It adds exact whole-token
+Current producer output records matcher version 4. Version 3 adds exact whole-token
 multi-letter Roman/Arabic sequel spelling and HTML entity decoding while
 preserving single-letter I/V/X and literal trailing `#` editions. Direct lookup
 and cross-provider corroboration share that spelling key; exact canonical
 corroboration runs first and cannot be displaced by an expanded candidate set.
 It does not strip subtitles, hack/DX/EX words or attach Download Play/Multiboot
 components through these spelling repairs. Ambiguous expanded results remain
-unresolved. Version 1 and 2 deliveries retain their original replay semantics.
+unresolved. Version 4 applies explicit publisher/author qualifiers to both
+providers and tries a separate lookup without trailing numeric three-part
+version/date annotations only after ordinary unresolved matching. Exact version
+records take precedence; named modifications and Download Play/Multiboot sources
+are not simplified. Versions 1 through 3 retain their original replay semantics.
+Duplicate catalogue representatives require an exact-source review with retained
+full records/ROM lists. Equal filenames with different hashes are not byte-identity
+proof; a regional programme reference does not establish its physical packaging.
 Scoped parsing handles DS numeric and x/z scene release numbers, 3DS title-ID/
 container decorations, short country tags, PSP Minis and tagged 64DD translations.
 SNES collection indexes also retain Nintendo Satellaview; broadcast lookup must

@@ -10,6 +10,44 @@ from prepare_collection_catalogue import (filename_title, source_kind, inventory
 
 
 class CollectionCatalogueTest(unittest.TestCase):
+    def test_explicit_publisher_qualifier_resolves_screenscraper_as_well_as_launchbox(self):
+        source={'system':'nes','family':'Translations','sourceKind':'program','title':'Star Wars',
+                'filename':'Translations/Star Wars (Japan) (Namco) [T-En v2.0].7z'}
+        games={'namco':{'id':'namco','title':'Star Wars (namco)','aliases':['Star Wars']},
+               'beam':{'id':'beam','title':'Star Wars (beam)','aliases':['Star Wars']}}
+        index={'platforms':{'nes':{}},'screenscraper':{'nes':games}}
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=3)[1])
+        self.assertEqual(resolve_source(source,index,{},matcher_version=4)[1]['screenscraper']['id'],'namco')
+        source['filename']='Star Wars (USA) (Limited Run Games).7z'
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=4)[1])
+
+    def test_numeric_release_annotations_do_not_become_part_of_the_game_lookup(self):
+        source={'system':'gba','family':'Hacks','sourceKind':'program',
+                'title':'Pokemon Emerald Ex (1.0.4)','filename':'Hacks/Pokemon Emerald Ex (1.0.4).7z'}
+        index={'platforms':{'gba':{}},'screenscraper':{'gba':{
+            'hack':{'id':'hack','title':'Pokemon Emerald Ex','aliases':[]},
+            'base':{'id':'base','title':'Pokemon Emerald','aliases':[]}}}}
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=3)[1])
+        self.assertEqual(resolve_source(source,index,{},matcher_version=4)[1]['screenscraper']['id'],'hack')
+        for title in ['Pokemon Emerald Ex (2026-01-25)','Pokemon Emerald Ex (20-9-26)',
+                      'Pokemon Emerald Ex (22.08.26)']:
+            source['title']=title
+            self.assertEqual(resolve_source(source,index,{},matcher_version=4)[1]['screenscraper']['id'],'hack')
+        source['title']='Pokemon Emerald Ex (Gen 2 GFX)'
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=4)[1])
+        source.update(title='Pokemon Emerald Ex (1.0.4)',family='Multiboot')
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=4)[1])
+
+    def test_exact_version_record_and_ambiguous_parent_keep_their_precedence(self):
+        source={'system':'gba','family':'root','sourceKind':'program','title':'Game (1.2.3)',
+                'filename':'Game (1.2.3).7z'}
+        games={'exact':{'id':'exact','title':'Game (1.2.3)','aliases':[]},
+               'parent':{'id':'parent','title':'Game','aliases':[]}}
+        index={'platforms':{'gba':{}},'screenscraper':{'gba':games}}
+        self.assertEqual(resolve_source(source,index,{},matcher_version=4)[1]['screenscraper']['id'],'exact')
+        del games['exact'];games['duplicate']={**games['parent'],'id':'duplicate'}
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=4)[1])
+
     def test_number_spellings_match_the_same_sequel_without_global_fuzzy_matching(self):
         source={'system':'snes','family':'root','sourceKind':'program',
                 'title':'Super Castlevania IV','filename':'Super Castlevania IV (USA).7z'}

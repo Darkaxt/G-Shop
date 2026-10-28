@@ -1,6 +1,15 @@
 # Staged implementation plan
 
-Current execution, 2026-10-28, revision 180: **S26 ACTIVE**, sole active stage.
+Current execution, 2026-10-29, revision 180: **S26 ACTIVE**, sole active stage.
+R21 full-census reconciliation passes: 11 additional provider bindings, four
+newly bound files and seven newly paired files. All 44,553 sources, prior IDs and
+negative rules survive. Explicit publisher qualification works across providers;
+strict numeric release lookup preserves exact versions and named modifications.
+Immutable matcher versions 1..3 replay successfully. Current private dataset:
+D:/RShopPrivate/Catalogue/catalogue-r21/mappings-r21-final.json and REPORT-r21.md.
+The integration skill is 0.1.66 with verified installed parity. Exact E: scratch
+retirement is applied without errors (2,969,962 logical bytes); the private final
+dataset and compact proof remain on D:. Wider S26 remains ACTIVE.
 Owner-authorized continuation verified in r20: 922 additional provider bindings,
 79 newly bound files and 843 newly paired files. Full consumer replay verifies
 44,553 sources / 41,245 either / 32,663 both / 3,308 neither. Roman/Arabic sequel

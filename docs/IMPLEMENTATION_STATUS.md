@@ -5,7 +5,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-28 continuation under specification revision 180: S26 is ACTIVE,
+2026-10-29 continuation under specification revision 180: S26 is ACTIVE,
 the sole active stage, after verified E: access recovery following the owner restart.
 CATALOGUE-ALL is the current outcome: complete Windows filename/provider-index
 mappings for all remaining supported source folders. Thor, APK installation,
@@ -14,6 +14,20 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+The authorized r21 mapping pass now verifies all 44,553 sources: 35,608 LaunchBox,
+38,311 ScreenScraper, 32,670 both, 41,249 either (92.58%) and 3,304 neither.
+Eleven provider bindings were added: four newly bound files and seven newly paired
+files. Explicit publisher qualification now covers both providers; numeric release
+lookup preserves exact versions and named mods (no current census gain from that
+rule). Scoped reviews resolve duplicate/regional records and the dated Nancy Drew
+prerelease. All prior IDs, membership and exclusions survive; immutable versions
+1..3 replay successfully. The integration skill is 0.1.66 with installed parity.
+Current data/report: D:/RShopPrivate/Catalogue/catalogue-r21/mappings-r21-final.json
+and REPORT-r21.md. Exact-source remaining gaps are retained. This verifies the
+bounded mapping repairs, not all-ROM/physical-resource completion or wider S26.
+Exact E: scratch retirement is applied without errors (transaction
+7c4519d1b9eb99cbf7e9ed5242d070fd, 2,969,962 logical bytes); its root is absent.
+The versioned local dataset, compact proof and delivery receipt remain on D:.
 The owner requested continued improvement after r19. R20 now passes the full
 44,553-source consumer replay: 35,601 LaunchBox, 38,307 ScreenScraper, 32,663 both,
 41,245 either (92.58%) and 3,308 neither. Added 922 provider bindings: 79 newly
