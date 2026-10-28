@@ -1,6 +1,14 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 180, 2026-10-28.
+Authoritative specification, revision 181, 2026-10-29.
+
+Owner persistent mapping objective, 2026-10-29 (CATALOGUE-ALL, S26): continue
+towards total ROM resolution until the remaining sources cannot be resolved even
+with manual linking. A completed improvement round is not an exhaustion finding.
+Review every remaining provider/source outcome using retained local evidence,
+targeted provider records and supported manual links; retain exact reviewed reasons
+for genuine residuals. Keep the complete denominator and both providers visible.
+Do not stop merely because another broad heuristic yields few new matches.
 
 Owner residual diagnosis correction, 2026-10-28 (CATALOGUE-ALL, S26): do not
 stop at an unresolved census. Independently inspect representative failures from

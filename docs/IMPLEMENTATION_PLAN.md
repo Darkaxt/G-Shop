@@ -1,6 +1,20 @@
 # Staged implementation plan
 
-Current execution, 2026-10-29, revision 180: **S26 ACTIVE**, sole active stage.
+Current execution, 2026-10-29, revision 181: **S26 ACTIVE**, sole active stage.
+R22 continues the persistent total-resolution objective. Reconcile every missing
+provider/source outcome with prior search evidence, repair reusable causes and
+apply supported manual links. Do not infer exhaustion from the r21 small gain.
+Verify the resulting full census and retained exclusions, deliver the private
+local dataset, and retire task scratch. No native/artwork scope is activated.
+R22 integrated repairs now verify 184 added provider bindings: 72 newly bound
+sources and 112 newly paired sources. The current H: name-only census is identical
+to the 44,553-source retained inventory. Supplied translation readmes support 56
+source reviews; explicit GB-compatible GBC fallback keeps actual GB provider
+platforms and GBC owners. Matcher v5 plus immutable v1..4 replay pass. Dataset:
+D:/RShopPrivate/Catalogue/catalogue-r22/. Remaining 3,232 unbound files and missing
+provider outcomes stay ACTIVE review work; this is not an exhaustion finding.
+R22 scratch and the superseded D: preview are retired through applied exact-target
+tickets (27,436,606 logical bytes, no errors); retained current inputs remain on D:.
 R21 full-census reconciliation passes: 11 additional provider bindings, four
 newly bound files and seven newly paired files. All 44,553 sources, prior IDs and
 negative rules survive. Explicit publisher qualification works across providers;

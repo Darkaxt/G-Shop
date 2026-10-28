@@ -5,7 +5,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-29 continuation under specification revision 180: S26 is ACTIVE,
+2026-10-29 continuation under specification revision 181: S26 is ACTIVE,
 the sole active stage, after verified E: access recovery following the owner restart.
 CATALOGUE-ALL is the current outcome: complete Windows filename/provider-index
 mappings for all remaining supported source folders. Thor, APK installation,
@@ -14,6 +14,23 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+R22 is ACTIVE work within S26 for the persistent total-resolution objective.
+Every remaining provider/source outcome still needs an evidence-based exhaustion
+review; the r21 improvements do not establish that the residuals are unsolvable.
+R22's integrated current map passes the complete 44,553-source consumer:
+35,721 LaunchBox, 38,382 ScreenScraper, 32,782 both, 41,321 either (92.75%) and
+3,232 neither. Added 184 provider bindings, 72 newly bound sources and 112 newly
+paired sources. Supplied translation documentation resolves renamed originals;
+Gourmet/Oishinbo and the independent Nekketsu demo illustrate why lexical
+similarity alone is insufficient. Matcher v5 adds an explicit GB-Compatible-only
+GB provider fallback without changing GBC owners, existing native results or
+exclusions. Normal promotion/namespace rejection regressions and immutable v1..4
+replay pass. A fresh H: filename census hashes identically to the retained input.
+Private dataset/report: D:/RShopPrivate/Catalogue/catalogue-r22/. The installed
+integration skill is 0.1.67 with verified source parity. Remaining-review-queue.json
+keeps all missing-provider outcomes open; total-resolution/S26 remain ACTIVE.
+R22 exact E: scratch and its superseded D: preview are absent after applied
+cleanup tickets (27,436,606 logical bytes, no errors). Current proof remains on D:.
 The authorized r21 mapping pass now verifies all 44,553 sources: 35,608 LaunchBox,
 38,311 ScreenScraper, 32,670 both, 41,249 either (92.58%) and 3,304 neither.
 Eleven provider bindings were added: four newly bound files and seven newly paired

@@ -10,6 +10,38 @@ from prepare_collection_catalogue import (filename_title, source_kind, inventory
 
 
 class CollectionCatalogueTest(unittest.TestCase):
+    def test_explicit_gb_compatible_source_can_use_actual_game_boy_records(self):
+        source={'system':'gbc','family':'root','sourceKind':'program','title':'Airaki!',
+                'filename':'Airaki! (World) (GB Compatible) (Aftermarket) (Unl).7z'}
+        game={'id':'7','title':'Airaki!','aliases':[],'platformName':'Nintendo Game Boy'}
+        index={'platforms':{'gbc':{},'gb':{'7':game}},'screenscraper':{'gbc':{},'gb':{}}}
+        self.assertNotIn('launchbox',resolve_source(source,index,{},matcher_version=4)[1])
+        result=resolve_source(source,index,{},matcher_version=5)[1]['launchbox']
+        self.assertEqual((result['id'],result['platformName'],result['catalogueNamespace']),
+                         ('7','Nintendo Game Boy','gb'))
+        self.assertEqual(source['system'],'gbc')
+        for updates in ({'filename':'Airaki! (World).7z'}, {'sourceKind':'card-data'}, {'system':'gba'}):
+            altered={**source,**updates}
+            index['platforms'].setdefault(altered['system'],{})
+            index['screenscraper'].setdefault(altered['system'],{})
+            self.assertNotIn('launchbox',resolve_source(altered,index,{},matcher_version=5)[1])
+
+    def test_gb_compatible_lookup_keeps_native_platform_precedence_and_exclusions(self):
+        source={'system':'gbc','family':'root','sourceKind':'program','title':'Game',
+                'sourcePath':'gbc/Game.7z','filename':'Game (World) (GB Compatible).7z'}
+        primary={'id':'color','title':'Game','aliases':[],'platformId':10}
+        older={'id':'mono','title':'Game','aliases':[],'platformId':9}
+        index={'platforms':{'gbc':{},'gb':{}},'screenscraper':{'gbc':{'color':primary},'gb':{'mono':older}}}
+        self.assertEqual(resolve_source(source,index,{},matcher_version=5)[1]['screenscraper']['id'],'color')
+        index['screenscraper']['gbc']={}
+        index['platforms']['gbc']={'lb':{'id':'lb','title':'Game','aliases':[]}}
+        rule={'system':'gbc','sourceTitle':'Game','providers':{'launchbox':{'id':'lb','title':'Game'}},
+              'blockedProviders':['screenscraper'],'reason':'A proven different programme.'}
+        reviews={('gbc',title_key('Game')):[rule]}
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},reviews,matcher_version=5)[1])
+        index['screenscraper']['gbc']={'a':{**primary,'id':'a'},'b':{**primary,'id':'b'}}
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=5)[1])
+
     def test_explicit_publisher_qualifier_resolves_screenscraper_as_well_as_launchbox(self):
         source={'system':'nes','family':'Translations','sourceKind':'program','title':'Star Wars',
                 'filename':'Translations/Star Wars (Japan) (Namco) [T-En v2.0].7z'}
@@ -439,7 +471,10 @@ class CollectionCatalogueTest(unittest.TestCase):
     def test_embedded_fds_filename_map_promotes_to_nes_owner_and_fds_packaging(self):
         self.check_filename_map_collector('nes','fds','Disk System','Nintendo Famicom Disk System')
 
-    def check_filename_map_collector(self,system,namespace,family,platform_name):
+    def test_gb_compatible_map_keeps_gbc_owner_and_actual_provider_namespace(self):
+        self.check_filename_map_collector('gbc','gb','root','Nintendo Game Boy',compatible=True)
+
+    def check_filename_map_collector(self,system,namespace,family,platform_name,compatible=False):
         import zipfile
         from prepare_catalogue_bindings import promote_filename_mapping
         from prepare_collection_catalogue import mapping, load_mapping, sha
@@ -450,6 +485,7 @@ class CollectionCatalogueTest(unittest.TestCase):
             row, args, _, body = fixture.CatalogueBindingsTest().fixture(root)
             row['game']['platformId'] = system
             filename=('Disk System/' if family=='Disk System' else '')+'Known Canonical Name (USA).7z'
+            if compatible:filename=filename.replace('(USA)','(USA) (GB Compatible)')
             source_path=system+'/'+filename
             records = [json.loads(line) for line in args.binding_census.read_text().splitlines()]
             for envelope in records:
@@ -469,22 +505,36 @@ class CollectionCatalogueTest(unittest.TestCase):
                     <FileName>00000007-0000-0000-0000-000000000000.png</FileName></GameImage></LaunchBox>'''.format(platform_name=platform_name))
             source = {'system': system, 'sourcePath': source_path,
                 'filename': filename, 'folder': system,
-                'title': 'Known Canonical Name', 'family': family, 'modifiedContext': False}
+                'title': 'Known Canonical Name', 'family': family, 'modifiedContext': False,
+                'sourceKind':'program'}
             inventory_path, index_path, map_path = (root/name for name in ['inventory.json', 'index.json', 'map.json'])
             inventory_path.write_text(json.dumps({'version': 1, 'registrySha256': sha(Path(__file__).parents[1]/'catalogue_platforms.json'),
                 'supportedSystems': registry(), 'systems': {system: {'sources': 1}}, 'rows': [source]}))
             game = {'id': '7', 'title': 'Known Canonical Name', 'aliases': [],
                     'platformName': platform_name}
+            indexed_games={namespace:{'7':game}};indexed_ss={namespace:{}}
+            if compatible:indexed_games[system]={};indexed_ss[system]={}
             index_path.write_text(json.dumps({'inventorySha256': sha(inventory_path),
                 'launchbox': {'path': str(args.launchbox), 'sha256': sha(args.launchbox)},
-                'screenscraperSources': {}, 'platforms': {namespace: {'7': game}}, 'screenscraper': {namespace: {}}}))
+                'screenscraperSources': {}, 'platforms': indexed_games, 'screenscraper': indexed_ss}))
             mapping(inventory_path, index_path, map_path)
             args.catalogue_bindings = root/'promoted.json'
             promoted = promote_filename_mapping(map_path, args.binding_census, args.launchbox, args.catalogue_bindings)
             self.assertEqual(len(promoted['bindings']), 1)
             self.assertEqual(promoted['unpromotedSources'], [])
-            self.assertEqual(promoted['bindings'][0]['cataloguePlatform'],namespace)
+            self.assertEqual(promoted['bindings'][0]['cataloguePlatform'],system if compatible else namespace)
             self.assertEqual(promoted['bindings'][0]['platform'],system)
+            if compatible:
+                binding=promoted['bindings'][0]['providers']['launchbox']
+                self.assertEqual((binding['catalogueNamespace'],binding['platformName']),('gb','Nintendo Game Boy'))
+                # A candidate cannot admit arbitrary other platforms through a
+                # forged namespace, even when its ID exists in another index.
+                document=json.loads(map_path.read_text())
+                document['rows'][0]['providers']['launchbox']['catalogueNamespace']='nes'
+                map_path.write_text(json.dumps(document))
+                with self.assertRaisesRegex(ValueError,'unsupported compatible namespace'):
+                    load_mapping(map_path)
+                return
             args.system = system
             fixture.CatalogueBindingsTest().collect(row, args, body)
             with zipfile.ZipFile(args.output) as archive:
