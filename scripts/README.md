@@ -359,6 +359,16 @@ NES `Disk System` files resolve in FDS, including when the standalone FDS folder
 is empty; promotion retains their NES owner and FDS media namespace. Report
 LaunchBox, ScreenScraper, both, either and neither separately across the full
 census. Candidate bindings do not establish physical-edition or artwork coverage.
+Current matcher version 2 also uses provider-declared `romNames` when title
+matching is unresolved. It keeps revision/region tokens and supports typed
+e-Reader card codes/names in namespace 119. The input index and review evidence
+must own those names; no ROM bodies are needed. e-Reader rows are `card-data`,
+so normal cartridge-artwork owner promotion leaves them explicitly unpromoted.
+Older maps without `matcherVersion` replay version 1; new producer output records
+version 2. Publisher/author qualifiers and SG-1000/SC-3000 collisions are resolved
+only with explicit source tags or the library platform, retaining unresolved
+same-platform collisions. A generic matching improvement must not invalidate an
+immutable older map's replay.
 Scoped parsing handles DS numeric and x/z scene release numbers, 3DS title-ID/
 container decorations, short country tags, PSP Minis and tagged 64DD translations.
 SNES collection indexes also retain Nintendo Satellaview; broadcast lookup must

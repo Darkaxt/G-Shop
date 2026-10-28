@@ -22,6 +22,7 @@ from prepare_packaging_resources import launchbox_records, normalized
 
 REPO = Path(__file__).resolve().parents[1]
 REGISTRY = Path(__file__).with_name('catalogue_platforms.json')
+PROVIDER_NAMESPACES = {'ereader': {'launchbox': [], 'screenscraperId': 119}}
 EXCLUDED = {'saves', 'patches', '_meta', '$recycle.bin', '.trash'}
 REGIONS = {'world', 'usa', 'europe', 'japan', 'china', 'korea', 'taiwan',
     'hong kong', 'brazil', 'russia', 'australia', 'asia', 'uk', 'united kingdom',
@@ -103,6 +104,8 @@ def source_kind(filename, system):
     if ('firmware' in folders or '[bios]' in name.casefold() or
             (system == 'snes' and title_key(filename_title(name, system)) == 'sufami turbo')):
         return 'firmware'
+    if system == 'gba' and 'e-reader' in folders:
+        return 'card-data'
     if re.search(r'(?i)(?:^0004008c|\(DLC\))', name):
         return 'dlc'
     if re.search(r'(?i)(?:^0004000e|\(Update\))', name):
@@ -204,10 +207,10 @@ def screenscraper_csv(source, identity):
 
 def indexes(inventory_path, launchbox, cache, output, existing_cache=None):
     census = read(inventory_path)
-    settings = census['supportedSystems']
+    settings = {**census['supportedSystems'], **PROVIDER_NAMESPACES}
     namespaces = {catalogue_namespace(row) for row in census.get('rows', [])}
     active = {key: value for key, value in settings.items()
-              if census['systems'][key]['sources'] or key in namespaces}
+              if census['systems'].get(key, {}).get('sources') or key in namespaces}
     platforms = collections.defaultdict(list)
     for system, config in active.items():
         for platform in config['launchbox']:
@@ -288,6 +291,48 @@ def lookup(games):
     return result
 
 
+def provider_filename_keys(filename, system, *, card_data=False):
+    """Compare declared filenames without reading archives or discarding revisions."""
+    name = PurePosixPath(filename.replace('\\', '/')).name
+    stem = PurePosixPath(name).stem
+    if PurePosixPath(name).suffix.casefold() in {'.zip', '.7z'} and PurePosixPath(stem).suffix.casefold() in {
+            '.nes', '.nds', '.ds', '.gba', '.gb', '.gbc', '.bin', '.md', '.3ds', '.cia', '.raw', '.sav'}:
+        stem = PurePosixPath(stem).stem
+    if system == 'nds':
+        stem = re.sub(r'^(?:\d{4,5}|[xz]\d{3,5})\s+-\s+', '', stem, flags=re.I)
+    countries = {'u': 'USA', 'us': 'USA', 'e': 'Europe', 'eu': 'Europe', 'j': 'Japan', 'jp': 'Japan'}
+    stem = re.sub(r'\((U|US|E|EU|J|JP)\)', lambda m: '(' + countries[m[1].casefold()] + ')', stem, flags=re.I)
+    keys = {'filename:' + title_key(stem)}
+    if card_data:
+        core = filename_title(stem + '.raw', 'gba')
+        tags = re.findall(r'\(([^)]*)\)', stem)
+        regions = sorted({part.strip().casefold() for tag in tags for part in tag.split(',')
+                          if part.strip().casefold() in REGIONS})
+        revisions = sorted(tag.casefold() for tag in tags if re.match(r'(?:Rev\b|v\d|Proto\b|Beta\b|Demo\b)', tag, re.I))
+        suffix = '|' + ','.join(regions) + '|' + ','.join(revisions)
+        code = re.search(r'(?<!\w)(?:\d{2,3}-[A-Z]\d{3}|[A-Z]-\d{2,3}(?:-[#a-z])?)(?!\w)', core, re.I)
+        if code:
+            keys.add('card-code:' + title_key(core[:code.start()]) + '|' + code[0].upper()
+                     + suffix)
+            if re.fullmatch(r'\d{2,3}-[A-Z]\d{3}', code[0], re.I):
+                keys.add('card-id:' + code[0].upper() + suffix)
+        parts = core.split(' - ')
+        if code:
+            printed_name = core[code.end():].strip(' -')
+            if printed_name and '...' not in printed_name:
+                keys.add('card-name:' + title_key(core[:code.start()].strip(' -'))
+                         + '|' + title_key(printed_name) + suffix)
+        elif len(parts) >= 3 and '...' not in core:
+            keys.add('card-name:' + title_key(' - '.join(parts[:-1]))
+                     + '|' + title_key(parts[-1]) + suffix)
+        if len(parts) >= 3 and normalized(parts[0]) == 'pokemonetcg' and '...' not in core:
+            offset = 3 if re.fullmatch(r'[A-Z]-\d{2,3}-[#a-z]', parts[2], re.I) else 2
+            if len(parts) > offset:
+                keys.add('card-name:' + title_key(' - '.join(parts[:2])) + '|'
+                         + title_key(' - '.join(parts[offset:])) + suffix)
+    return keys
+
+
 def catalogue_family(source):
     if source['system'] == 'n64' and re.search(r'\(64DD\)', source['filename'], re.I):
         return '64dd'
@@ -298,6 +343,8 @@ def catalogue_namespace(source):
     """Keep embedded FDS media in its provider namespace and NES library."""
     if source['system'] == 'nes' and source['family'].casefold() == 'disk system':
         return 'fds'
+    if source['system'] == 'gba' and source.get('sourceKind') == 'card-data':
+        return 'ereader'
     return source['system']
 
 
@@ -347,6 +394,25 @@ def regional_alias(source, finding, games):
     return finding
 
 
+def qualified_alias(source, finding, games):
+    """Use an explicit author/publisher tag, never an inferred title substring."""
+    if finding['status'] != 'ambiguous':
+        return finding
+    def company_key(value):
+        value = re.sub(r'\b(?:co|company|inc|ltd|corp)\.?\s*$', '', value, flags=re.I).strip()
+        return title_key(value)
+    tags = {company_key(tag) for tag in re.findall(r'\(([^)]*)\)', source['filename'])}
+    selected = []
+    for identity in finding['ids']:
+        qualifier = re.search(r'\(([^)]+)\)\s*$', games[identity]['title'])
+        if qualifier and company_key(qualifier[1]) in tags:
+            selected.append(identity)
+    if len(selected) == 1:
+        return {'status': 'unique', 'method': 'explicit-source-qualifier',
+                'ids': selected, 'originalCandidateIds': finding['ids']}
+    return finding
+
+
 def load_title_aliases(path):
     if path is None:
         return {}
@@ -383,7 +449,7 @@ def reviewed_alias(source, rules):
     return applicable[0] if applicable else None
 
 
-def resolve_source(source, index, cache, reviews=None):
+def resolve_source(source, index, cache, reviews=None, *, matcher_version=1):
     """One cached resolver per platform/family, shared by producer and consumer."""
     from prepare_catalogue_bindings import corroborate_providers
     system = catalogue_namespace(source)
@@ -391,7 +457,7 @@ def resolve_source(source, index, cache, reviews=None):
     broadcast_source = system == 'snes' and (
         source['family'].casefold() == 'satellaview' or
         bool(re.match(r'^BS\s', source['title'], re.I)))
-    key = system, family, broadcast_source
+    key = system, family, broadcast_source, matcher_version
     if key not in cache:
         games = {provider: source_games(source, provider, systems[system]) for provider, systems in
                  [('launchbox', index['platforms']), ('screenscraper', index['screenscraper'])]}
@@ -402,6 +468,15 @@ def resolve_source(source, index, cache, reviews=None):
         if system == 'snes':
             lookups['satellaview'] = lookup({identity: game for identity, game in games['launchbox'].items()
                 if game.get('platformName') == 'Nintendo Satellaview'})
+        if matcher_version >= 2:
+            lookups['rom-filenames'] = {}
+            for provider, values in games.items():
+                filenames = collections.defaultdict(set)
+                for identity, game in values.items():
+                    for name in game.get('romNames', []):
+                        for filename_key in provider_filename_keys(name, source['system'], card_data=system == 'ereader'):
+                            filenames[filename_key].add(identity)
+                lookups['rom-filenames'][provider] = filenames
         lb_names, ss_names = {}, {}
         for identity, game in games['launchbox'].items():
             if (system == 'snes' and not broadcast_source and
@@ -425,6 +500,26 @@ def resolve_source(source, index, cache, reviews=None):
                 found = broadcast
         if provider == 'launchbox':
             found = regional_alias(source, found, games[provider])
+            if matcher_version >= 2:
+                found = qualified_alias(source, found, games[provider])
+            if matcher_version >= 2 and system == 'sg1000' and found['status'] == 'ambiguous':
+                candidate_platforms = {games[provider][i]['platformName'] for i in found['ids']}
+                if candidate_platforms == {'Sega SG-1000', 'Sega SC-3000'}:
+                    preferred = ('Sega SC-3000' if source['family'].casefold() == 'sc-3000' or
+                                 re.search(r'\(SC-3000\)', source['filename'], re.I) else 'Sega SG-1000')
+                    selected = [i for i in found['ids'] if games[provider][i]['platformName'] == preferred]
+                    if len(selected) == 1:
+                        found = {'status': 'unique', 'method': 'library-platform',
+                                 'ids': selected, 'originalCandidateIds': found['ids']}
+        if matcher_version >= 2 and found['status'] != 'unique':
+            keys = provider_filename_keys(source['filename'], source['system'], card_data=system == 'ereader')
+            identities = set().union(*(lookups['rom-filenames'][provider].get(k, set()) for k in keys if k.startswith('filename:')))
+            method = 'provider-rom-filename'
+            if not identities:
+                identities = set().union(*(lookups['rom-filenames'][provider].get(k, set()) for k in keys if not k.startswith('filename:')))
+                method = 'provider-card-identifier'
+            if len(identities) == 1:
+                found = {'status': 'unique', 'method': method, 'ids': sorted(identities)}
         if review and provider in review['providers']:
             candidate = review['providers'][provider]
             actual = games[provider].get(candidate['id'])
@@ -442,7 +537,7 @@ def resolve_source(source, index, cache, reviews=None):
         matches[provider] = found
         if found['status'] == 'unique':
             game = games[provider][found['ids'][0]]
-            providers[provider] = {**{k:v for k,v in game.items() if k not in {'aliases','aliasRegions'}},
+            providers[provider] = {**{k:v for k,v in game.items() if k not in {'aliases','aliasRegions','romNames'}},
                                    'method': 'exact-'+found['method']}
     blocked = set(review.get('blockedProviders', [])) if review else set()
     providers = corroborate_providers(providers, games['launchbox'],
@@ -450,7 +545,7 @@ def resolve_source(source, index, cache, reviews=None):
         {} if 'screenscraper' in blocked else ss_names)
     for provider, candidate in providers.items():
         game = games[provider][candidate['id']]
-        providers[provider] = {**{k: v for k, v in game.items() if k not in {'aliases','aliasRegions'}}, **candidate}
+        providers[provider] = {**{k: v for k, v in game.items() if k not in {'aliases','aliasRegions','romNames'}}, **candidate}
     return matches, providers
 
 
@@ -462,7 +557,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
     reviews = load_title_aliases(title_aliases)
     for source in inventory_data['rows']:
         system = source['system']
-        matches, providers = resolve_source(source, index, cache, reviews)
+        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=2)
         rows.append({**source, 'providers': providers, 'matches': matches,
             'status': 'bound-candidate' if providers else 'unresolved',
             'identityLevel': 'filename-title-candidate', 'physicalEditionVerified': False})
@@ -481,7 +576,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
                 'ambiguous' if any(m['status'] == 'ambiguous' for m in r['matches'].values()) else
                 'spacing-review' if any(m['status'] == 'loose-candidate' for m in r['matches'].values()) else
                 'no-exact-index-title' for r in subset if not r['providers']))}
-    document = {'version': 1, 'scope': 'filename-catalogue-candidates',
+    document = {'version': 1, 'matcherVersion': 2, 'scope': 'filename-catalogue-candidates',
         'inventoryPath': str(inventory_path), 'inventorySha256': sha(inventory_path),
         'indexPath': str(index_path), 'indexSha256': sha(index_path),
         **({'titleAliasesPath': str(title_aliases), 'titleAliasesSha256': sha(title_aliases)} if title_aliases else {}),
@@ -501,6 +596,9 @@ def load_mapping(path):
     document = read(path)
     if document.get('version') != 1 or document.get('scope') != 'filename-catalogue-candidates':
         raise ValueError('Unsupported filename binding format')
+    matcher_version = document.get('matcherVersion', 1)
+    if matcher_version not in {1, 2}:
+        raise ValueError('Unsupported catalogue matcher version')
     inventory_path, index_path = Path(document['inventoryPath']), Path(document['indexPath'])
     if sha(inventory_path) != document['inventorySha256'] or sha(index_path) != document['indexSha256']:
         raise ValueError('Catalogue mapping input changed')
@@ -533,7 +631,7 @@ def load_mapping(path):
             game = games.get(catalogue_namespace(row), {}).get(candidate['id']) if games else None
             if not game or any(candidate.get(k) != game.get(k) for k in ['id', 'title', 'platformId', 'platformName']):
                 raise ValueError('Filename binding has a foreign provider ID')
-        matches, providers = resolve_source(original, index, cache, reviews)
+        matches, providers = resolve_source(original, index, cache, reviews, matcher_version=matcher_version)
         if row['providers'] != providers or row['matches'] != matches:
             raise ValueError('Filename binding differs from exact index evidence')
         result[key] = row

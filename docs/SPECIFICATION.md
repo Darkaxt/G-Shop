@@ -1,6 +1,17 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 179, 2026-10-28.
+Authoritative specification, revision 180, 2026-10-28.
+
+Owner residual diagnosis correction, 2026-10-28 (CATALOGUE-ALL, S26): do not
+stop at an unresolved census. Independently inspect representative failures from
+each material source/provider cause, establish their actual root causes, and
+apply reusable fixes plus evidence-supported scoped decisions across affected
+sources. Keep the local-first order, then use targeted provider evidence for
+gaps not answered locally. Preserve prior proved assignments and exclusions;
+verify the full normal consumer after integrated repairs. An untested "no exact
+local title" result is a diagnostic state, not an established reason a game
+cannot map. Record genuine card/component identity limits separately from
+full-game identities without deleting them from the denominator.
 
 Owner dual-provider mapping continuation, 2026-10-28 (CATALOGUE-ALL, S26):
 reconcile all current H: ROM filenames, including G&W/NES/GBA, against both

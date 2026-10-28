@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.63"
+  version: "0.1.64"
 ---
 
 # G-Shop Console Integration
@@ -87,6 +87,16 @@ both/either/neither census separate; an either-provider match is not paired
 coverage. Preserve LaunchBox regional aliases from the retained source ZIP, not
 only an older simplified title export. NES `Disk System` sources keep NES library
 ownership while resolving and promoting through the FDS provider namespace.
+Do not stop at a gap CSV. Sample each material failure class, establish its cause,
+apply supported general repairs and scoped decisions, then replay the full census.
+Inspect competing entries' ROM lists: identical titles can be retail/update,
+prototype/publisher or author variants. Correct demonstrated false positives with
+an exact-source exclusion rather than preserving a wrong earlier ID.
+GBA e-Reader uses ScreenScraper namespace 119. Treat its files as card data;
+provider-declared filenames, printed card codes and card names can resolve names
+absent from the ordinary GBA index. Preserve series, region, revision and original
+card/strip names. A card-catalogue link does not make that data an ordinary
+cartridge ROM or authorize promoting its group artwork to a cartridge owner.
 Diagnose filename conventions and malformed index rows before claiming absent
 provider results. DS numeric and x/z scene numbers, short country tags, 3DS
 title-ID/container decorations, PSP Minis, tagged 64DD translations and the

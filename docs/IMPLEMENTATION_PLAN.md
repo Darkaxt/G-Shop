@@ -1,7 +1,20 @@
 # Staged implementation plan
 
-Current execution, 2026-10-28, revision 179: **S26 ACTIVE**, sole active stage.
-Current mapping checkpoint: the full local-first 44,553-source pass and its normal
+Current execution, 2026-10-28, revision 180: **S26 ACTIVE**, sole active stage.
+Current residual-repair checkpoint: sampled causes have been repaired across the
+full 44,553-source census and the normal consumer replay passes. R19 records
+35,493 LaunchBox, 37,493 ScreenScraper, 31,820 both, 41,166 either (92.40%) and
+3,387 neither. Added 3,062 provider bindings / 2,965 newly bound sources; removed
+one evidenced Dragon/Hudson Felix false positive with an explicit negative rule.
+All other prior IDs and source membership remain intact. E-Reader's separate
+namespace resolves 2,932/3,259 typed card-data files without ordinary cartridge
+promotion. Matcher v1 still verifies immutable r18; v2 handles declared filenames,
+card identifiers, platform collisions and explicit publisher/author qualifiers.
+Exact scratch/candidate retirement is applied with no errors (322,012,025 logical
+bytes); required evidence and the versioned local r19 receipt remain on D:.
+Remaining provider gaps and wider S26 physical/native/release criteria stay open.
+Do not close S26 or call physical resources accepted from catalogue counts.
+Historical r18 checkpoint: the full local-first 44,553-source pass and its normal
 consumer replay are verified. Catalogue-r18 records 35,427 LaunchBox, 34,498
 ScreenScraper, 31,724 both, 38,201 either and 6,352 neither. All old IDs/membership
 and the explicit exclusion remain intact; 2,204 provider bindings were added.

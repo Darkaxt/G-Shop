@@ -10,6 +10,87 @@ from prepare_collection_catalogue import (filename_title, source_kind, inventory
 
 
 class CollectionCatalogueTest(unittest.TestCase):
+    def test_provider_rom_filenames_repair_names_without_borrowing_another_revision(self):
+        source={'system':'nds','family':'root','title':'Older Local Title',
+                'filename':'0123 - Older Local Title (USA) (Rev 1).7z'}
+        game={'id':'7','title':'New Canonical Title','aliases':[],
+              'romNames':['Older Local Title (USA) (Rev 1).nds']}
+        index={'platforms':{'nds':{}},'screenscraper':{'nds':{'7':game}}}
+        self.assertEqual(resolve_source(source,index,{},matcher_version=2)[1]['screenscraper']['id'],'7')
+        source['filename']='0123 - Older Local Title (USA) (Rev 2).7z'
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=2)[1])
+
+    def test_card_filename_keys_retain_card_codes_series_and_region(self):
+        source={'system':'gba','family':'e-Reader','sourceKind':'card-data',
+                'title':'Animal Crossing-e - Series 1 - A-001 - K.K. Slider',
+                'filename':'e-Reader/Animal Crossing-e - Series 1 - A-001 - K.K. Slider (USA).7z'}
+        game={'id':'7','title':'Animal Crossing Card-e','aliases':[], 'platformId':119,
+              'romNames':['Animal Crossing-e - Series 1 - A-001 (U).e']}
+        index={'platforms':{'ereader':{}},'screenscraper':{'ereader':{'7':game}}}
+        self.assertEqual(resolve_source(source,index,{},matcher_version=2)[1]['screenscraper']['id'],'7')
+        for filename in ['Animal Crossing-e - Series 1 - A-002 (USA).7z',
+                         'Animal Crossing-e - Series 2 - A-001 (USA).7z',
+                         'Animal Crossing-e - Series 1 - A-001 (Japan).7z']:
+            source['filename']='e-Reader/'+filename
+            self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=2)[1])
+
+    def test_global_card_identifier_survives_provider_omitted_card_e_plus(self):
+        source={'system':'gba','family':'e-Reader','sourceKind':'card-data',
+                'title':'F-Zero - Falcon Densetsu Card-e+ - Carddas Ban - 14-A001',
+                'filename':'e-Reader/F-Zero - Falcon Densetsu Card-e+ - Carddas Ban - 14-A001 (Japan).7z'}
+        game={'id':'7','title':'F-Zero - Falcon Densetsu Card-e+','aliases':[], 'platformId':119,
+              'romNames':['F-Zero - Falcon Densetsu Card-e - Carddas Ban - 14-A001 (Japan).zip']}
+        index={'platforms':{'ereader':{}},'screenscraper':{'ereader':{'7':game}}}
+        self.assertEqual(resolve_source(source,index,{},matcher_version=2)[1]['screenscraper']['id'],'7')
+
+    def test_card_name_variant_retains_collection_series_when_provider_omits_code(self):
+        source={'system':'gba','family':'e-Reader','sourceKind':'card-data',
+                'title':'Animal Crossing-e - Series 1 - A-003 - Porter',
+                'filename':'e-Reader/Animal Crossing-e - Series 1 - A-003 - Porter (USA).7z'}
+        game={'id':'7','title':'Animal Crossing Card-e','aliases':[], 'platformId':119,
+              'romNames':['Animal Crossing-e - Series 1 - Porter (USA).zip']}
+        index={'platforms':{'ereader':{}},'screenscraper':{'ereader':{'7':game}}}
+        self.assertEqual(resolve_source(source,index,{},matcher_version=2)[1]['screenscraper']['id'],'7')
+        source['filename']='e-Reader/Animal Crossing-e - Series 2 - A-003 - Porter (USA).7z'
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=2)[1])
+
+    def test_qualified_game_names_use_explicit_source_author_or_publisher(self):
+        games={'1':{'id':'1','title':'Felix the Cat (Dragon)','aliases':['Felix the Cat']},
+               '2':{'id':'2','title':'Felix the Cat (Hudson)','aliases':['Felix the Cat']}}
+        source={'system':'nes','family':'Public (iNES2)','title':'Felix the Cat',
+                'filename':'Public (iNES2)/Felix the Cat (China) (En) (Dragon Co.) (Unl).7z'}
+        index={'platforms':{'nes':games},'screenscraper':{'nes':{}}}
+        self.assertEqual(resolve_source(source,index,{},matcher_version=2)[1]['launchbox']['id'],'1')
+        source['filename']='Felix the Cat (World).7z'
+        self.assertNotIn('launchbox',resolve_source(source,index,{},matcher_version=2)[1])
+
+    def test_ereader_cards_use_their_own_catalogue_and_remain_card_data(self):
+        from prepare_collection_catalogue import catalogue_namespace
+        source={'system':'gba','family':'e-Reader','sourceKind':'card-data',
+                'title':'Air Hockey-e','filename':'e-Reader/Air Hockey-e - 00-B000 (USA).7z'}
+        self.assertEqual(source_kind(source['filename'],'gba'),'card-data')
+        self.assertEqual(catalogue_namespace(source),'ereader')
+        game={'id':'7','title':'Air Hockey-e','aliases':[], 'platformId':119}
+        index={'platforms':{'gba':{},'ereader':{}},'screenscraper':{'gba':{},'ereader':{'7':game}}}
+        self.assertEqual(resolve_source(source,index,{})[1]['screenscraper']['platformId'],119)
+        # Old immutable inventories retain their pre-namespace interpretation.
+        source['sourceKind']='program'
+        self.assertEqual(catalogue_namespace(source),'gba')
+
+    def test_sg1000_collision_prefers_sg1000_without_discarding_sc3000_exclusives(self):
+        games={'1':{'id':'1','title':'Bank Panic','aliases':[], 'platformName':'Sega SG-1000'},
+               '2':{'id':'2','title':'Bank Panic','aliases':[], 'platformName':'Sega SC-3000'},
+               '3':{'id':'3','title':'SC Only','aliases':[], 'platformName':'Sega SC-3000'}}
+        source={'system':'sg1000','family':'root','title':'Bank Panic','filename':'Bank Panic (Japan).zip'}
+        index={'platforms':{'sg1000':games},'screenscraper':{'sg1000':{}}}
+        self.assertNotIn('launchbox',resolve_source(source,index,{})[1])
+        self.assertEqual(resolve_source(source,index,{},matcher_version=2)[1]['launchbox']['id'],'1')
+        source.update(title='SC Only',filename='SC Only (Japan).zip')
+        self.assertEqual(resolve_source(source,index,{},matcher_version=2)[1]['launchbox']['id'],'3')
+        games['4']={**games['1'],'id':'4'}
+        source.update(title='Bank Panic',filename='Bank Panic (Japan).zip')
+        self.assertNotIn('launchbox',resolve_source(source,index,{},matcher_version=2)[1])
+
     def test_source_role_preserves_firmware_and_addon_boundaries(self):
         cases = [
             ('SNES/SuFami Turbo (Japan).7z', 'snes', 'firmware'),

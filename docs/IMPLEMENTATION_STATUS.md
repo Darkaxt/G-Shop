@@ -5,7 +5,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-28 continuation under specification revision 179: S26 is ACTIVE,
+2026-10-28 continuation under specification revision 180: S26 is ACTIVE,
 the sole active stage, after verified E: access recovery following the owner restart.
 CATALOGUE-ALL is the current outcome: complete Windows filename/provider-index
 mappings for all remaining supported source folders. Thor, APK installation,
@@ -14,7 +14,32 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
-The local-first all-ROM pass is verified in private catalogue-r18:
+The owner rejected stopping at the r18 gap census. The resulting r19 diagnosis
+and full-census repairs now pass the normal consumer replay: 44,553 source files,
+35,493 LaunchBox, 37,493 ScreenScraper, 31,820 both, 41,166 either (92.40%) and
+3,387 neither. This resolves 2,965 previously unbound sources and adds 3,062
+provider bindings. All source membership and prior provider IDs survive except
+one evidenced correction: the Dragon Co. Felix source no longer uses Hudson's
+ScreenScraper record 1443. An exact-source negative rule prevents its restoration.
+The e-Reader namespace (119) now resolves 2,932 of 3,259 typed card-data sources;
+these are not promoted into ordinary cartridge artwork ownership. Other repairs
+cover SG-1000/SC-3000 collisions, publisher/author qualifiers, declared ROM names,
+retail/update/prototype distinctions and reviewed aliases. G&W is 53/53, NES
+8,498/9,831 and GBA 6,979/7,674 at filename/card-catalogue candidate level.
+Matcher v2 and the unchanged legacy r18 replay both verify. Current map/report:
+D:/RShopPrivate/Catalogue/catalogue-r19/mappings-r19-current.json and REPORT-r19.md.
+The full provider-gap CSV retains every remaining source/provider outcome. Local
+evidence was used first, followed by targeted public metadata pages; no ROM-body
+reads, artwork downloads, ScreenScraper API calls, H: writes or Thor work occurred.
+The installed integration skill is 0.1.64 with matching repository content.
+The exact E: task root and five superseded D: candidates were retired through
+transaction af95afe8238f6dfdcc4092a64822ddd4 (applied, 322,012,025 logical bytes,
+no errors). Required public evidence is compressed on D:; source paths in the
+e-Reader ledger are explicitly historical origins with verified archive members.
+Wider S26 remains ACTIVE; these figures do not establish usable physical-resource
+coverage, native acceptance, all-provider completion or an application release.
+
+Historical r18 checkpoint (superseded by r19 above):
 44,553 supported source files; LaunchBox 35,427, ScreenScraper 34,498, both
 31,724, either 38,201 (85.74%), neither 6,352. This adds 2,204 provider bindings
 and 129 newly bound sources without changing any previous provider ID or losing
