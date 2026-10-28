@@ -10,6 +10,89 @@ from prepare_collection_catalogue import (filename_title, source_kind, inventory
 
 
 class CollectionCatalogueTest(unittest.TestCase):
+    def test_number_spellings_match_the_same_sequel_without_global_fuzzy_matching(self):
+        source={'system':'snes','family':'root','sourceKind':'program',
+                'title':'Super Castlevania IV','filename':'Super Castlevania IV (USA).7z'}
+        games={'4':{'id':'4','title':'Super Castlevania 4','aliases':[]},
+               '3':{'id':'3','title':'Super Castlevania 3','aliases':[]}}
+        index={'platforms':{'snes':{}},'screenscraper':{'snes':games}}
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=2)[1])
+        self.assertEqual(resolve_source(source,index,{},matcher_version=3)[1]['screenscraper']['id'],'4')
+        games['duplicate']={**games['4'],'id':'duplicate'}
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=3)[1])
+
+    def test_numeral_matching_preserves_single_letters_abbreviations_and_subtitles(self):
+        cases=[('Mega Man X','Mega Man 10'),('VIP','6P'),('DS','500S'),
+               ('Super Fire Pro Wrestling III - Easy Type','Super Fire Pro Wrestling 3 - Final Bout')]
+        for source_title,provider_title in cases:
+            source={'system':'snes','family':'root','sourceKind':'program',
+                    'title':source_title,'filename':source_title+' (USA).7z'}
+            index={'platforms':{'snes':{}},'screenscraper':{'snes':{
+                '1':{'id':'1','title':provider_title,'aliases':[]}}}}
+            self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=3)[1])
+
+    def test_numerals_do_not_link_download_play_to_a_retail_owner(self):
+        source={'system':'nds','family':'Download Play','sourceKind':'program',
+                'title':'Game II','filename':'Download Play/Game II (USA).7z'}
+        index={'platforms':{'nds':{}},'screenscraper':{'nds':{
+            '1':{'id':'1','title':'Game 2','aliases':[]}}}}
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=3)[1])
+
+    def test_hash_suffix_is_an_edition_marker_and_survives_number_spelling(self):
+        games={'base':{'id':'base','title':'Project DIVA 2nd','aliases':[]},
+               'sharp':{'id':'sharp','title':'Project DIVA 2nd#','aliases':[]}}
+        source={'system':'psp','family':'root','sourceKind':'program',
+                'title':'Project DIVA 2nd','filename':'Project DIVA 2nd (Japan).zip'}
+        index={'platforms':{'psp':{}},'screenscraper':{'psp':games}}
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=2)[1])
+        self.assertEqual(resolve_source(source,index,{},matcher_version=3)[1]['screenscraper']['id'],'base')
+        source['title']='Project DIVA 2nd#'
+        self.assertEqual(resolve_source(source,index,{},matcher_version=3)[1]['screenscraper']['id'],'sharp')
+        source.update(system='snes',title='Game II',filename='Game II (USA).7z')
+        index={'platforms':{'snes':{}},'screenscraper':{'snes':{
+            'sharp':{'id':'sharp','title':'Game 2#','aliases':[]}}}}
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=3)[1])
+        source['title']='Game#'
+        index['screenscraper']['snes']['sharp'].update(title='Game',aliases=[])
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=3)[1])
+        index['screenscraper']['snes']['sharp']['aliases']=['Game#']
+        self.assertEqual(resolve_source(source,index,{},matcher_version=3)[1]['screenscraper']['id'],'sharp')
+
+    def test_provider_html_entities_are_decoded_without_removing_title_words(self):
+        source={'system':'gb','family':'root','sourceKind':'program',
+                'title':'Learn and Play - Blackjack & Solitaire',
+                'filename':'Learn and Play - Blackjack & Solitaire (USA).7z'}
+        index={'platforms':{'gb':{}},'screenscraper':{'gb':{
+            '1':{'id':'1','title':'Learn and Play - Blackjack &amp; Solitaire','aliases':[]}}}}
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=2)[1])
+        self.assertEqual(resolve_source(source,index,{},matcher_version=3)[1]['screenscraper']['id'],'1')
+        source['title']='Learn and Play - Blackjack & Poker'
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=3)[1])
+
+    def test_provider_corroboration_uses_the_same_sequel_spelling_as_direct_lookup(self):
+        source={'system':'gb','family':'root','sourceKind':'program',
+                'title':'Rockman World 2','filename':'Rockman World 2 (Japan).7z'}
+        index={'platforms':{'gb':{'lb':{'id':'lb','title':'Mega Man II','aliases':['Rockman World 2']}}},
+               'screenscraper':{'gb':{'ss':{'id':'ss','title':'Mega Man 2','aliases':[]}}}}
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=2)[1])
+        self.assertEqual(resolve_source(source,index,{},matcher_version=3)[1]['screenscraper']['id'],'ss')
+        # A provider alias can be overbroad; corroboration still anchors on its
+        # selected canonical identity and cannot drop a sequel or DX modifier.
+        index['platforms']['gb']['lb'].update(title='Taz-Mania 2',aliases=['Taz-Mania'])
+        index['screenscraper']['gb']['ss']['title']='Taz-Mania'
+        source.update(title='Taz-Mania 2',filename='Taz-Mania 2 (USA).7z')
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=3)[1])
+
+    def test_expanded_corroboration_cannot_displace_an_exact_canonical_binding(self):
+        source={'system':'gb','family':'root','sourceKind':'program',
+                'title':'Regional Name','filename':'Regional Name (Japan).7z'}
+        index={'platforms':{'gb':{
+            'exact':{'id':'exact','title':'Game 4','aliases':[]},
+            'other':{'id':'other','title':'Game IV','aliases':[]}}},
+            'screenscraper':{'gb':{'ss':{'id':'ss','title':'Game 4','aliases':['Regional Name']}}}}
+        self.assertEqual(resolve_source(source,index,{},matcher_version=2)[1]['launchbox']['id'],'exact')
+        self.assertEqual(resolve_source(source,index,{},matcher_version=3)[1]['launchbox']['id'],'exact')
+
     def test_provider_rom_filenames_repair_names_without_borrowing_another_revision(self):
         source={'system':'nds','family':'root','title':'Older Local Title',
                 'filename':'0123 - Older Local Title (USA) (Rev 1).7z'}

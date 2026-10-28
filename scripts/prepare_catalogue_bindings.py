@@ -26,20 +26,21 @@ def artifact_key(identity):
     return json.dumps(identity, sort_keys=True)
 
 
-def corroborate_providers(providers, lb_games, lb_names, ss_names):
+def corroborate_providers(providers, lb_games, lb_names, ss_names, *, title_normalizer=None):
     """Fill a missing artwork provider from an exact, scoped declared name.
 
     Keys retain word boundaries, operators and non-Latin text. This does not
     create a match when neither provider already has an independent candidate.
     """
     from prepare_packaging_resources import normalized
+    normalize = title_normalizer or (lambda title: normalized(title, word_boundaries=True))
     providers = dict(providers)
     if 'launchbox' not in providers and 'screenscraper' in providers:
         anchor = providers['screenscraper']
-        key = normalized(anchor['title'], word_boundaries=True)
+        key = normalize(anchor['title'])
         candidates = lb_names.get(key, set())
         canonical = {i for i in candidates if
-                     normalized(lb_games[i]['title'], word_boundaries=True) == key}
+                     normalize(lb_games[i]['title']) == key}
         selected = canonical or candidates
         if len(selected) == 1:
             identity = next(iter(selected))
@@ -48,7 +49,7 @@ def corroborate_providers(providers, lb_games, lb_names, ss_names):
                 'corroboratedBy': {'provider': 'screenscraper', **anchor}}
     if 'screenscraper' not in providers and 'launchbox' in providers:
         anchor = providers['launchbox']
-        candidates = ss_names.get(normalized(anchor['title'], word_boundaries=True), {})
+        candidates = ss_names.get(normalize(anchor['title']), {})
         if len(candidates) == 1:
             identity, title = next(iter(candidates.items()))
             providers['screenscraper'] = {'id': identity, 'title': title,

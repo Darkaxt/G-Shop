@@ -1,6 +1,16 @@
 # Staged implementation plan
 
 Current execution, 2026-10-28, revision 180: **S26 ACTIVE**, sole active stage.
+Owner-authorized continuation verified in r20: 922 additional provider bindings,
+79 newly bound files and 843 newly paired files. Full consumer replay verifies
+44,553 sources / 41,245 either / 32,663 both / 3,308 neither. Roman/Arabic sequel
+spelling, encoded entities, consistent canonical corroboration and reviewed
+source-scoped names are integrated. Four explicit regional/prototype refinements
+are supported by old/new public ROM lists; all other prior IDs remain intact.
+Immutable v1/r18 and v2/r19 replay pass. Exact intermediate/scratch retirement
+is applied without errors (242,363,607 logical bytes); final r20 inputs and compact
+evidence remain on D:. Finish the versioned local receipt; remaining gaps and wider
+S26 physical/native/release requirements remain open. No second ACTIVE stage.
 Current residual-repair checkpoint: sampled causes have been repaired across the
 full 44,553-source census and the normal consumer replay passes. R19 records
 35,493 LaunchBox, 37,493 ScreenScraper, 31,820 both, 41,166 either (92.40%) and

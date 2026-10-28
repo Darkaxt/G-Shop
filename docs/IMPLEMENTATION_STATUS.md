@@ -14,6 +14,25 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+The owner requested continued improvement after r19. R20 now passes the full
+44,553-source consumer replay: 35,601 LaunchBox, 38,307 ScreenScraper, 32,663 both,
+41,245 either (92.58%) and 3,308 neither. Added 922 provider bindings: 79 newly
+bound sources and 843 newly paired sources. Repairs cover whole-token sequel
+numbers, HTML entities, consistent canonical corroboration, literal edition
+suffixes and source-scoped article/spelling/duplicate records. The only prior
+ID changes are four evidenced regional/prototype refinements (Mickey Mouse II,
+Philip & Marlowe, Ice Age II and Matel Gear II); all other earlier IDs and source
+membership are preserved. Immutable r18/v1 and r19/v2 replay successfully with
+the current implementation. The installed integration skill is 0.1.65 and matches
+the repository. Current data/report: D:/RShopPrivate/Catalogue/catalogue-r20/
+mappings-r20-final.json and REPORT-r20.md. Exact residual/provider outcomes remain
+visible. Only eleven targeted public metadata pages supplemented existing local
+inputs; no ROM-body/artwork/API acquisition, H: write, Thor work or APK release.
+S26 remains the sole ACTIVE stage; physical/native/release acceptance is open.
+The exact r20 E: scratch root and five superseded D: mapping/rule candidates were
+removed through transaction 90dc33d877fa3b954d1415a832321ac4 (applied, no errors,
+242,363,607 logical bytes). The source-scoped final dataset and compact provenance
+are retained on D:; no other project writer's changes were included.
 The owner rejected stopping at the r18 gap census. The resulting r19 diagnosis
 and full-census repairs now pass the normal consumer replay: 44,553 source files,
 35,493 LaunchBox, 37,493 ScreenScraper, 31,820 both, 41,166 either (92.40%) and

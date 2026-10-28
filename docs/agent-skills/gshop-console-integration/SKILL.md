@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.64"
+  version: "0.1.65"
 ---
 
 # G-Shop Console Integration
@@ -92,6 +92,14 @@ apply supported general repairs and scoped decisions, then replay the full censu
 Inspect competing entries' ROM lists: identical titles can be retail/update,
 prototype/publisher or author variants. Correct demonstrated false positives with
 an exact-source exclusion rather than preserving a wrong earlier ID.
+Check sequel-number spellings and encoded HTML entities in both direct matching
+and provider corroboration; inconsistent keys leave valid regional links open.
+Retain I/V/X name letters, literal `#` editions, subtitles and modification words.
+Exact canonical proof takes precedence over an expanded spelling candidate set.
+Do not project every alias transitively: catalogues can give a sequel a base-game
+alias or group different editions. Keep old matcher replay stable and verify
+all earlier IDs/exclusions after a new matching version. Scope manual article,
+romanization and duplicate-record decisions to the actual source paths.
 GBA e-Reader uses ScreenScraper namespace 119. Treat its files as card data;
 provider-declared filenames, printed card codes and card names can resolve names
 absent from the ordinary GBA index. Preserve series, region, revision and original

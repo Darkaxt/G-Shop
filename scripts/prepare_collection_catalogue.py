@@ -9,6 +9,7 @@ import collections
 import csv
 import datetime
 import hashlib
+import html
 import io
 import json
 import os
@@ -23,6 +24,12 @@ from prepare_packaging_resources import launchbox_records, normalized
 REPO = Path(__file__).resolve().parents[1]
 REGISTRY = Path(__file__).with_name('catalogue_platforms.json')
 PROVIDER_NAMESPACES = {'ereader': {'launchbox': [], 'screenscraperId': 119}}
+# Single letters I/V/X can be names or words; only unambiguous multi-letter
+# sequel numerals participate. Word boundaries preserve VIP and other acronyms.
+SEQUEL_NUMERALS = dict(zip(
+    ('II', 'III', 'IV', 'VI', 'VII', 'VIII', 'IX', 'XI', 'XII', 'XIII',
+     'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX'),
+    ('2', '3', '4', '6', '7', '8', '9', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20')))
 EXCLUDED = {'saves', 'patches', '_meta', '$recycle.bin', '.trash'}
 REGIONS = {'world', 'usa', 'europe', 'japan', 'china', 'korea', 'taiwan',
     'hong kong', 'brazil', 'russia', 'australia', 'asia', 'uk', 'united kingdom',
@@ -279,6 +286,13 @@ def title_key(title, *, word_boundaries=True):
     return normalized(title, word_boundaries=word_boundaries)
 
 
+def sequel_number_key(title):
+    title = html.unescape(title)
+    key = title_key(re.sub(r'\b(?:' + '|'.join(SEQUEL_NUMERALS) + r')\b',
+                           lambda m: SEQUEL_NUMERALS[m[0]], title))
+    return key + ('|edition:#' if title.rstrip().endswith('#') else '')
+
+
 def lookup(games):
     result = {'canonical': collections.defaultdict(set), 'declared-alias': collections.defaultdict(set),
               'loose': collections.defaultdict(set)}
@@ -477,15 +491,31 @@ def resolve_source(source, index, cache, reviews=None, *, matcher_version=1):
                         for filename_key in provider_filename_keys(name, source['system'], card_data=system == 'ereader'):
                             filenames[filename_key].add(identity)
                 lookups['rom-filenames'][provider] = filenames
+        if matcher_version >= 3:
+            lookups['sequel-numbers'] = {}
+            for provider, values in games.items():
+                numbers = collections.defaultdict(set)
+                for identity, game in values.items():
+                    for name in [game['title'], *game.get('aliases', [])]:
+                        numbers[sequel_number_key(name)].add(identity)
+                lookups['sequel-numbers'][provider] = numbers
         lb_names, ss_names = {}, {}
+        spelling_lb_names, spelling_ss_names = {}, {}
         for identity, game in games['launchbox'].items():
             if (system == 'snes' and not broadcast_source and
                     game.get('platformName') == 'Nintendo Satellaview'):
                 continue
             for title in [game['title'], *game['aliases']]:
                 lb_names.setdefault(normalized(title, word_boundaries=True), set()).add(identity)
+                if matcher_version >= 3:
+                    spelling_lb_names.setdefault(sequel_number_key(title), set()).add(identity)
         for identity, game in games['screenscraper'].items():
             ss_names.setdefault(normalized(game['title'], word_boundaries=True), {})[identity] = game['title']
+            if matcher_version >= 3:
+                spelling_ss_names.setdefault(sequel_number_key(game['title']), {})[identity] = game['title']
+        if matcher_version >= 3:
+            lookups['spelling-lb-names'] = spelling_lb_names
+            lookups['spelling-ss-names'] = spelling_ss_names
         cache[key] = games, lookups, lb_names, ss_names
     games, lookups, lb_names, ss_names = cache[key]
     review = reviewed_alias(source, reviews or {})
@@ -511,6 +541,26 @@ def resolve_source(source, index, cache, reviews=None, *, matcher_version=1):
                     if len(selected) == 1:
                         found = {'status': 'unique', 'method': 'library-platform',
                                  'ids': selected, 'originalCandidateIds': found['ids']}
+        if matcher_version >= 3 and found['status'] in {'unique', 'ambiguous'}:
+            # Project DIVA 2nd and 2nd# are separately catalogued releases.
+            # Preserve that explicit marker instead of treating it as punctuation.
+            marked = lambda name: html.unescape(name).rstrip().endswith('#')
+            names = {i: [games[provider][i]['title'], *games[provider][i].get('aliases', [])]
+                     for i in found['ids']}
+            if marked(source['title']) or any(marked(name) for values in names.values() for name in values):
+                selected = [i for i, values in names.items() if any(
+                    marked(name) == marked(source['title']) and title_key(name) == title_key(source['title'])
+                    for name in values)]
+                if set(selected) != set(found['ids']):
+                    found = {'status': 'unique' if len(selected) == 1 else 'ambiguous' if selected else 'unmatched',
+                             'method': 'literal-edition-marker', 'ids': sorted(selected),
+                             'originalCandidateIds': found['ids']}
+        if (matcher_version >= 3 and found['status'] != 'unique' and
+                source.get('sourceKind') == 'program' and
+                source['family'].casefold() not in {'download play', 'multiboot'}):
+            identities = lookups['sequel-numbers'][provider].get(sequel_number_key(source['title']), set())
+            if len(identities) == 1:
+                found = {'status': 'unique', 'method': 'catalogue-title-spelling', 'ids': sorted(identities)}
         if matcher_version >= 2 and found['status'] != 'unique':
             keys = provider_filename_keys(source['filename'], source['system'], card_data=system == 'ereader')
             identities = set().union(*(lookups['rom-filenames'][provider].get(k, set()) for k in keys if k.startswith('filename:')))
@@ -543,6 +593,14 @@ def resolve_source(source, index, cache, reviews=None, *, matcher_version=1):
     providers = corroborate_providers(providers, games['launchbox'],
         {} if 'launchbox' in blocked else lb_names,
         {} if 'screenscraper' in blocked else ss_names)
+    if (matcher_version >= 3 and source.get('sourceKind') == 'program' and
+            source['family'].casefold() not in {'download play', 'multiboot'}):
+        # Preserve exact canonical corroboration first. Expanded spelling can
+        # introduce another candidate; it must not invalidate an earlier proof.
+        providers = corroborate_providers(providers, games['launchbox'],
+            {} if 'launchbox' in blocked else lookups['spelling-lb-names'],
+            {} if 'screenscraper' in blocked else lookups['spelling-ss-names'],
+            title_normalizer=sequel_number_key)
     for provider, candidate in providers.items():
         game = games[provider][candidate['id']]
         providers[provider] = {**{k: v for k, v in game.items() if k not in {'aliases','aliasRegions','romNames'}}, **candidate}
@@ -557,7 +615,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
     reviews = load_title_aliases(title_aliases)
     for source in inventory_data['rows']:
         system = source['system']
-        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=2)
+        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=3)
         rows.append({**source, 'providers': providers, 'matches': matches,
             'status': 'bound-candidate' if providers else 'unresolved',
             'identityLevel': 'filename-title-candidate', 'physicalEditionVerified': False})
@@ -576,7 +634,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
                 'ambiguous' if any(m['status'] == 'ambiguous' for m in r['matches'].values()) else
                 'spacing-review' if any(m['status'] == 'loose-candidate' for m in r['matches'].values()) else
                 'no-exact-index-title' for r in subset if not r['providers']))}
-    document = {'version': 1, 'matcherVersion': 2, 'scope': 'filename-catalogue-candidates',
+    document = {'version': 1, 'matcherVersion': 3, 'scope': 'filename-catalogue-candidates',
         'inventoryPath': str(inventory_path), 'inventorySha256': sha(inventory_path),
         'indexPath': str(index_path), 'indexSha256': sha(index_path),
         **({'titleAliasesPath': str(title_aliases), 'titleAliasesSha256': sha(title_aliases)} if title_aliases else {}),
@@ -597,7 +655,7 @@ def load_mapping(path):
     if document.get('version') != 1 or document.get('scope') != 'filename-catalogue-candidates':
         raise ValueError('Unsupported filename binding format')
     matcher_version = document.get('matcherVersion', 1)
-    if matcher_version not in {1, 2}:
+    if matcher_version not in {1, 2, 3}:
         raise ValueError('Unsupported catalogue matcher version')
     inventory_path, index_path = Path(document['inventoryPath']), Path(document['indexPath'])
     if sha(inventory_path) != document['inventorySha256'] or sha(index_path) != document['indexSha256']:

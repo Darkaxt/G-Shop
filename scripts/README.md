@@ -359,16 +359,23 @@ NES `Disk System` files resolve in FDS, including when the standalone FDS folder
 is empty; promotion retains their NES owner and FDS media namespace. Report
 LaunchBox, ScreenScraper, both, either and neither separately across the full
 census. Candidate bindings do not establish physical-edition or artwork coverage.
-Current matcher version 2 also uses provider-declared `romNames` when title
+Matcher version 2 also uses provider-declared `romNames` when title
 matching is unresolved. It keeps revision/region tokens and supports typed
 e-Reader card codes/names in namespace 119. The input index and review evidence
 must own those names; no ROM bodies are needed. e-Reader rows are `card-data`,
 so normal cartridge-artwork owner promotion leaves them explicitly unpromoted.
-Older maps without `matcherVersion` replay version 1; new producer output records
-version 2. Publisher/author qualifiers and SG-1000/SC-3000 collisions are resolved
+Older maps without `matcherVersion` replay version 1. Publisher/author qualifiers and SG-1000/SC-3000 collisions are resolved
 only with explicit source tags or the library platform, retaining unresolved
 same-platform collisions. A generic matching improvement must not invalidate an
 immutable older map's replay.
+Current producer output records matcher version 3. It adds exact whole-token
+multi-letter Roman/Arabic sequel spelling and HTML entity decoding while
+preserving single-letter I/V/X and literal trailing `#` editions. Direct lookup
+and cross-provider corroboration share that spelling key; exact canonical
+corroboration runs first and cannot be displaced by an expanded candidate set.
+It does not strip subtitles, hack/DX/EX words or attach Download Play/Multiboot
+components through these spelling repairs. Ambiguous expanded results remain
+unresolved. Version 1 and 2 deliveries retain their original replay semantics.
 Scoped parsing handles DS numeric and x/z scene release numbers, 3DS title-ID/
 container decorations, short country tags, PSP Minis and tagged 64DD translations.
 SNES collection indexes also retain Nintendo Satellaview; broadcast lookup must
