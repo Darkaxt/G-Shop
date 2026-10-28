@@ -1,6 +1,22 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 177, 2026-10-25.
+Authoritative specification, revision 178, 2026-10-28.
+
+Storage continuation, 2026-10-28 (S26, existing cleanup authority): finish the
+76-package retention review without treating an uncovered image as a reason to
+keep an entire obsolete import wrapper. Retain useful uncovered source artwork
+and its original per-game/provider/edition provenance as deduplicated validation
+inputs/records on D:, reusing verified existing raw inputs rather than copying
+their bytes again, with a verified member-level reconstruction ledger; preserve
+existing current packages and originals. Remove obsolete wrappers only after
+every original member is verified in the retained current packages or compact
+project dataset, and the transactional helper accepts the exact deletion set.
+Verify the D: catalogue consumer and retained inputs after cleanup. This is
+storage maintenance, not artwork curation, publication or native acceptance.
+Use E: task scratch by default; sustained/small-file I/O workloads and current
+project data belong on D:, and no-longer-needed D: scratch is cleaned promptly.
+G: long-term archives require a defined retention purpose and verified migration;
+the storage hierarchy alone does not authorize moving existing bound paths.
 
 Owner storage/lifecycle direction, 2026-10-25: H: holds curated final data,
 E: holds temporary processing, D: holds project data, and Thor is the validation

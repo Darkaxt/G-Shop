@@ -383,6 +383,13 @@ host. Keep compact provenance and maintained project datasets on D:. Retire
 superseded crawl, texture, conversion and import generations when they no longer
 have a current consumer or unique/recovery value. Different ZIP bytes alone do
 not establish useful differences: inspect their payloads and retained identities.
+Retain uncovered useful members/provenance compactly rather than keeping whole
+obsolete wrappers. Reuse verified raw inputs without creating another full copy;
+preserve exact member bytes and current-owner/printing review requirements.
+Default disposable scratch to exact E:/Temp task folders. Sustained/small-file I/O
+and current project evidence belong on D:, with D: temporary output retired after
+its last verified use. Long-term G: archives need a defined recovery purpose;
+existing path bindings require a scoped migration before relocation.
 Use reviewed transactional cleanup, preserving current resumable inputs and
 required acceptance evidence; no blanket age-based purge or indefinite retention
 of every generated iteration. Existing working checkout paths stay stable unless

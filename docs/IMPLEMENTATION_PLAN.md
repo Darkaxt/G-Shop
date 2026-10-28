@@ -1,6 +1,13 @@
 # Staged implementation plan
 
-Current execution, 2026-10-25, revision 177: **S26 ACTIVE**, sole active stage.
+Current execution, 2026-10-28, revision 178: **S26 ACTIVE**, sole active stage.
+Current storage checkpoint: all 76 previously retained wrappers are retired with
+all 6,898 member references verified. Existing inputs and a 20.98 MB compact D:
+archive preserve their useful contents/provenance. E: catalogue duplicates and
+finished D: test fixtures are removed; the retained catalogue consumer passes.
+Exact task-scratch retirement and path-absence checks also pass. This maintenance
+does not establish resource publication or close wider S26. Earlier receipts
+remain immutable; current report: D:/RShopPrivate/retention/2026-10-28/REPORT.md.
 Current maintenance outcome: enforce the owner's H: curated / E: temporary /
 D: project-data / Thor validation roles. Inspect superseded import generations,
 retain required assets/provenance, retire obsolete working files through reviewed
@@ -9,8 +16,8 @@ equality is not the sole criterion for obsolete generated packages. Keep this
 bounded maintenance within S26; no second implementation stage is active.
 Verified maintenance checkpoint: another 14.98 GB of obsolete packages retired
 with preserved payloads/provenance; project catalogue r17 on D: passes the complete
-consumer replay with unchanged identities. Retained unique packages still need
-value/identity review; this checkpoint does not establish that every remaining
+consumer replay with unchanged identities. The subsequently reviewed 76 packages
+are accounted for above; this checkpoint does not establish that every remaining
 E: working generation is necessary or close wider S26 acceptance.
 The storage impediment is resolved. All 2,524 residual title groups completed
 provider search; the bounded DS/DSi worker returned and its decisions were

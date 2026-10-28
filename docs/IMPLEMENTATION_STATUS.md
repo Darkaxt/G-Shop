@@ -5,7 +5,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-25 continuation under specification revision 177: S26 is ACTIVE,
+2026-10-28 continuation under specification revision 178: S26 is ACTIVE,
 the sole active stage, after verified E: access recovery following the owner restart.
 CATALOGUE-ALL is the current outcome: complete Windows filename/provider-index
 mappings for all remaining supported source folders. Thor, APK installation,
@@ -14,15 +14,29 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+Storage continuation verified all 76 retained package wrappers and retired them.
+All 6,898 member references remain readable with matching hashes through 947
+unchanged current packages, existing raw inputs and a 20,983,314-byte compact
+D: source archive. This pass removed 4,452,961,370 logical bytes from E: including
+13 catalogue copies already verified on D:, plus 21,273,827 bytes of finished
+synthetic test scratch from D:. A transient 2,005,364,580-byte D: reconstruction
+attempt was also retired; it is excluded from pre-existing-space reclamation.
+The normal D: catalogue consumer still verifies 26,995 sources / 25,634 bound.
+Receipts: D:/RShopPrivate/retention/2026-10-28/REPORT.md. The unique input bank
+serves ongoing full-collection S26 review; it is not curated/published artwork.
+Exact E: task scratch is also removed (transaction
+`af1f59a3686f7f2037b7ef14ca3e96a3`, applied; path absence verified). The bounded
+maintenance criteria pass. No new implementation stage, Thor work, APK
+installation or H: write was required; wider S26 remains ACTIVE.
 Owner storage correction is now authoritative: H: curated final data, E: temporary
 processing, D: project data, Thor validation. The prior 8.90 GB duplicate pass did
 not establish a need to retain every other generated generation. The next review
 retired 261 superseded ZIP packages plus four provenance files relocated to D:,
 reclaiming another 14,981,624,005 bytes through transaction
 `56e7b957f14294cd48dfc4295212ddd5` (`applied`, no errors). Every removed package's
-artwork payload survives in the 248 verified current packages. Seventy-six older
-packages with uncovered media remain pending further value/identity review; their
-uniqueness is not proof that they must be retained indefinitely. Original assets
+artwork payload survives in the 248 verified current packages. At that checkpoint,
+76 older packages awaited further value/identity review; the October 28 result
+above supersedes that pending status. Original assets
 and active reconstruction/publication recovery inputs were outside this set.
 The exact ledger and read-back receipt are in D:/RShopPrivate/retention/2026-10-25.
 Completed catalogue project data now lives in
