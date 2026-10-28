@@ -296,7 +296,7 @@ def promote_filename_mapping(mapping_path, census_path, launchbox, output):
     Missing native owners stay unpromoted, rather than fabricating game/edition
     IDs or requiring a device for the filename-only mapping outcome.
     """
-    from prepare_collection_catalogue import load_mapping, read, sha
+    from prepare_collection_catalogue import catalogue_namespace, load_mapping, read, sha
     from prepare_desktop_crawl_import import load_census
     from prepare_packaging_resources import owner_key
     sources = load_mapping(mapping_path)
@@ -343,7 +343,7 @@ def promote_filename_mapping(mapping_path, census_path, launchbox, output):
             raise ValueError('Filename map owner platform differs: '+source_path)
         record = {'platform': system, 'gameId': game['id'], 'editionId': edition['id'],
             'identityKey': owner_key(game, edition), 'archive': source['filename'],
-            'artifact': artifact, 'cataloguePlatform': system, 'family': source['family'],
+            'artifact': artifact, 'cataloguePlatform': catalogue_namespace(source), 'family': source['family'],
             'modifiedContext': source['modifiedContext'], 'providers': source['providers']}
         if source['providers']:
             bindings.append(record)

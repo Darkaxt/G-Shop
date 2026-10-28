@@ -1,6 +1,14 @@
 # Staged implementation plan
 
-Current execution, 2026-10-28, revision 178: **S26 ACTIVE**, sole active stage.
+Current execution, 2026-10-28, revision 179: **S26 ACTIVE**, sole active stage.
+Current mapping checkpoint: the full local-first 44,553-source pass and its normal
+consumer replay are verified. Catalogue-r18 records 35,427 LaunchBox, 34,498
+ScreenScraper, 31,724 both, 38,201 either and 6,352 neither. All old IDs/membership
+and the explicit exclusion remain intact; 2,204 provider bindings were added.
+Exact provider gaps and reasons remain private, including 3,259 e-Reader sources.
+Candidate/scratch retirement and the versioned local delivery are verified.
+Unresolved source/provider review remains open. Physical-resource/native/release
+gates remain outside this mapping pass; wider S26 remains the sole ACTIVE stage.
 Current storage checkpoint: all 76 previously retained wrappers are retired with
 all 6,898 member references verified. Existing inputs and a 20.98 MB compact D:
 archive preserve their useful contents/provenance. E: catalogue duplicates and

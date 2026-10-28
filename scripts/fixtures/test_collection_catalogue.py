@@ -195,7 +195,49 @@ class CollectionCatalogueTest(unittest.TestCase):
         source.update(family='Satellaview',filename='Satellaview/Broadcast (Japan).7z')
         self.assertEqual(resolve_source(source,index,cache)[1]['launchbox']['id'],'3')
 
+    def test_embedded_disk_system_uses_its_own_namespace_and_cache(self):
+        source={'system':'nes','family':'Disk System','title':'Same Name',
+                'filename':'Disk System/Same Name (Japan).7z'}
+        nes={'id':'1','title':'Same Name','aliases':[], 'platformName':'Nintendo Entertainment System'}
+        fds={'id':'2','title':'Same Name','aliases':[], 'platformName':'Nintendo Famicom Disk System'}
+        index={'platforms':{'nes':{'1':nes},'fds':{'2':fds}},
+               'screenscraper':{'nes':{},'fds':{
+                   '3':{'id':'3','title':'Same Name','aliases':[], 'platformId':106}}}}
+        cache={}
+        matches,providers=resolve_source(source,index,cache)
+        self.assertEqual(providers['launchbox']['id'],'2')
+        self.assertEqual(providers['screenscraper']['platformId'],106)
+        source.update(family='root',filename='Same Name (Japan).7z')
+        self.assertEqual(resolve_source(source,index,cache)[1]['launchbox']['id'],'1')
+
+    def test_indexes_include_embedded_fds_without_separate_fds_folder(self):
+        from prepare_collection_catalogue import indexes
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            census=root/'inventory.json'
+            settings={'nes':{'launchbox':['Nintendo Entertainment System'],'screenscraperId':3},
+                      'fds':{'launchbox':['Nintendo Famicom Disk System'],'screenscraperId':106}}
+            census.write_text(json.dumps({'supportedSystems':settings,
+                'systems':{'nes':{'sources':1},'fds':{'sources':0}},
+                'rows':[{'system':'nes','family':'Disk System'}]}))
+            records=[('Game',{'DatabaseID':'1','Name':'Cart','Platform':'Nintendo Entertainment System'}),
+                     ('Game',{'DatabaseID':'2','Name':'Disk','Platform':'Nintendo Famicom Disk System'})]
+            for platform in [3,106]:
+                (root/f'screenscraper-{platform}-gameslist.csv').write_text('Game ID;Game Name\n7;Disk\n')
+            with patch('prepare_collection_catalogue.launchbox_records',return_value=iter(records)), \
+                 patch('prepare_collection_catalogue.download',return_value={}), \
+                 patch('prepare_collection_catalogue.sha',return_value='fixture'):
+                result=indexes(census,root/'Metadata.zip',root,root/'index.json')
+            self.assertEqual(result['platforms']['fds']['2']['title'],'Disk')
+            self.assertEqual(result['screenscraper']['fds']['7']['title'],'Disk')
+
     def test_filename_map_reaches_normal_collector_and_rejects_changed_source(self):
+        self.check_filename_map_collector('snes','snes','root','Super Nintendo Entertainment System')
+
+    def test_embedded_fds_filename_map_promotes_to_nes_owner_and_fds_packaging(self):
+        self.check_filename_map_collector('nes','fds','Disk System','Nintendo Famicom Disk System')
+
+    def check_filename_map_collector(self,system,namespace,family,platform_name):
         import zipfile
         from prepare_catalogue_bindings import promote_filename_mapping
         from prepare_collection_catalogue import mapping, load_mapping, sha
@@ -204,14 +246,15 @@ class CollectionCatalogueTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             row, args, _, body = fixture.CatalogueBindingsTest().fixture(root)
-            # A newly mapped SNES source, using the same actual owner/pack lane.
-            row['game']['platformId'] = 'snes'
+            row['game']['platformId'] = system
+            filename=('Disk System/' if family=='Disk System' else '')+'Known Canonical Name (USA).7z'
+            source_path=system+'/'+filename
             records = [json.loads(line) for line in args.binding_census.read_text().splitlines()]
             for envelope in records:
                 if envelope['kind'] == 'game':
-                    envelope['record']['platformId'] = 'snes'
+                    envelope['record']['platformId'] = system
                 if envelope['kind'] == 'artifact':
-                    envelope['record']['displayPath'] = 'SNES/Known Canonical Name (USA).7z'
+                    envelope['record']['displayPath'] = source_path
                     identity = envelope['record']['id']
             records.insert(-1, {'kind': 'cache', 'record': {'artifact_key': json.dumps([
                 identity[k] for k in ['providerId', 'sourceId', 'accountId', 'providerFileId']])}})
@@ -219,26 +262,28 @@ class CollectionCatalogueTest(unittest.TestCase):
             args.binding_census.write_text(''.join(json.dumps(r)+'\n' for r in records))
             with zipfile.ZipFile(args.launchbox, 'w') as archive:
                 archive.writestr('Metadata.xml', '''<LaunchBox><Game><DatabaseID>7</DatabaseID>
-                    <Name>Known Canonical Name</Name><Platform>Super Nintendo Entertainment System</Platform></Game>
+                    <Name>Known Canonical Name</Name><Platform>{platform_name}</Platform></Game>
                     <GameImage><DatabaseID>7</DatabaseID><Type>Box - Front</Type><Region>North America</Region>
-                    <FileName>00000007-0000-0000-0000-000000000000.png</FileName></GameImage></LaunchBox>''')
-            source = {'system': 'snes', 'sourcePath': 'SNES/Known Canonical Name (USA).7z',
-                'filename': 'Known Canonical Name (USA).7z', 'folder': 'SNES',
-                'title': 'Known Canonical Name', 'family': 'root', 'modifiedContext': False}
+                    <FileName>00000007-0000-0000-0000-000000000000.png</FileName></GameImage></LaunchBox>'''.format(platform_name=platform_name))
+            source = {'system': system, 'sourcePath': source_path,
+                'filename': filename, 'folder': system,
+                'title': 'Known Canonical Name', 'family': family, 'modifiedContext': False}
             inventory_path, index_path, map_path = (root/name for name in ['inventory.json', 'index.json', 'map.json'])
             inventory_path.write_text(json.dumps({'version': 1, 'registrySha256': sha(Path(__file__).parents[1]/'catalogue_platforms.json'),
-                'supportedSystems': registry(), 'systems': {'snes': {'sources': 1}}, 'rows': [source]}))
+                'supportedSystems': registry(), 'systems': {system: {'sources': 1}}, 'rows': [source]}))
             game = {'id': '7', 'title': 'Known Canonical Name', 'aliases': [],
-                    'platformName': 'Super Nintendo Entertainment System'}
+                    'platformName': platform_name}
             index_path.write_text(json.dumps({'inventorySha256': sha(inventory_path),
                 'launchbox': {'path': str(args.launchbox), 'sha256': sha(args.launchbox)},
-                'screenscraperSources': {}, 'platforms': {'snes': {'7': game}}, 'screenscraper': {'snes': {}}}))
+                'screenscraperSources': {}, 'platforms': {namespace: {'7': game}}, 'screenscraper': {namespace: {}}}))
             mapping(inventory_path, index_path, map_path)
             args.catalogue_bindings = root/'promoted.json'
             promoted = promote_filename_mapping(map_path, args.binding_census, args.launchbox, args.catalogue_bindings)
             self.assertEqual(len(promoted['bindings']), 1)
             self.assertEqual(promoted['unpromotedSources'], [])
-            args.system = 'snes'
+            self.assertEqual(promoted['bindings'][0]['cataloguePlatform'],namespace)
+            self.assertEqual(promoted['bindings'][0]['platform'],system)
+            args.system = system
             fixture.CatalogueBindingsTest().collect(row, args, body)
             with zipfile.ZipFile(args.output) as archive:
                 actual = json.loads(archive.read('packaging.json'))['games'][0]

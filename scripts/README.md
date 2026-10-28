@@ -336,8 +336,11 @@ For advance filename-only mapping across supported systems, use
 `prepare_collection_catalogue.py`. Its explicit `catalogue_platforms.json` names
 LaunchBox namespaces and mounted-folder aliases; app system IDs, ROM extensions
 and ScreenScraper IDs are checked against the current Dart registries. H: is read
-for filenames only. Public indexes and private JSON stay in the chosen E: cache;
-no device, APK, ROM bodies, artwork or per-ROM API requests participate.
+for filenames only. Use existing local indexes, successful cached provider
+responses and reviewed decisions before requesting missing remote evidence.
+Temporary acquisition stays in exact E: task scratch; maintained mapping data
+and its required hash-bound inputs belong on D:. No device, APK, ROM bodies,
+artwork or per-ROM API requests are needed for the local filename pass.
 
 ```powershell
 python -B scripts/prepare_collection_catalogue.py inventory --root <mounted-rom-root> --output <inventory.json>
@@ -352,6 +355,10 @@ systems. Every included source retains its exact system/relative path, provider
 IDs/platform, index hashes and a candidate or unresolved outcome. The verifier
 rechecks complete source membership and exact canonical/declared-alias evidence;
 `verify --system <id> --source-path <folder/relative-file>` resolves one source.
+NES `Disk System` files resolve in FDS, including when the standalone FDS folder
+is empty; promotion retains their NES owner and FDS media namespace. Report
+LaunchBox, ScreenScraper, both, either and neither separately across the full
+census. Candidate bindings do not establish physical-edition or artwork coverage.
 Scoped parsing handles DS numeric and x/z scene release numbers, 3DS title-ID/
 container decorations, short country tags, PSP Minis and tagged 64DD translations.
 SNES collection indexes also retain Nintendo Satellaview; broadcast lookup must

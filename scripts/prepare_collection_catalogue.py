@@ -205,8 +205,9 @@ def screenscraper_csv(source, identity):
 def indexes(inventory_path, launchbox, cache, output, existing_cache=None):
     census = read(inventory_path)
     settings = census['supportedSystems']
+    namespaces = {catalogue_namespace(row) for row in census.get('rows', [])}
     active = {key: value for key, value in settings.items()
-              if census['systems'][key]['sources']}
+              if census['systems'][key]['sources'] or key in namespaces}
     platforms = collections.defaultdict(list)
     for system, config in active.items():
         for platform in config['launchbox']:
@@ -291,6 +292,13 @@ def catalogue_family(source):
     if source['system'] == 'n64' and re.search(r'\(64DD\)', source['filename'], re.I):
         return '64dd'
     return source['family'].casefold()
+
+
+def catalogue_namespace(source):
+    """Keep embedded FDS media in its provider namespace and NES library."""
+    if source['system'] == 'nes' and source['family'].casefold() == 'disk system':
+        return 'fds'
+    return source['system']
 
 
 def source_games(source, provider, games):
@@ -378,7 +386,7 @@ def reviewed_alias(source, rules):
 def resolve_source(source, index, cache, reviews=None):
     """One cached resolver per platform/family, shared by producer and consumer."""
     from prepare_catalogue_bindings import corroborate_providers
-    system = source['system']
+    system = catalogue_namespace(source)
     family = catalogue_family(source) if system in {'psp', 'n64'} else ''
     broadcast_source = system == 'snes' and (
         source['family'].casefold() == 'satellaview' or
@@ -522,7 +530,7 @@ def load_mapping(path):
             raise ValueError('Filename binding source changed/duplicated')
         for provider, candidate in row['providers'].items():
             games = index['platforms'] if provider == 'launchbox' else index['screenscraper'] if provider == 'screenscraper' else None
-            game = games.get(row['system'], {}).get(candidate['id']) if games else None
+            game = games.get(catalogue_namespace(row), {}).get(candidate['id']) if games else None
             if not game or any(candidate.get(k) != game.get(k) for k in ['id', 'title', 'platformId', 'platformName']):
                 raise ValueError('Filename binding has a foreign provider ID')
         matches, providers = resolve_source(original, index, cache, reviews)

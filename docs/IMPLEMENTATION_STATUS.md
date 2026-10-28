@@ -5,7 +5,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-28 continuation under specification revision 178: S26 is ACTIVE,
+2026-10-28 continuation under specification revision 179: S26 is ACTIVE,
 the sole active stage, after verified E: access recovery following the owner restart.
 CATALOGUE-ALL is the current outcome: complete Windows filename/provider-index
 mappings for all remaining supported source folders. Thor, APK installation,
@@ -14,6 +14,24 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+The local-first all-ROM pass is verified in private catalogue-r18:
+44,553 supported source files; LaunchBox 35,427, ScreenScraper 34,498, both
+31,724, either 38,201 (85.74%), neither 6,352. This adds 2,204 provider bindings
+and 129 newly bound sources without changing any previous provider ID or losing
+source membership. All 3,259 e-Reader files remain unbound and in the denominator;
+no parent-game relabelling was used. Every missing provider has an exact-source
+reason in provider-gaps-current.csv; local absence does not prove global absence.
+The full normal consumer replay passes. Embedded NES/FDS index creation, mapping,
+validation and owner promotion retain their distinct namespaces, including an
+empty standalone FDS folder. The focused mapping/packaging regressions pass.
+The pass reused full indexes, 5,756 saved responses and retained review evidence;
+no remote requests, ROM-body reads, H: writes, Thor work or artwork downloads.
+Current map: D:/RShopPrivate/Catalogue/catalogue-r18/mappings-r18-current.json.
+Detailed report and provider counts: catalogue-r18/REPORT-r18.md. Remaining
+source/provider gaps and wider S26 acceptance stay open; this is not full
+physical-resource coverage. Superseded candidates (435,668,466 bytes) and exact
+E: task scratch were removed through applied cleanup transactions; the retained
+full consumer replay still passes. No additional implementation stage is active.
 Storage continuation verified all 76 retained package wrappers and retired them.
 All 6,898 member references remain readable with matching hashes through 947
 unchanged current packages, existing raw inputs and a 20,983,314-byte compact

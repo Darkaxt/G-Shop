@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.62"
+  version: "0.1.63"
 ---
 
 # G-Shop Console Integration
@@ -81,6 +81,12 @@ When the owner requests advance catalogue mapping, finish that Windows filename/
 provider-index outcome independently of device installation, publication and 3D
 assets. Use the maintained `prepare_collection_catalogue.py` and explicit platform
 registry; retain exact source-relative paths, index hashes and unresolved rows.
+Work local first: reuse verified full indexes, saved successful provider responses
+and scoped decisions before remote lookups. Keep each provider's count and the
+both/either/neither census separate; an either-provider match is not paired
+coverage. Preserve LaunchBox regional aliases from the retained source ZIP, not
+only an older simplified title export. NES `Disk System` sources keep NES library
+ownership while resolving and promoting through the FDS provider namespace.
 Diagnose filename conventions and malformed index rows before claiming absent
 provider results. DS numeric and x/z scene numbers, short country tags, 3DS
 title-ID/container decorations, PSP Minis, tagged 64DD translations and the

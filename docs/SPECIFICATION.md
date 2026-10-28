@@ -1,6 +1,18 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 178, 2026-10-28.
+Authoritative specification, revision 179, 2026-10-28.
+
+Owner dual-provider mapping continuation, 2026-10-28 (CATALOGUE-ALL, S26):
+reconcile all current H: ROM filenames, including G&W/NES/GBA, against both
+LaunchBox and ScreenScraper. Work local first: reuse hash-verified full indexes,
+saved responses and reviewed source decisions before any new remote lookup.
+Report each provider independently, both/either/neither and exact residual
+reasons; a one-provider binding does not satisfy a both-provider claim. Apply
+substantiated reusable repairs and scoped manual decisions, preserve existing
+edition exclusions and prior assignments, and verify the complete normal mapping
+consumer. No ROM bodies, artwork downloads, Thor work or APK installation are
+required for this filename/provider mapping outcome. Keep private datasets on D:
+and disposable scripts in exact E: task scratch; publish no private inventory.
 
 Storage continuation, 2026-10-28 (S26, existing cleanup authority): finish the
 76-package retention review without treating an uncovered image as a reason to
