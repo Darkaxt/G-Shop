@@ -14,6 +14,7 @@ import sys
 import bpy
 import bmesh
 from mathutils import Matrix, Vector
+from mathutils.bvhtree import BVHTree
 
 SOURCE_SHA = '4905e01b24108b83b5c8eb392477bdd00f5eff822c5eb5c43ee1763f082254a6'
 PARENTS = {
@@ -29,7 +30,9 @@ def meshes(root):
 
 
 def bounds(objects):
-    points = [o.matrix_world @ Vector(p) for o in objects for p in o.bound_box]
+    # Imported controller parts have rotated local boxes that exaggerate their
+    # depth. Physical scale, placement and collision checks need real vertices.
+    points = [o.matrix_world @ v.co for o in objects for v in o.data.vertices]
     if not points:
         raise ValueError('Missing geometry')
     return (Vector([min(p[i] for p in points) for i in range(3)]),
@@ -73,8 +76,14 @@ def cable_ends(obj):
                         stack.append(neighbour)
             if len(component) != 10:
                 raise ValueError('Supplied cable end topology changed')
-            rings.append(obj.matrix_world @
-                         (sum((v.co for v in component), Vector()) / len(component)))
+            vertices = [obj.matrix_world @ v.co for v in sorted(component, key=lambda v: v.index)]
+            center = sum(vertices, Vector()) / len(vertices)
+            vectors = [v-center for v in vertices]
+            normal = max((a.cross(b) for a in vectors for b in vectors), key=lambda v: v.length)
+            normal.normalize()
+            if max(abs(v.dot(normal)) for v in vectors) > .00001:
+                raise ValueError('Cable attachment ring is not planar')
+            rings.append((center, normal))
         if len(rings) != 2:
             raise ValueError('Expected exactly two measured cable ends')
         return rings
@@ -82,12 +91,64 @@ def cable_ends(obj):
         bm.free()
 
 
-def cable(name, start, end, material, nominal=1.8288):
+def surface_tree(objects):
+    vertices, triangles = [], []
+    for obj in objects:
+        obj.data.calc_loop_triangles()
+        offset = len(vertices)
+        vertices.extend(obj.matrix_world @ vertex.co for vertex in obj.data.vertices)
+        triangles.extend(tuple(offset+i for i in triangle.vertices)
+                         for triangle in obj.data.loop_triangles)
+    return BVHTree.FromPolygons(vertices, triangles, all_triangles=True)
+
+
+def cross_controller_clearance():
+    checks = []
+    for own, other in [('US', 'PAL'), ('PAL', 'US')]:
+        wire = bpy.data.objects[own + '_Controller_Cable_MetreScale']
+        pad = meshes(bpy.data.objects[other + '_Controller'])
+        intersections = surface_tree([wire]).overlap(surface_tree(pad))
+        checks.append({'cable': own, 'controller': other,
+                       'intersectingTrianglePairs': len(intersections)})
+        if intersections:
+            raise ValueError('Cable intersects the other controller: ' + repr(checks[-1]))
+    return checks
+
+
+def controller_clearance(path, controller, end, radius):
+    tree = surface_tree(controller)
+    low, high = bounds(controller)
+    minimum, checked = float('inf'), 0
+    for point in path:
+        # The last two cable diameters seat in the actual strain-relief opening.
+        if (point-end).length <= radius*4:
+            continue
+        # Conservatively keep the route outside the entire controller footprint,
+        # then measure distance to the actual transformed triangle surfaces.
+        if (low.x-radius <= point.x <= high.x+radius and
+                low.y-radius <= point.y <= high.y+radius):
+            raise ValueError('Cable enters controller footprint: ' + repr({
+                'point': list(point), 'bounds': [list(low), list(high)],
+                'end': list(end)}))
+        nearest = tree.find_nearest(point)
+        if nearest[0] is None:
+            raise ValueError('Controller surface clearance could not be measured')
+        minimum = min(minimum, nearest[3])
+        checked += 1
+    if minimum < radius+.001:
+        raise ValueError('Cable intersects or grazes controller surface: ' + str(minimum))
+    return {'samples': checked, 'minimumSurfaceDistanceMetres': minimum,
+            'cableRadiusMetres': radius, 'requiredSurfaceGapMetres': .001,
+            'contactExclusionRadiusMetres': radius*4,
+            'method': 'Transformed controller-triangle BVH plus conservative XY keepout; actual strain-relief contact only'}
+
+
+def cable(name, start, end, start_direction, end_direction, material, controller, nominal=1.8288):
     # One C1 cubic spline, with hand-laid asymmetric folds rather than circular
     # equations or separately joined leads. Both measured connection rings stay
     # fixed while the slack's footprint is solved to the physical cable length.
     diameter = .0043
-    center = Vector((.155, end.y-.020, diameter/2))
+    center = Vector((.205, end.y-.020, diameter/2))
     layout = [(.080, .015, .00215), (.145, .040, .00215),
               (.225, .002, .00215), (.217, -.052, .00215),
               (.151, -.081, .00215), (.090, -.041, .0085),
@@ -100,19 +161,24 @@ def cable(name, start, end, material, nominal=1.8288):
     asymmetry = 1 if name.startswith('US') else -1
 
     def controls(factor):
-        knots = [start]
+        # Leave the measured connector plane along its actual normal for 25mm.
+        # A fixed global tangent followed immediately by slack caused a hairpin.
+        lead = start + start_direction * .025
+        landing = start + start_direction * .050 + Vector((.018, 0, 0))
+        landing.z = diameter/2
+        knots = [start, lead, landing]
         for i, (x, y, z) in enumerate(layout):
-            point = Vector((x + .008*asymmetry*math.sin(i*.83), end.y+y, z))
+            point = Vector((x + .050 + .008*asymmetry*math.sin(i*.83), end.y+y, z))
             knots.append(Vector((center.x+(point.x-center.x)*factor,
                                  center.y+(point.y-center.y)*factor, z)))
         knots.extend([Vector((.085, end.y+.035, .00215)),
                       Vector((.030, end.y+.045, .0045)), end])
         handles = []
         for i, point in enumerate(knots):
-            if i == 0:
-                tangent = Vector((0, -.022, 0))
+            if i in (0, 1):
+                tangent = start_direction * (.025/3)
             elif i == len(knots)-1:
-                tangent = Vector((0, -.025, 0))
+                tangent = end_direction * .012
             else:
                 tangent = (knots[i+1]-knots[i-1])/6
                 tangent.z = 0
@@ -143,6 +209,7 @@ def cable(name, start, end, material, nominal=1.8288):
     path = points(factor)
     if abs(length(path) - nominal) > .00001:
         raise ValueError('Cable length calibration failed')
+    clearance = controller_clearance(path, controller, end, diameter/2)
     curve = bpy.data.curves.new(name, 'CURVE')
     curve.dimensions = '3D'
     curve.bevel_depth = diameter / 2
@@ -165,6 +232,12 @@ def cable(name, start, end, material, nominal=1.8288):
     return {'object': name, 'lengthMetres': length(path), 'diameterMetres': diameter,
             'routing': 'Single C1 cubic spline; asymmetric hand-laid folds and raised crossings; no circular sections',
             'connectionRings': [list(start), list(end)],
+            'connectionTangents': [list(start_direction), list(end_direction)],
+            'straightConnectorLeadMetres': .025,
+            'controllerClearance': clearance,
+            'connectorLeadMaxLateralErrorMetres': max(
+                (point-start-start_direction*(point-start).dot(start_direction)).length
+                for point in path[:33]),
             'reference': 'https://xyab.com/products/controller-cable-snes',
             'policy': 'Nominal 72-inch replacement-cable reference; not an OEM factory specification'}
 
@@ -192,9 +265,9 @@ def main():
     calibration, cables, supports = [], [], []
     for prefix, region, width, reference, x, angle in (
         ('US', 'North_American_SNES', .2032,
-         'https://visualalchemy.tv/storage/pdf_name/7283_va.pdf', -.225, 10),
+         'https://visualalchemy.tv/storage/pdf_name/7283_va.pdf', -.280, 10),
         ('PAL', 'PAL_SNES', .200,
-         'https://www.nintendo.com/en-gb/Hardware/Nintendo-History/Super-Nintendo/Technical-Details/Technical-Details-627042.html', .225, -10),
+         'https://www.nintendo.com/en-gb/Hardware/Nintendo-History/Super-Nintendo/Technical-Details/Technical-Details-627042.html', .280, -10),
     ):
         assembly = meshes(bpy.data.objects[region])
         console = meshes(bpy.data.objects[prefix + '_Console'])
@@ -211,22 +284,28 @@ def main():
         plug_low, plug_high = bounds(plug)
         plug_center = (plug_low + plug_high) / 2
         old_cable = bpy.data.objects[prefix + '_Controller_Cable']
-        start, end = sorted(cable_ends(old_cable), key=lambda p: (p-plug_center).length)
+        (start, start_direction), (end, end_direction) = sorted(
+            cable_ends(old_cable), key=lambda ring: (ring[0]-plug_center).length)
+        if start_direction.dot(start-plug_center) < 0:
+            start_direction.negate()
         pad_low, pad_high = bounds(pad)
         pad_scale = .144 / (pad_high.x - pad_low.x)
         pad_center = (pad_low + pad_high) / 2
+        if end_direction.dot(pad_center-end) < 0:
+            end_direction.negate()
         pad_transform = (Matrix.Translation(pad_center) @ Matrix.Scale(pad_scale, 4) @
                          Matrix.Translation(-pad_center))
         for obj in pad:
             obj.matrix_world = pad_transform @ obj.matrix_world
         bpy.context.view_layer.update()
-        pad_offset = place(pad, 0, body_low.y - .085)
+        pad_offset = place(pad, 0, body_low.y - .125)
         end = pad_transform @ end + pad_offset
         material = old_cable.data.materials[0]
         assembly = [o for o in assembly if o != old_cable]
         bpy.data.objects.remove(old_cable, do_unlink=True)
         bpy.ops.object.select_all(action='DESELECT')
-        cables.append(cable(prefix + '_Controller_Cable_MetreScale', start, end, material))
+        cables.append(cable(prefix + '_Controller_Cable_MetreScale', start, end,
+                            start_direction, end_direction, material, pad))
         stack = meshes(bpy.data.objects[prefix + '_Cartridge_Stack'])
         place(stack, -.19 if prefix == 'US' else .19, .045)
         if prefix == 'PAL':
@@ -248,6 +327,7 @@ def main():
                             'estimated': True, 'bodyBoundsBeforePlacement': [list(body_low), list(body_high)],
                             'controllerWidthMetres': .144,
                             'controllerScalePolicy': 'Common nominal 144mm assembly reference; estimated, not a measured OEM specimen'})
+    cross_contacts = cross_controller_clearance()
     # Preserve per-part provenance already carried by the aggregate's extras.
     provenance = []
     for obj in bpy.context.scene.objects:
@@ -267,6 +347,7 @@ def main():
     report = {'source': str(args.source), 'sourceSha256': SOURCE_SHA,
               'hiddenStaging': removed, 'physicalScale': calibration, 'cables': cables,
               'groundSupports': supports,
+              'crossControllerClearance': cross_contacts,
               'sourceParents': [{'filename': f, 'author': v[0], 'sha256': v[1], 'licence': v[2]} for f, v in PARENTS.items()],
               'objects': provenance, 'boundsMetres': [list(low), list(high)],
               'scope': 'Static console selector only; no per-game launch or physical-printing acceptance'}

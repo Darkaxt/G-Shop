@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:g_shop/features/preview/console_hardware_view.dart';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -171,7 +172,7 @@ void main() {
           final pixels = _pixels(
               m,
               SocketMediaPose(
-                  rx: console.isCollectionOverview ? .85 : .6,
+                  rx: ConsoleHardwareViewState.selectorPitch,
                   ry: step * math.pi / 4,
                   scaleX: .9,
                   scaleY: .9,

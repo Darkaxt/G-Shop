@@ -5,6 +5,29 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-29, SELECTOR-CAMERA-01, revision 184: **S26 ACTIVE** and sole active
+stage. The owner rejected the SNES connector hairpin and elevated camera after
+52's floor correction. The complete bounded correction now passes acceptance:
+GBA/G&W/NES/SNES share a 30-degree selector pitch, with inspection/per-game
+cameras retained. Actual normal-app front, oblique and side/rear rotations were
+reviewed for all four unchanged source-bound compositions. SNES v10 uses actual
+transformed vertices for placement/scale, measured 25mm straight connector leads,
+nominal 1.8288m cables and grounded controllers with slack aside. Own-pad surface
+clearance includes cable radius plus 1mm; both neighboring-pad tube/triangle
+checks have zero intersections. Source physical references remain estimated,
+not OEM factory measurements. Six support footprints and the projected floor
+remain under the geometry. Production53 hide/resume and current-source motion,
+framing/texture/geometry checks pass. Signed private 1.10.2+53 is installed and
+its exact version/signature/digest verified; all 16 database/preferences files
+were byte-identical through replacement before first launch. Original downloads
+are unchanged; source/installed skill 0.1.79 hash-match. Final scoped source and
+cleanup bookkeeping: `D:/RShopPrivate/SNES/camera-cable-review-20261029/delivery.json`.
+The HTML ledger links current v10/53 artifacts and four native review manifests.
+This correction has no remaining acceptance blockers or tracked deferrals.
+Wider S26 remains ACTIVE and unfinished; full SNES per-game animation is still
+the owner-sequenced final step, and catalogue mapping remains paused at r34.
+The older v6/52 evidence below is historical and was superseded by this correction.
+
 2026-10-29 owner-prioritized SNES-OVERVIEW-01 (specification revision 183):
 S26 remains ACTIVE and sole active stage. Implement the supplied dual-console
 showcase as the complete lower-screen SNES section preview. The bounded feature

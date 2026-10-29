@@ -1,6 +1,24 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 183, 2026-10-29.
+Authoritative specification, revision 184, 2026-10-29.
+
+Owner-authorized selector correction, revision 184 (SELECTOR-CAMERA-01): apply
+one consistent lower console-selector camera angle across all installed model
+compositions, including GBA, Game & Watch, NES and SNES. Use 30 degrees downward
+from the common support plane as the shared default; collection classification
+must not silently select a steeper camera. Retain physical scale, upright-axis
+rotation, projected floor and reserved margins. Preserve explicit inspection and
+per-game launch cameras. Correct the SNES cable's connector-side hairpin using
+the measured attachment-ring plane and a straight outgoing lead before its slack.
+Keep both SNES controllers grounded and route slack beside them, clear of their
+own and neighboring controller bodies. Use actual transformed mesh vertices for
+placement/calibration and surface checks for cable clearance; allow contact only
+at the measured strain-relief attachment.
+Verify every installed composition in actual native front/rotated views, with
+framing/content integrity, lifecycle and Reduced Motion regression checks. Update
+the integration skill/contract with the shared policy and all-model review gate.
+Deliver a verified signed private APK/resource update; preserve unrelated dirty
+baseline and source assets. S26 remains the sole ACTIVE stage and mapping paused.
 
 Owner-authorized SNES selector step, revision 183 (SNES-OVERVIEW-01): prepare
 the supplied SNES-console-showcase.glb as the large rotating lower-screen preview

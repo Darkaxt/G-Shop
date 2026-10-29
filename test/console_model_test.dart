@@ -183,7 +183,7 @@ void main() {
       }
     }
   });
-  testWidgets('collection camera views the original layout from above',
+  testWidgets('collection camera uses the common selector elevation',
       (tester) async {
     final model = await tester.runAsync(() async {
       final dir = Directory('${root.path}/consoles/gameandwatch');
@@ -208,7 +208,7 @@ void main() {
             .widget<SocketMediaRenderer>(find.byType(SocketMediaRenderer))
             .pose
             .rx,
-        .85);
+        closeTo(3.141592653589793 / 6, .000001));
     await tester.pumpWidget(const SizedBox());
   });
   test('expanded handheld imports retain exact hardware editions', () {
@@ -556,8 +556,8 @@ void main() {
     final renderer = find.byType(SocketMediaRenderer);
     expect(renderer, findsOneWidget);
     expect(tester.widget<SocketMediaRenderer>(renderer).pose.rx,
-        closeTo(.18, .001),
-        reason: 'Use a near-level view, not the former steep overhead camera');
+        closeTo(3.141592653589793 / 6, .001),
+        reason: 'All console selectors share the 30-degree support-plane view');
     expect(key.currentState!.snapshot['rotationRunning'], false);
     tester.widget<SocketMediaRenderer>(renderer).onReady!();
     await tester.pump();
@@ -606,6 +606,45 @@ void main() {
     await tester.pump();
     expect(key.currentState!.snapshot['rotationRunning'], true);
     await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('all console selector families use the same support-plane pitch',
+      (tester) async {
+    for (final system in ['gba', 'gameandwatch', 'nes', 'snes']) {
+      final model = await tester.runAsync(() async {
+        final dir = Directory('${root.path}/consoles/$system');
+        await dir.create(recursive: true);
+        if (system != 'gba') {
+          await File('${root.path}/consoles/gba/model.mesh')
+              .copy('${dir.path}/model.mesh');
+        }
+        await File('${dir.path}/model.json').writeAsString(jsonEncode({
+          ...data,
+          'system': system,
+          if (system == 'nes' || system == 'snes') 'overviewGeometry': true,
+          if (system == 'gameandwatch')
+            'selectorScene': {
+              'kind': 'gamewatchCollection',
+              'deviceCount': 63,
+              'devices': List.generate(63, (i) => 'device-$i'),
+              'hiddenNodes': ['Display_board'],
+              'textureMaxDimension': 256,
+            },
+        }));
+        return ConsoleModel.find(system, modelsDirectory: root);
+      });
+      await tester.pumpWidget(MaterialApp(
+          home: ConsoleHardwareView(
+              model: model!, title: system, reducedMotion: true)));
+      await tester.pump();
+      expect(
+          tester
+              .widget<SocketMediaRenderer>(find.byType(SocketMediaRenderer))
+              .pose
+              .rx,
+          closeTo(3.141592653589793 / 6, .000001),
+          reason: system);
+      await tester.pumpWidget(const SizedBox());
+    }
   });
   final actual = Platform.environment['RSHOP_CONSOLE_MODEL_DIR'];
   final selector = Platform.environment['RSHOP_GW_SELECTOR_MODEL_DIR'];

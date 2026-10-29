@@ -1,5 +1,19 @@
 # Staged implementation plan
 
+2026-10-29, revision 184, SELECTOR-CAMERA-01: **S26 ACTIVE**, sole active stage.
+The complete bounded selector correction passes: shared 30-degree camera on all
+four installed compositions, connector-derived straight SNES leads and grounded
+pads with slack clear of both their own and neighboring controllers. Actual
+production53 front/oblique/side-rear rotation, framing/floor and SNES hide/resume
+checks pass; current-source Reduced Motion/lifecycle regressions pass. Signed
+private 1.10.2+53 and separate v10 resource are installed and independently
+hash/version/signature verified, preserving existing app data and source assets.
+Source and installed skill 0.1.79 match. Final scoped commit/cleanup identities
+are recorded in the private correction receipt. No remaining acceptance blocker
+or tracked deferral belongs to this bounded correction. Wider S26 remains ACTIVE;
+the owner-sequenced final SNES per-game pipeline is outside this selector scope.
+No later stage opens; mapping remains paused at r34.
+
 Owner-prioritized SNES-OVERVIEW-01, 2026-10-29, revision 183: **S26 ACTIVE**,
 sole active stage; current acceptance unit is the complete SNES section preview.
 Use the supplied dual-console showcase and the existing private hardware path.

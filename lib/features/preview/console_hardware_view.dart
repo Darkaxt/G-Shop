@@ -60,6 +60,8 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
   static const rotationPeriod = Duration(seconds: 40);
   static const informationRotationPeriod = Duration(seconds: 120);
   static const defaultPitch = .18;
+  // Shared support-plane view for every console selector, including collections.
+  static const selectorPitch = math.pi / 6;
   final rendererKey = GlobalKey<SocketMediaRendererState>();
   late final AnimationController _rotation;
   late final AnimationController _opening;
@@ -68,11 +70,13 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
   double? _inspectionYaw;
   int _pointers = 0;
   double _yaw = -.2, _pitch = defaultPitch, _zoom = .9, _startZoom = .9;
-  double get _initialPitch => widget.model.isCollectionOverview
-      ? .85
-      : widget.systemId == 'nes' && !widget.model.isBox
-          ? .60
-          : defaultPitch;
+  double get _initialPitch => widget.turntable
+      ? selectorPitch
+      : widget.model.isCollectionOverview
+          ? .85
+          : widget.systemId == 'nes' && !widget.model.isBox
+              ? .60
+              : defaultPitch;
   double get _motionYaw => widget.informationRotation || widget.turntable
       ? _rotation.value * math.pi * 2
       : math.sin(_rotation.value * math.pi * 2) * .14;
@@ -177,6 +181,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
           'rotationRunning': _rotation.isAnimating,
           'periodMs': _rotation.duration!.inMilliseconds,
           'reducedMotion': widget.reducedMotion,
+          'pitchRadians': _pitch,
         })}');
     debugPrint('GShopConsolePreview ${jsonEncode(snapshot)}');
     widget.onReady?.call();

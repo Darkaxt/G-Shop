@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:g_shop/models/console_model.dart';
+import 'package:g_shop/features/preview/console_hardware_view.dart';
 import 'package:g_shop/models/socket_media_model.dart';
 import 'package:g_shop/widgets/socket_media_renderer.dart';
 import 'package:vector_math/vector_math_64.dart' as vm;
@@ -53,8 +54,12 @@ void main() {
     }
     const viewport = Size(1240, 1080);
     for (final yaw in [0.0, .8, 2.5]) {
-      final pose =
-          SocketMediaPose(rx: .85, ry: yaw, scaleX: .9, scaleY: .9, scaleZ: .9);
+      final pose = SocketMediaPose(
+          rx: ConsoleHardwareViewState.selectorPitch,
+          ry: yaw,
+          scaleX: .9,
+          scaleY: .9,
+          scaleZ: .9);
       final floor = SocketMediaGpu.groundProjection(model, pose, viewport);
       final center = (low + high) * .5;
       final projected =
@@ -76,6 +81,16 @@ void main() {
     expect(preparation['physicalScale'], hasLength(2));
     for (final cable in preparation['cables']) {
       expect(cable['lengthMetres'], closeTo(1.8288, .00001));
+      expect(cable['straightConnectorLeadMetres'], .025);
+      expect(cable['connectorLeadMaxLateralErrorMetres'], lessThan(.000001));
+      final clearance = cable['controllerClearance'];
+      expect(clearance['samples'], greaterThan(500));
+      expect(clearance['minimumSurfaceDistanceMetres'],
+          greaterThanOrEqualTo(clearance['cableRadiusMetres'] + .001));
+    }
+    expect(preparation['crossControllerClearance'], hasLength(2));
+    for (final check in preparation['crossControllerClearance']) {
+      expect(check['intersectingTrianglePairs'], 0);
     }
     final names = (preparation['objects'] as List)
         .map((o) => o['object'] as String)

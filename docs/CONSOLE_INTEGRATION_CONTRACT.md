@@ -197,8 +197,16 @@ video, stop slideshow timing and omit its playback button in that stage. Preserv
 saved preview preferences and the separate ordinary video/resource modes.
 
 The console-section preview is a large rotating composition of the applicable
-console models and representative games/accessories. Preserve provided collector
-props and original scenes; hide only specifically approved staging objects, such
+console models and representative games/accessories. Use a shared default camera
+elevation of **30 degrees above their support
+plane** (`pi/6` radians). Apply it to every console selector, including GBA,
+Game & Watch, NES and SNES; collection classification must not pick another
+angle. Preserve authored upright orientation and inspect any baked source tilt.
+After changing the shared camera, review every installed composition in native
+front, oblique and side/rear rotation views for silhouettes, row occlusion,
+ground contact and margins. A successful fit alone is not visual acceptance.
+Explicit inspection and per-game launch cameras retain their own behavior.
+Preserve provided collector props and original scenes; hide only specifically approved staging objects, such
 as Game & Watch's display table/board. Add editions in a shallow semicircle, with
 readable silhouettes and consistent relative scale, rather than an arbitrary row.
 Keep labels out of the overview; show edition names and information on inspection.
@@ -301,6 +309,17 @@ vertices and curve geometry, not only bounding boxes or a pleasing camera angle.
 Use natural asymmetric slack and continuous smooth curves, not circular coils
 with separately joined angular leads. Derive joins from the actual connector
 and controller attachment geometry rather than bounding-box centres.
+Derive the exit direction from the attachment-ring plane and orient it away from
+the plug. Keep a short straight connector lead before forming slack; a continuous
+spline can still contain an unnatural hairpin. Inspect that lead from front and
+oblique angles, retaining measured attachment, cable length and floor contact.
+Check the full slack route against the transformed controller triangles, with
+clearance for the cable radius. Keep ground-level cable outside the pad body;
+only its measured strain-relief junction may contact it. A connector-direction
+or length check alone does not establish collision clearance.
+Check neighboring controllers too, using the actual cable tube and controller
+surfaces. Use transformed mesh vertices for calibration and placement: rotated
+local bounding-box corners can substantially exaggerate a controller's depth.
 Keep the original collector/source intact when preparing a launch derivative.
 
 ## Launch and input ownership — CI-06

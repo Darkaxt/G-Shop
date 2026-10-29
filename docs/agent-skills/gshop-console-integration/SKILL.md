@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.78"
+  version: "0.1.79"
 ---
 
 # G-Shop Console Integration
@@ -633,7 +633,15 @@ copy GBA's scores or claim another console's coverage from the GBA reference.
   uniformly to contain its real-scale contents; never silently enlarge a measured
   carton. Check every sequential edition at its actual painted settled state
   before reporting a supplied model absent; a closed last box can be mid-sequence.
-- Lower default camera: reserve 10â€“15% per edge for text and buttons, targeting
+- Console-selector camera: use the common **30-degree elevation above the support
+  plane** (`pi/6` radians) across GBA, Game & Watch, NES, SNES and other installed
+  console previews. Collection classification is not a camera-angle policy.
+  Preserve normalized upright axes and account for authored source tilt. A shared
+  camera change requires native front/oblique/side-or-rear review of every installed
+  composition, checking row occlusion, silhouettes, floor contact and reserved
+  margins; passing a bounds fit alone is not visual acceptance. Keep explicit
+  inspection and per-game launch cameras separate.
+- Lower default camera: reserve 10-15% per edge for text and buttons, targeting
   12.5%. Fit the whole animated composition to the central 75% rectangle without
   changing relative physical scales. Preserve aspect ratio, allowing extra space
   on the non-limiting axis. Check closed/extracted/settled/rotating and multi-edition
@@ -651,6 +659,16 @@ copy GBA's scores or claim another console's coverage from the GBA reference.
   slow rotation. Slightly blur the scene beneath the rounded information panel;
   keep text/buttons sharp and the scene outside clear. Keep useful contextual actions.
 - Wired props: correct controller/plug/contact and edition-specific cable length.
+  Derive exit direction from the actual attachment-ring plane, oriented away from
+  the plug. Retain a short straight lead before slack, with no connector-side
+  hairpin. Smooth spline continuity alone cannot establish a natural bend; inspect
+  the connector from front and oblique views.
+  Verify the full slack against transformed controller triangles with cable-radius
+  clearance; keep ground-level cable outside the pad body. Exempt only its actual
+  strain-relief junction from contact checks, with a bounded recorded allowance.
+  Use actual transformed vertices for scale/placement: rotated local boxes can
+  exaggerate controller depth. In a multi-console scene, also check each full
+  cable tube against the neighboring controllers, not just its own pad.
   Calibrate scale and measure transformed curve arc length. Receipt target,
   measurement, reference and uncertainty; inspect bends, crossings and grounding.
   Never copy the NES's nominal 2.3 m target to every controller.
