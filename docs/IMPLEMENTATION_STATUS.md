@@ -14,6 +14,17 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+R33 verifies 108 provider links: 106 files become paired and two SNES ports gain
+their first reference. Totals: 44,553 / 35,877 LaunchBox / 39,098 ScreenScraper /
+33,263 both / 41,712 either (93.62%) / 2,841 neither. Twenty-one reviewed native
+aliases and seventeen exact-source component/port decisions preserve the literal
+I/V/X matcher and separate Chapter Zero demo. Full current/prior consumers,
+exact index deltas, prior assignments/nine exclusions, archived proof and current
+controlled owner fixtures pass; source/installed skill 0.1.77 match. Dataset:
+D:/RShopPrivate/Catalogue/catalogue-r33/. Exact cleanup is applied without errors:
+110 members / 31,195,457 logical bytes. Full normal replay passes again from D:
+with scratch absent; bind the private receipt to the verified source commit.
+Wider source/provider resolution and S26 remain ACTIVE, with no exhaustion finding.
 R32 verifies twenty provider links on ten previously unmatched NES pirate sources,
 preserving the NES cartridge owner while referencing the documented FDS programme.
 Totals: 44,553 / 35,875 LaunchBox / 38,992 ScreenScraper / 33,157 both / 41,710

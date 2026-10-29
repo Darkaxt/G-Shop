@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.76"
+  version: "0.1.77"
 ---
 
 # G-Shop Console Integration
@@ -125,6 +125,12 @@ an exact-source exclusion rather than preserving a wrong earlier ID.
 Check sequel-number spellings and encoded HTML entities in both direct matching
 and provider corroboration; inconsistent keys leave valid regional links open.
 Retain I/V/X name letters, literal `#` editions, subtitles and modification words.
+For residual I/V/X-to-number pairs, inspect complete native ROM names and the
+full title in the actual platform before projecting a reviewed catalogue alias.
+Keep the general literal-letter rule: a Game Boy Mega Man V and the NES Mega
+Man 5 port are different programmes. Use source-scoped reviews for separately
+named demos grouped into a retail record, retaining the dedicated demo binding
+and component identity. Do not project unrelated rows from mixed ROM tables.
 Exact canonical proof takes precedence over an expanded spelling candidate set.
 The canonical-before-alias rule must also hold inside expanded numeral/entity
 lookup, including numeric release-annotation lookup. Matcher v8 separates these
