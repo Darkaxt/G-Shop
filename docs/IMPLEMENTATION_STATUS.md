@@ -14,6 +14,18 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+R34 verifies 37 second-provider links: 35,887 LaunchBox / 39,125 ScreenScraper /
+33,300 both / 41,712 either / 2,841 neither over 44,553 files. The 24 reviewed
+aliases, inherited regions, full current consumer, preserved assignments/nine
+exclusions and DSi-owner fixtures pass; unchanged prior consumer evidence is
+reused with verified data/code identity. Skill 0.1.78 source/installed parity passes.
+Dataset/proof: D:/RShopPrivate/Catalogue/catalogue-r34/. The 26 multicart serials
+remain specifically held. Exact cleanup is applied without errors: 99 members /
+25,696,814 logical bytes; full post-cleanup replay passes with scratch absent.
+Bind the local receipt to the verified commit. Mapping processing is paused here
+at the owner's request, with no automatic continuation. This does not establish total
+resolution or complete wider S26. The next discussion is 3D console selection and
+Microsoft/XenDroid support; no additional implementation stage is active.
 R33 verifies 108 provider links: 106 files become paired and two SNES ports gain
 their first reference. Totals: 44,553 / 35,877 LaunchBox / 39,098 ScreenScraper /
 33,263 both / 41,712 either (93.62%) / 2,841 neither. Twenty-one reviewed native

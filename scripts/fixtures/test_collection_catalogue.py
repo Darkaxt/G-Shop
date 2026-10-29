@@ -765,6 +765,9 @@ class CollectionCatalogueTest(unittest.TestCase):
     def test_filename_map_reaches_normal_collector_and_rejects_changed_source(self):
         self.check_filename_map_collector('snes','snes','root','Super Nintendo Entertainment System')
 
+    def test_dsi_filename_map_keeps_dsi_owner_with_nintendo_ds_provider_records(self):
+        self.check_filename_map_collector('dsi','dsi','Digital','Nintendo DS')
+
     def test_embedded_fds_filename_map_promotes_to_nes_owner_and_fds_packaging(self):
         self.check_filename_map_collector('nes','fds','Disk System','Nintendo Famicom Disk System')
 
