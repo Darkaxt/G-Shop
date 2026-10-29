@@ -10,6 +10,46 @@ from prepare_collection_catalogue import (filename_title, source_kind, inventory
 
 
 class CollectionCatalogueTest(unittest.TestCase):
+    def test_reviewed_gb_gbc_namespace_requires_exact_source_and_keeps_native_priority(self):
+        source={'system':'gb','family':'root','sourceKind':'program','title':'The Machine',
+                'filename':'The Machine (World).7z','sourcePath':'Game Boy/The Machine (World).7z'}
+        game={'id':'7','title':'The Machine','aliases':[],'platformName':'Nintendo Game Boy Color'}
+        index={'platforms':{'gb':{},'gbc':{'7':game}},'screenscraper':{'gb':{},'gbc':{}}}
+        rule={'system':'gb','sourceTitle':'The Machine','sourcePaths':[source['sourcePath']],
+              'providers':{'launchbox':{'id':'7','title':'The Machine','catalogueNamespace':'gbc'}},
+              'reason':'Author publishes the Game Boy programme; catalogue puts it in GBC.'}
+        reviews={('gb','the machine'):[rule]}
+        self.assertNotIn('launchbox',resolve_source(source,index,{},matcher_version=7)[1])
+        with self.assertRaisesRegex(ValueError,'reviewed programme namespace'):
+            resolve_source(source,index,{},reviews,matcher_version=6)
+        matches,providers=resolve_source(source,index,{},reviews,matcher_version=7)
+        self.assertEqual((providers['launchbox']['id'],providers['launchbox']['catalogueNamespace']),('7','gbc'))
+        self.assertEqual(matches['launchbox']['catalogueNamespace'],'gbc')
+        rule.pop('sourcePaths')
+        with self.assertRaisesRegex(ValueError,'reviewed programme namespace'):
+            resolve_source(source,index,{},reviews,matcher_version=7)
+        rule['sourcePaths']=[source['sourcePath']]
+        index['platforms']['gb']['native']={'id':'native','title':'The Machine','aliases':[]}
+        with self.assertRaisesRegex(ValueError,'native provider'):
+            resolve_source(source,index,{},reviews,matcher_version=7)
+
+    def test_reviewed_namespace_cannot_cross_generations_or_restore_exclusions(self):
+        source={'system':'gb','family':'root','sourceKind':'program','title':'Game',
+                'filename':'Game.zip','sourcePath':'GB/Game.zip'}
+        index={'platforms':{'gb':{},'gbc':{'7':{'id':'7','title':'Game','aliases':[]}}},
+               'screenscraper':{'gb':{},'gbc':{}}}
+        rule={'system':'gb','sourceTitle':'Game','sourcePaths':[source['sourcePath']],
+              'providers':{'launchbox':{'id':'7','title':'Game','catalogueNamespace':'nes'}},'reason':'Invalid platform'}
+        reviews={('gb','game'):[rule]}
+        with self.assertRaisesRegex(ValueError,'reviewed programme namespace'):
+            resolve_source(source,index,{},reviews,matcher_version=7)
+        rule['providers']['launchbox']['catalogueNamespace']='gbc';rule['blockedProviders']=['launchbox']
+        with self.assertRaisesRegex(ValueError,'reviewed programme namespace'):
+            resolve_source(source,index,{},reviews,matcher_version=7)
+        rule.pop('blockedProviders');source['sourceKind']='firmware'
+        with self.assertRaisesRegex(ValueError,'reviewed programme namespace'):
+            resolve_source(source,index,{},reviews,matcher_version=7)
+
     def test_exact_source_correction_names_rejected_canonical_id(self):
         source={'system':'nes','family':'root','sourceKind':'program','title':'Parody World',
                 'filename':'Parody World (Japan) (Proto).7z','sourcePath':'Public/Parody World (Japan) (Proto).7z'}
@@ -523,7 +563,10 @@ class CollectionCatalogueTest(unittest.TestCase):
     def test_gb_compatible_map_keeps_gbc_owner_and_actual_provider_namespace(self):
         self.check_filename_map_collector('gbc','gb','root','Nintendo Game Boy',compatible=True)
 
-    def check_filename_map_collector(self,system,namespace,family,platform_name,compatible=False):
+    def test_reviewed_gbc_catalogue_reference_keeps_actual_gb_owner(self):
+        self.check_filename_map_collector('gb','gbc','root','Nintendo Game Boy Color',reviewed_namespace=True)
+
+    def check_filename_map_collector(self,system,namespace,family,platform_name,compatible=False,reviewed_namespace=False):
         import zipfile
         from prepare_catalogue_bindings import promote_filename_mapping
         from prepare_collection_catalogue import mapping, load_mapping, sha
@@ -562,17 +605,32 @@ class CollectionCatalogueTest(unittest.TestCase):
             game = {'id': '7', 'title': 'Known Canonical Name', 'aliases': [],
                     'platformName': platform_name}
             indexed_games={namespace:{'7':game}};indexed_ss={namespace:{}}
-            if compatible:indexed_games[system]={};indexed_ss[system]={}
+            if compatible or reviewed_namespace:indexed_games[system]={};indexed_ss[system]={}
             index_path.write_text(json.dumps({'inventorySha256': sha(inventory_path),
                 'launchbox': {'path': str(args.launchbox), 'sha256': sha(args.launchbox)},
                 'screenscraperSources': {}, 'platforms': indexed_games, 'screenscraper': indexed_ss}))
-            mapping(inventory_path, index_path, map_path)
+            aliases=None
+            if reviewed_namespace:
+                aliases=root/'reviews.json'
+                aliases.write_text(json.dumps({'version':1,'evidence':[{'path':str(args.launchbox),'sha256':sha(args.launchbox)}],
+                    'rules':[{'system':system,'sourceTitle':source['title'],'sourcePaths':[source_path],
+                        'reason':'Specific source programme is filed in the other GB catalogue namespace.',
+                        'providers':{'launchbox':{'id':'7','title':game['title'],'catalogueNamespace':namespace}}}]}))
+            mapping(inventory_path, index_path, map_path,aliases)
             args.catalogue_bindings = root/'promoted.json'
             promoted = promote_filename_mapping(map_path, args.binding_census, args.launchbox, args.catalogue_bindings)
             self.assertEqual(len(promoted['bindings']), 1)
             self.assertEqual(promoted['unpromotedSources'], [])
-            self.assertEqual(promoted['bindings'][0]['cataloguePlatform'],system if compatible else namespace)
+            self.assertEqual(promoted['bindings'][0]['cataloguePlatform'],system if compatible or reviewed_namespace else namespace)
             self.assertEqual(promoted['bindings'][0]['platform'],system)
+            if reviewed_namespace:
+                binding=promoted['bindings'][0]['providers']['launchbox']
+                self.assertEqual((binding['catalogueNamespace'],binding['platformName']),('gbc','Nintendo Game Boy Color'))
+                document=json.loads(map_path.read_text());document['rows'][0]['providers']['launchbox']['catalogueNamespace']='nes'
+                map_path.write_text(json.dumps(document))
+                with self.assertRaisesRegex(ValueError,'unsupported compatible namespace'):
+                    load_mapping(map_path)
+                return
             if compatible:
                 binding=promoted['bindings'][0]['providers']['launchbox']
                 self.assertEqual((binding['catalogueNamespace'],binding['platformName']),('gb','Nintendo Game Boy'))

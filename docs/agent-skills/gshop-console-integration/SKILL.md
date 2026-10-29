@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.68"
+  version: "0.1.69"
 ---
 
 # G-Shop Console Integration
@@ -119,8 +119,18 @@ Review supplied translation readmes before another remote search: renamed titles
 often identify the original programme explicitly. Keep source patch/author/version
 identity separate from its catalogue reference; a similarly named improvement hack
 can be a different record. GB-compatible GBC sources can have legitimate provider
-records under GB. Require the explicit compatibility tag, preserve native GBC
+records under GB. Automatic lookup requires the explicit compatibility tag; preserve native GBC
 precedence/exclusions and actual provider namespace, and keep the GBC library owner.
+Some GB/DMG homebrew builds have records only in the GBC namespace, and some GBC
+ports are indexed under GB. Matcher v7 permits an evidenced `catalogueNamespace`
+only on exact-source GB/GBC programme reviews, after native resolution; it cannot
+replace a native binding, restore an exclusion or cross other generations. Retain
+actual provider platform fields and the original owner through normal promotion.
+Check full records, author release notes, ROM tables and retained counterparts;
+same-title GB retail and a distinct GBC prototype are not automatically equivalent.
+A shared programme reference does not prove equal binaries, colour support or
+matching retail resources. Keep DMG/GBC builds, jam demos, soundtracks and release
+versions distinct even when the provider groups them under the same project.
 GBA e-Reader uses ScreenScraper namespace 119. Treat its files as card data;
 provider-declared filenames, printed card codes and card names can resolve names
 absent from the ordinary GBA index. Preserve series, region, revision and original

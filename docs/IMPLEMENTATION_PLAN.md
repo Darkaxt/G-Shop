@@ -1,6 +1,22 @@
 # Staged implementation plan
 
 Current execution, 2026-10-29, revision 181: **S26 ACTIVE**, sole active stage.
+R24 prioritizes still-unbound source groups, including localized programme names,
+prototypes and independent homebrew. Reuse retained full records and previous
+search outcomes, then inspect targeted primary catalogue evidence before linking.
+Keep non-game and component identities visible and never substitute a component
+or original title for an independently catalogued modified programme.
+R24 now verifies 62 formerly unbound sources (25 GBA / 17 GB / 20 GBC) with 98
+added provider bindings. Current census: 44,553 sources / 35,763 LaunchBox / 38,561
+ScreenScraper / 32,941 both / 41,383 either (92.88%) / 3,170 neither. All prior IDs,
+exclusions and ownership survive. Matcher v7 admits only evidenced exact-source
+GB/GBC namespace reviews after native resolution; no cross-generation fallback.
+Current and immutable v1..6 consumer replays, normal owner-promotion regressions,
+public proof integrity and installed skill 0.1.69 parity pass. Current private
+dataset: D:/RShopPrivate/Catalogue/catalogue-r24/. The remaining review stays ACTIVE.
+Exact r24 scratch retirement is applied (c47014421a13b17e3b93cdf98fa0d9ef):
+168 members / 30,987,496 logical bytes, no errors. The normal retained consumer
+passes again after cleanup with all 44,553 sources and 41,383 bound files.
 R23 continues the same total-resolution objective by reviewing missing-provider
 alias bridges and remaining aftermarket/translation groups. Retained provider
 records and supplied documentation remain first; apply supported exact-source

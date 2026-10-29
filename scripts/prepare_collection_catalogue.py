@@ -457,6 +457,11 @@ def load_title_aliases(path):
                     not isinstance(ids[0], str) or ids[0] == rule['providers'][provider]['id']
                     for provider, ids in replacements.items())):
             raise ValueError('Exact-source correction requires evidence and one rejected ID per replaced provider')
+        foreign = [candidate for candidate in rule['providers'].values()
+                   if candidate.get('catalogueNamespace', rule['system']) != rule['system']]
+        if foreign and (not rule.get('sourcePaths') or not document.get('evidence') or any(
+                {rule['system'], candidate['catalogueNamespace']} != {'gb', 'gbc'} for candidate in foreign)):
+            raise ValueError('Unsupported reviewed programme namespace: exact GB/GBC sources and evidence required')
         key = rule['system'], title_key(rule['sourceTitle'])
         selector = (key, tuple(sorted(rule.get('regions', []))), tuple(sorted(rule.get('tags', []))),
                     tuple(sorted(rule.get('sourcePaths', []))))
@@ -477,6 +482,16 @@ def reviewed_alias(source, rules):
     if len(applicable) > 1:
         raise ValueError('Conflicting applicable title-alias reviews')
     return applicable[0] if applicable else None
+
+
+def reviewed_gb_namespace(source, provider, candidate, review):
+    """An evidenced per-source programme reference, never a general platform fallback."""
+    selected = (review or {}).get('providers', {}).get(provider, {})
+    return (source.get('sourceKind') == 'program' and
+            {source['system'], candidate.get('catalogueNamespace')} == {'gb', 'gbc'} and
+            source.get('sourcePath') in (review or {}).get('sourcePaths', []) and
+            provider not in (review or {}).get('blockedProviders', []) and
+            all(selected.get(k) == candidate.get(k) for k in ['id', 'title', 'catalogueNamespace']))
 
 
 def resolve_source(source, index, cache, reviews=None, *, matcher_version=1):
@@ -601,7 +616,8 @@ def resolve_source(source, index, cache, reviews=None, *, matcher_version=1):
                     found = {**candidate, 'method': 'release-annotation-' + candidate['method'], 'lookupTitle': query}
         if matcher_version >= 4:
             found = qualified_alias(source, found, games[provider])
-        if review and provider in review['providers']:
+        if (review and provider in review['providers'] and
+                review['providers'][provider].get('catalogueNamespace', system) == system):
             candidate = review['providers'][provider]
             actual = games[provider].get(candidate['id'])
             if not actual or candidate['title'] != actual['title']:
@@ -659,6 +675,23 @@ def resolve_source(source, index, cache, reviews=None, *, matcher_version=1):
                 matches[provider] = {**fallback_matches[provider], 'status': 'unique',
                     'ids': [candidate['id']], 'names': [candidate['title']],
                     'method': method, 'catalogueNamespace': 'gb'}
+    for provider, selected in (review or {}).get('providers', {}).items():
+        namespace = selected.get('catalogueNamespace', system)
+        if namespace == system:
+            continue
+        if matcher_version < 7 or not reviewed_gb_namespace(source, provider, selected, review):
+            raise ValueError('Unsupported reviewed programme namespace')
+        if provider in providers:
+            raise ValueError('Reviewed programme namespace cannot replace a native provider')
+        systems = index['platforms'] if provider == 'launchbox' else index['screenscraper'] if provider == 'screenscraper' else {}
+        game = systems.get(namespace, {}).get(selected['id'])
+        if not game or game['title'] != selected['title']:
+            raise ValueError('Reviewed programme namespace has a foreign provider ID/title')
+        matches[provider] = {'status': 'unique', 'method': 'reviewed-programme-namespace',
+            'ids': [game['id']], 'names': [game['title']], 'catalogueNamespace': namespace,
+            'reviewReason': review['reason']}
+        providers[provider] = {**{k: v for k, v in game.items() if k not in {'aliases', 'aliasRegions', 'romNames'}},
+            'method': 'exact-reviewed-programme-namespace', 'catalogueNamespace': namespace}
     return matches, providers
 
 
@@ -670,7 +703,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
     reviews = load_title_aliases(title_aliases)
     for source in inventory_data['rows']:
         system = source['system']
-        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=6)
+        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=7)
         rows.append({**source, 'providers': providers, 'matches': matches,
             'status': 'bound-candidate' if providers else 'unresolved',
             'identityLevel': 'filename-title-candidate', 'physicalEditionVerified': False})
@@ -689,7 +722,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
                 'ambiguous' if any(m['status'] == 'ambiguous' for m in r['matches'].values()) else
                 'spacing-review' if any(m['status'] == 'loose-candidate' for m in r['matches'].values()) else
                 'no-exact-index-title' for r in subset if not r['providers']))}
-    document = {'version': 1, 'matcherVersion': 6, 'scope': 'filename-catalogue-candidates',
+    document = {'version': 1, 'matcherVersion': 7, 'scope': 'filename-catalogue-candidates',
         'inventoryPath': str(inventory_path), 'inventorySha256': sha(inventory_path),
         'indexPath': str(index_path), 'indexSha256': sha(index_path),
         **({'titleAliasesPath': str(title_aliases), 'titleAliasesSha256': sha(title_aliases)} if title_aliases else {}),
@@ -710,7 +743,7 @@ def load_mapping(path):
     if document.get('version') != 1 or document.get('scope') != 'filename-catalogue-candidates':
         raise ValueError('Unsupported filename binding format')
     matcher_version = document.get('matcherVersion', 1)
-    if matcher_version not in {1, 2, 3, 4, 5, 6}:
+    if matcher_version not in {1, 2, 3, 4, 5, 6, 7}:
         raise ValueError('Unsupported catalogue matcher version')
     inventory_path, index_path = Path(document['inventoryPath']), Path(document['indexPath'])
     if sha(inventory_path) != document['inventorySha256'] or sha(index_path) != document['indexSha256']:
@@ -743,7 +776,9 @@ def load_mapping(path):
             games = index['platforms'] if provider == 'launchbox' else index['screenscraper'] if provider == 'screenscraper' else None
             namespace = candidate.get('catalogueNamespace', catalogue_namespace(row))
             if namespace != catalogue_namespace(row) and not (
-                    matcher_version >= 5 and namespace == 'gb' and game_boy_compatible_source(row)):
+                    (matcher_version >= 5 and namespace == 'gb' and game_boy_compatible_source(row)) or
+                    (matcher_version >= 7 and reviewed_gb_namespace(original, provider, candidate,
+                        reviewed_alias(original, reviews)))):
                 raise ValueError('Filename binding has an unsupported compatible namespace')
             game = games.get(namespace, {}).get(candidate['id']) if games else None
             if not game or any(candidate.get(k) != game.get(k) for k in ['id', 'title', 'platformId', 'platformName']):

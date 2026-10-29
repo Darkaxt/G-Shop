@@ -14,8 +14,23 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
-R23 is ACTIVE work within S26 for the persistent total-resolution objective.
-The integrated r23 dataset verifies 123 added second-provider bindings, with
+R24 is ACTIVE work within S26 for the persistent total-resolution objective.
+The r24 normal consumer verifies 62 formerly unbound files and 98 added provider
+bindings: 25 GBA / 17 GB / 20 GBC sources. Current totals are 35,763 LaunchBox,
+38,561 ScreenScraper, 32,941 both (73.94%), 41,383 either (92.88%) and 3,170 neither
+out of 44,553. All earlier IDs, exclusions and source owners survive. The fixes
+cover Chinese/provisional prototype names and exact-source GB/GBC catalogue
+namespace references. Matcher v7 preserves native priority and rejects unproved
+cross-generation references; prototype/version and physical identities remain
+separate. Current plus immutable v1..6 consumer replays, normal owner-promotion
+regressions, archived public proof and installed skill 0.1.69 parity pass.
+Current dataset/proof: D:/RShopPrivate/Catalogue/catalogue-r24/. Lemmings GBC Proto
+remains held because the GB table does not establish that port. All remaining
+provider outcomes stay visible; total-resolution exhaustion is not established.
+Exact r24 E: scratch is absent after applied cleanup transaction
+c47014421a13b17e3b93cdf98fa0d9ef (168 members / 30,987,496 logical bytes, no errors).
+The retained normal consumer passes again after retirement: 44,553 / 41,383 bound.
+The earlier integrated r23 dataset verifies 123 added second-provider bindings, with
 32,905 both-provider sources (73.86%). LaunchBox is 35,725 and ScreenScraper 38,501;
 either remains 41,321/44,553 (92.75%) and neither remains 3,232. Three Monster Party
 prototype links are corrected from a 2013 restoration hack to the original game;
