@@ -1,6 +1,21 @@
 # Staged implementation plan
 
 Current execution, 2026-10-29, revision 181: **S26 ACTIVE**, sole active stage.
+R29 verifies 76 previously unbound card files as collection-level e-Reader
+catalogue references, not exact individual card matches or new playable-game
+bindings. The explicit collection descriptions cover Animal Crossing (36), Pokemon
+Battle-e (37), Mario vs. Donkey Kong (two) and Pokemon Pinball (one). All source
+card codes/roles/sets/regions remain; namespace 119/card-data scope is preserved.
+The full normal consumer and controlled normal-promotion diagnostic pass; all 76
+stay excluded as non-game artwork owners. Totals: 44,553 / 35,864 LaunchBox /
+38,710 ScreenScraper / 32,991 both / 41,583 either references (93.33%) / 2,970
+neither. All old IDs and nine exclusions survive. A tested card-code priority
+hypothesis gained zero bindings and was not implemented. Ten Pteropus files retain
+author/full-export/index/search proof of current provider unavailability. Exact
+scratch retirement is applied: 60 members / 21,079,300 logical bytes, no errors.
+The full consumer passes again using retained inputs with the E: root absent;
+bind the private r29 receipt to the verified source commit. Installed skill 0.1.73
+parity/validation pass; matcher v9 is unchanged. Further review stays ACTIVE.
 R28 verifies 15 formerly unbound files (nine NES, three GBA, two GBC, one SNES),
 adding 16 provider assignments. Current census: 44,553 / 35,864 LaunchBox /
 38,634 ScreenScraper / 32,991 both / 41,507 either (93.16%) / 3,046 neither.

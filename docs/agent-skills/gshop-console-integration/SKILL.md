@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.72"
+  version: "0.1.73"
 ---
 
 # G-Shop Console Integration
@@ -158,6 +158,15 @@ provider-declared filenames, printed card codes and card names can resolve names
 absent from the ordinary GBA index. Preserve series, region, revision and original
 card/strip names. A card-catalogue link does not make that data an ordinary
 cartridge ROM or authorize promoting its group artwork to a cartridge owner.
+Distinguish an exact declared card match from a collection-level reference. The
+latter needs the provider's complete description explicitly covering that card
+collection, exact-source review, retained set/code/region/type and namespace 119;
+report it separately and preserve the non-game promotion exclusion. A broad title
+or mixed ROM table alone does not establish every set or individual card. Inspect
+actual key candidates before diagnosing absence: multiple card-name hits can be
+hidden behind an unmatched outcome, and a code-priority hypothesis needs a measured
+gain before changing the resolver. Check complete default public pages when a
+tab response is empty; navigation/footer-only content remains unusable evidence.
 Diagnose filename conventions and malformed index rows before claiming absent
 provider results. DS numeric and x/z scene numbers, short country tags, 3DS
 title-ID/container decorations, PSP Minis, tagged 64DD translations and the

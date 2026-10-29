@@ -14,6 +14,22 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+R29 verifies 76 collection-level e-Reader catalogue references on previously
+unbound card files, with zero new exact-card matches or playable-game bindings.
+The complete provider collection descriptions support the four selected scopes;
+individual card codes/sets/roles/regions remain unchanged. The actual normal
+promotion function excludes all 76 as card-data in a complete empty-owner
+diagnostic census; this is not native owner acceptance. Full current consumer,
+all prior IDs/nine exclusions and installed skill 0.1.73 parity pass. Totals:
+44,553 / 35,864 LaunchBox / 38,710 ScreenScraper / 32,991 both / 41,583 either
+references (93.33%) / 2,970 neither. The code-priority hypothesis produced no gain
+and was not implemented. Ten Pteropus sources retain a reviewed current provider
+availability gap with primary and full-export proof. Dataset:
+D:/RShopPrivate/Catalogue/catalogue-r29/. Exact scratch retirement is applied:
+60 members / 21,079,300 logical bytes, no errors. The full normal consumer passes
+again with the E: root absent, including the native title/alias absence check for
+Pteropus. The local receipt binds retained data/proof to the source commit. All
+remaining source/provider reviews and wider S26 remain ACTIVE.
 R28 verifies 16 new provider assignments on 15 formerly unbound files: nine NES,
 three GBA, two GBC and one SNES. Totals: 44,553 / 35,864 LaunchBox / 38,634
 ScreenScraper / 32,991 both / 41,507 either (93.16%) / 3,046 neither. The full
