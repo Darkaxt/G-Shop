@@ -10,6 +10,55 @@ from prepare_collection_catalogue import (filename_title, source_kind, inventory
 
 
 class CollectionCatalogueTest(unittest.TestCase):
+    def test_exact_source_correction_names_rejected_canonical_id(self):
+        source={'system':'nes','family':'root','sourceKind':'program','title':'Parody World',
+                'filename':'Parody World (Japan) (Proto).7z','sourcePath':'Public/Parody World (Japan) (Proto).7z'}
+        index={'platforms':{'nes':{
+            'hack':{'id':'hack','title':'Parody World','aliases':[]},
+            'original':{'id':'original','title':'Monster Party','aliases':['Parody World']}}},
+            'screenscraper':{'nes':{}}}
+        rule={'system':'nes','sourceTitle':'Parody World','sourcePaths':[source['sourcePath']],
+              'providers':{'launchbox':{'id':'original','title':'Monster Party'}},
+              'replacesProviderIds':{'launchbox':['hack']},'reason':'Full record identifies the canonical entry as a restoration hack.'}
+        reviews={('nes','parody world'):[rule]}
+        with self.assertRaisesRegex(ValueError,'correction'):
+            resolve_source(source,index,{},reviews,matcher_version=5)
+        matches,providers=resolve_source(source,index,{},reviews,matcher_version=6)
+        self.assertEqual(providers['launchbox']['id'],'original')
+        self.assertEqual(matches['launchbox']['rejectedProviderIds'],['hack'])
+        rule['replacesProviderIds']['launchbox']=['other']
+        with self.assertRaisesRegex(ValueError,'correction'):
+            resolve_source(source,index,{},reviews,matcher_version=6)
+        rule['replacesProviderIds']['launchbox']=['hack'];rule.pop('sourcePaths')
+        with self.assertRaisesRegex(ValueError,'correction'):
+            resolve_source(source,index,{},reviews,matcher_version=6)
+
+    def test_canonical_conflict_still_rejects_an_ordinary_review(self):
+        source={'system':'nes','family':'root','sourceKind':'program','title':'Original','filename':'Original.zip'}
+        index={'platforms':{'nes':{'a':{'id':'a','title':'Original','aliases':[]},
+                                'b':{'id':'b','title':'Other','aliases':[]}}},'screenscraper':{'nes':{}}}
+        rule={'providers':{'launchbox':{'id':'b','title':'Other'}},'reason':'Insufficient ordinary alias'}
+        with self.assertRaisesRegex(ValueError,'unique exact title'):
+            resolve_source(source,index,{}, {('nes','original'):[rule]},matcher_version=6)
+
+    def test_exact_source_correction_requires_hashed_evidence_and_single_old_id(self):
+        from prepare_collection_catalogue import sha
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);evidence=root/'proof.json';evidence.write_text('full provider records')
+            rule={'system':'nes','sourceTitle':'Parody World','sourcePaths':['Public/Proto.zip'],
+                  'providers':{'launchbox':{'id':'original','title':'Monster Party'}},
+                  'replacesProviderIds':{'launchbox':['hack']},'reason':'Specific source correction'}
+            document={'version':1,'rules':[rule]};path=root/'rules.json'
+            path.write_text(json.dumps(document))
+            with self.assertRaisesRegex(ValueError,'requires evidence'):
+                load_title_aliases(path)
+            document['evidence']=[{'path':str(evidence),'sha256':sha(evidence)}]
+            path.write_text(json.dumps(document));self.assertTrue(load_title_aliases(path))
+            rule['replacesProviderIds']['launchbox']=['hack','another']
+            path.write_text(json.dumps(document))
+            with self.assertRaisesRegex(ValueError,'one rejected ID'):
+                load_title_aliases(path)
+
     def test_explicit_gb_compatible_source_can_use_actual_game_boy_records(self):
         source={'system':'gbc','family':'root','sourceKind':'program','title':'Airaki!',
                 'filename':'Airaki! (World) (GB Compatible) (Aftermarket) (Unl).7z'}

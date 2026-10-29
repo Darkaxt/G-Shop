@@ -14,7 +14,23 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
-R22 is ACTIVE work within S26 for the persistent total-resolution objective.
+R23 is ACTIVE work within S26 for the persistent total-resolution objective.
+The integrated r23 dataset verifies 123 added second-provider bindings, with
+32,905 both-provider sources (73.86%). LaunchBox is 35,725 and ScreenScraper 38,501;
+either remains 41,321/44,553 (92.75%) and neither remains 3,232. Three Monster Party
+prototype links are corrected from a 2013 restoration hack to the original game;
+all other old IDs, both exclusions and source membership are preserved. Matcher
+v6 limits those canonical corrections to evidenced exact-source/old-ID rules.
+Current and immutable v1..5 consumer replays, normal owner-promotion regressions,
+public-proof integrity and installed skill 0.1.68 parity pass. Required private
+proof and current map are in D:/RShopPrivate/Catalogue/catalogue-r23/.
+The exact r23 E: scratch root is absent after applied transactional cleanup:
+171 members / 29,980,993 logical bytes, no errors. The retained normal consumer
+passes again after cleanup, verifying all 44,553 sources and 41,321 bound files.
+The owner-requested monthly ROM-mapping verification is ACTIVE in the Codex app:
+first day of each month at 09:00 local, using the newest verified delivery and
+filename-only H: census. It reports material changes/failures and stays quiet on
+unchanged passing results; it does not gate or complete the current mapping work.
 Every remaining provider/source outcome still needs an evidence-based exhaustion
 review; the r21 improvements do not establish that the residuals are unsolvable.
 R22's integrated current map passes the complete 44,553-source consumer:

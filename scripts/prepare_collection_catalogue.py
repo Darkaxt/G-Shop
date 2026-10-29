@@ -451,6 +451,12 @@ def load_title_aliases(path):
     for rule in document['rules']:
         if not rule.get('reason') or not rule.get('providers'):
             raise ValueError('Title-alias review requires providers and a reason')
+        replacements = rule.get('replacesProviderIds', {})
+        if replacements and (not rule.get('sourcePaths') or not document.get('evidence') or
+                any(provider not in rule['providers'] or not isinstance(ids, list) or len(ids) != 1 or
+                    not isinstance(ids[0], str) or ids[0] == rule['providers'][provider]['id']
+                    for provider, ids in replacements.items())):
+            raise ValueError('Exact-source correction requires evidence and one rejected ID per replaced provider')
         key = rule['system'], title_key(rule['sourceTitle'])
         selector = (key, tuple(sorted(rule.get('regions', []))), tuple(sorted(rule.get('tags', []))),
                     tuple(sorted(rule.get('sourcePaths', []))))
@@ -600,11 +606,18 @@ def resolve_source(source, index, cache, reviews=None, *, matcher_version=1):
             actual = games[provider].get(candidate['id'])
             if not actual or candidate['title'] != actual['title']:
                 raise ValueError('Reviewed title alias has a foreign ID/title/platform')
+            rejected = review.get('replacesProviderIds', {}).get(provider)
+            if rejected is not None and (matcher_version < 6 or
+                    source.get('sourcePath') not in review.get('sourcePaths', []) or
+                    found['status'] != 'unique' or found['ids'] != rejected or
+                    rejected == [candidate['id']]):
+                raise ValueError('Exact-source correction differs from its rejected canonical ID or source')
             if (found['status'] == 'unique' and found['method'] in {'canonical','declared-alias'}
-                    and found['ids'] != [candidate['id']]):
+                    and found['ids'] != [candidate['id']] and rejected is None):
                 raise ValueError('Reviewed alias conflicts with a unique exact title')
-            found = {'status': 'unique', 'method': 'reviewed-scoped-alias',
-                     'ids': [candidate['id']], 'reviewReason': review['reason']}
+            found = {'status': 'unique', 'method': 'reviewed-exact-source-correction' if rejected else 'reviewed-scoped-alias',
+                     'ids': [candidate['id']], 'reviewReason': review['reason'],
+                     **({'rejectedProviderIds': rejected} if rejected else {})}
         if review and provider in review.get('blockedProviders', []):
             found = {'status': 'reviewed-provider-conflict', 'method': 'reviewed-provider-exclusion',
                      'ids': [], 'reviewReason': review['reason']}
@@ -657,7 +670,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
     reviews = load_title_aliases(title_aliases)
     for source in inventory_data['rows']:
         system = source['system']
-        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=5)
+        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=6)
         rows.append({**source, 'providers': providers, 'matches': matches,
             'status': 'bound-candidate' if providers else 'unresolved',
             'identityLevel': 'filename-title-candidate', 'physicalEditionVerified': False})
@@ -676,7 +689,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
                 'ambiguous' if any(m['status'] == 'ambiguous' for m in r['matches'].values()) else
                 'spacing-review' if any(m['status'] == 'loose-candidate' for m in r['matches'].values()) else
                 'no-exact-index-title' for r in subset if not r['providers']))}
-    document = {'version': 1, 'matcherVersion': 5, 'scope': 'filename-catalogue-candidates',
+    document = {'version': 1, 'matcherVersion': 6, 'scope': 'filename-catalogue-candidates',
         'inventoryPath': str(inventory_path), 'inventorySha256': sha(inventory_path),
         'indexPath': str(index_path), 'indexSha256': sha(index_path),
         **({'titleAliasesPath': str(title_aliases), 'titleAliasesSha256': sha(title_aliases)} if title_aliases else {}),
@@ -697,7 +710,7 @@ def load_mapping(path):
     if document.get('version') != 1 or document.get('scope') != 'filename-catalogue-candidates':
         raise ValueError('Unsupported filename binding format')
     matcher_version = document.get('matcherVersion', 1)
-    if matcher_version not in {1, 2, 3, 4, 5}:
+    if matcher_version not in {1, 2, 3, 4, 5, 6}:
         raise ValueError('Unsupported catalogue matcher version')
     inventory_path, index_path = Path(document['inventoryPath']), Path(document['indexPath'])
     if sha(inventory_path) != document['inventorySha256'] or sha(index_path) != document['indexSha256']:

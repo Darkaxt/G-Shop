@@ -1,6 +1,21 @@
 # Staged implementation plan
 
 Current execution, 2026-10-29, revision 181: **S26 ACTIVE**, sole active stage.
+R23 continues the same total-resolution objective by reviewing missing-provider
+alias bridges and remaining aftermarket/translation groups. Retained provider
+records and supplied documentation remain first; apply supported exact-source
+decisions and verify the entire current census without weakening edition rules.
+R23 full-census reconciliation passes: 123 new second-provider bindings and three
+evidenced corrections of a prototype incorrectly linked to a restoration hack.
+Current map: 44,553 sources / 35,725 LaunchBox / 38,501 ScreenScraper / 32,905 both /
+41,321 either / 3,232 neither. No unbound source was resolved by this paired-source
+cohort. Matcher v6 requires hashed proof, exact paths and the rejected old ID for
+canonical corrections; immutable v1..5 and normal owner-promotion regressions pass.
+Private dataset: D:/RShopPrivate/Catalogue/catalogue-r23/. Installed skill 0.1.68
+matches its source. Continue the unbound/provider-gap review; no exhaustion claim.
+The exact r23 E: scratch root is retired through applied transaction
+5744361a8a08edf8bb2f37868e868c04 (29,980,993 logical bytes, no errors). Post-cleanup
+normal consumer replay still verifies all 44,553 sources and retained proof.
 R22 continues the persistent total-resolution objective. Reconcile every missing
 provider/source outcome with prior search evidence, repair reusable causes and
 apply supported manual links. Do not infer exhaustion from the r21 small gain.

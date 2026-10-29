@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.67"
+  version: "0.1.68"
 ---
 
 # G-Shop Console Integration
@@ -100,6 +100,13 @@ Do not project every alias transitively: catalogues can give a sequel a base-gam
 alias or group different editions. Keep old matcher replay stable and verify
 all earlier IDs/exclusions after a new matching version. Scope manual article,
 romanization and duplicate-record decisions to the actual source paths.
+An exact canonical heading can itself describe the wrong edition: inspect full
+developer/date/description fields before accepting it as an anchor. Matcher v6
+supports an evidenced exact-source correction naming the single rejected provider
+ID with `replacesProviderIds`; it rejects stale IDs and preserves older replay.
+Use public ROM tables to resolve regional/retailer/prototype groups absent from
+the title export. A provider grouping those filenames does not make their raw
+programmes, packaging or labels identical; keep source editions and native links.
 Apply explicit source publisher/author tags consistently across both providers.
 Numeric release/date lookup must preserve exact version records and named mods;
 measure actual full-census gains before describing a generic repair as coverage.
