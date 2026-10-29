@@ -183,6 +183,10 @@ a supplied model missing. A capture while the last carton is closed can be mid-s
 All consoles use the shared lower-stage floor treatment by default: a slightly
 brighter red pool beneath the models, flattened into a perspective ellipse and
 fading completely into the existing background. No defined edge, rim or platform.
+For model-backed compositions, project that light onto the actual model ground
+plane through its camera. A fixed screen-space ellipse below the model is not
+ground contact. Inspect the console feet, controller and cable resting on that
+same plane through rotation; retain the geometry's physical scale.
 Use one pool for a whole composition, including multi-edition arrangements; do
 not add one beneath each nested model view. Preserve physical scale, framing,
 touch/controller hit areas and Reduced Motion. Apply to lower collector/game
@@ -294,6 +298,9 @@ Validate cable diameter, plausible bends, crossings with vertical clearance,
 attachment at both ends, support-plane contact and absence of intersections with
 the hardware/controller. Grounding must be checked on actual transformed mesh
 vertices and curve geometry, not only bounding boxes or a pleasing camera angle.
+Use natural asymmetric slack and continuous smooth curves, not circular coils
+with separately joined angular leads. Derive joins from the actual connector
+and controller attachment geometry rather than bounding-box centres.
 Keep the original collector/source intact when preparing a launch derivative.
 
 ## Launch and input ownership — CI-06

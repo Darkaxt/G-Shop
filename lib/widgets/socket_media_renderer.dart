@@ -19,6 +19,7 @@ import '../models/unboxing_scene.dart';
 import '../models/game_watch_unboxing_scene.dart';
 import '../models/nes_unboxing_scene.dart';
 import '../models/nes_launch_scene.dart';
+import '../features/preview/scene_floor.dart';
 
 class SocketMediaRenderer extends StatefulWidget {
   final PhysicalMediaFormat format;
@@ -35,7 +36,7 @@ class SocketMediaRenderer extends StatefulWidget {
   final Widget label;
   final Object? labelIdentity;
   final VoidCallback? onReady;
-  final bool frameComposition, boxFaceBadges;
+  final bool frameComposition, boxFaceBadges, groundedFloor;
   final double compositionFill, compositionZoom;
   const SocketMediaRenderer(
       {super.key,
@@ -53,6 +54,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.compositionZoom = 1,
       this.onReady})
       : preparedConsole = null,
+        groundedFloor = false,
         packaging = null,
         boxFaceBadges = false,
         gameWatchScene = null,
@@ -68,6 +70,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.labelIdentity,
       this.onReady})
       : preparedConsole = null,
+        groundedFloor = false,
         frameComposition = false,
         boxFaceBadges = false,
         compositionFill = .75,
@@ -89,6 +92,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.label = const ColoredBox(color: Colors.white),
       this.labelIdentity = 'console',
       this.boxFaceBadges = false,
+      this.groundedFloor = false,
       this.onReady,
       this.frameComposition = false,
       this.compositionFill = .75,
@@ -113,6 +117,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.compositionZoom = 1,
       this.onReady})
       : preparedConsole = null,
+        groundedFloor = false,
         frameComposition = true,
         boxFaceBadges = false,
         compositionFill = .75,
@@ -590,6 +595,29 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
                               height: labelWidth / renderer.model.labelAspect,
                               child: widget.label))))),
         ),
+      if (renderer != null &&
+          _labelTexture != null &&
+          _error == null &&
+          widget.groundedFloor)
+        LayoutBuilder(
+            builder: (_, constraints) => SceneFloor(
+                    projectedPoints: SocketMediaGpu.groundProjection(
+                        renderer.model, widget.pose, constraints.biggest,
+                        fill: widget.compositionFill,
+                        zoom: widget.compositionZoom),
+                    contactShadows: [
+                      for (final support
+                          in renderer.model.data['groundSupports'] as List? ??
+                              const [])
+                        SocketMediaGpu.groundProjection(
+                            renderer.model, widget.pose, constraints.biggest,
+                            fill: widget.compositionFill,
+                            zoom: widget.compositionZoom,
+                            footprint: (support as List)
+                                .cast<num>()
+                                .map((v) => v.toDouble())
+                                .toList())
+                    ])),
       if (renderer != null && _labelTexture != null && _error == null)
         CustomPaint(
             key: const ValueKey('physical-media-shell'),
@@ -648,6 +676,56 @@ class _LabelLayer extends RenderRepaintBoundary {
 }
 
 class SocketMediaGpu {
+  static final _groundBounds = Expando<List<vm.Vector3>>();
+
+  /// The same camera as the hardware projects a diffuse patch on its source
+  /// ground plane. Screen-relative lighting cannot establish model contact.
+  static List<Offset> groundProjection(
+      SocketMediaModel model, SocketMediaPose pose, Size size,
+      {double fill = .75, double zoom = 1, List<double>? footprint}) {
+    final bounds = _groundBounds[model] ??= (() {
+      final low = vm.Vector3.all(double.infinity);
+      final high = vm.Vector3.all(double.negativeInfinity);
+      for (final surface in model.surfaces) {
+        for (var i = 0; i < surface['vertexCount']; i++) {
+          final offset = (surface['vertexOffset'] as int) + i * 32;
+          for (var axis = 0; axis < 3; axis++) {
+            final value =
+                model.mesh.getFloat32(offset + axis * 4, Endian.little);
+            low[axis] = math.min(low[axis], value);
+            high[axis] = math.max(high[axis], value);
+          }
+        }
+      }
+      return [low, high];
+    })();
+    final low = bounds[0], high = bounds[1];
+    final center = (low + high) * .5;
+    final x0 = footprint?[0] ?? low.x, z0 = footprint?[1] ?? low.z;
+    final x1 = footprint?[2] ?? high.x, z1 = footprint?[3] ?? high.z;
+    center.x = (x0 + x1) / 2;
+    center.z = (z0 + z1) / 2;
+    final transform =
+        compositionProjection(model, pose, size, fill: fill, zoom: zoom) *
+            modelTransform(model, pose);
+    Offset point(double x, double z) {
+      final p = transform.transform(vm.Vector4(x, low.y, z, 1));
+      return Offset(
+          (1 + p.x / p.w) * size.width / 2, (1 - p.y / p.w) * size.height / 2);
+    }
+
+    return [
+      point(center.x, center.z),
+      for (final radius in [.35, .70, 1.0])
+        for (var segment = 0; segment < 64; segment++)
+          point(
+              center.x +
+                  math.cos(segment * math.pi / 32) * (x1 - x0) * .68 * radius,
+              center.z +
+                  math.sin(segment * math.pi / 32) * (z1 - z0) * .68 * radius)
+    ];
+  }
+
   static int uniformBlockLength(int surfaces, int alignment) {
     int aligned(int bytes) => (bytes + alignment - 1) ~/ alignment * alignment;
     // EnvironmentInfo: 16 floats; each surface has three matrices and 28

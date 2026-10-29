@@ -360,7 +360,8 @@ class ConsoleModel {
 
   static bool _isOverview(Map<String, dynamic> data) =>
       SocketMediaModel.isGameWatchCollection(data) ||
-      data['system'] == 'nes' && data['overviewGeometry'] == true;
+      const {'nes', 'snes'}.contains(data['system']) &&
+          data['overviewGeometry'] == true;
 
   static Future<ConsoleModel?> findNesConsoleVariant(String variant,
       {Directory? modelsDirectory}) async {

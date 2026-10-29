@@ -157,10 +157,11 @@ void main() {
   }, skip: gba == null ? 'Private owner imports are not bundled' : false);
 
   final nes = Platform.environment['GSHOP_NES_IMPORTS'];
+  final snes = Platform.environment['GSHOP_SNES_IMPORTS'];
   final launch = Platform.environment['GSHOP_NES_LAUNCH_IMPORTS'];
   test('supplied collector compositions fit throughout their turntable',
       () async {
-    for (final entry in [('nes', nes), ('gameandwatch', gw)]) {
+    for (final entry in [('nes', nes), ('snes', snes), ('gameandwatch', gw)]) {
       if (entry.$2 == null) continue;
       final console = (await ConsoleModel.find(entry.$1,
           modelsDirectory: Directory(entry.$2!)))!;
@@ -170,7 +171,7 @@ void main() {
           final pixels = _pixels(
               m,
               SocketMediaPose(
-                  rx: entry.$1 == 'nes' ? .6 : .85,
+                  rx: console.isCollectionOverview ? .85 : .6,
                   ry: step * math.pi / 4,
                   scaleX: .9,
                   scaleY: .9,
@@ -185,7 +186,7 @@ void main() {
       }
     }
   },
-      skip: nes == null && gw == null
+      skip: nes == null && snes == null && gw == null
           ? 'Private owner imports are not bundled'
           : false);
   test('NES browsing margins continue into launch without losing screen entry',

@@ -129,6 +129,36 @@ void main() {
     await expectLater(invalid.load(), throwsFormatException);
   });
   test(
+      'SNES selector uses the collection camera without changing plain hardware',
+      () async {
+    final dir = Directory('${root.path}/consoles/snes');
+    await dir.create(recursive: true);
+    await File('${root.path}/consoles/gba/model.mesh')
+        .copy('${dir.path}/model.mesh');
+    final manifest = File('${dir.path}/model.json');
+    await manifest.writeAsString(jsonEncode({
+      ...data,
+      'system': 'snes',
+      'overviewGeometry': true,
+    }));
+    final overview = (await ConsoleModel.find('snes', modelsDirectory: root))!;
+    expect(overview.isCollectionOverview, isTrue,
+        reason:
+            'The paired tabletop selector needs its elevated collection view');
+    expect((await overview.load()).data['system'], 'snes');
+    await manifest.writeAsString(jsonEncode({...data, 'system': 'snes'}));
+    expect(
+        (await ConsoleModel.find('snes', modelsDirectory: root))!
+            .isCollectionOverview,
+        isFalse);
+    await File('${root.path}/consoles/gba/model.json')
+        .writeAsString(jsonEncode({...data, 'overviewGeometry': true}));
+    expect(
+        (await ConsoleModel.find('gba', modelsDirectory: root))!
+            .isCollectionOverview,
+        isFalse);
+  });
+  test(
       'folding turntable rotates around the visible pose, not its swept envelope',
       () async {
     final dir = Directory('${root.path}/consoles/gba');

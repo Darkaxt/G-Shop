@@ -5,6 +5,26 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-10-29 owner-prioritized SNES-OVERVIEW-01 (specification revision 183):
+S26 remains ACTIVE and sole active stage. Implement the supplied dual-console
+showcase as the complete lower-screen SNES section preview. The bounded feature
+passes production-loader/texture checks and full-turntable framing at four
+viewports. Prepared v6 uses continuous asymmetric cables, shared-camera ground
+projection and six soft support footprints. Signed private APK 1.10.2+52 is
+installed and its version/signature/digest independently read back. Actual normal
+selector front/rotated pixels show the floor under the hardware; hide stops the
+preview and resume restores it. Current-source Reduced Motion/lifecycle regression
+passes; the earlier isolated native SNES Reduced Motion proof applies to its
+unchanged motion contract. All 16 database/preferences files remained byte-identical
+through replacement before first launch. Original source download hashes remain
+unchanged. Delivery, private asset paths and evidence:
+`D:/RShopPrivate/SNES/selector-integration-20261029/delivery.json` and the existing
+SNES HTML ledger. Final source/cleanup bookkeeping is recorded there. The bounded
+selector has no remaining functional acceptance blocker. Wider S26 remains
+ACTIVE and unfinished. Full cartridge/unboxing/insertion/power animation is
+explicitly sequenced by the owner as the final SNES step, outside this feature.
+No provider/mapping round is resumed; mapping remains paused at r34.
+
 2026-10-29 continuation under specification revision 182: S26 is ACTIVE,
 the sole active stage, after verified E: access recovery following the owner restart.
 CATALOGUE-ALL is the current outcome: complete Windows filename/provider-index

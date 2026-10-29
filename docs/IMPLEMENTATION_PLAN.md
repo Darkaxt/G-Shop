@@ -1,5 +1,23 @@
 # Staged implementation plan
 
+Owner-prioritized SNES-OVERVIEW-01, 2026-10-29, revision 183: **S26 ACTIVE**,
+sole active stage; current acceptance unit is the complete SNES section preview.
+Use the supplied dual-console showcase and the existing private hardware path.
+Compact execution: (1) prepare calibrated/bounded US+PAL composition with source
+provenance; (2) wire scoped collection-camera recognition and production import;
+(3) verify the integrated selector, lifecycle, motion/framing and affected
+regressions; (4) commit verified source and deliver/read back the APK and private
+resource package through the applicable delivery path. Preparation, scoped
+camera/import checks and v6/1.10.2+52 normal-app native acceptance/delivery
+readback pass. The private receipt records final verified source and cleanup.
+No second
+implementation stage is opened. The full cartridge animation pipeline belongs
+to the owner's explicitly named final SNES step and is excluded from this
+selector feature; other per-game resource requirements remain recorded in the
+private SNES ledger. Mapping processing stays paused. Preserve the existing
+uncommitted deployed-baseline changes; do not silently publish a different
+baseline or claim wider S26 completion.
+
 Current execution, 2026-10-29, revision 182: **S26 ACTIVE**, sole active stage.
 R34 verifies 37 second-provider links (ten LaunchBox, 27 ScreenScraper), with all
 prior assignments/nine exclusions preserved. Totals: 44,553 / 35,887 LaunchBox /

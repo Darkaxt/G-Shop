@@ -259,6 +259,28 @@ class SocketMediaModel {
       throw const FormatException('Invalid local packaging import');
     }
     final surfaces = data['surfaces'];
+    final groundSupports = data['groundSupports'];
+    if (groundSupports != null) {
+      final bounds = data['bounds'];
+      if (data['hardwareGeometry'] != true ||
+          bounds is! List ||
+          bounds.length != 3 ||
+          bounds.any((v) => v is! num || !v.isFinite || v <= 0) ||
+          groundSupports is! List ||
+          groundSupports.length > 32) {
+        throw const FormatException('Invalid hardware ground supports');
+      }
+      final limit = bounds.cast<num>().reduce((a, b) => a > b ? a : b);
+      for (final support in groundSupports) {
+        if (support is! List ||
+            support.length != 4 ||
+            support.any((v) => v is! num || !v.isFinite || v.abs() > limit) ||
+            support[0] >= support[2] ||
+            support[1] >= support[3]) {
+          throw const FormatException('Invalid hardware ground footprint');
+        }
+      }
+    }
     // Twisted has 65 cartridge surfaces and the refined Panorama hardware has
     // up to 70. Paired scenes also include their separate carton/booklet parts.
     // An NES launch additionally retains its wired console and supplied TV.

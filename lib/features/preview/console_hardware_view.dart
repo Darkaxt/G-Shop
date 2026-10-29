@@ -8,7 +8,6 @@ import '../../models/game_watch_unboxing_scene.dart';
 import '../../models/socket_media_model.dart';
 import '../../widgets/socket_media_renderer.dart';
 import 'scene_preview_layout.dart';
-import 'scene_floor.dart';
 
 class ConsoleHardwareView extends StatefulWidget {
   final ConsoleModel model;
@@ -295,7 +294,6 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
             ? null
             : const BoxDecoration(gradient: AppTheme.backgroundGradient),
         child: Stack(fit: StackFit.expand, children: [
-          if (!widget.transparentBackground) const SceneFloor(),
           SafeArea(
               child: ScenePreviewLayout(
             composition: true,
@@ -338,6 +336,7 @@ class ConsoleHardwareViewState extends State<ConsoleHardwareView>
                           key: rendererKey,
                           model: widget.model,
                           preparedConsole: widget.preparedModel,
+                          groundedFloor: !widget.transparentBackground,
                           frameComposition: true,
                           compositionFill: widget.compositionFill,
                           compositionZoom: _zoom / .9,

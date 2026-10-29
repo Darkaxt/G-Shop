@@ -1,6 +1,28 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 182, 2026-10-29.
+Authoritative specification, revision 183, 2026-10-29.
+
+Owner-authorized SNES selector step, revision 183 (SNES-OVERVIEW-01): prepare
+the supplied SNES-console-showcase.glb as the large rotating lower-screen preview
+for the SNES console section and integrate/verify it in the APK. Preserve its US
+and PAL bodies, controllers and game props. Apply CI-03's shared physical scale,
+grounding, shallow arc, controller/cable placement, fading floor and 10–15% edge
+margins. Hide the source staging plinths and tiny edition text in the derivative;
+retain the original source unchanged. Apply the owner's clarified visual
+criteria: natural asymmetric continuous cable bends without right-angle joins
+or regular circular coils, and floor lighting
+projected onto the same ground plane/camera as the consoles (not a detached
+screen-space spot). These are selector acceptance requirements.
+Use bounded geometry/textures and retain
+per-part source/creator/hash provenance through the normal private model import.
+Private models/artwork must not be bundled in a public APK or repository.
+Verify production loading/content integrity, the real console-selection preview,
+visible floor/framing, rotation/Reduced Motion and route/lifecycle cleanup while
+preserving existing previews and app data. This is a complete bounded selector
+feature, not acceptance of all SNES resources. The owner explicitly places the
+full per-game cartridge/unboxing/insertion/power-up pipeline at the last SNES
+step; do not implement it in this step or count it as selector acceptance.
+The mapping round stays paused. S26 remains the sole ACTIVE implementation stage.
 
 CATALOGUE-ALL conversion review, revision 182: documented NES pirate cartridge
 conversions may reference the original FDS programme through exact-source,
