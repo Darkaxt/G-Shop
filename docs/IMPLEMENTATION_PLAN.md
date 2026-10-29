@@ -1,6 +1,19 @@
 # Staged implementation plan
 
 Current execution, 2026-10-29, revision 181: **S26 ACTIVE**, sole active stage.
+R28 verifies 15 formerly unbound files (nine NES, three GBA, two GBC, one SNES),
+adding 16 provider assignments. Current census: 44,553 / 35,864 LaunchBox /
+38,634 ScreenScraper / 32,991 both / 41,507 either (93.16%) / 3,046 neither.
+Retained duplicate records and primary release history establish scoped continuing
+programme references without changing source prototypes/versions. The exact EDC
+filename resolves to Duel Monsters II rather than the later Dark Duel Stories.
+Explicit multicart/grade/patch details support the other manual links. Full current
+consumer, every new provider decision, all earlier IDs and nine exclusions pass.
+Matcher/skill implementation is unchanged; retained focused regression evidence
+and installed skill 0.1.72 parity remain applicable with checked hashes. Exact
+scratch retirement is applied: 50 members / 7,298,344 logical bytes, no errors.
+The full normal consumer passes again with the E: root absent. Bind the private
+r28 receipt to the source commit. Remaining reviews continue; exhaustion is unproved.
 R27 verifies 56 formerly unbound sources (49 GBA and seven DS), adding 57 provider
 assignments. Current census: 44,553 / 35,860 LaunchBox / 38,622 ScreenScraper /
 32,990 both / 41,492 either (93.13%) / 3,061 neither. Component-specific records

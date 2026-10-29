@@ -14,6 +14,19 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+R28 verifies 16 new provider assignments on 15 formerly unbound files: nine NES,
+three GBA, two GBC and one SNES. Totals: 44,553 / 35,864 LaunchBox / 38,634
+ScreenScraper / 32,991 both / 41,507 either (93.16%) / 3,046 neither. The full
+normal consumer audits every added provider against its exact-source review and
+preserves all old IDs and nine exclusions. Duplicate programme reviews retain
+source prototype/version identities, and the EDC Duel Monsters II link keeps the
+later game separate. Native grade-five, 100-in-1 and credited F-Zero hack records
+resolve the scoped edition names. Matcher v9 and skill 0.1.72 are unchanged;
+checked r26 regression evidence remains applicable. Dataset/proof:
+D:/RShopPrivate/Catalogue/catalogue-r28/. Exact scratch retirement is applied:
+50 members / 7,298,344 logical bytes, no errors. The full normal consumer passes
+again with the E: root absent; the private receipt binds this result to the source
+commit. Remaining review and S26/goal stay ACTIVE.
 R27 verifies 57 new provider assignments on 56 formerly unbound files: 49 GBA and
 seven DS. Totals: 44,553 / 35,860 LaunchBox / 38,622 ScreenScraper / 32,990 both /
 41,492 either (93.13%) / 3,061 neither. Exact component reviews preserve trial
