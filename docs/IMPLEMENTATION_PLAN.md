@@ -1,6 +1,19 @@
 # Staged implementation plan
 
 Current execution, 2026-10-29, revision 181: **S26 ACTIVE**, sole active stage.
+R27 verifies 56 formerly unbound sources (49 GBA and seven DS), adding 57 provider
+assignments. Current census: 44,553 / 35,860 LaunchBox / 38,622 ScreenScraper /
+32,990 both / 41,492 either (93.13%) / 3,061 neither. Component-specific records
+cover the localized WarioWare trial collection, Billy Hatcher Hyper Shoot, DS
+Crystal Balls, a Pokemon video and Study Together. Full replay exposed five
+unsupported retail-parent corroborations from an incomplete component heading;
+exact-source exclusions remove them. All previous IDs and four exclusions survive.
+Current normal consumer and installed skill 0.1.72 parity pass; unchanged r26
+resolver/owner-promotion regression evidence is retained with checked hashes.
+Dataset: D:/RShopPrivate/Catalogue/catalogue-r27/. Exact scratch/provisional
+retirement is applied: 56 members / 85,677,128 logical bytes, no errors. The full
+normal consumer passes again with all retired inputs absent. Bind the private
+receipt to the source commit and continue the remaining review. No exhaustion finding.
 R26 verifies 88 added provider assignments: 46 formerly unbound sources (42 NES,
 four GBA) and 30 newly paired sources. Current census: 44,553 / 35,811 LaunchBox /
 38,614 ScreenScraper / 32,989 both / 41,436 either (93.00%) / 3,117 neither.

@@ -14,6 +14,19 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+R27 verifies 57 new provider assignments on 56 formerly unbound files: 49 GBA and
+seven DS. Totals: 44,553 / 35,860 LaunchBox / 38,622 ScreenScraper / 32,990 both /
+41,492 either (93.13%) / 3,061 neither. Exact component reviews preserve trial
+parts, languages and Download Play roles. Five new source-specific exclusions
+reject a retail parent incorrectly corroborated from a truncated component title;
+all previous bindings and four earlier exclusions survive. The full current normal
+consumer and installed skill 0.1.72 parity pass. Matcher implementation is unchanged;
+r26 focused resolver/owner-promotion evidence remains applicable with verified hashes.
+Retained data/proof: D:/RShopPrivate/Catalogue/catalogue-r27/. Both exact cleanup
+transactions are applied: 56 members / 85,677,128 logical bytes, no errors. The
+full normal consumer again passes with the provisional files and E: root absent.
+The private receipt binds the verified local data to the source commit. Further
+source/provider reviews remain actionable; no total-resolution closure is claimed.
 R26 verifies 88 added provider bindings: 46 formerly unbound files (42 NES, four
 GBA) and 30 newly paired files. Current totals: 44,553 sources / 35,811 LaunchBox /
 38,614 ScreenScraper / 32,989 both / 41,436 either (93.00%) / 3,117 neither.

@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.71"
+  version: "0.1.72"
 ---
 
 # G-Shop Console Integration
@@ -116,6 +116,14 @@ ID with `replacesProviderIds`; it rejects stale IDs and preserves older replay.
 Use public ROM tables to resolve regional/retailer/prototype groups absent from
 the title export. A provider grouping those filenames does not make their raw
 programmes, packaging or labels identical; keep source editions and native links.
+For Download Play/Multiboot, seek a component-specific programme record before a
+retail parent. A documented trial collection may reference its exact numbered and
+localized trial sources while preserving each part. Inspect the full-census
+cross-provider additions too: an incomplete component heading can normalize to a
+retail alias and silently corroborate the wrong parent. Use an evidenced exact-source
+provider exclusion for that demonstrated conflict. Keep distinct utilities (such
+as Animal Crossing's Suitcase and Moving Van), server volumes and client menus
+separate; navigation-only pages do not establish component or volume coverage.
 Reconcile retained ROM tables against every missing provider before fetching them
 again. Store source-scoped decisions for supported rows; mixed tables can attach
 an unrelated homebrew or sequel to a commercial heading. Such rows are conflicting
