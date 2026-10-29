@@ -10,6 +10,31 @@ from prepare_collection_catalogue import (filename_title, source_kind, inventory
 
 
 class CollectionCatalogueTest(unittest.TestCase):
+    def test_spelling_lookup_prefers_canonical_titles_over_colliding_aliases(self):
+        source={'system':'nes','family':'root','sourceKind':'program',
+                'title':'Da Hanghai VII','filename':'Da Hanghai VII (China).7z'}
+        games={'canonical':{'id':'canonical','title':'Da Hanghai 7','aliases':[]},
+               'alias':{'id':'alias','title':'Jue Zhan Tai Ping Yang','aliases':['Da Hanghai 7']}}
+        index={'platforms':{'nes':games},'screenscraper':{'nes':{}}}
+        self.assertNotIn('launchbox',resolve_source(source,index,{},matcher_version=7)[1])
+        self.assertEqual(resolve_source(source,index,{},matcher_version=8)[1]['launchbox']['id'],'canonical')
+        source['title']='Da Hanghai VII (1.2.3)'
+        self.assertEqual(resolve_source(source,index,{},matcher_version=8)[1]['launchbox']['id'],'canonical')
+
+    def test_spelling_canonical_precedence_preserves_exact_aliases_and_ambiguity(self):
+        source={'system':'nes','family':'root','sourceKind':'program',
+                'title':'Game VII','filename':'Game VII (China).7z'}
+        games={'canonical':{'id':'canonical','title':'Game 7','aliases':[]},
+               'exact':{'id':'exact','title':'Another Game','aliases':['Game VII']}}
+        index={'platforms':{'nes':games},'screenscraper':{'nes':{}}}
+        self.assertEqual(resolve_source(source,index,{},matcher_version=8)[1]['launchbox']['id'],'exact')
+        games['exact']['aliases']=['Game 7']
+        games['duplicate']={**games['canonical'],'id':'duplicate'}
+        self.assertNotIn('launchbox',resolve_source(source,index,{},matcher_version=8)[1])
+        for updates in ({'sourceKind':'firmware'},{'family':'Download Play'},{'family':'Multiboot'}):
+            games.pop('duplicate',None)
+            self.assertNotIn('launchbox',resolve_source({**source,**updates},index,{},matcher_version=8)[1])
+
     def test_reviewed_gb_gbc_namespace_requires_exact_source_and_keeps_native_priority(self):
         source={'system':'gb','family':'root','sourceKind':'program','title':'The Machine',
                 'filename':'The Machine (World).7z','sourcePath':'Game Boy/The Machine (World).7z'}

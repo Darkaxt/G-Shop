@@ -14,6 +14,22 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+R25 now verifies 13 added provider bindings: seven formerly unbound sources
+(three NES, three GB, one GBA card) and four newly paired DS kiosk demos. Current
+totals: 44,553 sources / 35,766 LaunchBox / 38,571 ScreenScraper / 32,947 both /
+41,390 either (92.90%) / 3,163 neither. All earlier IDs and exclusions survive.
+Matcher v8 restores canonical-before-alias priority inside spelling lookup,
+including numeric release annotations. Reused exact ROM-table rows support scoped
+decisions; contradictory Terminator, Think and Deal or No Deal associations remain
+held. The fresh public CSV pass across 23 namespaces adds Song of Morus 576606,
+whose three GB sources resolve in the actual replay. The index keeps prior IDs.
+Current and immutable v1..7 consumers, focused normal owner-promotion regressions,
+hash-bound evidence and installed skill 0.1.70 parity pass. Cleanup transactions
+635122aa752ed403d4a789ce586527f6 and 1526482e897d38a59471068df30fdc5f are applied:
+74 members / 85,765,085 logical bytes, no errors. The E: root is absent; the full
+normal consumer still passes against retained inputs. The private dataset and
+delivery reconciliation are under D:/RShopPrivate/Catalogue/catalogue-r25/;
+remaining reviews are actionable and exhaustion is not established.
 R24 is ACTIVE work within S26 for the persistent total-resolution objective.
 The r24 normal consumer verifies 62 formerly unbound files and 98 added provider
 bindings: 25 GBA / 17 GB / 20 GBC sources. Current totals are 35,763 LaunchBox,

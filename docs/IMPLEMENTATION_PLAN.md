@@ -1,6 +1,22 @@
 # Staged implementation plan
 
 Current execution, 2026-10-29, revision 181: **S26 ACTIVE**, sole active stage.
+R25 verifies seven formerly unbound sources and four newly paired sources, adding
+13 provider bindings. Current census: 44,553 / 35,766 LaunchBox / 38,571
+ScreenScraper / 32,947 both / 41,390 either (92.90%) / 3,163 neither. Matcher v8
+restores canonical-before-alias priority inside numeral/entity spelling lookup;
+actual full-census replay preserves every prior ID and exclusion. Reused ROM
+tables supply exact-source card, demo and localized references. A current public
+CSV refresh across all 23 namespaces with gaps adds Song of Morus record 576606
+and three GB bindings without replacing retained records. Full current consumer,
+immutable v1..7 replay, focused owner-promotion regressions and installed skill
+0.1.70 parity pass. Current private dataset: D:/RShopPrivate/Catalogue/catalogue-r25/.
+The provisional-output and exact E: scratch transactions are applied (74 members,
+85,765,085 logical bytes, no errors). The post-cleanup consumer again verifies all
+44,553 sources and 41,390 bound files using retained inputs alone. Bind the private
+delivery receipt to the verified source commit; continue the remaining review.
+Remaining provider/source reviews and wider S26 acceptance stay ACTIVE; no
+exhaustion or application release is claimed.
 R24 prioritizes still-unbound source groups, including localized programme names,
 prototypes and independent homebrew. Reuse retained full records and previous
 search outcomes, then inspect targeted primary catalogue evidence before linking.

@@ -524,12 +524,18 @@ def resolve_source(source, index, cache, reviews=None, *, matcher_version=1):
                 lookups['rom-filenames'][provider] = filenames
         if matcher_version >= 3:
             lookups['sequel-numbers'] = {}
+            if matcher_version >= 8:
+                lookups['canonical-sequel-numbers'] = {}
             for provider, values in games.items():
                 numbers = collections.defaultdict(set)
+                canonical_numbers = collections.defaultdict(set)
                 for identity, game in values.items():
+                    canonical_numbers[sequel_number_key(game['title'])].add(identity)
                     for name in [game['title'], *game.get('aliases', [])]:
                         numbers[sequel_number_key(name)].add(identity)
                 lookups['sequel-numbers'][provider] = numbers
+                if matcher_version >= 8:
+                    lookups['canonical-sequel-numbers'][provider] = canonical_numbers
         lb_names, ss_names = {}, {}
         spelling_lb_names, spelling_ss_names = {}, {}
         for identity, game in games['launchbox'].items():
@@ -590,6 +596,11 @@ def resolve_source(source, index, cache, reviews=None, *, matcher_version=1):
                 source.get('sourceKind') == 'program' and
                 source['family'].casefold() not in {'download play', 'multiboot'}):
             identities = lookups['sequel-numbers'][provider].get(sequel_number_key(source['title']), set())
+            if matcher_version >= 8:
+                # Match ordinary title lookup's canonical-before-alias priority.
+                # An alias of a different edition must not hide a unique heading.
+                identities = lookups['canonical-sequel-numbers'][provider].get(
+                    sequel_number_key(source['title']), set()) or identities
             if len(identities) == 1:
                 found = {'status': 'unique', 'method': 'catalogue-title-spelling', 'ids': sorted(identities)}
         if matcher_version >= 2 and found['status'] != 'unique':
@@ -609,6 +620,9 @@ def resolve_source(source, index, cache, reviews=None, *, matcher_version=1):
                 candidate = match(query, lookups[provider])
                 if candidate['status'] in {'unmatched', 'loose-candidate'}:
                     identities = lookups['sequel-numbers'][provider].get(sequel_number_key(query), set())
+                    if matcher_version >= 8:
+                        identities = lookups['canonical-sequel-numbers'][provider].get(
+                            sequel_number_key(query), set()) or identities
                     if identities:
                         candidate = {'status': 'unique' if len(identities) == 1 else 'ambiguous',
                                      'method': 'catalogue-title-spelling', 'ids': sorted(identities)}
@@ -703,7 +717,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
     reviews = load_title_aliases(title_aliases)
     for source in inventory_data['rows']:
         system = source['system']
-        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=7)
+        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=8)
         rows.append({**source, 'providers': providers, 'matches': matches,
             'status': 'bound-candidate' if providers else 'unresolved',
             'identityLevel': 'filename-title-candidate', 'physicalEditionVerified': False})
@@ -722,7 +736,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
                 'ambiguous' if any(m['status'] == 'ambiguous' for m in r['matches'].values()) else
                 'spacing-review' if any(m['status'] == 'loose-candidate' for m in r['matches'].values()) else
                 'no-exact-index-title' for r in subset if not r['providers']))}
-    document = {'version': 1, 'matcherVersion': 7, 'scope': 'filename-catalogue-candidates',
+    document = {'version': 1, 'matcherVersion': 8, 'scope': 'filename-catalogue-candidates',
         'inventoryPath': str(inventory_path), 'inventorySha256': sha(inventory_path),
         'indexPath': str(index_path), 'indexSha256': sha(index_path),
         **({'titleAliasesPath': str(title_aliases), 'titleAliasesSha256': sha(title_aliases)} if title_aliases else {}),
@@ -743,7 +757,7 @@ def load_mapping(path):
     if document.get('version') != 1 or document.get('scope') != 'filename-catalogue-candidates':
         raise ValueError('Unsupported filename binding format')
     matcher_version = document.get('matcherVersion', 1)
-    if matcher_version not in {1, 2, 3, 4, 5, 6, 7}:
+    if matcher_version not in {1, 2, 3, 4, 5, 6, 7, 8}:
         raise ValueError('Unsupported catalogue matcher version')
     inventory_path, index_path = Path(document['inventoryPath']), Path(document['indexPath'])
     if sha(inventory_path) != document['inventorySha256'] or sha(index_path) != document['indexSha256']:

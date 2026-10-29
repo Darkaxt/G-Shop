@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.69"
+  version: "0.1.70"
 ---
 
 # G-Shop Console Integration
@@ -96,6 +96,10 @@ Check sequel-number spellings and encoded HTML entities in both direct matching
 and provider corroboration; inconsistent keys leave valid regional links open.
 Retain I/V/X name letters, literal `#` editions, subtitles and modification words.
 Exact canonical proof takes precedence over an expanded spelling candidate set.
+The canonical-before-alias rule must also hold inside expanded numeral/entity
+lookup, including numeric release-annotation lookup. Matcher v8 separates these
+canonical keys from alias collisions without changing immutable v1..7 replay.
+Inspect the full-census delta and preserve existing IDs and explicit exclusions.
 Do not project every alias transitively: catalogues can give a sequel a base-game
 alias or group different editions. Keep old matcher replay stable and verify
 all earlier IDs/exclusions after a new matching version. Scope manual article,
@@ -107,6 +111,11 @@ ID with `replacesProviderIds`; it rejects stale IDs and preserves older replay.
 Use public ROM tables to resolve regional/retailer/prototype groups absent from
 the title export. A provider grouping those filenames does not make their raw
 programmes, packaging or labels identical; keep source editions and native links.
+Reconcile retained ROM tables against every missing provider before fetching them
+again. Store source-scoped decisions for supported rows; mixed tables can attach
+an unrelated homebrew or sequel to a commercial heading. Such rows are conflicting
+evidence, not automatic links. A fresh public title CSV can also omit reviewed
+records: refresh additively and never discard retained IDs simply to mirror it.
 Apply explicit source publisher/author tags consistently across both providers.
 Numeric release/date lookup must preserve exact version records and named mods;
 measure actual full-census gains before describing a generic repair as coverage.

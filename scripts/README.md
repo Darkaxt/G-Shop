@@ -368,7 +368,7 @@ Older maps without `matcherVersion` replay version 1. Publisher/author qualifier
 only with explicit source tags or the library platform, retaining unresolved
 same-platform collisions. A generic matching improvement must not invalidate an
 immutable older map's replay.
-Current producer output records matcher version 5. Version 3 adds exact whole-token
+Current producer output records matcher version 8. Version 3 adds exact whole-token
 multi-letter Roman/Arabic sequel spelling and HTML entity decoding while
 preserving single-letter I/V/X and literal trailing `#` editions. Direct lookup
 and cross-provider corroboration share that spelling key; exact canonical
@@ -385,7 +385,16 @@ and corroboration run first, and an ambiguous native result or explicit exclusio
 cannot be replaced. The provider retains its actual GB platform and records
 `catalogueNamespace: gb`; the library source and promoted owner remain GBC.
 Consumer admission rejects unrelated or untagged namespace overrides. Versions
-1 through 4 retain their original replay semantics.
+1 through 4 retain their original replay semantics. Version 6 permits an evidenced
+exact-source correction with the single rejected ID in `replacesProviderIds`;
+ordinary reviews still cannot replace a unique canonical heading. Version 7
+admits source-scoped GB/GBC programme namespace reviews with hashed evidence,
+actual provider platform fields and preserved library ownership. It cannot
+replace native resolution or restore an excluded provider. Version 8 preserves
+canonical-before-alias priority within expanded numeral/entity keys, including
+numeric release-annotation lookup. A colliding alias must not hide a unique
+canonical heading; duplicate canonical headings remain unresolved. Versions 1
+through 7 keep their immutable replay semantics.
 Duplicate catalogue representatives require an exact-source review with retained
 full records/ROM lists. Equal filenames with different hashes are not byte-identity
 proof; a regional programme reference does not establish its physical packaging.
