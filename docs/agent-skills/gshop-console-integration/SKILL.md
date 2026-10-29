@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.70"
+  version: "0.1.71"
 ---
 
 # G-Shop Console Integration
@@ -100,6 +100,11 @@ The canonical-before-alias rule must also hold inside expanded numeral/entity
 lookup, including numeric release-annotation lookup. Matcher v8 separates these
 canonical keys from alias collisions without changing immutable v1..7 replay.
 Inspect the full-census delta and preserve existing IDs and explicit exclusions.
+An explicit source qualifier can also be absent from the catalogue's alias list.
+Matcher v9 tries the complete canonical title key plus a tag actually present on
+the source after ordinary unmatched/spacing results; it does not infer a publisher,
+remove the qualifier or replace an existing unique match. Check native publisher,
+hardware and component variants independently. Preserve immutable v1..8 replay.
 Do not project every alias transitively: catalogues can give a sequel a base-game
 alias or group different editions. Keep old matcher replay stable and verify
 all earlier IDs/exclusions after a new matching version. Scope manual article,

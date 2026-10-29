@@ -1,6 +1,20 @@
 # Staged implementation plan
 
 Current execution, 2026-10-29, revision 181: **S26 ACTIVE**, sole active stage.
+R26 verifies 88 added provider assignments: 46 formerly unbound sources (42 NES,
+four GBA) and 30 newly paired sources. Current census: 44,553 / 35,811 LaunchBox /
+38,614 ScreenScraper / 32,989 both / 41,436 either (93.00%) / 3,117 neither.
+Matcher v9 resolves a complete canonical heading plus an explicitly present source
+tag after unmatched/spacing results; it cannot infer tags, replace native matches
+or simplify component/firmware identities. Current and immutable v8 consumers,
+normal owner-promotion regressions, source membership/prior IDs/exclusions and
+installed skill 0.1.71 parity pass. Local candidates, scoped decisions and compact
+public ROM-table proof are retained in D:/RShopPrivate/Catalogue/catalogue-r26/.
+Exact scratch retirement is applied (65d5fdeb5b9381f18c0b13416110acb4): 61 members,
+9,841,757 logical bytes, no errors. The retained normal consumer again verifies
+44,553 sources and 41,436 bound files with the E: root absent. Bind the local
+receipt to the verified source commit and continue remaining candidate/provider
+reviews. Exhaustion is not established.
 R25 verifies seven formerly unbound sources and four newly paired sources, adding
 13 provider bindings. Current census: 44,553 / 35,766 LaunchBox / 38,571
 ScreenScraper / 32,947 both / 41,390 either (92.90%) / 3,163 neither. Matcher v8

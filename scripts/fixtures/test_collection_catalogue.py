@@ -10,6 +10,32 @@ from prepare_collection_catalogue import (filename_title, source_kind, inventory
 
 
 class CollectionCatalogueTest(unittest.TestCase):
+    def test_explicit_qualifier_can_find_a_qualified_canonical_heading(self):
+        source={'system':'nes','family':'root','sourceKind':'program','title':'Challenge of the Dragon',
+                'filename':'Challenge of the Dragon (Asia) (Sachen) (Unl).7z'}
+        games={'sachen':{'id':'sachen','title':'Challenge of the Dragon (Sachen)','aliases':[]},
+               'color':{'id':'color','title':'Challenge of the Dragon (Color Dreams)','aliases':[]}}
+        index={'platforms':{'nes':games},'screenscraper':{'nes':games}}
+        self.assertFalse(resolve_source(source,index,{},matcher_version=8)[1])
+        providers=resolve_source(source,index,{},matcher_version=9)[1]
+        self.assertEqual({p:v['id'] for p,v in providers.items()},{'launchbox':'sachen','screenscraper':'sachen'})
+        source['filename']='Challenge of the Dragon (USA) (Color Dreams) (Unl).7z'
+        self.assertEqual(resolve_source(source,index,{},matcher_version=9)[1]['launchbox']['id'],'color')
+
+    def test_qualified_heading_lookup_requires_explicit_tag_and_preserves_native_match(self):
+        source={'system':'nes','family':'root','sourceKind':'program','title':'Game',
+                'filename':'Game (World).7z'}
+        games={'qualified':{'id':'qualified','title':'Game (Publisher)','aliases':[]}}
+        index={'platforms':{'nes':games},'screenscraper':{'nes':{}}}
+        self.assertFalse(resolve_source(source,index,{},matcher_version=9)[1])
+        source['filename']='Game (World) (Other Publisher).7z'
+        self.assertFalse(resolve_source(source,index,{},matcher_version=9)[1])
+        source['filename']='Game (World) (Publisher).7z'
+        for changes in ({'sourceKind':'firmware'},{'family':'Multiboot'},{'family':'Download Play'}):
+            self.assertFalse(resolve_source({**source,**changes},index,{},matcher_version=9)[1])
+        games['native']={'id':'native','title':'Game','aliases':[]}
+        self.assertEqual(resolve_source(source,index,{},matcher_version=9)[1]['launchbox']['id'],'native')
+
     def test_spelling_lookup_prefers_canonical_titles_over_colliding_aliases(self):
         source={'system':'nes','family':'root','sourceKind':'program',
                 'title':'Da Hanghai VII','filename':'Da Hanghai VII (China).7z'}

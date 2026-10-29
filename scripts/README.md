@@ -368,7 +368,7 @@ Older maps without `matcherVersion` replay version 1. Publisher/author qualifier
 only with explicit source tags or the library platform, retaining unresolved
 same-platform collisions. A generic matching improvement must not invalidate an
 immutable older map's replay.
-Current producer output records matcher version 8. Version 3 adds exact whole-token
+Current producer output records matcher version 9. Version 3 adds exact whole-token
 multi-letter Roman/Arabic sequel spelling and HTML entity decoding while
 preserving single-letter I/V/X and literal trailing `#` editions. Direct lookup
 and cross-provider corroboration share that spelling key; exact canonical
@@ -394,7 +394,12 @@ replace native resolution or restore an excluded provider. Version 8 preserves
 canonical-before-alias priority within expanded numeral/entity keys, including
 numeric release-annotation lookup. A colliding alias must not hide a unique
 canonical heading; duplicate canonical headings remain unresolved. Versions 1
-through 7 keep their immutable replay semantics.
+through 7 keep their immutable replay semantics. Version 9 can resolve a complete
+canonical heading formed from the source title and one explicitly present source
+tag after an unmatched/spacing result. This handles qualified catalogue headings
+that declare no unqualified alias, including publisher and Family BASIC variants.
+It does not infer a missing tag, replace a unique native match or expand Download
+Play/Multiboot/firmware lookups. Version 8 replay remains unchanged.
 Duplicate catalogue representatives require an exact-source review with retained
 full records/ROM lists. Equal filenames with different hashes are not byte-identity
 proof; a regional programme reference does not establish its physical packaging.

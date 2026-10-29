@@ -559,6 +559,17 @@ def resolve_source(source, index, cache, reviews=None, *, matcher_version=1):
     matches, providers = {}, {}
     for provider in games:
         found = match(source['title'], lookups[provider])
+        if (matcher_version >= 9 and found['status'] in {'unmatched', 'loose-candidate'} and
+                source.get('sourceKind') == 'program' and
+                source['family'].casefold() not in {'download play', 'multiboot'}):
+            # Some catalogues omit the unqualified alias entirely. Match only
+            # a literal canonical heading plus a tag actually on this source.
+            tags = re.findall(r'\(([^)]*)\)', source['filename'])
+            qualified = set().union(*(lookups[provider]['canonical'].get(
+                title_key(source['title'] + ' (' + tag + ')'), set()) for tag in tags))
+            if len(qualified) == 1:
+                found = {'status': 'unique', 'method': 'explicit-qualified-canonical',
+                         'ids': sorted(qualified)}
         if (provider == 'launchbox' and system == 'snes' and
                 found['status'] in {'unmatched', 'loose-candidate'} and
                 broadcast_source):
@@ -717,7 +728,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
     reviews = load_title_aliases(title_aliases)
     for source in inventory_data['rows']:
         system = source['system']
-        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=8)
+        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=9)
         rows.append({**source, 'providers': providers, 'matches': matches,
             'status': 'bound-candidate' if providers else 'unresolved',
             'identityLevel': 'filename-title-candidate', 'physicalEditionVerified': False})
@@ -736,7 +747,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
                 'ambiguous' if any(m['status'] == 'ambiguous' for m in r['matches'].values()) else
                 'spacing-review' if any(m['status'] == 'loose-candidate' for m in r['matches'].values()) else
                 'no-exact-index-title' for r in subset if not r['providers']))}
-    document = {'version': 1, 'matcherVersion': 8, 'scope': 'filename-catalogue-candidates',
+    document = {'version': 1, 'matcherVersion': 9, 'scope': 'filename-catalogue-candidates',
         'inventoryPath': str(inventory_path), 'inventorySha256': sha(inventory_path),
         'indexPath': str(index_path), 'indexSha256': sha(index_path),
         **({'titleAliasesPath': str(title_aliases), 'titleAliasesSha256': sha(title_aliases)} if title_aliases else {}),
@@ -757,7 +768,7 @@ def load_mapping(path):
     if document.get('version') != 1 or document.get('scope') != 'filename-catalogue-candidates':
         raise ValueError('Unsupported filename binding format')
     matcher_version = document.get('matcherVersion', 1)
-    if matcher_version not in {1, 2, 3, 4, 5, 6, 7, 8}:
+    if matcher_version not in {1, 2, 3, 4, 5, 6, 7, 8, 9}:
         raise ValueError('Unsupported catalogue matcher version')
     inventory_path, index_path = Path(document['inventoryPath']), Path(document['indexPath'])
     if sha(inventory_path) != document['inventorySha256'] or sha(index_path) != document['indexSha256']:

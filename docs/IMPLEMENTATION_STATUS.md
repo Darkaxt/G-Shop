@@ -14,6 +14,21 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+R26 verifies 88 added provider bindings: 46 formerly unbound files (42 NES, four
+GBA) and 30 newly paired files. Current totals: 44,553 sources / 35,811 LaunchBox /
+38,614 ScreenScraper / 32,989 both / 41,436 either (93.00%) / 3,117 neither.
+Matcher v9 finds a qualified canonical heading from the full source title and an
+explicit source tag when no unqualified alias exists. Native matches and all prior
+IDs/exclusions survive. Scoped review covers Chinese titles, actual multiboot
+records, renamed prototype families and numbered NES pirate cartridges; the first
+Journey to the West is not substituted for its sequel. Current and legacy v8
+normal consumers, focused owner-promotion regressions, evidence hashes and
+installed skill 0.1.71 parity pass. Dataset: D:/RShopPrivate/Catalogue/catalogue-r26/.
+Scratch transaction 65d5fdeb5b9381f18c0b13416110acb4 is applied: 61 members /
+9,841,757 logical bytes, no errors. The E: root is absent; the retained normal
+consumer again verifies all 44,553 / 41,436 bound. The source-bound local delivery
+receipt records the final read-back. Remaining candidate/provider reviews are
+actionable; total-resolution exhaustion is unproved.
 R25 now verifies 13 added provider bindings: seven formerly unbound sources
 (three NES, three GB, one GBA card) and four newly paired DS kiosk demos. Current
 totals: 44,553 sources / 35,766 LaunchBox / 38,571 ScreenScraper / 32,947 both /
