@@ -23,7 +23,12 @@ from prepare_packaging_resources import launchbox_records, normalized
 
 REPO = Path(__file__).resolve().parents[1]
 REGISTRY = Path(__file__).with_name('catalogue_platforms.json')
-PROVIDER_NAMESPACES = {'ereader': {'launchbox': [], 'screenscraperId': 119}}
+PROVIDER_NAMESPACES = {
+    'ereader': {'launchbox': [], 'screenscraperId': 119},
+    'satellaview': {'launchbox': [], 'screenscraperId': 107},
+    'n64dd': {'launchbox': [], 'screenscraperId': 122},
+    'snesmsu1': {'launchbox': [], 'screenscraperId': 210},
+}
 # Single letters I/V/X can be names or words; only unambiguous multi-letter
 # sequel numerals participate. Word boundaries preserve VIP and other acronyms.
 SEQUEL_NUMERALS = dict(zip(
@@ -216,6 +221,7 @@ def indexes(inventory_path, launchbox, cache, output, existing_cache=None):
     census = read(inventory_path)
     settings = {**census['supportedSystems'], **PROVIDER_NAMESPACES}
     namespaces = {catalogue_namespace(row) for row in census.get('rows', [])}
+    namespaces.update(filter(None, (screenscraper_addon_namespace(row) for row in census.get('rows', []))))
     active = {key: value for key, value in settings.items()
               if census['systems'].get(key, {}).get('sources') or key in namespaces}
     platforms = collections.defaultdict(list)
@@ -365,6 +371,22 @@ def catalogue_namespace(source):
     if source['system'] == 'gba' and source.get('sourceKind') == 'card-data':
         return 'ereader'
     return source['system']
+
+
+def screenscraper_addon_namespace(source):
+    """Explicit add-on editions use separate SS catalogues, not new library owners."""
+    if source.get('sourceKind') != 'program':
+        return None
+    if source['system'] == 'n64' and catalogue_family(source) == '64dd':
+        return 'n64dd'
+    if source['system'] != 'snes':
+        return None
+    # A broadcast converted to MSU-1 is a different edition of that broadcast.
+    if source['family'].casefold() == 'msu-1' or re.search(r'\(MSU-1\)', source['filename'], re.I):
+        return 'snesmsu1'
+    if source['family'].casefold() == 'satellaview' or re.match(r'^BS\s', source['title'], re.I):
+        return 'satellaview'
+    return None
 
 
 def source_games(source, provider, games):
@@ -717,6 +739,21 @@ def resolve_source(source, index, cache, reviews=None, *, matcher_version=1):
             'reviewReason': review['reason']}
         providers[provider] = {**{k: v for k, v in game.items() if k not in {'aliases', 'aliasRegions', 'romNames'}},
             'method': 'exact-reviewed-programme-namespace', 'catalogueNamespace': namespace}
+    if (matcher_version >= 10 and 'screenscraper' not in providers and
+            'screenscraper' not in blocked and
+            matches['screenscraper']['status'] in {'unmatched', 'loose-candidate', 'ambiguous'}):
+        namespace = screenscraper_addon_namespace(source)
+        if namespace and namespace in index['screenscraper']:
+            # Reuse the complete title/filename resolver in just that provider's
+            # declared catalogue. Prior native bindings and exclusions win.
+            addon_index = {**index, 'platforms': {**index['platforms'], namespace: {}}}
+            addon_matches, addon = resolve_source({**source, 'system': namespace},
+                addon_index, cache, matcher_version=9)
+            if 'screenscraper' in addon:
+                candidate = addon['screenscraper']
+                providers['screenscraper'] = {**candidate, 'catalogueNamespace': namespace,
+                    'method': 'addon-catalogue-' + candidate['method']}
+                matches['screenscraper'] = {**addon_matches['screenscraper'], 'catalogueNamespace': namespace}
     return matches, providers
 
 
@@ -728,7 +765,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
     reviews = load_title_aliases(title_aliases)
     for source in inventory_data['rows']:
         system = source['system']
-        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=9)
+        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=10)
         rows.append({**source, 'providers': providers, 'matches': matches,
             'status': 'bound-candidate' if providers else 'unresolved',
             'identityLevel': 'filename-title-candidate', 'physicalEditionVerified': False})
@@ -747,7 +784,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
                 'ambiguous' if any(m['status'] == 'ambiguous' for m in r['matches'].values()) else
                 'spacing-review' if any(m['status'] == 'loose-candidate' for m in r['matches'].values()) else
                 'no-exact-index-title' for r in subset if not r['providers']))}
-    document = {'version': 1, 'matcherVersion': 9, 'scope': 'filename-catalogue-candidates',
+    document = {'version': 1, 'matcherVersion': 10, 'scope': 'filename-catalogue-candidates',
         'inventoryPath': str(inventory_path), 'inventorySha256': sha(inventory_path),
         'indexPath': str(index_path), 'indexSha256': sha(index_path),
         **({'titleAliasesPath': str(title_aliases), 'titleAliasesSha256': sha(title_aliases)} if title_aliases else {}),
@@ -768,7 +805,7 @@ def load_mapping(path):
     if document.get('version') != 1 or document.get('scope') != 'filename-catalogue-candidates':
         raise ValueError('Unsupported filename binding format')
     matcher_version = document.get('matcherVersion', 1)
-    if matcher_version not in {1, 2, 3, 4, 5, 6, 7, 8, 9}:
+    if matcher_version not in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}:
         raise ValueError('Unsupported catalogue matcher version')
     inventory_path, index_path = Path(document['inventoryPath']), Path(document['indexPath'])
     if sha(inventory_path) != document['inventorySha256'] or sha(index_path) != document['indexSha256']:
@@ -801,6 +838,8 @@ def load_mapping(path):
             games = index['platforms'] if provider == 'launchbox' else index['screenscraper'] if provider == 'screenscraper' else None
             namespace = candidate.get('catalogueNamespace', catalogue_namespace(row))
             if namespace != catalogue_namespace(row) and not (
+                    (matcher_version >= 10 and provider == 'screenscraper' and
+                        namespace == screenscraper_addon_namespace(row)) or
                     (matcher_version >= 5 and namespace == 'gb' and game_boy_compatible_source(row)) or
                     (matcher_version >= 7 and reviewed_gb_namespace(original, provider, candidate,
                         reviewed_alias(original, reviews)))):

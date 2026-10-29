@@ -1,6 +1,20 @@
 # Staged implementation plan
 
 Current execution, 2026-10-29, revision 181: **S26 ACTIVE**, sole active stage.
+R30 repairs omitted ScreenScraper add-on catalogues: Satellaview 107, Nintendo
+64DD 122 and SNES MSU-1 210. Full normal replay verifies 199 added provider
+references, 47 newly bound SNES files and 152 newly paired files. All prior IDs,
+source membership and nine exclusions survive; full legacy v9 replay passes.
+Totals: 44,553 / 35,864 LaunchBox / 38,909 ScreenScraper / 33,143 both / 41,630
+either (93.44%) / 2,923 neither. Matcher v10 keeps explicit source scope, actual
+provider namespaces, parent owners and native precedence. Fresh focused fixtures
+cover preparation/resolution/consumer/promotion; installed skill 0.1.74 parity
+passes. Dataset/proof: D:/RShopPrivate/Catalogue/catalogue-r30/. Exact scratch
+retirement is applied: 41 members / 1,557,756 logical bytes, no errors. Full
+normal replay passes again with the E: root absent. Bind the private local
+receipt to the verified source commit. Dated
+broadcast/component and other remaining source/provider reviews stay ACTIVE;
+no overall exhaustion or wider S26 completion is claimed.
 R29 verifies 76 previously unbound card files as collection-level e-Reader
 catalogue references, not exact individual card matches or new playable-game
 bindings. The explicit collection descriptions cover Animal Crossing (36), Pokemon

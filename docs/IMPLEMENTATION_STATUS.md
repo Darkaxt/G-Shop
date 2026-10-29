@@ -14,6 +14,20 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+R30 fixes missing ScreenScraper namespaces for explicit Satellaview, Nintendo
+64DD and SNES MSU-1 sources. It adds 199 provider assignments (126/20/53), resolves
+47 formerly unbound SNES files and pairs 152 existing references. Full current
+and legacy v9 consumers pass with all earlier IDs, source membership and nine
+exclusions intact. Totals: 44,553 / 35,864 LaunchBox / 38,909 ScreenScraper /
+33,143 both / 41,630 either (93.44%) / 2,923 neither. Fresh scoped regressions
+cover preparation, resolution, consumer and parent-owner promotion; source and
+installed skill 0.1.74 match. Dataset: D:/RShopPrivate/Catalogue/catalogue-r30/.
+Scratch retirement is applied: 41 members / 1,557,756 logical bytes, no errors.
+The full normal consumer passes again with the E: root absent. Bind the private
+local receipt to the verified source commit.
+Neither the 47 file references nor the paired links prove raw-ROM identity or
+physical editions. Remaining dated-broadcast/component/provider reviews and
+wider S26 remain ACTIVE.
 R29 verifies 76 collection-level e-Reader catalogue references on previously
 unbound card files, with zero new exact-card matches or playable-game bindings.
 The complete provider collection descriptions support the four selected scopes;

@@ -10,6 +10,39 @@ from prepare_collection_catalogue import (filename_title, source_kind, inventory
 
 
 class CollectionCatalogueTest(unittest.TestCase):
+    def test_addon_catalogue_fills_missing_provider_without_replacing_native_bindings(self):
+        for system,family,title,filename,namespace,platform_id in [
+                ('snes','Satellaview','AK LIVE Hit Gang','AK LIVE Hit Gang (Japan).7z','satellaview',107),
+                ('snes','MSU-1','Contra','Contra (MSU-1).7z','snesmsu1',210),
+                ('n64','64DD','Dezaemon DD','Dezaemon DD (Japan).7z','n64dd',122),
+                ('n64','Translations','Dezaemon DD','Dezaemon DD (Japan) (64DD).7z','n64dd',122)]:
+            with self.subTest(namespace=namespace, family=family):
+                source={'system':system,'family':family,'sourceKind':'program','title':title,'filename':filename}
+                game={'id':'7','title':title,'aliases':[],'platformId':platform_id}
+                index={'platforms':{system:{},namespace:{}},'screenscraper':{system:{},namespace:{'7':game}}}
+                self.assertFalse(resolve_source(source,index,{},matcher_version=9)[1])
+                matches,providers=resolve_source(source,index,{},matcher_version=10)
+                self.assertEqual((providers['screenscraper']['id'],providers['screenscraper']['catalogueNamespace']),('7',namespace))
+                self.assertEqual(matches['screenscraper']['catalogueNamespace'],namespace)
+                index['screenscraper'][system]['native']={**game,'id':'native','platformId':4}
+                self.assertEqual(resolve_source(source,index,{},matcher_version=10)[1]['screenscraper']['id'],'native')
+
+    def test_addon_catalogues_require_explicit_source_scope_and_keep_exclusions(self):
+        game={'id':'7','title':'Game','aliases':[],'platformId':107}
+        index={'platforms':{'snes':{},'satellaview':{}},'screenscraper':{'snes':{},'satellaview':{'7':game}}}
+        source={'system':'snes','family':'root','sourceKind':'program','title':'Game','filename':'Game.zip'}
+        self.assertFalse(resolve_source(source,index,{},matcher_version=10)[1])
+        source['family']='Satellaview'
+        reviews={('snes','game'):[{'system':'snes','sourceTitle':'Game','providers':{},
+                                 'blockedProviders':['screenscraper'],'reason':'Wrong broadcast programme.'}]}
+        self.assertFalse(resolve_source(source,index,{},reviews,matcher_version=10)[1])
+        source['sourceKind']='firmware'
+        self.assertFalse(resolve_source(source,index,{},matcher_version=10)[1])
+        # An MSU-1 version of a broadcast is checked in MSU-1, not the original broadcast catalogue.
+        source.update(sourceKind='program',family='MSU-1',title='BS Game',filename='BS Game (MSU-1).zip')
+        index['screenscraper']['satellaview']['7']['title']='BS Game'
+        self.assertFalse(resolve_source(source,index,{},matcher_version=10)[1])
+
     def test_explicit_qualifier_can_find_a_qualified_canonical_heading(self):
         source={'system':'nes','family':'root','sourceKind':'program','title':'Challenge of the Dragon',
                 'filename':'Challenge of the Dragon (Asia) (Sachen) (Unl).7z'}
@@ -605,6 +638,29 @@ class CollectionCatalogueTest(unittest.TestCase):
             self.assertEqual(result['platforms']['fds']['2']['title'],'Disk')
             self.assertEqual(result['screenscraper']['fds']['7']['title'],'Disk')
 
+    def test_indexes_fetch_explicit_screen_scraper_addons_without_new_app_systems(self):
+        from prepare_collection_catalogue import indexes
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            census=root/'inventory.json'
+            settings={'snes':{'launchbox':['Super Nintendo Entertainment System'],'screenscraperId':4},
+                      'n64':{'launchbox':['Nintendo 64'],'screenscraperId':14}}
+            census.write_text(json.dumps({'supportedSystems':settings,
+                'systems':{'snes':{'sources':2},'n64':{'sources':1}},'rows':[
+                    {'system':system,'family':family,'sourceKind':'program','title':'Game','filename':'Game.zip'}
+                    for system,family in [('snes','Satellaview'),('snes','MSU-1'),('n64','64DD')]]}))
+            records=[('Game',{'DatabaseID':str(i),'Name':'Game','Platform':name})
+                     for i,name in enumerate(['Super Nintendo Entertainment System','Nintendo 64'])]
+            for identity in [4,14,107,122,210]:
+                (root/f'screenscraper-{identity}-gameslist.csv').write_text('Game ID;Game Name\n7;Game\n')
+            with patch('prepare_collection_catalogue.launchbox_records',return_value=iter(records)), \
+                 patch('prepare_collection_catalogue.download',return_value={}), \
+                 patch('prepare_collection_catalogue.sha',return_value='fixture'):
+                result=indexes(census,root/'Metadata.zip',root,root/'index.json')
+            for namespace,identity in [('satellaview',107),('n64dd',122),('snesmsu1',210)]:
+                self.assertEqual(result['screenscraper'][namespace]['7']['platformId'],identity)
+                self.assertEqual(result['platforms'][namespace],{})
+
     def test_filename_map_reaches_normal_collector_and_rejects_changed_source(self):
         self.check_filename_map_collector('snes','snes','root','Super Nintendo Entertainment System')
 
@@ -617,7 +673,12 @@ class CollectionCatalogueTest(unittest.TestCase):
     def test_reviewed_gbc_catalogue_reference_keeps_actual_gb_owner(self):
         self.check_filename_map_collector('gb','gbc','root','Nintendo Game Boy Color',reviewed_namespace=True)
 
-    def check_filename_map_collector(self,system,namespace,family,platform_name,compatible=False,reviewed_namespace=False):
+    def test_addon_provider_map_reaches_normal_consumer_and_preserves_parent_owner(self):
+        for system,namespace,family in [('snes','satellaview','Satellaview'),('snes','snesmsu1','MSU-1'),('n64','n64dd','64DD')]:
+            with self.subTest(namespace=namespace):
+                self.check_filename_map_collector(system,namespace,family,'Unused fixture',addon=True)
+
+    def check_filename_map_collector(self,system,namespace,family,platform_name,compatible=False,reviewed_namespace=False,addon=False):
         import zipfile
         from prepare_catalogue_bindings import promote_filename_mapping
         from prepare_collection_catalogue import mapping, load_mapping, sha
@@ -657,6 +718,10 @@ class CollectionCatalogueTest(unittest.TestCase):
                     'platformName': platform_name}
             indexed_games={namespace:{'7':game}};indexed_ss={namespace:{}}
             if compatible or reviewed_namespace:indexed_games[system]={};indexed_ss[system]={}
+            if addon:
+                indexed_games={system:{},namespace:{}}
+                indexed_ss={system:{},namespace:{'7':{'id':'7','title':game['title'],'aliases':[],
+                    'platformId':{'satellaview':107,'snesmsu1':210,'n64dd':122}[namespace]}}}
             index_path.write_text(json.dumps({'inventorySha256': sha(inventory_path),
                 'launchbox': {'path': str(args.launchbox), 'sha256': sha(args.launchbox)},
                 'screenscraperSources': {}, 'platforms': indexed_games, 'screenscraper': indexed_ss}))
@@ -672,8 +737,17 @@ class CollectionCatalogueTest(unittest.TestCase):
             promoted = promote_filename_mapping(map_path, args.binding_census, args.launchbox, args.catalogue_bindings)
             self.assertEqual(len(promoted['bindings']), 1)
             self.assertEqual(promoted['unpromotedSources'], [])
-            self.assertEqual(promoted['bindings'][0]['cataloguePlatform'],system if compatible or reviewed_namespace else namespace)
+            self.assertEqual(promoted['bindings'][0]['cataloguePlatform'],system if compatible or reviewed_namespace or addon else namespace)
             self.assertEqual(promoted['bindings'][0]['platform'],system)
+            if addon:
+                binding=promoted['bindings'][0]['providers']['screenscraper']
+                self.assertEqual(binding['catalogueNamespace'],namespace)
+                document=json.loads(map_path.read_text())
+                document['rows'][0]['providers']['screenscraper']['catalogueNamespace']='nes'
+                map_path.write_text(json.dumps(document))
+                with self.assertRaisesRegex(ValueError,'unsupported compatible namespace'):
+                    load_mapping(map_path)
+                return
             if reviewed_namespace:
                 binding=promoted['bindings'][0]['providers']['launchbox']
                 self.assertEqual((binding['catalogueNamespace'],binding['platformName']),('gbc','Nintendo Game Boy Color'))

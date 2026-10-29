@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.73"
+  version: "0.1.74"
 ---
 
 # G-Shop Console Integration
@@ -87,6 +87,16 @@ both/either/neither census separate; an either-provider match is not paired
 coverage. Preserve LaunchBox regional aliases from the retained source ZIP, not
 only an older simplified title export. NES `Disk System` sources keep NES library
 ownership while resolving and promoting through the FDS provider namespace.
+Provider namespaces can differ even when the library owner is the same. Check
+the official directory and retain separate public title indexes for Satellaview
+(ScreenScraper 107), Nintendo 64DD (122) and SNES MSU-1 (210). Matcher v10 consults
+these declared add-on catalogues after native resolution fails, retaining actual
+provider namespace/platform IDs and the SNES/N64 owner through normal promotion.
+Require the explicit family/tag or broadcast prefix; an MSU-1 broadcast version
+uses MSU-1 rather than the original broadcast catalogue. Preserve prior proved
+bindings, reviewed exclusions and immutable v1..9 replay. A separate hack catalogue
+is not a reason to strip a hack's title to its retail parent; measure real native
+title/filename candidates before adding another lookup path.
 Do not stop at a gap CSV. Sample each material failure class, establish its cause,
 apply supported general repairs and scoped decisions, then replay the full census.
 Inspect competing entries' ROM lists: identical titles can be retail/update,
