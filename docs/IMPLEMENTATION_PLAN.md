@@ -1,6 +1,21 @@
 # Staged implementation plan
 
 Current execution, 2026-10-29, revision 181: **S26 ACTIVE**, sole active stage.
+R31 verifies 74 added provider assignments across 73 source files: 70 formerly
+unmatched SNES files gain programme references, and four files become paired.
+Totals: 44,553 / 35,865 LaunchBox / 38,982 ScreenScraper / 33,147 both / 41,700
+either (93.60%) / 2,853 neither. Matcher v11 supports exact-source reviewed add-on
+programme namespaces, known broadcast inner archive suffixes and explicit BS-X
+requirements on translated sources. Full current and legacy v10 consumers, all
+earlier assignments/nine exclusions, reviewed proof and controlled normal-owner
+promotion fixtures pass. Source/installed skill 0.1.75 match. These are programme
+references, not exact-date/raw-ROM/physical-edition acceptance. Dataset/proof:
+D:/RShopPrivate/Catalogue/catalogue-r31/. Both exact cleanup transactions are
+applied: 172 members / 98,638,831 logical bytes, no errors. Full consumer replay
+passes again with scratch and provisional outputs absent. Bind the private r31
+receipt to the verified source commit. All remaining provider/source reviews,
+including ten specifically held sources, and wider S26 remain ACTIVE; no overall
+exhaustion or release closure is claimed.
 R30 repairs omitted ScreenScraper add-on catalogues: Satellaview 107, Nintendo
 64DD 122 and SNES MSU-1 210. Full normal replay verifies 199 added provider
 references, 47 newly bound SNES files and 152 newly paired files. All prior IDs,

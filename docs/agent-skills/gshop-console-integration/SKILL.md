@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.74"
+  version: "0.1.75"
 ---
 
 # G-Shop Console Integration
@@ -97,6 +97,17 @@ uses MSU-1 rather than the original broadcast catalogue. Preserve prior proved
 bindings, reviewed exclusions and immutable v1..9 replay. A separate hack catalogue
 is not a reason to strip a hack's title to its retail parent; measure real native
 title/filename candidates before adding another lookup path.
+Matcher v11 also permits hashed, exact-source programme reviews in the declared
+ScreenScraper add-on namespace. Keep native precedence, exclusions and the parent
+owner; a series/issue reference does not prove the exact broadcast date or bytes.
+An explicit `[req BS-X bios]` source tag also selects Satellaview in v11,
+including translations stored outside that family folder; retain patch identity.
+Known `.bs`, `.sfc` and `.smc` inner archive suffixes are normalized only by the
+new broadcast-media lookup; preserve immutable v1..10 replay. Select the explicit
+public `gameinfosinfos` tab for descriptions: a session can retain its last ROM
+tab despite a bare game URL. Review ROM rows individually before importing them;
+mixed tables can contain unrelated titles or compound images. Do not project all
+of their names into aliases or map one component to a different compilation.
 Do not stop at a gap CSV. Sample each material failure class, establish its cause,
 apply supported general repairs and scoped decisions, then replay the full census.
 Inspect competing entries' ROM lists: identical titles can be retail/update,

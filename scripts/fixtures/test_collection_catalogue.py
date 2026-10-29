@@ -10,6 +10,56 @@ from prepare_collection_catalogue import (filename_title, source_kind, inventory
 
 
 class CollectionCatalogueTest(unittest.TestCase):
+    def test_explicit_bsx_requirement_selects_satellaview_only_in_new_matcher(self):
+        source={'system':'snes','family':'Translations','sourceKind':'program','title':'Dynami Tracer',
+                'filename':'Dynami Tracer (Japan) [T-En by Author] [req BS-X bios].7z'}
+        game={'id':'7','title':source['title'],'aliases':[],'platformId':107}
+        lb={'id':'8','title':source['title'],'aliases':[],'platformName':'Nintendo Satellaview'}
+        index={'platforms':{'snes':{'8':lb},'satellaview':{}},'screenscraper':{'snes':{},'satellaview':{'7':game}}}
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=10)[1])
+        self.assertEqual(resolve_source(source,index,{},matcher_version=11)[1]['screenscraper']['catalogueNamespace'],'satellaview')
+        self.assertEqual(resolve_source(source,index,{},matcher_version=11)[1]['launchbox']['id'],'8')
+        self.assertEqual(resolve_source(source,index,{},matcher_version=11)[1]['launchbox']['method'],'exact-canonical')
+        source['filename']='Dynami Tracer (Japan) [req Other bios].7z'
+        self.assertNotIn('screenscraper',resolve_source(source,index,{},matcher_version=11)[1])
+
+    def test_broadcast_media_archive_names_strip_only_known_inner_extensions(self):
+        source={'system':'snes','family':'Satellaview','sourceKind':'program','title':'Printed Episode',
+                'filename':'Printed Episode (Japan) (Magazine).7z'}
+        for suffix in ['.bs.7z','.sfc.7z','.smc.zip']:
+            game={'id':'7','title':'Series','aliases':[],'platformId':107,
+                  'romNames':['Printed Episode (Japan) (Magazine)'+suffix]}
+            index={'platforms':{'snes':{},'satellaview':{}},'screenscraper':{'snes':{},'satellaview':{'7':game}}}
+            self.assertFalse(resolve_source(source,index,{},matcher_version=10)[1])
+            self.assertEqual(resolve_source(source,index,{},matcher_version=11)[1]['screenscraper']['id'],'7')
+        game['romNames']=['Printed Episode (Japan) (Magazine).unknown.7z']
+        self.assertFalse(resolve_source(source,index,{},matcher_version=11)[1])
+
+    def test_reviewed_addon_episode_namespace_is_exact_source_scoped_and_versioned(self):
+        source={'system':'snes','family':'Satellaview','sourceKind':'program','title':'Magazine - Issue 7',
+                'filename':'Magazine - Issue 7 (Japan) (Magazine).7z','sourcePath':'SNES/Satellaview/Issue7.7z'}
+        game={'id':'7','title':'Magazine','aliases':[],'platformId':107}
+        index={'platforms':{'snes':{},'satellaview':{}},'screenscraper':{'snes':{},'satellaview':{'7':game}}}
+        rule={'system':'snes','sourceTitle':source['title'],'sourcePaths':[source['sourcePath']],
+              'reason':'The native programme ROM table explicitly lists Issue 7; original tags and owner remain.',
+              'providers':{'screenscraper':{'id':'7','title':'Magazine','catalogueNamespace':'satellaview'}}}
+        reviews={('snes',title_key(source['title'])):[rule]}
+        with self.assertRaisesRegex(ValueError,'reviewed programme namespace'):
+            resolve_source(source,index,{},reviews,matcher_version=10)
+        matches,providers=resolve_source(source,index,{},reviews,matcher_version=11)
+        self.assertEqual(providers['screenscraper']['catalogueNamespace'],'satellaview')
+        self.assertEqual(matches['screenscraper']['reviewReason'],rule['reason'])
+        for changes in ({'family':'root'},{'sourceKind':'firmware'}):
+            with self.assertRaisesRegex(ValueError,'reviewed programme namespace'):
+                resolve_source({**source,**changes},index,{},reviews,matcher_version=11)
+        rule['blockedProviders']=['screenscraper']
+        with self.assertRaisesRegex(ValueError,'reviewed programme namespace'):
+            resolve_source(source,index,{},reviews,matcher_version=11)
+        rule.pop('blockedProviders')
+        index['screenscraper']['snes']['native']={**game,'id':'native','title':source['title'],'platformId':4}
+        with self.assertRaisesRegex(ValueError,'native provider'):
+            resolve_source(source,index,{},reviews,matcher_version=11)
+
     def test_addon_catalogue_fills_missing_provider_without_replacing_native_bindings(self):
         for system,family,title,filename,namespace,platform_id in [
                 ('snes','Satellaview','AK LIVE Hit Gang','AK LIVE Hit Gang (Japan).7z','satellaview',107),
@@ -678,7 +728,10 @@ class CollectionCatalogueTest(unittest.TestCase):
             with self.subTest(namespace=namespace):
                 self.check_filename_map_collector(system,namespace,family,'Unused fixture',addon=True)
 
-    def check_filename_map_collector(self,system,namespace,family,platform_name,compatible=False,reviewed_namespace=False,addon=False):
+    def test_reviewed_addon_episode_reaches_normal_owner_promotion(self):
+        self.check_filename_map_collector('snes','satellaview','Satellaview','Unused fixture',addon=True,addon_reviewed=True)
+
+    def check_filename_map_collector(self,system,namespace,family,platform_name,compatible=False,reviewed_namespace=False,addon=False,addon_reviewed=False):
         import zipfile
         from prepare_catalogue_bindings import promote_filename_mapping
         from prepare_collection_catalogue import mapping, load_mapping, sha
@@ -722,10 +775,17 @@ class CollectionCatalogueTest(unittest.TestCase):
                 indexed_games={system:{},namespace:{}}
                 indexed_ss={system:{},namespace:{'7':{'id':'7','title':game['title'],'aliases':[],
                     'platformId':{'satellaview':107,'snesmsu1':210,'n64dd':122}[namespace]}}}
+                if addon_reviewed:indexed_ss[namespace]['7']['title']='Declared broadcast collection'
             index_path.write_text(json.dumps({'inventorySha256': sha(inventory_path),
                 'launchbox': {'path': str(args.launchbox), 'sha256': sha(args.launchbox)},
                 'screenscraperSources': {}, 'platforms': indexed_games, 'screenscraper': indexed_ss}))
             aliases=None
+            if addon_reviewed:
+                aliases=root/'addon-reviews.json'
+                aliases.write_text(json.dumps({'version':1,'evidence':[{'path':str(args.launchbox),'sha256':sha(args.launchbox)}],
+                    'rules':[{'system':system,'sourceTitle':source['title'],'sourcePaths':[source_path],
+                        'reason':'Native ROM table declares this specific broadcast episode.',
+                        'providers':{'screenscraper':{'id':'7','title':'Declared broadcast collection','catalogueNamespace':namespace}}}]}))
             if reviewed_namespace:
                 aliases=root/'reviews.json'
                 aliases.write_text(json.dumps({'version':1,'evidence':[{'path':str(args.launchbox),'sha256':sha(args.launchbox)}],

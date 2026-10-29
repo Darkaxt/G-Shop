@@ -14,6 +14,21 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+R31 adds 74 provider links on 73 source files, resolving 70 formerly unmatched
+SNES files and pairing four. Totals: 44,553 / 35,865 LaunchBox / 38,982
+ScreenScraper / 33,147 both / 41,700 either (93.60%) / 2,853 neither. Matcher v11
+admits evidenced exact-source programme reviews in declared add-on namespaces,
+normalizes known broadcast inner archive suffixes and honors explicit BS-X tags
+outside the Satellaview folder. Full current and legacy v10 consumers preserve
+every earlier assignment and nine exclusions. Reviewed filenames are imported
+individually; mixed tables do not become unrestricted aliases. Controlled normal
+promotion tests and source/installed skill 0.1.75 parity pass. Programme references
+do not prove exact broadcasts, bytes, physical editions or real native owners.
+Dataset/proof: D:/RShopPrivate/Catalogue/catalogue-r31/. Exact scratch/provisional
+cleanup is applied: 172 members / 98,638,831 logical bytes, no errors. Full consumer
+replay passes again from retained inputs alone. Bind the private local receipt to
+the verified source commit. Ten held exact sources remain reviewable, not globally
+unavailable; all remaining mapping reviews and wider S26 stay ACTIVE.
 R30 fixes missing ScreenScraper namespaces for explicit Satellaview, Nintendo
 64DD and SNES MSU-1 sources. It adds 199 provider assignments (126/20/53), resolves
 47 formerly unbound SNES files and pairs 152 existing references. Full current
