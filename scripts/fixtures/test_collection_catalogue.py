@@ -10,6 +10,57 @@ from prepare_collection_catalogue import (filename_title, source_kind, inventory
 
 
 class CollectionCatalogueTest(unittest.TestCase):
+    def test_reviewed_fds_conversion_preserves_cartridge_scope_and_legacy_replay(self):
+        source={'system':'nes','family':'Public (iNES2)','sourceKind':'program','title':'Exciting Basket',
+                'filename':'Public (iNES2)/Exciting Basket (Asia) (Kaiser) (Pirate).7z',
+                'sourcePath':'NES/Public (iNES2)/Exciting Basket (Asia) (Kaiser) (Pirate).7z'}
+        game={'id':'7','title':'Exciting Basket','aliases':[],'platformId':106}
+        index={'platforms':{'nes':{},'fds':{'7':game}},'screenscraper':{'nes':{},'fds':{'7':game}}}
+        rule={'system':'nes','sourceTitle':source['title'],'sourcePaths':[source['sourcePath']],
+              'referenceKind':'fds-cartridge-conversion','reason':'Primary board documentation identifies this conversion.',
+              'providers':{p:{'id':'7','title':game['title'],'catalogueNamespace':'fds'} for p in ['launchbox','screenscraper']}}
+        reviews={('nes',title_key(source['title'])):[rule]}
+        self.assertFalse(resolve_source(source,index,{},matcher_version=12)[1])
+        with self.assertRaisesRegex(ValueError,'reviewed programme namespace'):
+            resolve_source(source,index,{},reviews,matcher_version=11)
+        matches,providers=resolve_source(source,index,{},reviews,matcher_version=12)
+        self.assertEqual(set(providers),{'launchbox','screenscraper'})
+        self.assertTrue(all(p['catalogueNamespace']=='fds' for p in providers.values()))
+        self.assertEqual(matches['launchbox']['reviewReason'],rule['reason'])
+        for changes in [{'sourceKind':'firmware'},{'family':'root'},
+                        {'filename':'Exciting Basket (Asia).7z'}]:
+            with self.assertRaisesRegex(ValueError,'reviewed programme namespace'):
+                resolve_source({**source,**changes},index,{},reviews,matcher_version=12)
+        rule['referenceKind']='same-title'
+        with self.assertRaisesRegex(ValueError,'reviewed programme namespace'):
+            resolve_source(source,index,{},reviews,matcher_version=12)
+        rule['referenceKind']='fds-cartridge-conversion'
+        rule['blockedProviders']=['launchbox']
+        with self.assertRaisesRegex(ValueError,'reviewed programme namespace'):
+            resolve_source(source,index,{},reviews,matcher_version=12)
+        rule.pop('blockedProviders')
+        index['platforms']['nes']['native']={**game,'id':'native'}
+        with self.assertRaisesRegex(ValueError,'native provider'):
+            resolve_source(source,index,{},reviews,matcher_version=12)
+
+    def test_fds_conversion_review_loader_requires_exact_sources_evidence_and_kind(self):
+        from prepare_collection_catalogue import sha
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);proof=root/'board-documentation.txt';proof.write_text('FDS cartridge conversion fixture')
+            rule={'system':'nes','sourceTitle':'Exciting Basket','sourcePaths':['NES/Exact.7z'],
+                  'reason':'Primary board documentation identifies this conversion.',
+                  'referenceKind':'fds-cartridge-conversion',
+                  'providers':{'launchbox':{'id':'7','title':'Exciting Basket','catalogueNamespace':'fds'}}}
+            document={'version':1,'evidence':[{'path':str(proof),'sha256':sha(proof)}],'rules':[rule]}
+            path=root/'reviews.json';path.write_text(json.dumps(document))
+            self.assertTrue(load_title_aliases(path))
+            for field in ['sourcePaths','referenceKind']:
+                held=rule.pop(field);path.write_text(json.dumps(document))
+                with self.assertRaisesRegex(ValueError,'programme namespace'):load_title_aliases(path)
+                rule[field]=held
+            document['evidence']=[];path.write_text(json.dumps(document))
+            with self.assertRaisesRegex(ValueError,'programme namespace'):load_title_aliases(path)
+
     def test_explicit_bsx_requirement_selects_satellaview_only_in_new_matcher(self):
         source={'system':'snes','family':'Translations','sourceKind':'program','title':'Dynami Tracer',
                 'filename':'Dynami Tracer (Japan) [T-En by Author] [req BS-X bios].7z'}
@@ -731,7 +782,10 @@ class CollectionCatalogueTest(unittest.TestCase):
     def test_reviewed_addon_episode_reaches_normal_owner_promotion(self):
         self.check_filename_map_collector('snes','satellaview','Satellaview','Unused fixture',addon=True,addon_reviewed=True)
 
-    def check_filename_map_collector(self,system,namespace,family,platform_name,compatible=False,reviewed_namespace=False,addon=False,addon_reviewed=False):
+    def test_reviewed_fds_cartridge_conversion_reaches_normal_nes_owner(self):
+        self.check_filename_map_collector('nes','fds','Public (iNES2)','Nintendo Famicom Disk System',conversion=True)
+
+    def check_filename_map_collector(self,system,namespace,family,platform_name,compatible=False,reviewed_namespace=False,addon=False,addon_reviewed=False,conversion=False):
         import zipfile
         from prepare_catalogue_bindings import promote_filename_mapping
         from prepare_collection_catalogue import mapping, load_mapping, sha
@@ -743,6 +797,7 @@ class CollectionCatalogueTest(unittest.TestCase):
             row['game']['platformId'] = system
             filename=('Disk System/' if family=='Disk System' else '')+'Known Canonical Name (USA).7z'
             if compatible:filename=filename.replace('(USA)','(USA) (GB Compatible)')
+            if conversion:filename='Public (iNES2)/'+filename.replace('(USA)','(Asia) (Pirate)')
             source_path=system+'/'+filename
             records = [json.loads(line) for line in args.binding_census.read_text().splitlines()]
             for envelope in records:
@@ -770,7 +825,7 @@ class CollectionCatalogueTest(unittest.TestCase):
             game = {'id': '7', 'title': 'Known Canonical Name', 'aliases': [],
                     'platformName': platform_name}
             indexed_games={namespace:{'7':game}};indexed_ss={namespace:{}}
-            if compatible or reviewed_namespace:indexed_games[system]={};indexed_ss[system]={}
+            if compatible or reviewed_namespace or conversion:indexed_games[system]={};indexed_ss[system]={}
             if addon:
                 indexed_games={system:{},namespace:{}}
                 indexed_ss={system:{},namespace:{'7':{'id':'7','title':game['title'],'aliases':[],
@@ -786,18 +841,19 @@ class CollectionCatalogueTest(unittest.TestCase):
                     'rules':[{'system':system,'sourceTitle':source['title'],'sourcePaths':[source_path],
                         'reason':'Native ROM table declares this specific broadcast episode.',
                         'providers':{'screenscraper':{'id':'7','title':'Declared broadcast collection','catalogueNamespace':namespace}}}]}))
-            if reviewed_namespace:
+            if reviewed_namespace or conversion:
                 aliases=root/'reviews.json'
                 aliases.write_text(json.dumps({'version':1,'evidence':[{'path':str(args.launchbox),'sha256':sha(args.launchbox)}],
                     'rules':[{'system':system,'sourceTitle':source['title'],'sourcePaths':[source_path],
-                        'reason':'Specific source programme is filed in the other GB catalogue namespace.',
+                        'reason':'Primary documentation establishes this exact programme reference.',
+                        **({'referenceKind':'fds-cartridge-conversion'} if conversion else {}),
                         'providers':{'launchbox':{'id':'7','title':game['title'],'catalogueNamespace':namespace}}}]}))
             mapping(inventory_path, index_path, map_path,aliases)
             args.catalogue_bindings = root/'promoted.json'
             promoted = promote_filename_mapping(map_path, args.binding_census, args.launchbox, args.catalogue_bindings)
             self.assertEqual(len(promoted['bindings']), 1)
             self.assertEqual(promoted['unpromotedSources'], [])
-            self.assertEqual(promoted['bindings'][0]['cataloguePlatform'],system if compatible or reviewed_namespace or addon else namespace)
+            self.assertEqual(promoted['bindings'][0]['cataloguePlatform'],system if compatible or reviewed_namespace or addon or conversion else namespace)
             self.assertEqual(promoted['bindings'][0]['platform'],system)
             if addon:
                 binding=promoted['bindings'][0]['providers']['screenscraper']
@@ -808,10 +864,10 @@ class CollectionCatalogueTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,'unsupported compatible namespace'):
                     load_mapping(map_path)
                 return
-            if reviewed_namespace:
+            if reviewed_namespace or conversion:
                 binding=promoted['bindings'][0]['providers']['launchbox']
-                self.assertEqual((binding['catalogueNamespace'],binding['platformName']),('gbc','Nintendo Game Boy Color'))
-                document=json.loads(map_path.read_text());document['rows'][0]['providers']['launchbox']['catalogueNamespace']='nes'
+                self.assertEqual((binding['catalogueNamespace'],binding['platformName']),(namespace,platform_name))
+                document=json.loads(map_path.read_text());document['rows'][0]['providers']['launchbox']['catalogueNamespace']='gb' if conversion else 'nes'
                 map_path.write_text(json.dumps(document))
                 with self.assertRaisesRegex(ValueError,'unsupported compatible namespace'):
                     load_mapping(map_path)

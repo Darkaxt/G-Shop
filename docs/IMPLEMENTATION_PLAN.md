@@ -1,6 +1,19 @@
 # Staged implementation plan
 
-Current execution, 2026-10-29, revision 181: **S26 ACTIVE**, sole active stage.
+Current execution, 2026-10-29, revision 182: **S26 ACTIVE**, sole active stage.
+R32 verifies twenty added provider links on ten previously unmatched NES pirate
+cartridges through documented FDS programme references. Totals: 44,553 / 35,875
+LaunchBox / 38,992 ScreenScraper / 33,157 both / 41,710 either (93.62%) / 2,843
+neither. Primary MAME and native provider evidence support the exact reviews;
+Final Command remains held for conversion proof. Matcher v12 keeps NES cartridge
+ownership, actual FDS provider fields, native precedence and exclusions. Full
+current and legacy v11 replay, earlier assignments/nine exclusions, retained proof
+and controlled normal-owner fixtures pass. Source/installed skill 0.1.76 match.
+Dataset/proof: D:/RShopPrivate/Catalogue/catalogue-r32/. Exact cleanup is applied:
+119 members / 22,772,956 logical bytes, no errors. Full replay again passes from
+retained D: inputs with E: scratch absent; bind the private receipt to the verified
+source commit. Remaining provider/source reviews and wider S26 stay ACTIVE;
+no total-resolution, raw-ROM, physical-resource or overall release claim is made.
 R31 verifies 74 added provider assignments across 73 source files: 70 formerly
 unmatched SNES files gain programme references, and four files become paired.
 Totals: 44,553 / 35,865 LaunchBox / 38,982 ScreenScraper / 33,147 both / 41,700

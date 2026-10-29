@@ -487,7 +487,10 @@ def load_title_aliases(path):
         if foreign and (not rule.get('sourcePaths') or not document.get('evidence') or any(
                 {rule['system'], candidate['catalogueNamespace']} != {'gb', 'gbc'} and not (
                     provider == 'screenscraper' and (rule['system'], candidate['catalogueNamespace']) in
-                    {('snes', 'satellaview'), ('snes', 'snesmsu1'), ('n64', 'n64dd')})
+                    {('snes', 'satellaview'), ('snes', 'snesmsu1'), ('n64', 'n64dd')}) and not (
+                    provider in {'launchbox', 'screenscraper'} and
+                    (rule['system'], candidate['catalogueNamespace']) == ('nes', 'fds') and
+                    rule.get('referenceKind') == 'fds-cartridge-conversion')
                 for provider, candidate in foreign)):
             raise ValueError('Unsupported reviewed programme namespace: exact compatible/add-on sources and evidence required')
         key = rule['system'], title_key(rule['sourceTitle'])
@@ -528,6 +531,20 @@ def reviewed_addon_namespace(source, provider, candidate, review):
     return (provider == 'screenscraper' and candidate.get('catalogueNamespace') is not None and
             screenscraper_addon_namespace(source, include_bsx=True) == candidate['catalogueNamespace'] and
             source.get('sourcePath') in (review or {}).get('sourcePaths', []) and
+            provider not in (review or {}).get('blockedProviders', []) and
+            all(selected.get(k) == candidate.get(k) for k in ['id', 'title', 'catalogueNamespace']))
+
+
+def reviewed_fds_conversion(source, provider, candidate, review):
+    """Documented pirate cartridges may reference FDS programmes without becoming disks."""
+    selected = (review or {}).get('providers', {}).get(provider, {})
+    return (source.get('system') == 'nes' and source.get('sourceKind') == 'program' and
+            source.get('family') == 'Public (iNES2)' and
+            re.search(r'\(Pirate\)', source['filename'], re.I) is not None and
+            candidate.get('catalogueNamespace') == 'fds' and
+            (review or {}).get('referenceKind') == 'fds-cartridge-conversion' and
+            source.get('sourcePath') in (review or {}).get('sourcePaths', []) and
+            provider in {'launchbox', 'screenscraper'} and
             provider not in (review or {}).get('blockedProviders', []) and
             all(selected.get(k) == candidate.get(k) for k in ['id', 'title', 'catalogueNamespace']))
 
@@ -746,7 +763,8 @@ def resolve_source(source, index, cache, reviews=None, *, matcher_version=1):
         if namespace == system:
             continue
         if not ((matcher_version >= 7 and reviewed_gb_namespace(source, provider, selected, review)) or
-                (matcher_version >= 11 and reviewed_addon_namespace(source, provider, selected, review))):
+                (matcher_version >= 11 and reviewed_addon_namespace(source, provider, selected, review)) or
+                (matcher_version >= 12 and reviewed_fds_conversion(source, provider, selected, review))):
             raise ValueError('Unsupported reviewed programme namespace')
         if provider in providers:
             raise ValueError('Reviewed programme namespace cannot replace a native provider')
@@ -785,7 +803,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
     reviews = load_title_aliases(title_aliases)
     for source in inventory_data['rows']:
         system = source['system']
-        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=11)
+        matches, providers = resolve_source(source, index, cache, reviews, matcher_version=12)
         rows.append({**source, 'providers': providers, 'matches': matches,
             'status': 'bound-candidate' if providers else 'unresolved',
             'identityLevel': 'filename-title-candidate', 'physicalEditionVerified': False})
@@ -804,7 +822,7 @@ def mapping(inventory_path, index_path, output, title_aliases=None):
                 'ambiguous' if any(m['status'] == 'ambiguous' for m in r['matches'].values()) else
                 'spacing-review' if any(m['status'] == 'loose-candidate' for m in r['matches'].values()) else
                 'no-exact-index-title' for r in subset if not r['providers']))}
-    document = {'version': 1, 'matcherVersion': 11, 'scope': 'filename-catalogue-candidates',
+    document = {'version': 1, 'matcherVersion': 12, 'scope': 'filename-catalogue-candidates',
         'inventoryPath': str(inventory_path), 'inventorySha256': sha(inventory_path),
         'indexPath': str(index_path), 'indexSha256': sha(index_path),
         **({'titleAliasesPath': str(title_aliases), 'titleAliasesSha256': sha(title_aliases)} if title_aliases else {}),
@@ -825,7 +843,7 @@ def load_mapping(path):
     if document.get('version') != 1 or document.get('scope') != 'filename-catalogue-candidates':
         raise ValueError('Unsupported filename binding format')
     matcher_version = document.get('matcherVersion', 1)
-    if matcher_version not in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}:
+    if matcher_version not in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}:
         raise ValueError('Unsupported catalogue matcher version')
     inventory_path, index_path = Path(document['inventoryPath']), Path(document['indexPath'])
     if sha(inventory_path) != document['inventorySha256'] or sha(index_path) != document['indexSha256']:
@@ -862,6 +880,8 @@ def load_mapping(path):
                         namespace == screenscraper_addon_namespace(row, include_bsx=matcher_version >= 11)) or
                     (matcher_version >= 5 and namespace == 'gb' and game_boy_compatible_source(row)) or
                     (matcher_version >= 7 and reviewed_gb_namespace(original, provider, candidate,
+                        reviewed_alias(original, reviews))) or
+                    (matcher_version >= 12 and reviewed_fds_conversion(original, provider, candidate,
                         reviewed_alias(original, reviews)))):
                 raise ValueError('Filename binding has an unsupported compatible namespace')
             game = games.get(namespace, {}).get(candidate['id']) if games else None

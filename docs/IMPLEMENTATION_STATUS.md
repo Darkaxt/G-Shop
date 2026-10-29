@@ -5,7 +5,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-2026-10-29 continuation under specification revision 181: S26 is ACTIVE,
+2026-10-29 continuation under specification revision 182: S26 is ACTIVE,
 the sole active stage, after verified E: access recovery following the owner restart.
 CATALOGUE-ALL is the current outcome: complete Windows filename/provider-index
 mappings for all remaining supported source folders. Thor, APK installation,
@@ -14,6 +14,18 @@ the original publication operation independently. Acceptance requires the full
 source census, scoped index provenance, explicit unresolved rows and a verified
 mapping consumer. Wider S26 resource/native/release criteria remain unfinished;
 no additional implementation stage is active.
+R32 verifies twenty provider links on ten previously unmatched NES pirate sources,
+preserving the NES cartridge owner while referencing the documented FDS programme.
+Totals: 44,553 / 35,875 LaunchBox / 38,992 ScreenScraper / 33,157 both / 41,710
+either (93.62%) / 2,843 neither. Full current and legacy v11 consumers preserve
+all prior bindings and nine exclusions. Typed-review/consumer/normal-owner fixtures
+and source/installed skill 0.1.76 parity pass. Dataset/proof:
+D:/RShopPrivate/Catalogue/catalogue-r32/. Final Command, different prototype builds,
+unproved project renames and unusable component records remain held with reasons.
+Exact scratch retirement is applied without errors: 119 members / 22,772,956
+logical bytes. Full replay again passes from retained inputs with scratch absent;
+bind the private receipt to the verified source commit. No overall resolution or
+exhaustion finding is made. Remaining source/provider reviews keep S26 ACTIVE.
 R31 adds 74 provider links on 73 source files, resolving 70 formerly unmatched
 SNES files and pairing four. Totals: 44,553 / 35,865 LaunchBox / 38,982
 ScreenScraper / 33,147 both / 41,700 either (93.60%) / 2,853 neither. Matcher v11

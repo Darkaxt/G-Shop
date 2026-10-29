@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.75"
+  version: "0.1.76"
 ---
 
 # G-Shop Console Integration
@@ -88,7 +88,16 @@ coverage. Preserve LaunchBox regional aliases from the retained source ZIP, not
 only an older simplified title export. NES `Disk System` sources keep NES library
 ownership while resolving and promoting through the FDS provider namespace.
 Provider namespaces can differ even when the library owner is the same. Check
-the official directory and retain separate public title indexes for Satellaview
+primary emulator board/software documentation for cartridge conversions whose
+programme is catalogued only under FDS. Matcher v12 permits an explicitly typed
+`fds-cartridge-conversion` review for exact pirate sources in NES Public (iNES2),
+with hashed proof and exact provider IDs/titles. Keep NES cartridge ownership,
+publisher and revision while retaining actual FDS provider fields. This is no
+general cross-platform title fallback, byte-equivalence or disk-resource approval;
+native provider bindings and exclusions remain protected. Similar names can be
+different NES/FDS versions; require conversion proof before linking them and
+preserve immutable v1..11 replay plus normal consumer/owner-promotion checks.
+Check the official directory and retain separate public title indexes for Satellaview
 (ScreenScraper 107), Nintendo 64DD (122) and SNES MSU-1 (210). Matcher v10 consults
 these declared add-on catalogues after native resolution fails, retaining actual
 provider namespace/platform IDs and the SNES/N64 owner through normal promotion.

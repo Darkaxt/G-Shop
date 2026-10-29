@@ -1,6 +1,14 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 181, 2026-10-29.
+Authoritative specification, revision 182, 2026-10-29.
+
+CATALOGUE-ALL conversion review, revision 182: documented NES pirate cartridge
+conversions may reference the original FDS programme through exact-source,
+hash-evidenced reviews. Preserve the NES library/cartridge owner, pirate publisher,
+source path and revision; retain actual FDS provider fields. This does not establish
+equal ROM bytes, disk packaging, cartridge resources or emulator compatibility.
+No unrestricted NES-to-FDS fallback or replacement of a native provider is allowed.
+Verify current and immutable prior mapping consumers and normal owner promotion.
 
 Owner persistent mapping objective, 2026-10-29 (CATALOGUE-ALL, S26): continue
 towards total ROM resolution until the remaining sources cannot be resolved even
