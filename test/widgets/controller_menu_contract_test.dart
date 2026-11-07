@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -33,18 +32,13 @@ class _ImmediateInput extends InputDebouncer {
   bool canPerformAction() => true;
 }
 
-class _ConfigPicker extends FilePicker {
+const _pickerChannel = MethodChannel('miguelruivo.flutter.plugins.filepicker');
+
+class _ConfigPicker {
   int calls = 0;
-  @override
-  Future<FilePickerResult?> pickFiles({String? dialogTitle,
-      String? initialDirectory, FileType type = FileType.any,
-      List<String>? allowedExtensions, Function(FilePickerStatus)? onFileLoading,
-      bool allowCompression = true, int compressionQuality = 30,
-      bool allowMultiple = false, bool withData = false,
-      bool withReadStream = false, bool lockParentWindow = false,
-      bool readSequential = false}) async {
-    expect(type, FileType.custom);
-    expect(allowedExtensions, ['json']);
+  Future<Object?> handle(MethodCall call) async {
+    expect(call.method, 'custom');
+    expect((call.arguments as Map)['allowedExtensions'], ['json']);
     calls++;
     return null; // Cancel at the OS-owned picker boundary; change no settings.
   }
@@ -59,8 +53,6 @@ class _ConfigStorage extends ConfigStorageService {
 }
 
 void main() {
-  // Widget tests do not register the operating system's FilePicker plugin.
-  setUpAll(() => FilePicker.platform = _ConfigPicker());
   for (final configuration in [true, false]) {
     testWidgets('${configuration ? 'configuration' : 'welcome'} controller import/export matches its HUD',
         (tester) async {
@@ -69,9 +61,9 @@ void main() {
       final storage = StorageService();
       await storage.init();
       final config = _ConfigStorage(), picker = _ConfigPicker();
-      final priorPicker = FilePicker.platform;
-      FilePicker.platform = picker;
-      addTearDown(() => FilePicker.platform = priorPicker);
+      final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(_pickerChannel, picker.handle);
+      addTearDown(() => messenger.setMockMethodCallHandler(_pickerChannel, null));
       await tester.pumpWidget(ProviderScope(overrides: [
         storageServiceProvider.overrideWithValue(storage),
         configStorageServiceProvider.overrideWithValue(config),

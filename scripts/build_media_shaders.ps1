@@ -1,4 +1,4 @@
-param([string]$FlutterRoot = 'D:/Tools/flutter')
+param([string]$FlutterRoot = 'D:/Tools/flutter-3.47.8')
 $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $shaderRoot = Join-Path $projectRoot 'assets/shaders'

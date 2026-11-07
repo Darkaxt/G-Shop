@@ -37,7 +37,7 @@ class _SoLoudEngine implements AudioEngine {
   @override
   Future<Object> play(Object source,
       {double volume = 1.0, bool looping = false}) async {
-    final SoundHandle handle = await _soLoud.play(source as AudioSource,
+    final SoundHandle handle = _soLoud.play(source as AudioSource,
         volume: volume, looping: looping);
     // SoundHandle is an extension type on int — box it as Object explicitly
     return handle as Object;

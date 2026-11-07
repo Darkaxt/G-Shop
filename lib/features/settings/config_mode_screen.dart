@@ -118,7 +118,7 @@ class _ConfigModeScreenState extends ConsumerState<ConfigModeScreen>
             ])));
     if (!mounted || action == null) return;
     if (action == 'folder') {
-      final folder = await FilePicker.platform.getDirectoryPath(
+      final folder = await FilePicker.getDirectoryPath(
           dialogTitle: 'Choose ${system.name} download destination');
       if (mounted && folder != null)
         await _save(system.copyWith(targetFolder: folder));

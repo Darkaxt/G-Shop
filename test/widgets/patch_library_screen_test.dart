@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,7 +43,6 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() {
     sqfliteFfiInit();
-    FilePickerIO.registerWith();
   });
   test('patch failure guidance distinguishes offline from changed resources',
       () {
@@ -143,12 +141,9 @@ void main() {
             title: 'Advance Wars — Balance');
         final input = File('${root.path}/input.json');
         await input.writeAsString(recipe.encode());
-        final oldPicker = FilePicker.platform,
-            oldPaths = PathProviderPlatform.instance;
-        FilePickerIO.registerWith();
+        final oldPaths = PathProviderPlatform.instance;
         PathProviderPlatform.instance = _RecipePaths(root.path);
-        const picker = MethodChannel(
-            'miguelruivo.flutter.plugins.filepicker', JSONMethodCodec());
+        const picker = MethodChannel('miguelruivo.flutter.plugins.filepicker');
         const share = MethodChannel('dev.fluttercommunity.plus/share');
         const engine = MethodChannel('patch-recipe-ui-engine');
         final messenger =
@@ -175,7 +170,6 @@ void main() {
           messenger.setMockMethodCallHandler(picker, null);
           messenger.setMockMethodCallHandler(engine, null);
           messenger.setMockMethodCallHandler(share, null);
-          FilePicker.platform = oldPicker;
           PathProviderPlatform.instance = oldPaths;
           await shared.close();
           await db.close();

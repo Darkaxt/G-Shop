@@ -517,7 +517,7 @@ class _SaveBackupSettingsScreenState
       return;
     }
     try {
-      final picked = await FilePicker.platform.pickFiles(
+      final picked = await FilePicker.pickFiles(
           type: FileType.custom,
           allowedExtensions: ['json'],
           withReadStream: true);
@@ -738,7 +738,7 @@ class _SaveBackupSettingsScreenState
               ? () => OwnedEmulatorLauncher().reviewMelonSave(
                   widget.game!, widget.system!, widget.targetFolder!)
               : null,
-          chooseDirectory: () => FilePicker.platform.getDirectoryPath(
+          chooseDirectory: () => FilePicker.getDirectoryPath(
               dialogTitle:
                   'Choose the shared save folder configured in MelonDualDS'),
           onMapped: (directory, name) => _mapMelon(config, directory, name));
@@ -776,7 +776,7 @@ class _SaveBackupSettingsScreenState
                   }
                 }
               : null,
-          chooseDirectory: () => FilePicker.platform.getDirectoryPath(
+          chooseDirectory: () => FilePicker.getDirectoryPath(
               dialogTitle:
                   'Choose ${_pspSavedata ? 'SAVEDATA' : 'PPSSPP_STATE'} in your configured PSP folder'),
           onMapped: (directory, slot) => _mapPpsspp(config, directory, slot));

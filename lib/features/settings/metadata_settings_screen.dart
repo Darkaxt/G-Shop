@@ -238,7 +238,7 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
             !(await Permission.manageExternalStorage.request()).isGranted) {
           return null;
         }
-        final path = await FilePicker.platform.getDirectoryPath();
+        final path = await FilePicker.getDirectoryPath();
         selected = path != null;
         return path == null ? null : Directory(path);
       });
@@ -340,7 +340,7 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
   }
 
   Future<void> _importPackaging() async {
-    final selected = await FilePicker.platform.pickFiles(
+    final selected = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['zip'],
         withData: false,
@@ -382,7 +382,7 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
       }
     } finally {
       cloud.resume();
-      await FilePicker.platform.clearTemporaryFiles();
+      await FilePicker.clearTemporaryFiles();
     }
     await cloud.sync(pull: false);
   }
@@ -416,13 +416,13 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
         !(await Permission.manageExternalStorage.request()).isGranted) {
       return;
     }
-    final romRoot = await FilePicker.platform
+    final romRoot = await FilePicker
         .getDirectoryPath(dialogTitle: l.metadata_esDeRomRoot);
     if (!mounted || romRoot == null) return;
-    final gamelistRoot = await FilePicker.platform
+    final gamelistRoot = await FilePicker
         .getDirectoryPath(dialogTitle: l.metadata_esDeGamelist);
     if (!mounted || gamelistRoot == null) return;
-    final mediaRoot = await FilePicker.platform
+    final mediaRoot = await FilePicker
         .getDirectoryPath(dialogTitle: l.metadata_esDeMediaRoot);
     if (!mounted || mediaRoot == null) return;
     await ref.read(metadataControlsProvider.notifier).mapEsDeEdition(
@@ -436,7 +436,7 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
   Future<void> _reviewEsDeArtwork() async {
     if (widget.editionId == null) return;
     final l = L.of(context);
-    final selected = await FilePicker.platform.pickFiles(
+    final selected = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['png', 'jpg', 'webp'],
         allowMultiple: false,

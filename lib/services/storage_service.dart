@@ -266,7 +266,7 @@ class StorageService {
       return null;
     }
 
-    final result = await FilePicker.platform.getDirectoryPath();
+    final result = await FilePicker.getDirectoryPath();
     if (result != null) {
       await setRomPath(result);
     }

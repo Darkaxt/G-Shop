@@ -222,7 +222,7 @@ final groupMetadataProvider = FutureProvider.autoDispose
 Future<({bool cancelled, String? error, AppConfig? config})> importConfigFile(
     WidgetRef ref) async {
   try {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
     );

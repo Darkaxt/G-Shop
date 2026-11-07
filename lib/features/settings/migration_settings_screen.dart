@@ -121,7 +121,7 @@ class _MigrationSettingsState extends ConsumerState<MigrationSettingsScreen>
     File? consumed;
     FileStat? original;
     try {
-      final selected = await FilePicker.platform
+      final selected = await FilePicker
           .pickFiles(type: FileType.any, allowMultiple: false, withData: false);
       final path = selected?.files.single.path;
       if (path == null) return;

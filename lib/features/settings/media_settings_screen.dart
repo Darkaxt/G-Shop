@@ -96,7 +96,7 @@ class _MediaSettingsState extends ConsumerState<MediaSettingsScreen>
     File? picked;
     FileStat? pickedStat;
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
           type: FileType.custom,
           allowedExtensions: const ['apk'],
           allowMultiple: false,

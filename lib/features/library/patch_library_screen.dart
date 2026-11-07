@@ -36,7 +36,7 @@ import '../../widgets/base_game_card.dart';
 import '../game_detail/game_detail_screen.dart';
 
 Future<PortablePatchRecipe?> _pickRecipe() async {
-  final selected = await FilePicker.platform.pickFiles(
+  final selected = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['json'],
       allowMultiple: false,

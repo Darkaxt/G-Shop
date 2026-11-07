@@ -24,6 +24,19 @@ val keyProperties = Properties().apply {
 val releaseStore = providers.environmentVariable("RSHOP_RELEASE_STORE_FILE").orNull
 val hasReleaseSigning = keyPropertiesFile.exists() || !releaseStore.isNullOrBlank()
 
+// Flutter defaults to several native ABIs even when its engine target is one.
+// Keep a nonsplit package's native libraries aligned with its engine payload.
+val requestedAbis = providers.gradleProperty("target-platform").orNull
+    ?.split(",")?.map { platform ->
+        when (platform.trim()) {
+            "android-arm" -> "armeabi-v7a"
+            "android-arm64" -> "arm64-v8a"
+            "android-x64" -> "x86_64"
+            "android-x86" -> "x86"
+            else -> error("Unsupported Flutter Android target platform: $platform")
+        }
+    }
+
 android {
     namespace = "com.retro.rshop"
     compileSdk = flutter.compileSdkVersion
@@ -41,6 +54,13 @@ android {
     }
 
     defaultConfig {
+        if (requestedAbis != null &&
+            providers.gradleProperty("split-per-abi").orNull != "true") {
+            ndk {
+                abiFilters.clear()
+                abiFilters.addAll(requestedAbis)
+            }
+        }
         // Keep the fork separate from the installed upstream app and its data.
         applicationId = "com.darkaxt.rshop"
         manifestPlaceholders["appLabel"] = "G-Shop"
