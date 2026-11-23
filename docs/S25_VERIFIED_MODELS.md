@@ -2,9 +2,14 @@
 
 Updated 2026-10-20. This records actual inspected assets, not candidate listings.
 
+Evidence note (2026-11-23): model payloads cited here are retained under
+`D:/RShopPrivate/Evidence/`. Native captures, contact sheets and reports cited below
+(e.g. `native/`, `reports/`, `rshop-s25-models-*`, `rshop-s25-gba-final-*`) were removed
+as disposable scratch; those citations are historical.
+
 ## Current G&W batch and owner sequencing — 2026-10-21
 
-Revision 131 batch is **COMPLETE** in normal public/installed v1.9.24. All
+Revision 131 batch is **COMPLETE** in normal public v1.9.24 for that scope. It predates the 2026-10-22 console integration contract; G&W re-acceptance under it is tracked in issue #9 and launch adaptation in #7. All
 53 ROM-revision bindings / 51 owned game labels are represented by 52 primary
 physical IDs; no owned exterior is missing. Available: 63 handheld variants,
 60 integrated cartons, one Diskun case and the large 63-device secondary selector
@@ -18,7 +23,7 @@ All 2,527 NintAndBox archive editions are accepted as a separate reusable privat
 animated GLB / packed Blender library at E:/R-Shop Reference Assets/NintAndBox/2026-03/3D-Boxes.
 This does not claim broad runtime integration or wider S25 model/cinematic
 acceptance. S25 is **BLOCKED** on the owner's explicit sequencing hold while
-S26 was prioritized and is now COMPLETE in normal public/installed v1.10.0. Retain every remaining requirement below and
+S26 was prioritized; its Drive/rebranding scope shipped in v1.10.0 and wider S26 remains ACTIVE (issues #1-#16). Retain every remaining requirement below and
 resume it after S26; earlier chronological ACTIVE/pending statements are historical.
 
 ## Hardware-variant lower preview — 2026-10-20, COMPLETE bounded batch

@@ -2,7 +2,7 @@
 name: gshop-console-integration
 description: Integrate and validate G-Shop console and per-game 3D presentations, including NintAndBox galleries, hardware editions, physical media, cables, unboxing and owned emulator launch. Use for G-Shop model/resource integration and its visual acceptance; not generic Blender art or unrelated emulator setup.
 metadata:
-  version: "0.1.79"
+  version: "0.1.80"
 ---
 
 # G-Shop Console Integration
@@ -264,6 +264,11 @@ collections; neither is an ordinary cartridge ROM. A decoder rejection is not
 proof of archive corruption or provider/resource absence. Preserve exact container
 hashes, independent archive CRC results and the actual unsupported format/budget
 reason without changing the original checkpoint or silently widening its budget.
+
+Source authority (SOURCE-CANONICAL-01, 2026-11-24): `E:/R-Shop Reference Assets/NintAndBox`
+is canonical for every Nintendo game it covers; LaunchBox and ScreenScraper are
+fallbacks only for games, editions or roles it does not cover. Never replace an
+available NintAndBox resource with a provider image on quality or size grounds.
 
 For cartons, preserve reviewed NintAndBox dump panels and applicable public
 low-resolution .es donor previews. For needed/replacement artwork faces request

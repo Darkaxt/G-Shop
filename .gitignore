@@ -83,3 +83,7 @@ ROADMAP_1.0.md
 docs-old/
 # Owner-provided Socket extraction oracle; never publish recovered assets.
 /assets/socket_media/
+
+# Flutter golden-test failure output
+**/failures/*Diff.png
+**/failures/*Image.png

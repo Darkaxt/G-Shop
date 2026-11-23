@@ -78,7 +78,7 @@ class ArtworkQualityTest(unittest.TestCase):
 
     def test_missing_regional_face_uses_explicit_same_game_carton_donor(self):
         with tempfile.TemporaryDirectory() as folder:
-            root=Path(folder);(root/'projection.gz').write_bytes(b'fixture')
+            root=Path(folder);(root/'projection.gz').write_bytes(b'fixture');(root/'index.zip').write_bytes(b'fixture')
             valid=image();stream=io.BytesIO();Image.new('RGB',(64,64),'lime').save(stream,format='PNG');blank=stream.getvalue()
             row={'rank':None,'title':'Game','cache_row_id':1,'game':{'id':'g','platformId':'gba'},
                 'edition':{'id':'e','gameId':'g','regions':['jp'],'tags':[]},
@@ -144,6 +144,7 @@ class ArtworkQualityTest(unittest.TestCase):
                 'reason':'Reviewed sharper compatible front'}}}
             (root/'review.json').write_text(json.dumps(review))
             (root/'projection.gz').write_bytes(b'fixture')
+            (root/'index.zip').write_bytes(b'fixture')
             args=SimpleNamespace(selection='collection',system='nes',projection=root/'projection.gz',
                 launchbox=root/'index.zip',env=root/'credentials',panel_layouts=None,
                 quality_review=root/'review.json',output=root/'pack.zip')

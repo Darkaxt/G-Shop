@@ -5,6 +5,24 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-11-24 QA reconciliation (specification revision 185): **S26 ACTIVE**, sole
+active stage. Four read-only QA passes (tests/analysis, unpushed and uncommitted
+review, per-console spec reconciliation, GBA status and private-asset integrity)
+found no regression in the pending metadata change set. Fixed directly: mis-encoded
+NES cartridge style labels in the pending set, a Python fixture that never created
+the LaunchBox index it hashes, stale "S26 COMPLETE"/"G&W COMPLETE" headers, and
+historical evidence citations. Full Flutter run: 3,088 passed / 46 skipped / 5 setup
+failures caused only by the absent offline font cache (#13); analyzer 0 errors. The
+private 1.10.2+54 APK and tracked files contain no ROMs or private model payloads.
+Owner source authority SOURCE-CANONICAL-01 is recorded (NintAndBox canonical;
+LaunchBox/ScreenScraper fallbacks only). Remaining work is tracked as GitHub issues:
+GBA import/publication #1, acquisition #2, e-Reader/Multiboot policy (owner) #3,
+recovery/native #4, source gaps #5, coverage census #6; G&W/GBA launch #7; NES
+acceptance #8; G&W re-acceptance #9; SNES per-game animation #10; final release #11;
+untracked checks #12; test environment #13; NES doc count #14; Xbox 360 #15;
+paused catalogue mapping #16. GBA counted coverage under the S26 rule is not yet
+established (58 verified front/label pairs on Drive; 80% target 6,140 of 7,674).
+
 2026-11-23, private-evidence relocation (bookkeeping only, no scope change): the 24
 remaining `D:/Temp/rshop-*` / `D:/Temp/gshop-*` entries (curated G&W/GBA/NES model
 payloads, active S26 NES/scene-launch work, retained S7 inventories and reception

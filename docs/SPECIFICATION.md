@@ -1,6 +1,19 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 184, 2026-10-29.
+Authoritative specification, revision 185, 2026-11-24.
+
+Owner source authority, revision 185 (SOURCE-CANONICAL-01), 2026-11-24: the
+NintAndBox library at `E:/R-Shop Reference Assets/NintAndBox` (2026-03 archive,
+its extracted scans and the converted 3D-Boxes) is the **canonical** packaging/
+artwork source for every Nintendo game it covers. LaunchBox and ScreenScraper are
+fallbacks only, for games, editions or roles NintAndBox does not cover. A provider
+image must not replace an available NintAndBox resource for the same edition and
+role on quality or dimension grounds; matching, identity and integrity rules
+still apply to the NintAndBox resource itself. When both fallbacks are used, the
+existing per-role LaunchBox/ScreenScraper comparison continues. This restates the
+2026-10-18 consolidated order as a standing rule; the lower-resolution public .es
+previews remain part of the NintAndBox source (assistant interpretation). No
+stage, release gate or acceptance criterion changes.
 
 Owner-authorized selector correction, revision 184 (SELECTOR-CAMERA-01): apply
 one consistent lower console-selector camera angle across all installed model

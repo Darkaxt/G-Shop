@@ -1,7 +1,7 @@
 # G-Shop update and compatibility boundaries
 
 Authority: SPECIFICATION.md revision 133, GSHOP-01 through GSHOP-05.
-Status: S26 COMPLETE in normal public v1.10.0/code 41. Host, signed in-place Thor update, live Drive, native rendering, headless save dispatch and independent public delivery acceptance pass. IMPLEMENTATION_STATUS.md records the exact source and evidence limits.
+Status: the S26 Drive-only/rebranding scope is COMPLETE in normal public v1.10.0/code 41; wider S26 (resource coverage, NES/GBA/G&W acceptance, single final release) remains ACTIVE, see IMPLEMENTATION_STATUS.md and GitHub issues #1-#16. Host, signed in-place Thor update, live Drive, native rendering, headless save dispatch and independent public delivery acceptance pass. IMPLEMENTATION_STATUS.md records the exact source and evidence limits.
 
 The maintained Dart package and application symbols use `g_shop` / `GShop`.
 Localized app text, notifications, launcher and splash artwork use G-Shop.
