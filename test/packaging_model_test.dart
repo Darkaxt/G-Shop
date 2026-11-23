@@ -12,7 +12,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test('GBA box uses its local opening carton rather than the static fallback',
       () async {
-    final root = Directory('D:/Temp/rshop-s25-hardware-20261018/test-carton');
+    final root = Directory.systemTemp.createTempSync('gshop-test-carton-');
+    addTearDown(() => root.deleteSync(recursive: true));
     final folder = Directory('${root.path}/cartons/gba');
     await folder.create(recursive: true);
     final original = PackagingModel(PackagingKind.box).build();
@@ -131,8 +132,8 @@ void main() {
           : false);
   test('local booklet uses verified source mesh, fitted dimensions and hinge',
       () async {
-    final directory =
-        Directory('D:/Temp/rshop-s25-booklet-20261018/test-model');
+    final directory = Directory.systemTemp.createTempSync('gshop-test-booklet-');
+    addTearDown(() => directory.deleteSync(recursive: true));
     await directory.create(recursive: true);
     final source = PackagingModel(PackagingKind.booklet).build();
     final payload = source.mesh.buffer.asUint8List();

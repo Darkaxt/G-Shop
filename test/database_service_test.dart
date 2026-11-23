@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -135,7 +136,7 @@ void main() {
         SystemConfig(
             id: id,
             name: id,
-            targetFolder: 'D:/Temp/gshop-s26-20261021/work/empty-$id',
+            targetFolder: '${Directory.systemTemp.path}/gshop-test-empty-$id',
             providers: const [
               ProviderConfig(
                   type: ProviderType.drive,

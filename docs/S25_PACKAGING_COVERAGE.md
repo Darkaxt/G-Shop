@@ -82,7 +82,7 @@ Closed, intermediate, fully opened and unfolded desktop renders show the embedde
 Castlevania net aligned to the carton faces/flaps. Open lifts the top lid/tuck tab
 and dust flaps without unfolding the whole box. This is the appropriate candidate
 for the owner's box-opening -> cartridge-lifting sequence; it contains no cartridge.
-Evidence: `D:/Temp/rshop-s25-booklet-20261018/carton-updated/`.
+Evidence: `D:/RShopPrivate/Evidence/rshop-s25-booklet-20261018/carton-updated/`.
 Generic six-panel remapping, dimension fitting and hierarchical motion conversion
 are now integrated. Signed `a9b1d25` rendered the 2,316-triangle/38-surface carton
 closed/open on Thor with classified per-game panels. Owner feedback supersedes

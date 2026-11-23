@@ -37,7 +37,7 @@ with no observed flash; raw-H264 timing is estimated. Normal public v1.9.23
 `b092b5034744d47722743584dcee2c8143d93fa9e2cf7e59b052fba3238a4406`.
 Independent downloads verify production signature, version and private-payload
 absence. No batch blocker or tracked deferral remains. Current evidence is in
-`D:/Temp/rshop-s25-gw-variants-20261020/reports/`. Wider S25 remains ACTIVE.
+`D:/RShopPrivate/Evidence/rshop-s25-gw-variants-20261020/reports/`. Wider S25 remains ACTIVE.
 
 ## Game & Watch expansion — 2026-10-20, COMPLETE bounded batch
 
@@ -63,7 +63,7 @@ Normal public v1.9.22/code 38, exact tag/source, production signature and requir
 assets are independently verified. Public, candidate and installed Thor APKs
 share SHA-256 `41a10cba47c738cf3db40635154400c18d568db6e3b9f2537cece45155b1f07d`.
 Private per-model conversion, CRC-bound collection census and native evidence are under
-`D:/Temp/rshop-s25-gw-update-20261020/reports/`. Wider S25 remains ACTIVE.
+`D:/RShopPrivate/Evidence/rshop-s25-gw-update-20261020/reports/`. Wider S25 remains ACTIVE.
 
 S25 is **ACTIVE** for the owner's shared collector/gallery/model correction.
 The owner's current target is a right-opening GBA carton with upright artwork,
@@ -178,7 +178,7 @@ label or invented manual is assigned to Boktai 2. The actual special housing
 clears the right-opening fitted carton, settles to the left, focuses and rotates
 alone with other models hidden. Inspected recording: `boktai-selection-814a878.mp4`,
 both contact sheets and full-size tableau/focused/rotated images under
-`D:/Temp/rshop-s25-gba-close-20261020`. Analysis scans all 1,375 decoded frames
+`D:/RShopPrivate/Evidence/rshop-s25-gba-close-20261020`. Analysis scans all 1,375 decoded frames
 without export truncation; its remuxed 60-fps timeline is estimated, not wall-clock
 timing. This verifies the Boktai housing workflow, not missing label/manual media,
 all ROMs or the wider stage. US Yoshi remains the other GBA special-model check.
@@ -193,7 +193,7 @@ The collector applies one RGB transform, preserving original artwork and alpha;
 no runtime mesh tint is involved. The upper shelf, waiting cover and native carton
 are blue. The right opening and final cartridge/booklet tableau still render.
 Full-size `sapphire-final-down.png` and handoff contact sheets are in
-`D:/Temp/rshop-s25-colour-cast-20261019`. The first analysis hit its export budget;
+`D:/RShopPrivate/Evidence/rshop-s25-colour-cast-20261019`. The first analysis hit its export budget;
 a separate visual pass retains RGB/scene detection and periodic motion evidence.
 A brief model-free cover-to-scene gap remains visible; seamless transition is
 NOT verified. Raw-video timing is estimated, and silent capture is not audio proof.
@@ -288,7 +288,7 @@ bounds/UVs and opening hinge transforms. Native closed inspection on signed
 `92c6386` renders per-game Mega Man Zero 2 front, rear and spine without errors
 (4,068 triangles / 59 surfaces; runtime fitted digest
 `7bfada3baf94d4ec85ca98b23526152d9d8614c49454923f3a022fa7b4c46721`).
-Evidence: `D:/Temp/rshop-s25-hardware-20261018/native/carton-slot-*-down.png`.
+Evidence: `D:/RShopPrivate/Evidence/rshop-s25-hardware-20261018/native/carton-slot-*-down.png`.
 This verifies closed inspection, not native opening/extraction or a full-cohort pass.
 The source's reconstructed holder dimensions are inferred, not manufacturing data.
 
@@ -319,7 +319,7 @@ At fitted aspect 1.0/depth .3671875 the runtime geometry digest is
 All 36 new panel bodies and donor-language provenance across six actual Drive
 game folders match the reviewed pack. This is publication proof, not new cold
 recovery or a fresh full-24-game acceptance pass. Native evidence is under
-`D:/Temp/rshop-s25-gallery-panels-20261018/native/`.
+`D:/RShopPrivate/Evidence/rshop-s25-gallery-panels-20261018/native/`.
 One shared Gallery now places the trailer before the image, plays at saved
 volume .22485692962990014 and releases its native player when the image is
 selected during playback. Exact audible music restoration and the full ordinary
@@ -337,7 +337,7 @@ mode page-2 paging/zoom. Runtime reports `brochure-booklet-v1`, 88,018 triangles
 seven surfaces, fitted geometry SHA-256
 `dad3ec093c21eae29da3479f3e4b67d0e4345b105b31607344f998d917758566`,
 label/frame ready and no renderer error. Evidence is
-`D:/Temp/rshop-s25-booklet-20261018/native/fixed-booklet-*.png` and
+`D:/RShopPrivate/Evidence/rshop-s25-booklet-20261018/native/fixed-booklet-*.png` and
 `fixed-read-page2-down.png`. Native inspection caught and corrected the initial
 candidate's CW/CCW culling mismatch; its reversed-cover captures are not acceptance.
 This is a selected-game booklet check, not every manual's pages, controller
@@ -374,7 +374,7 @@ and Cartridge; all 19 available manuals rendered their booklet. Exact frame role
 match the reviewed import pack, including all 789 manual pages across the cohort.
 All 48 box/cartridge captures were visually inspected: correct game art, upright
 labels, fitted surfaces and matte housing. Evidence is
-`D:/Temp/rshop-s25-gba-collector-20261017/native-cohort-e657210/frames.jsonl`,
+`D:/RShopPrivate/Evidence/rshop-s25-gba-collector-20261017/native-cohort-e657210/frames.jsonl`,
 its individual PNGs and three inspection-only contact sheets. The installed APK
 hash matches the signed artifact:
 `1f06f000b40ff00a5bf6324f64fc40cbe67607ec6bfd35e954f9136ee4f72f14`.
@@ -411,7 +411,7 @@ On 2026-10-18, the ordinary installed signed app (`67d714b`) rendered Mega Man
 Zero 3's same-edition box faces, generic hinged display case and imported GBA
 cartridge with its real cartridge label on the lower display. Touch opening,
 rotation and zoom were exercised. Inspected evidence is under
-`D:/Temp/rshop-s25-gba-collector-20261017/native/`: `gba-resource-lower-down.png`,
+`D:/RShopPrivate/Evidence/rshop-s25-gba-collector-20261017/native/`: `gba-resource-lower-down.png`,
 `gba-case-touch-down.png`, `gba-case-open-rotated-down.png` and
 `gba-cartridge-down.png`. Native model events report decoded labels and completed
 GPU commands without renderer errors. This is one-game evidence, not all 24 games,

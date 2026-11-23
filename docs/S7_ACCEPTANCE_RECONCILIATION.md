@@ -2022,7 +2022,7 @@ rejected, current ScreenScraper-backed PSP entries now reaches the real IGDB
 adapter through the normal persistent worker: ten matched, two needsReview.
 Four accepted records meet the unchanged known community-vote floor; the cohort
 Top remains provisional. Private capture:
-`D:\Temp\rshop-standardized-cohort-20261006.json`. No individual corrections,
+`D:\RShopPrivate\Evidence\rshop-standardized-cohort-20261006.json`. No individual corrections,
 provider-ID guesses, invented score weights or owner ROM downloads were used.
 
 The same real twelve-entry cohort also passed ScreenScraper name lookup: all
@@ -2313,7 +2313,7 @@ The observed running audit Python peak working set was 33,107,968 bytes.
 
 Real invocation used the independently established N64 root and `.7z` extension,
 the existing cache helper plus the new retention helper, and exclusive output
-`D:\Temp\rshop-s7-n64-retention-review-20261006.jsonl`. It completed 322 exact
+`D:\RShopPrivate\Evidence\rshop-s7-n64-retention-review-20261006.jsonl`. It completed 322 exact
 paths / 3,267,753,332 bytes: 320 matching cached digests and canonical bindings,
 two preserved non-ROM files. Independent line-by-line reconciliation matched
 the terminal counts/bytes/game set and confirmed no removal authority. All 320
@@ -2536,7 +2536,7 @@ build was needed for this helper; javac/d8 were invoked with 256 MiB budgets.
 The real N64 comparison exited zero and every private journal row independently
 reconciles with its terminal summary: 320 stable .7z archives have matching
 cached size/MD5 (3,267,752,208 bytes); two non-ROM files (1,124 bytes) are preserved.
-The exclusive journal is D:\Temp\rshop-s7-n64-native-cache-audit-v2-20261006.jsonl.
+The exclusive journal is D:\RShopPrivate\Evidence\rshop-s7-n64-native-cache-audit-v2-20261006.jsonl.
 The first invocation incorrectly selected .zip for this .7z directory and
 therefore proved only preservation, not ROM comparison; that expendable journal
 is excluded from acceptance. The corrected invocation uses the independently

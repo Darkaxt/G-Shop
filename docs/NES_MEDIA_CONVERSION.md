@@ -84,7 +84,7 @@ service/FamicomBox and inspection references are available explicitly, without
 automatically assigning those physical editions to a ROM.
 
 Private census, per-file conversion/transfer receipts, reference photographs and
-renders remain under D:/Temp/gshop-nes-20261021/reports. Reusable authored sources
+renders remain under D:/RShopPrivate/Evidence/gshop-nes-20261021/reports. Reusable authored sources
 and runtime imports are intentionally retained alongside that report directory.
 The replacement activation verifies 401 supplied-model files and 623 corrected
 carton manifests while preserving every path/hash of the 1,203 previous imports.

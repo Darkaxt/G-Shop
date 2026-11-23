@@ -5,6 +5,16 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-11-23, private-evidence relocation (bookkeeping only, no scope change): the 24
+remaining `D:/Temp/rshop-*` / `D:/Temp/gshop-*` entries (curated G&W/GBA/NES model
+payloads, active S26 NES/scene-launch work, retained S7 inventories and reception
+evidence; ~8 GB) were moved unchanged, under their original names, to
+`D:/RShopPrivate/Evidence/`. References to those names in this ledger and the S7/S25/NES
+docs now point there. Every other `D:/Temp/rshop-*` path cited below was removed as
+disposable on 2026-11-23 (ledger:
+`E:/Codex/ContextTransfers/2026/2026-11-23-g-shop/Records/dtemp-cleanup/`). New private
+evidence belongs under `D:/RShopPrivate`, not `D:/Temp`. S26 remains ACTIVE.
+
 2026-10-29, SELECTOR-CAMERA-01, revision 184: **S26 ACTIVE** and sole active
 stage. The owner rejected the SNES connector hairpin and elevated camera after
 52's floor correction. The complete bounded correction now passes acceptance:
@@ -1387,7 +1397,7 @@ No final S26 release or completed collection coverage is claimed.
   accepted metadata, labels or boxes. Hack-specific animation remains postponed.
 
 Private device/event/package receipts and screenshots remain under the task's
-`D:/Temp/gshop-scene-launch-20261021/reports` evidence root. They are not public
+`D:/RShopPrivate/Evidence/gshop-scene-launch-20261021/reports` evidence root. They are not public
 repository assets or a published release. The native fixture is reproducible with
 the existing debug-only `rshopSharedMetadataProof=true` opt-in and Gradle target
 `integration_test/patch_chain_app.dart`; it refuses production/ordinary-debug
@@ -1873,7 +1883,7 @@ Exact cleanup is applied: Windows `a858056099a0a055ce153c4133fb3713`; Android
 unchanged, including the 1,203 original imports. Editable sources, reusable imports,
 reports, versioned release package, user downloads and permanent carton catalogue
 are retained. Thor is awake at HOME with no active G-Shop service. Evidence:
-`D:/Temp/gshop-nes-20261021/reports/nes-final-delivery.json` and
+`D:/RShopPrivate/Evidence/gshop-nes-20261021/reports/nes-final-delivery.json` and
 `nes-final-runtime-preservation.json`. No current ICON/NES blocker/deferral remains.
 Closure assessment identified no required consolidation for that bounded task.
 
@@ -1883,7 +1893,7 @@ bounded agent changed only `input_overlay_enable` to false after graceful exit;
 byte read-back confirms all other settings preserved. Main-agent normal G-Shop
 NES launch and actual running-game screenshot verify no touch controls; Thor
 returned HOME. Recovery and evidence remain in
-`D:/Temp/gshop-scene-launch-20261021/reports/core-overlays/`. This device-setting
+`D:/RShopPrivate/Evidence/gshop-scene-launch-20261021/reports/core-overlays/`. This device-setting
 correction needs no APK release and does not close S26 scene acceptance.
 
 Revision 145 lower framing is wired into collector views and G&W/NES/GBA browsing
@@ -2245,7 +2255,7 @@ entry is enabled only for NES while proving that vertical workflow; GBA/G&W reta
 their existing behavior until their same-stage adaptation. No S26 extension
 release has been published. The internal candidate is not native-accepted yet.
 Diagnostics and private source
-receipts are under `D:/Temp/gshop-scene-launch-20261021/reports/`.
+receipts are under `D:/RShopPrivate/Evidence/gshop-scene-launch-20261021/reports/`.
 
 S26 extension acceptance remaining: unified scene information/actions, direct
 launch with compatible stable random model choice, generation-correct startup,
@@ -2284,7 +2294,7 @@ app process initially absent and returns to waiting. Its pre-existing one
 pending/attention item is unchanged; no new uploaded-backup claim. Thor is returned
 to its original Asleep state with no active app service.
 
-Private receipts: D:/Temp/gshop-s26-20261021/reports/native-acceptance.json,
+Private receipts: D:/RShopPrivate/Evidence/gshop-s26-20261021/reports/native-acceptance.json,
 post-update-data-verification.json and public-delivery-verification.json.
 Renderer/GPU events and inspected pixels do not measure physical display timing.
 Closure design assessment: active Drive views remain separate from raw preserved
@@ -2309,7 +2319,7 @@ conditional categories and download eligibility. The original failing census and
 cancelled diagnostic run are not described as wholly green. Final focused evidence:
 drive-only-reconciled-host-final.log, drive-only-library-host-final.log (all callers
 except the separately repaired category fixture), and drive-only-categories-final.log
-in D:/Temp/gshop-s26-20261021/reports/. Passing unchanged census checks remain
+in D:/RShopPrivate/Evidence/gshop-s26-20261021/reports/. Passing unchanged census checks remain
 applicable; no second resource stress run is claimed. Analysis has zero Dart
 errors, three existing protected-rendering warnings and 179 style infos (exit 1).
 
@@ -2352,7 +2362,7 @@ checks pass; the explicit private live-packet fixture is skipped. Full analysis
 reports zero Dart errors, three existing protected-layer warnings and 165 style
 infos (exit 1), not a clean-analysis claim. Native compilation/device acceptance
 and full S26 release gates remain unsatisfied. Compatibility details are in
-S26_COMPATIBILITY.md; private logs are in D:/Temp/gshop-s26-20261021/reports/.
+S26_COMPATIBILITY.md; private logs are in D:/RShopPrivate/Evidence/gshop-s26-20261021/reports/.
 
 At that historical checkpoint, no implementation stage was ACTIVE while the answer was pending.
 Wider S25 remains BLOCKED under the owner's sequencing hold. Its missing criteria
@@ -2680,7 +2690,7 @@ source transmission/IOR preservation. Analysis has no remaining issue in changed
 files. The actual 53 archive hashes remain unchanged. There are now display
 models for all 51 distinct labels (52/53 archives); CN-17 Helmet Rev 1 remains
 unprovided. Shared program CRCs are documented without claiming unique housing.
-Private evidence: `D:/Temp/rshop-s25-gw-coverage-20261020/reports/`.
+Private evidence: `D:/RShopPrivate/Evidence/rshop-s25-gw-coverage-20261020/reports/`.
 Remaining acceptance is signed Thor native inspection and normal verified 1.9.24
 delivery. All new data is staged/hash-verified on Thor; the existing live catalogue
 is retained until the candidate app is installed.
@@ -2716,7 +2726,7 @@ Public/candidate/installed Thor APK SHA-256 are identical:
 Final reconciliation has no batch blocker or tracked deferral. Refactoring
 assessment: one explicit catalogue and existing per-model renderer retain clear
 state ownership; no material scope-related debt or consolidation is required.
-Evidence/import instructions: `D:/Temp/rshop-s25-gw-variants-20261020/reports/`.
+Evidence/import instructions: `D:/RShopPrivate/Evidence/rshop-s25-gw-variants-20261020/reports/`.
 Wider S25 remains ACTIVE, S26 NOT STARTED. Box flap opening is delivered; full
 handheld extraction remains under the existing wider S25 criteria/review boundary.
 
@@ -2739,7 +2749,7 @@ remain animated, with immediate Reduced Motion endpoints. Focused resource,
 controller, library state/selection and GBA compatibility checks pass. Analysis
 has no errors/warnings; only eleven pre-existing ResourceGallery style infos.
 The exact revision-aware private census is retained outside Git at
-`D:/Temp/rshop-s25-gw-update-20261020/reports/collection-coverage.json`.
+`D:/RShopPrivate/Evidence/rshop-s25-gw-update-20261020/reports/collection-coverage.json`.
 All 150 changed/new files verify at Thor's actual model paths. Earlier corrected
 DK II/Mario imports are unchanged; exact Fire/SMB predecessors are retained in
 the named device model-history location for rollback. Signed source `a799e77`
@@ -2981,7 +2991,7 @@ Unrelated/unsubstantiated matches are rejected. The normal composite path and
 metadata serializer retain source/reference hashes and the actual transform.
 Sapphire's one-edition update contains only `box-2D` and `outer-box-front`, both
 bound to the same derived PNG; other faces, booklet and cartridge are unchanged.
-Both originals are preserved in `D:/Temp/rshop-s25-colour-cast-20261019`.
+Both originals are preserved in `D:/RShopPrivate/Evidence/rshop-s25-colour-cast-20261019`.
 Focused collector/model/metadata checks pass. Signed source `e881651`, GitHub run
 39324488584, completed successfully and was installed in place on Thor. Downloaded
 and installed APK SHA-256 is
@@ -2997,7 +3007,7 @@ and the global RGB matrix. Originals remain unchanged; no new provider requests.
 The upper shelf and lower final carton are blue, not the previous purple scan.
 Native logs reach resources-ready at 1.421s and completed tableau at 12.964s
 from selection; these are application milestones, not physical presentation times.
-Recording evidence is under `D:/Temp/rshop-s25-colour-cast-20261019`.
+Recording evidence is under `D:/RShopPrivate/Evidence/rshop-s25-colour-cast-20261019`.
 Its raw H.264 was remuxed with an estimated 60-fps timeline, not measured timing.
 The inspected handoff also exposes a brief model-free gap (decoded frames
 155–159); colour continuity does not establish seamless handoff acceptance.
@@ -3518,7 +3528,7 @@ The owner correctly rejected the endpoint's 35-degree lean as not lying flat.
 Revision 95 now requires a shallow semicircle, shared horizontal resting plane,
 inward angles and elevated overview. This correction passes focused geometry,
 projected-fit, gesture and analyzer checks; native verification remains pending.
-Evidence: `D:/Temp/rshop-s25-correction-20261018/sapphire-right-tableau-analysis`
+Evidence: `D:/RShopPrivate/Evidence/rshop-s25-correction-20261018/sapphire-right-tableau-analysis`
 (104 exported frames, no evidence truncation; raw-video timeline is estimated),
 and `native/tableau-booklet-focus-down.png` / `tableau-booklet-reader-down.png`.
 
@@ -3789,7 +3799,7 @@ saved preview volume .22485692962990014. Switching from a playing trailer to the
 image produced native `playerReleased=true`. Audible music restoration and the
 full controller path are not claimed verified by this touch pass. This is not a
 new full-24-game model pass or acceptance of the unavailable supplied booklet.
-Evidence: `D:/Temp/rshop-s25-gallery-panels-20261018/native/` and the reviewed
+Evidence: `D:/RShopPrivate/Evidence/rshop-s25-gallery-panels-20261018/native/` and the reviewed
 panel pack/recipes in its parent. Source scans and the host pack are preserved.
 Exact reviewed device staging cleanup removed the 38,395,863-byte imported ZIP
 and its empty task folder (transaction `40290dc99d1553f46e437419239a5b5e`, applied).
@@ -3892,7 +3902,7 @@ measured process-wide memory cap.
 The actual offline 24-game ranked explorer pass completed with distinct identities
 and ranks 1–24: 24 box, 24 case, 24 cartridge and 19 available manual model frames.
 All 48 box/cartridge captures were visually inspected in the three contact sheets
-under `D:/Temp/rshop-s25-gba-collector-20261017/native-cohort-e657210`.
+under `D:/RShopPrivate/Evidence/rshop-s25-gba-collector-20261017/native-cohort-e657210`.
 Faces/labels are upright, game-specific and fitted; the housing is matte, not
 metallic. This verifies the gallery-admission correction, including LeafGreen,
 without replacing the ranked cohort or claiming an authentic acquired protector.
@@ -12116,7 +12126,7 @@ shared cache/build tree or user file was removed.
   was absent or unreadable. The journal correctly fails self-comparison: terminal
   recording does not certify stable coverage. Private/custom paths and unknown
   SD sidecars remain unverified and protected. No emulator was stopped.
-  Retained evidence: `D:\Temp\rshop-s7-protected-baseline-20261006\private\protected.jsonl`.
+  Retained evidence: `D:\RShopPrivate\Evidence\rshop-s7-protected-baseline-20261006\private\protected.jsonl`.
 - Focused baseline and existing migration-audit checks passed serially. A scope
   redirect regression failed before its fix. Fresh ScreenScraper/IGDB adapter
   and persistent-worker checks revalidated approved regional confidence,
@@ -12866,7 +12876,7 @@ shared cache/build tree or user file was removed.
   configured one/512 MiB (none ran during assemble); native task pools are one,
   not a measured total-host cap. No memory failure/increase. Evidence log:
   `D:\Temp\rshop-s7-standardized-build193-20261006.log`; bounded private cohort:
-  `D:\Temp\rshop-standardized-cohort-20261006.json`.
+  `D:\RShopPrivate\Evidence\rshop-standardized-cohort-20261006.json`.
   Six exact task-only host diagnostics/compiler/UI outputs were transactionally
   removed (30,211 bytes), together with three task-only device probe/capture
   copies. Current APK/log and the private cohort remain. A final auxiliary
@@ -13175,7 +13185,7 @@ shared cache/build tree or user file was removed.
   bytes), plus two preserved non-ROM files (1,124 bytes). The first .zip-selected
   invocation was a configuration mistake on a .7z directory, not comparison
   proof; it is excluded. The correct private journal is
-  `D:\Temp\rshop-s7-n64-native-cache-audit-v2-20261006.jsonl`. Every disposition is
+  `D:\RShopPrivate\Evidence\rshop-s7-n64-native-cache-audit-v2-20261006.jsonl`. Every disposition is
   preserve and removalAuthorized=false. This is not current recovery authority.
 - Focused host contracts, including the shipped SQL and bounds, passed. The
   helper was compiled with javac/d8 using requested 256 MiB budgets, pushed and
@@ -13230,7 +13240,7 @@ shared cache/build tree or user file was removed.
   summary: 722,865,729,304 bytes, all preserved. The 15,053 extension-classified
   artifacts include bundle tracks; 911 other files are preserved. No cloud copy,
   hash, canonical-game ownership or removal authority is inferred. The private
-  journal is `D:\Temp\rshop-s7-full-sd-inventory-v2-20261006.jsonl`.
+  journal is `D:\RShopPrivate\Evidence\rshop-s7-full-sd-inventory-v2-20261006.jsonl`.
 - Android's oversized `find -exec ... +` failure is fixed with count/UTF-8-byte
   bounded stat batches and exact response verification. Focused host contracts
   pass, including long quoted/Unicode paths, missing responses and preservation
@@ -13271,9 +13281,9 @@ shared cache/build tree or user file was removed.
   45,166,984,325 bytes, one non-ROM). All 281 observations are stable and preserved;
   the terminal summaries, absent digests and empty cloud candidates were inspected.
   Journals are
-  `D:\Temp\rshop-s7-psp-inventory-20261006.jsonl` and
-  `D:\Temp\rshop-s7-psx-inventory-20261006.jsonl` and
-  `D:\Temp\rshop-s7-ps2-inventory-20261006.jsonl`, retained for exact later
+  `D:\RShopPrivate\Evidence\rshop-s7-psp-inventory-20261006.jsonl` and
+  `D:\RShopPrivate\Evidence\rshop-s7-psx-inventory-20261006.jsonl` and
+  `D:\RShopPrivate\Evidence\rshop-s7-ps2-inventory-20261006.jsonl`, retained for exact later
   revalidation, never published. Every disposition is preserve; no checksum,
   canonical ownership, live cloud recovery or deletion proof is inferred.
 - No Gradle build, APK installation, account creation, cloud mutation, ROM/save
@@ -15427,7 +15437,7 @@ ledger. Failed attempts remain failed; later verification is identified explicit
   unrated and did not borrow Chrono Trigger. The query reported 3 collection
   games, 1 ranked, 1 Top match and provisional coverage. This is actual provider
   and host SQLite proof, not target UI/device proof. The public diagnostic logs
-  are retained under `D:\Temp\rshop-reception-20261003` as required evidence.
+  are retained under `D:\RShopPrivate\Evidence\rshop-reception-20261003` as required evidence.
 - Transactional cleanup inspected the signed manifest for only regenerated
   `build/unit_test_assets` and `build/test_cache`; ticket application reached
   `applied`, deleting 56,982,037 bytes with no warnings or errors. These outputs
