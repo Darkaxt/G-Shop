@@ -73,7 +73,7 @@ class SystemTypeFilter extends StatelessWidget {
                           key: ValueKey('type-${type?.name ?? 'All'}'),
                           onPressed: () => onSelected(type),
                           icon: Icon(type?.icon ?? Icons.apps, size: 18),
-                          label: Text(type?.label ?? 'All'),
+                          label: Text(type?.label ?? 'All types'),
                           style: TextButton.styleFrom(
                               foregroundColor: Colors.white,
                               backgroundColor: selected == type
@@ -130,7 +130,7 @@ class _ManufacturerFilterState extends State<ManufacturerFilter> {
               ? const Row(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.apps, size: 20),
                   SizedBox(width: 6),
-                  Text('All')
+                  Text('All brands')
                 ])
               : Image.asset(
                   'assets/brand_logos/${manufacturerLogos[brand]}.png',

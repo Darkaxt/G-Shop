@@ -228,9 +228,12 @@ class _DownloadBadgeState extends ConsumerState<_DownloadBadge>
 
     final badgeSize = rs.isSmall ? 52.0 : 60.0;
 
+    // Bottom-left: the top-left corner holds every screen's back arrow, title,
+    // first filter chip and first settings tab, which a persistent failed/paused
+    // badge would otherwise cover. Control hints live bottom-right.
     return Positioned(
       left: rs.spacing.lg,
-      top: rs.safeAreaTop + rs.spacing.md,
+      bottom: rs.safeAreaBottom + rs.spacing.md,
       child: Semantics(
         key: const ValueKey('download-queue-badge'),
         button: true,

@@ -237,6 +237,15 @@ void main() {
     });
   }
 
+  _overlayTest('persistent badge sits bottom-left, clear of top-left controls',
+      (tester) async {
+    await _pumpOverlay(tester,
+        _OverlayQueue([_item('failed', DownloadStatus.error)]));
+    final badge = tester.getRect(find.byKey(const ValueKey('download-queue-badge')));
+    expect(badge.left, lessThan(200));
+    expect(badge.top, greaterThan(1000 / 2));
+  });
+
   _overlayTest('opening badge reveals paused and auth rows with working Resume',
       (tester) async {
     final queue = _OverlayQueue([

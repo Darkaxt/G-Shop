@@ -214,6 +214,9 @@ void main() {
           .systems
           .map((s) => s.id)
           .toList();
+      expect(find.text('All brands'), findsOneWidget);
+      expect(find.text('All types'), findsOneWidget);
+      expect(find.text('All'), findsNothing);
       await select('brand-Nintendo');
       expect(ids(), ['nes', 'gb', 'snes', 'gba', 'switch']);
       await select('type-handheld');
