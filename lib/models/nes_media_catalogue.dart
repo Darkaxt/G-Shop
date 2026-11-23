@@ -38,7 +38,7 @@ class NesMediaCatalogue {
         data['system'] != 'nes' ||
         data['editions'] is! List ||
         data['bindings'] is! Map ||
-        (data['editions'] as List).length > 1024 ||
+        (data['editions'] as List).length > 20000 ||
         (data['bindings'] as Map).length > 20000) {
       throw const FormatException('Invalid NES reference catalogue');
     }

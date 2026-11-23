@@ -22,6 +22,27 @@ void main() {
     expect(catalogue.forArchive('Zelda (USA) [Hack].7z'), isEmpty);
     expect(catalogue.forArchive('../Zelda (USA).7z'), isEmpty);
   });
+  test('full collection accepts more than 1024 preserved regional editions', () {
+    final data = fixture();
+    final editions = [
+      for (var i = 0; i < 10000; i++)
+        {
+          'id': 'nes-${i.toRadixString(16).padLeft(12, '0')}',
+          'label': 'Printing $i',
+          'manifestSha256': 'a' * 64
+        }
+    ];
+    data['editions'] = editions;
+    data['bindings'] = {
+      'Fixture (USA).7z': [editions.last['id']]
+    };
+    final catalogue = NesMediaCatalogue.parse(data);
+    expect(catalogue.editions, hasLength(10000));
+    expect(catalogue.forArchive('Fixture (USA).7z').single.id,
+        editions.last['id']);
+    data['editions'] = [...editions, ...editions, editions.first];
+    expect(() => NesMediaCatalogue.parse(data), throwsFormatException);
+  });
   test('catalogue rejects ambiguous paths, duplicates and missing receipts',
       () {
     for (final broken in [

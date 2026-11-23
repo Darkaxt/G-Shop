@@ -151,7 +151,11 @@ final class OwnedN64SevenZip {
         int seen = 0;
         while (r.peek() != 0) {
             int kind = r.byteValue(); require(kind >= 0x0e && kind <= 0x19);
-            int mask = 1 << kind; require((seen & mask) == 0); seen |= mask;
+            // 7-Zip emits kDummy before independently aligned fields, so it
+            // may repeat. All actual file properties must remain unique.
+            // https://github.com/ip7z/7zip/blob/main/CPP/7zip/Archive/7z/7zOut.cpp
+            int mask = 1 << kind;
+            if (kind != 0x19) { require((seen & mask) == 0); seen |= mask; }
             Reader property = new Reader(r.bytes(r.bounded(HEADER_LIMIT)));
             switch (kind) {
                 case 0x11:

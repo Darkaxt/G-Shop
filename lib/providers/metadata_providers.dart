@@ -510,7 +510,9 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
         }
         final job = await _jobs.create(
             providerId: 'screenscraper',
-            collectionGeneration: 'desktop-evidence-import',
+            collectionGeneration: importer.reuseProviderResponse
+                ? 'desktop-provider-import'
+                : 'desktop-evidence-import',
             editionIds: importer.archiveEditionIds);
         _set(state.copyWith(
             providerId: 'screenscraper',
@@ -678,10 +680,12 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
           ? await _artworkCache
           : null;
       if (_closed || _pauseRequested) return;
-      final resources = (await _jobs.report(id)).kind == 'artwork';
+      final snapshot = await _jobs.report(id);
+      final resources = snapshot.kind == 'artwork';
       final result = await _jobs.run(id, provider,
           artworkCache: cache,
-          recheckAccess: provider is MetadataAccessProvider,
+          recheckAccess: provider is MetadataAccessProvider &&
+              snapshot.collectionGeneration != 'desktop-provider-import',
           onProgress: (report) => _set(state.copyWith(report: report)));
       _set(state.copyWith(report: result));
       if (!resources &&

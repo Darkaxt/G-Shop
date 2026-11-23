@@ -307,9 +307,11 @@ class ImportedArtworkReference {
             (sourceLanguages.isEmpty ||
                 sourceLanguages
                     .any((l) => !RegExp(r'^[a-z]{2,3}$').hasMatch(l))) ||
+        // A reviewed composite may use a custom donor of unknown origin.
+        // Its target media region does not establish the donor's printing region.
         reconstruction != null &&
-            (sourceRegion == null ||
-                !{'regionalPackaging', 'composite'}.contains(reconstruction)) ||
+            (!{'regionalPackaging', 'composite'}.contains(reconstruction) ||
+                reconstruction == 'regionalPackaging' && sourceRegion == null) ||
         !{'launchbox', 'nintandbox', 'screenscraper'}.contains(sourceId) ||
         assetId.isEmpty ||
         assetId.length > 1024 ||

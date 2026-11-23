@@ -12,8 +12,17 @@ def physical_resource_family(platform, display_path):
     folders={re.sub(r'[^a-z0-9]','',part.casefold())
         for part in display_path.replace('\\','/').split('/')[:-1]}
     if platform=='nes' and 'disksystem' in folders:return 'disk-system'
-    if platform=='gba' and 'ereader' in folders:return 'e-reader-card'
+    if platform=='nes' and 'networksystem' in folders:return 'famicom-network-system'
+    if platform=='nes' and 'familybasictapes' in folders:return 'famicom-data-recorder-tape'
+    if platform=='gba' and 'ereader' in folders:
+        # These archives contain collections of saved reader memory, not cards
+        # or standalone cartridge programs. Keep their required resources distinct.
+        leaf=display_path.replace('\\','/').split('/')[-1]
+        return 'e-reader-memory-dumps' if leaf.casefold().startswith('memory dumps - ') else 'e-reader-card'
     if platform=='gba' and 'multiboot' in folders:return 'multiboot'
+    if platform=='gba' and 'playyan' in folders:return 'play-yan-data'
+    if platform=='gba' and display_path.replace('\\','/').split('/')[-1].startswith('[BIOS]'):
+        return 'system-firmware'
     return 'cartridge' if platform in {'nes','gba'} else None
 
 
@@ -65,17 +74,17 @@ def prepare(cohort, artifacts, roots):
                  {'driveHeader', 'driveLocalArchive'}) or
                 (e.get('source') == 'manual' and e.get('kind') == 'contentClassification'
                  and 'unknown' in tags) for e in evidence)
-            relative = paths[0].relative_to(root).parts
-            disk_system = platform == 'nes' and relative[0].casefold() == 'disk system'
-            allow = (not restricted and not disk_system and tags <= {'unknown', 'official'} and
+            family=physical_resource_family(platform,display_path or str(paths[0]))
+            separate_nes_media=family in {'disk-system','famicom-network-system','famicom-data-recorder-tape'}
+            allow = (not restricted and not separate_nes_media and tags <= {'unknown', 'official'} and
                      not conflicting_evidence and
                      not request.get('baseProviderGameId') and not row['edition'].get('patchId') and
                      not row['edition'].get('isTranslation') and not row['edition'].get('translatedLanguages'))
             items.append({'request': request, 'archive': {'path': str(paths[0].absolute()),
                           'artifact': artifact}, 'allowRawBinding': allow,
-                          'physicalResourceFamily':physical_resource_family(platform,display_path or str(paths[0])),
-                          **({'rawBindingHoldReason': 'disk-system-media-in-nes-folder'}
-                             if disk_system else {})})
+                          'physicalResourceFamily':family,
+                          **({'rawBindingHoldReason': family+'-media-in-nes-folder'}
+                             if separate_nes_media else {})})
     return {'version': 1, 'items': items}, gaps
 
 

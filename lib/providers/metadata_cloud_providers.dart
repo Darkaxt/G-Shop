@@ -110,13 +110,23 @@ class MetadataCloudState {
   final bool enabled, busy;
   final String? sourceId, message;
   final int budgetBytes, cachedBytes;
+  final int? publicationCompleted, publicationTotal;
   const MetadataCloudState(
       {this.enabled = false,
       this.busy = false,
       this.sourceId,
       this.message,
+      this.publicationCompleted,
+      this.publicationTotal,
       this.budgetBytes = MetadataCloudLibrary.defaultBudgetBytes,
       this.cachedBytes = 0});
+
+  double? get publicationFraction =>
+      publicationCompleted == null || publicationTotal == null
+          ? null
+          : publicationTotal == 0
+              ? 0
+              : publicationCompleted! / publicationTotal!;
 }
 
 /// One foreground owner: startup recovery, scrape publication and cache fills
@@ -132,13 +142,19 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
   MetadataCloudController(this.ref) : super(const MetadataCloudState()) {
     unawaited(ready);
   }
-  void _state({bool? busy, String? message}) {
+  void _state(
+      {bool? busy,
+      String? message,
+      int? publicationCompleted,
+      int? publicationTotal}) {
     if (_disposed) return;
     state = MetadataCloudState(
         enabled: _settings['enabled'] == true,
         busy: busy ?? state.busy,
         sourceId: _settings['source'] as String?,
         message: message,
+        publicationCompleted: publicationCompleted,
+        publicationTotal: publicationTotal,
         budgetBytes: (_settings['budget'] as int?) ??
             MetadataCloudLibrary.defaultBudgetBytes,
         cachedBytes: state.cachedBytes);
@@ -227,7 +243,10 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
         progress: (completed, total) {
           _state(
               busy: true,
-              message: 'Backing up metadata: $completed/$total games');
+              publicationCompleted: completed,
+              publicationTotal: total,
+              message: 'Backing up metadata: $completed/$total games'
+                  '${total > 0 ? ' · ${completed * 100 ~/ total}% · ${total - completed} remaining' : ' · No games to back up'}');
           if (completed == 0 || completed == total || completed % 100 == 0)
             debugPrint('Metadata cloud publication: games=$completed/$total');
         },
@@ -381,6 +400,8 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
           sourceId: _settings['source'] as String?,
           busy: state.busy,
           message: state.message,
+          publicationCompleted: state.publicationCompleted,
+          publicationTotal: state.publicationTotal,
           budgetBytes: (_settings['budget'] as int?) ??
               MetadataCloudLibrary.defaultBudgetBytes,
           cachedBytes: bytes);

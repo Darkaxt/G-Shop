@@ -15,6 +15,7 @@ import 'package:g_shop/features/settings/metadata_settings_screen.dart';
 import 'package:g_shop/l10n/app_localizations.dart';
 import 'package:g_shop/providers/app_providers.dart';
 import 'package:g_shop/providers/metadata_providers.dart';
+import 'package:g_shop/providers/metadata_cloud_providers.dart';
 import 'package:g_shop/providers/library_providers.dart';
 import 'package:g_shop/services/metadata/metadata_credentials.dart';
 import 'package:g_shop/services/library_query.dart';
@@ -26,6 +27,11 @@ import 'package:g_shop/widgets/media_cover_fallback.dart';
 import '../metadata_controls_test.dart'
     show controlsDatabase, MemorySecrets, ControlsProvider;
 import '../helpers/pump_helpers.dart';
+
+class _PublicationProgressCloud extends MetadataCloudController {
+  _PublicationProgressCloud(super.ref);
+  void show(MetadataCloudState value) => state = value;
+}
 
 class _SavedPageControls extends MetadataControlsController {
   Future<List<MetadataRefreshReport>>? lastPage;
@@ -41,6 +47,89 @@ class _SavedPageControls extends MetadataControlsController {
 }
 
 void main() {
+  testWidgets(
+      'Drive publication uses its known snapshot instead of an infinite bar',
+      (tester) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    final db = (await tester.runAsync(controlsDatabase))!;
+    final storage = StorageService();
+    await storage.init();
+    final controls = (await tester.runAsync(() async {
+      final controls = MetadataControlsController(
+          database: Future.value(db),
+          providers: {
+            'screenscraper': ControlsProvider(),
+            'igdb': ControlsProvider('igdb')
+          },
+          screenScraperCredentials:
+              ScreenScraperCredentialStore(storage: MemorySecrets()),
+          igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+          catalogueChanged: () {});
+      await controls.load();
+      return controls;
+    }))!;
+    final container = ProviderContainer(overrides: [
+      storageServiceProvider.overrideWithValue(storage),
+      metadataControlsProvider.overrideWith((_) => controls),
+      metadataCloudProvider.overrideWith(_PublicationProgressCloud.new),
+    ]);
+    final cloud = (await tester.runAsync(() async {
+      final cloud = container.read(metadataCloudProvider.notifier)
+          as _PublicationProgressCloud;
+      await cloud.ready;
+      return cloud;
+    }))!;
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox());
+      container.dispose();
+      await tester.runAsync(() async {
+        await controls.close();
+        await db.close();
+      });
+    });
+    await tester.pumpWidget(UncontrolledProviderScope(
+        container: container,
+        child: createTestApp(const MetadataSettingsScreen())));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('metadata-nav-storage')));
+    await tester.pumpAndSettle();
+    for (final completed in [0, 2121, 2382]) {
+      cloud.show(MetadataCloudState(
+          enabled: true,
+          busy: true,
+          publicationCompleted: completed,
+          publicationTotal: 2382));
+      await tester.pump();
+      final bar = tester.widget<LinearProgressIndicator>(
+          find.byType(LinearProgressIndicator));
+      expect(bar.value, completed / 2382);
+    }
+    cloud.show(const MetadataCloudState(
+        enabled: true,
+        busy: true,
+        publicationCompleted: 0,
+        publicationTotal: 0));
+    await tester.pump();
+    expect(
+        tester
+            .widget<LinearProgressIndicator>(
+                find.byType(LinearProgressIndicator))
+            .value,
+        0);
+    cloud.show(const MetadataCloudState(enabled: true, busy: true));
+    await tester.pump();
+    expect(
+        tester
+            .widget<LinearProgressIndicator>(
+                find.byType(LinearProgressIndicator))
+            .value,
+        isNull);
+  });
   testWidgets(
       'Advanced cover entry opens ScreenScraper collector without starting',
       (tester) async {

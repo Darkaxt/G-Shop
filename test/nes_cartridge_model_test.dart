@@ -16,7 +16,14 @@ void main() {
       'FamicomBox',
       'Evercade',
       'Capcom Town',
-      'Toaplan Arcade Garage'
+      'Toaplan Arcade Garage',
+      'Animal Crossing',
+      'Possible Proto',
+      'Sample',
+      'Limited Run Games',
+      'Kiosk',
+      'Test Program',
+      'Star Fox - Assault'
     ]) {
       expect(
           NesCartridgeModel.referencesFor('Super Mario Bros. (USA) ($tag).7z'),

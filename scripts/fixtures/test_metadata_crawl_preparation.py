@@ -13,7 +13,12 @@ class PreparationTest(unittest.TestCase):
     def test_program_matching_does_not_establish_a_cartridge_for_other_source_media(self):
         self.assertEqual(physical_resource_family('gba','GBA/Multiboot/Animal Crossing - Excitebike.7z'),'multiboot')
         self.assertEqual(physical_resource_family('gba','GBA/e-Reader/Card.7z'),'e-reader-card')
+        self.assertEqual(physical_resource_family('gba','GBA/e-Reader/Memory Dumps - NES-e (USA).7z'),'e-reader-memory-dumps')
+        self.assertEqual(physical_resource_family('gba','GBA/Play-Yan/[BIOS] Play-Yan Micro Key File (Japan).7z'),'play-yan-data')
+        self.assertEqual(physical_resource_family('gba','GBA/[BIOS] Nintendo Game Boy Advance - Game Boy Color Mode Boot ROM (World).7z'),'system-firmware')
         self.assertEqual(physical_resource_family('nes','NES/Disk System/Game.7z'),'disk-system')
+        self.assertEqual(physical_resource_family('nes','NES/Network System/JRA-PAT.7z'),'famicom-network-system')
+        self.assertEqual(physical_resource_family('nes','NES/Family BASIC (Tapes)/Sample.7z'),'famicom-data-recorder-tape')
         self.assertEqual(physical_resource_family('gba','GBA/Excitebike.7z'),'cartridge')
         self.assertIsNone(physical_resource_family('gba',None))
     def sample(self, filename='Game.7z'):
@@ -64,18 +69,23 @@ class PreparationTest(unittest.TestCase):
                 self.assertEqual(manifest['items'], [])
                 self.assertEqual(gaps[0]['pathCandidates'], 0)
 
-    def test_disk_system_subfolder_does_not_acquire_nes_cartridge_binding(self):
-        row, artifact = self.sample()
-        row['lookup']['request']['platformId'] = 'nes'
-        artifact['displayPath'] = 'fixtures/Disk System/Game.7z'
-        answer = subprocess.CompletedProcess([], 0,
-            stdout='E:/fixtures/Disk System/Game.7z')
-        with patch('prepare_metadata_crawl.subprocess.run', return_value=answer):
-            manifest, gaps = prepare({'nes': [row]}, [artifact], {'nes': Path('E:/fixtures')})
-        self.assertEqual(gaps, [])
-        self.assertFalse(manifest['items'][0]['allowRawBinding'])
-        self.assertEqual(manifest['items'][0]['rawBindingHoldReason'],
-                         'disk-system-media-in-nes-folder')
+    def test_separate_nes_media_do_not_acquire_cartridge_binding(self):
+        for folder,family in [('Disk System','disk-system'),
+                              ('Network System','famicom-network-system'),
+                              ('Family BASIC (Tapes)','famicom-data-recorder-tape')]:
+            with self.subTest(folder=folder):
+                row, artifact = self.sample()
+                row['lookup']['request']['platformId'] = 'nes'
+                artifact['displayPath'] = f'fixtures/{folder}/Game.7z'
+                answer = subprocess.CompletedProcess([], 0,
+                    stdout=f'E:/fixtures/{folder}/Game.7z')
+                with patch('prepare_metadata_crawl.subprocess.run', return_value=answer):
+                    manifest, gaps = prepare({'nes': [row]}, [artifact], {'nes': Path('E:/fixtures')})
+                self.assertEqual(gaps, [])
+                self.assertFalse(manifest['items'][0]['allowRawBinding'])
+                self.assertEqual(manifest['items'][0]['physicalResourceFamily'],family)
+                self.assertEqual(manifest['items'][0]['rawBindingHoldReason'],
+                                 family+'-media-in-nes-folder')
 
     def test_prototype_and_manual_unknown_do_not_acquire_official_assertions(self):
         row, artifact = self.sample('Game (Proto 1).7z')

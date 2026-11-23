@@ -276,7 +276,10 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
       Text(state.message ??
           'Keep artwork in Drive, with a small local cache. Text and ratings stay offline.'),
       const SizedBox(height: 12),
-      if (state.busy) const LinearProgressIndicator(),
+      if (state.busy)
+        LinearProgressIndicator(
+            key: const ValueKey('metadata-cloud-progress'),
+            value: state.publicationFraction),
       if (!state.enabled)
         for (final source in sources)
           _button(

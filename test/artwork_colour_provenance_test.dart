@@ -26,6 +26,21 @@ void main() {
     final value = corrected();
     expect(ImportedArtworkReference.fromJson(value).toJson(), value);
   });
+  test('composite donor provenance preserves an unknown printing region', () {
+    final value = corrected()..remove('colourCorrection');
+    value['reconstruction'] = 'composite';
+    final media = MetadataMedia.fromJson({
+      'type': 'outer-box-left',
+      'region': 'us',
+      'importReference': value,
+    });
+    expect(media.region, 'us');
+    expect(media.importReference!.sourceRegion, isNull);
+    expect(media.importReference!.toJson(), value);
+    expect(() => ImportedArtworkReference.fromJson({
+      ...value, 'reconstruction': 'regionalPackaging',
+    }), throwsFormatException);
+  });
   test('nonfinite or malformed colour transforms cannot enter metadata', () {
     for (final matrix in [
       [

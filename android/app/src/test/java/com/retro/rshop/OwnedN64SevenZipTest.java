@@ -382,13 +382,21 @@ public class OwnedN64SevenZipTest {
     private static byte[] archive(String name, byte[] raw, int codec, boolean encoded,
                                   long declared, int dictionary, int count, boolean substreamCrc,
                                   boolean endMarker) throws Exception {
+        return archive(name, raw, codec, encoded, declared, dictionary, count,
+                substreamCrc, endMarker, new byte[0], new byte[0]);
+    }
+    private static byte[] archive(String name, byte[] raw, int codec, boolean encoded,
+                                  long declared, int dictionary, int count, boolean substreamCrc,
+                                  boolean endMarker, byte[] beforeName, byte[] afterName) throws Exception {
         byte[] compressed = packed(raw, codec, endMarker);
         ByteArrayOutputStream header = new ByteArrayOutputStream();
         header.write(1); header.write(4);
         streams(header, 0, compressed, raw, codec, declared, dictionary, substreamCrc);
         header.write(5); number(header, count);
+        header.write(beforeName);
         byte[] filename = (name + "\0").getBytes(StandardCharsets.UTF_16LE);
         header.write(0x11); number(header, filename.length + 1); header.write(0); header.write(filename);
+        header.write(afterName);
         header.write(0x15); number(header, 6); header.write(1); header.write(0); fixed(header, 0x20, 4);
         header.write(0); header.write(0);
         byte[] plain = header.toByteArray(), next = plain, encodedBytes = new byte[0];
@@ -422,6 +430,24 @@ public class OwnedN64SevenZipTest {
     @Test public void copyLzmaAndLzma2WithPlainAndEncodedHeadersPreserveBytes() throws Exception {
         for (int codec = 0; codec < 3; codec++) for (boolean encoded : new boolean[]{false, true}) {
             validate(archive("Game (USA).z64", codec, encoded), false);
+        }
+    }
+    @Test public void repeatedZeroDummyPropertiesAlignIndependentFileFields() throws Exception {
+        for (int codec = 0; codec < 3; codec++) for (boolean encoded : new boolean[]{false, true}) {
+            validate(archive("Game.z64", rom(), codec, encoded, rom().length,
+                    codec == 2 ? 0 : 4096, 1, false, false,
+                    new byte[]{0x19, 1, 0}, new byte[]{0x19, 2, 0, 0}), false);
+        }
+    }
+    @Test public void repeatedPaddingDoesNotPermitDuplicateNamesAttributesOrNonzeroBytes() throws Exception {
+        ByteArrayOutputStream name = new ByteArrayOutputStream();
+        byte[] filename = "Other.z64\0".getBytes(StandardCharsets.UTF_16LE);
+        name.write(0x11); number(name, filename.length + 1); name.write(0); name.write(filename);
+        for (byte[] afterName : new byte[][]{name.toByteArray(),
+                new byte[]{0x15, 6, 1, 0, 0x20, 0, 0, 0},
+                new byte[]{0x19, 1, 1}}) {
+            reject(archive("Game.z64", rom(), 0, false, rom().length, 0,
+                    1, false, false, new byte[]{0x19, 1, 0}, afterName), false);
         }
     }
     @Test public void singleRomSizeMarkerAndSubstreamCrcMatchRealSevenZipLayout() throws Exception {

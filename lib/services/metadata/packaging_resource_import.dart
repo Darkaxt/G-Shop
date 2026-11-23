@@ -20,6 +20,7 @@ class PackagingResourceImport {
   final MetadataArtworkCache cache;
   final SharedMetadataStore shared;
   List<String> archiveEditionIds = const [];
+  bool reuseProviderResponse = false;
   PackagingResourceImport(this.database, this.cache, this.shared);
   static const roles = {
     'box-2D',
@@ -96,6 +97,7 @@ class PackagingResourceImport {
       throw const FormatException('Invalid artwork pack scope');
     final db = await database;
     if (manifest['kind'] == 'desktopArchiveEvidence') {
+      reuseProviderResponse = manifest['reuseProviderResponse'] == true;
       archiveEditionIds = await _importDesktop(manifest, members, read, db);
       return archiveEditionIds.length;
     }
@@ -222,6 +224,7 @@ class PackagingResourceImport {
       String platform,
       RemoteArtifact artifact,
       Map observation,
+      Map? lookup,
       List<MetadataMedia> media,
       Map<String, String> digests
     })>[];
@@ -265,7 +268,34 @@ class PackagingResourceImport {
             'Desktop evidence does not own this source');
       }
       final observation = entry['observation'] as Map;
-      DesktopArchiveEvidence.validate(artifact, platform, observation);
+      final identifier =
+          DesktopArchiveEvidence.validate(artifact, platform, observation);
+      final lookup = entry['lookup'] as Map?;
+      if (reuseProviderResponse && lookup == null) {
+        throw const FormatException('Missing captured Windows response');
+      }
+      MetadataRecord? capturedRecord;
+      if (lookup != null) {
+        capturedRecord = DesktopArchiveEvidence.validateLookup(lookup,
+                gameId: game.id,
+                editionId: id,
+                platform: platform,
+                raw: identifier)
+            .record;
+        if (utf8
+                .encode(jsonEncode({
+                  'version': 2,
+                  'artifact': artifact.toJson(),
+                  'platformId': platform,
+                  'observation': observation,
+                  'lookup': lookup
+                }))
+                .length >
+            64 * 1024) {
+          throw const FormatException(
+              'Prepared response exceeds evidence budget');
+        }
+      }
       final media = <MetadataMedia>[];
       final digests = <String, String>{};
       for (final raw in entry['artwork'] as List) {
@@ -280,6 +310,10 @@ class PackagingResourceImport {
             reference.memberIndex != m.memberIndex ||
             m.importReference != null ||
             m.url != null ||
+            (capturedRecord != null &&
+                !capturedRecord.media.any((candidate) =>
+                    jsonEncode(candidate.toJson()) ==
+                    jsonEncode(m.toJson()))) ||
             !{
               'box-2D',
               'box-2D-back',
@@ -303,11 +337,24 @@ class PackagingResourceImport {
         media.add(m);
         digests[MetadataArtworkCache.key(m)] = digest;
       }
+      if (lookup?['artworkOutcomes'] != null) {
+        final matched = <String>{
+          for (final o in lookup!['artworkOutcomes'] as List)
+            if (o['status'] == 'matched')
+              MetadataArtworkCache.key(MetadataMedia.fromJson(
+                  (o['media'] as Map).cast<String, dynamic>()))
+        };
+        if (matched.length != digests.length ||
+            !matched.every(digests.containsKey)) {
+          throw const FormatException('Prepared outcome bodies are incomplete');
+        }
+      }
       prepared.add((
         edition: id,
         platform: platform,
         artifact: artifact,
         observation: observation,
+        lookup: lookup,
         media: media,
         digests: digests
       ));
@@ -339,7 +386,8 @@ class PackagingResourceImport {
               now);
         }
         await DesktopArchiveEvidence.preserve(
-            shared.root, item.artifact, item.platform, item.observation);
+            shared.root, item.artifact, item.platform, item.observation,
+            lookup: item.lookup);
       }
     } finally {
       await staging.delete(recursive: true);

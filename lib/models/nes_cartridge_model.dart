@@ -51,7 +51,7 @@ class NesCartridgeModel {
 
   static List<String> referencesFor(String filename) {
     if (filename.contains(RegExp(r'[/\\\[]')) ||
-        RegExp(r'\((?:Aftermarket|Pirate|Proto[^)]*|Beta[^)]*|Demo[^)]*|[^)]*(?:Virtual Console|Switch|Collection|Archives|Retro-Bit|Evercade|Capcom Town|Toaplan Arcade Garage|FamicomBox|Classic Mini|Classics Mini Mix|Disney Classic Games|QUByte Classics)[^)]*)\)',
+        RegExp(r'\((?:Aftermarket|Pirate|Possible Proto[^)]*|Sample[^)]*|Kiosk[^)]*|Test Program[^)]*|Proto[^)]*|Beta[^)]*|Demo[^)]*|[^)]*(?:Virtual Console|Switch|Collection|Archives|Retro-Bit|Evercade|Capcom Town|Toaplan Arcade Garage|Animal Crossing|Limited Run Games|Star Fox - Assault|FamicomBox|Classic Mini|Classics Mini Mix|Disney Classic Games|QUByte Classics)[^)]*)\)',
                 caseSensitive: false)
             .hasMatch(filename)) return const [];
     final region = regionsForArchive(filename);

@@ -238,16 +238,36 @@ class SharedMetadataStore {
             ])
               MetadataArtworkCache.key(media): media
           };
-          for (final media in mediaByKey.values) {
-            final key = MetadataArtworkCache.key(media);
-            (packet['artwork'] as List).addAll(await txn.query(
-                'metadata_artwork_cache',
-                where: 'media_key = ?',
-                whereArgs: [key]));
-            (packet['responses'] as List).addAll(await txn.query(
-                'artwork_responses',
-                where: 'provider_id = ? AND generation = ? AND media_key = ?',
-                whereArgs: [record.providerId, record.refreshGeneration, key]));
+          final keys = mediaByKey.keys.toList();
+          for (var offset = 0; offset < keys.length; offset += 128) {
+            final chunk = keys.skip(offset).take(128).toList();
+            final parameters = List.filled(chunk.length, '?').join(',');
+            final artwork = {
+              for (final item in await txn.query('metadata_artwork_cache',
+                  where: 'media_key IN ($parameters)', whereArgs: chunk))
+                item['media_key'] as String: item
+            };
+            final responses = {
+              for (final item in await txn.query('artwork_responses',
+                  where: 'provider_id = ? AND generation = ? '
+                      'AND media_key IN ($parameters)',
+                  whereArgs: [
+                    record.providerId,
+                    record.refreshGeneration,
+                    ...chunk
+                  ]))
+                item['media_key'] as String: item
+            };
+            // IN queries do not promise media order. Retain the original packet
+            // bytes so unchanged facts keep their existing cloud digest.
+            for (final key in chunk) {
+              if (artwork[key] case final item?) {
+                (packet['artwork'] as List).add(item);
+              }
+              if (responses[key] case final item?) {
+                (packet['responses'] as List).add(item);
+              }
+            }
           }
         }
         finished = page.length < 128;

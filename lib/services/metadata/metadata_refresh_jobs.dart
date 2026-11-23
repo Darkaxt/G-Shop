@@ -558,7 +558,10 @@ class MetadataRefreshJobs {
     }
     return _createArtwork(
         providerId: parent.providerId,
-        collectionGeneration: parent.collectionGeneration,
+        collectionGeneration:
+            parent.collectionGeneration == 'desktop-provider-import'
+                ? 'desktop-evidence-import'
+                : parent.collectionGeneration,
         metadataJobId: id,
         metadataGeneration: parent.generation,
         retryArtworkJobId: images.id,
@@ -642,6 +645,17 @@ class MetadataRefreshJobs {
             record.refreshGeneration != metadataGeneration) {
           continue;
         }
+        Map<String, MetadataLookupStatus>? preparedOutcomes;
+        if (collectionGeneration == 'desktop-provider-import') {
+          final shared = await _sharedStore;
+          preparedOutcomes = shared == null
+              ? null
+              : await DesktopArchiveEvidence.artworkOutcomes(
+                  txn, shared.root, editionId);
+          if (preparedOutcomes == null) {
+            throw StateError('Prepared artwork response is unavailable');
+          }
+        }
         for (final media in metadataJobId == null && !resourcesOnly
             ? record.media
             : MetadataArtworkCache.displayMedia(record,
@@ -651,7 +665,19 @@ class MetadataRefreshJobs {
                 includePhysicalLabel: true,
                 includePackaging: true,
                 includeVideo: (await _sharedStore)?.cloudManaged == true)) {
+          if (collectionGeneration == 'desktop-provider-import' &&
+              !{
+                'box-2D',
+                'box-2D-back',
+                'box-2D-side',
+                'box-texture',
+                'support-texture'
+              }.contains(media.type)) {
+            continue;
+          }
           final mediaKey = MetadataArtworkCache.key(media);
+          if (preparedOutcomes != null &&
+              !preparedOutcomes.containsKey(mediaKey)) continue;
           if (mediaKeys != null && !mediaKeys.contains(mediaKey)) continue;
           if (retryArtworkJobId != null) {
             final failed = await txn.query('metadata_artwork_items',
@@ -741,7 +767,10 @@ class MetadataRefreshJobs {
     final job = await _job(db, id);
     return _create(
         providerId: job['provider_id'] as String,
-        collectionGeneration: job['collection_generation'] as String,
+        collectionGeneration:
+            job['collection_generation'] == 'desktop-provider-import'
+                ? 'desktop-evidence-import'
+                : job['collection_generation'] as String,
         matchReview: job['is_match_review'] == 1,
         selectionCoverage: _decodeSelectionCoverage(job['selection_json']),
         recordMissingIdentities: true,
@@ -1555,7 +1584,10 @@ class MetadataRefreshJobs {
     final providerId = job['provider_id'] as String;
     return _create(
         providerId: providerId,
-        collectionGeneration: job['collection_generation'] as String,
+        collectionGeneration:
+            job['collection_generation'] == 'desktop-provider-import'
+                ? 'desktop-evidence-import'
+                : job['collection_generation'] as String,
         editions: (txn) async* {
           final items = await txn.query('metadata_refresh_items',
               where: 'job_id = ? AND edition_id = ?',
@@ -1798,7 +1830,8 @@ class MetadataRefreshJobs {
       if (job['state'] == 'running') throw StateError('Job is already running');
       final cooldown = await txn.query('metadata_provider_backoff',
           where: 'provider_id = ?', whereArgs: [provider.providerId], limit: 1);
-      if (cooldown.isNotEmpty &&
+      if (job['collection_generation'] != 'desktop-provider-import' &&
+          cooldown.isNotEmpty &&
           _now().millisecondsSinceEpoch <
               (cooldown.single['not_before'] as int)) {
         await txn.update(
@@ -1965,6 +1998,24 @@ class MetadataRefreshJobs {
             request = MetadataLookupRequest.fromJson(
                 jsonDecode(item['request_json'] as String));
           }
+        }
+        if (!matchReview &&
+            provider.providerId == 'screenscraper' &&
+            initial.collectionGeneration == 'desktop-provider-import') {
+          if (shared == null) {
+            throw const FormatException(
+                'Captured Windows storage is unavailable');
+          }
+          final prepared =
+              await DesktopArchiveEvidence.lookup(db, shared.root, request);
+          if (cancel.isCancelled) break;
+          if (prepared != null) {
+            await _commitResult(db, id, item, request, prepared,
+                provider.providerId, cancel, publish);
+            continue;
+          }
+          throw const FormatException(
+              'Captured Windows response is unavailable');
         }
         if (!await _requestSlot(
             db, id, provider.providerId, cancel, waitForBudget)) {
@@ -2193,6 +2244,10 @@ class MetadataRefreshJobs {
                 status: MetadataLookupStatus.matched,
                 message: 'Verified cached trailer reused');
           } else {
+            if (initial.collectionGeneration == 'desktop-provider-import') {
+              throw const FormatException(
+                  'Prepared Windows video is unavailable');
+            }
             if (!await _requestSlot(
                 db, id, provider.providerId, cancel, waitForBudget)) {
               if (cancel.isCancelled) break;
@@ -2308,6 +2363,22 @@ class MetadataRefreshJobs {
           status: MetadataLookupStatus.matched,
           message: 'Completed image reused within this job.');
       if (blob == null) {
+        if (initial.collectionGeneration == 'desktop-provider-import') {
+          final shared = cache.sharedStore;
+          final outcome = shared == null
+              ? null
+              : await DesktopArchiveEvidence.artworkOutcome(
+                  db, shared.root, item['edition_id'] as String, media);
+          if (outcome != null) {
+            final status = await current() ? outcome.name : 'identityChanged';
+            await db.update('metadata_artwork_items', {'status': status},
+                where: 'job_id=? AND edition_id=? AND media_key=?',
+                whereArgs: [id, item['edition_id'], item['media_key']]);
+            publish({status: 1});
+            continue;
+          }
+          throw const FormatException('Prepared Windows image is unavailable');
+        }
         if (!await _requestSlot(
             db, id, provider.providerId, cancel, waitForBudget)) {
           if (cancel.isCancelled) break;
