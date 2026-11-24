@@ -1418,7 +1418,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       SceneIdleHints(
           identity: game.selectionKey,
           hints: SceneIdleHints.forView(widget.system.id,
-              canLaunch: controller.canOpenSelected),
+              canLaunch: controller.canOpenSelected,
+              facts: metadata?.facts ?? const []),
           enabled: resourcesReady &&
               !_sceneInformation &&
               !_sceneLaunch.pending &&

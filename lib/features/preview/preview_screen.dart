@@ -450,7 +450,11 @@ class _PreviewScreenState extends State<PreviewScreen>
               collector: collector,
               inspecting: snapshot['inspectedHardware'] != null,
               canLaunch: snapshot['sceneView'] == true &&
-                  snapshot['canLaunch'] == true),
+                  snapshot['canLaunch'] == true,
+              facts: [
+                for (final fact in snapshot['facts'] as List? ?? const [])
+                  if (fact is String) fact
+              ]),
           child: child);
 
   @override

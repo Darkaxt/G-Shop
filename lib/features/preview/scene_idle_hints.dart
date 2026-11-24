@@ -24,7 +24,8 @@ class SceneIdleHints extends StatefulWidget {
   static List<String> forView(String system,
           {bool collector = false,
           bool inspecting = false,
-          bool canLaunch = false}) =>
+          bool canLaunch = false,
+          List<String> facts = const []}) =>
       [
         if (collector)
           'Drag to rotate. Pinch to zoom.'
@@ -45,6 +46,8 @@ class SceneIdleHints extends StatefulWidget {
         // Nintendo’s original hardware pages: nintendo.co.jp/n08/hardware/gba/.
         else if (system == 'gba')
           'GBA cartridges measure 60 × 34.5 mm.',
+        // Per-edition sourced facts from the catalogue (COVERAGE-FACTS-01).
+        ...facts,
       ];
 
   @override

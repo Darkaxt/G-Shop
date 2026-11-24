@@ -11,6 +11,7 @@ import 'package:g_shop/models/commercial_release_preference.dart';
 import 'package:g_shop/models/scraped_metadata.dart';
 import 'package:g_shop/services/library_store.dart';
 import 'package:g_shop/services/library_query.dart';
+import 'package:g_shop/features/preview/scene_idle_hints.dart';
 import 'package:g_shop/services/metadata/effective_overall_rating.dart';
 import 'package:g_shop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:g_shop/services/metadata/metadata_artwork_cache.dart';
@@ -1224,6 +1225,36 @@ void main() {
     expect(detail?.overallRating?.rating.toJson(), cover?.rating.toJson());
     expect(detail?.editionId, isNotNull);
     expect(detail?.contentTags, {'official'});
+  });
+
+  test('details carry catalogue facts apart from the provider synopsis',
+      () async {
+    final id = await seed(1, score: 82);
+    final edition = (await db.query('library_editions',
+            where: 'edition_id = ?', whereArgs: [id]))
+        .single;
+    final game = jsonDecode((await db.query('library_game_identities',
+            where: 'game_id = ?', whereArgs: [edition['game_id']]))
+        .single['record_json'] as String) as Map;
+    await store.putMetadata(MetadataRecord(
+        gameId: game['id'] as String,
+        editionId: id,
+        platformId: game['platformId'] as String,
+        providerId: 'facts',
+        providerGameId: 'facts-$id',
+        retrievedAt: DateTime.utc(2026, 11, 24),
+        refreshGeneration: 2,
+        matchMethod: 'catalogueFacts',
+        titles: const [],
+        descriptions: const [
+          MetadataText(text: 'Fact one.', language: 'en'),
+          MetadataText(text: ' Fact two. ', language: 'en'),
+        ]));
+    final detail = await query.cachedMetadata('Game 1.7z', 'psx');
+    expect(detail?.facts, ['Fact one.', 'Fact two.']);
+    expect(detail?.summary ?? '', isNot(contains('Fact one.')));
+    expect(SceneIdleHints.forView('psx', facts: detail!.facts),
+        containsAll(['Fact one.', 'Fact two.']));
   });
 
   test(

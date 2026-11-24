@@ -809,6 +809,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
                 .toList() ??
             [],
         'summary': metadata?.summary,
+        'facts': metadata?.facts ?? const <String>[],
         'credits': metadata?.creditsLine,
         'genres': metadata?.genres,
         'rating':

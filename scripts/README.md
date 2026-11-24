@@ -614,6 +614,36 @@ $env:GSHOP_PACKS = 'D:\RShopPrivate\ResourceCandidates\<delivery>'
 flutter test --concurrency=1 tool/import_packs_test.dart
 ```
 
+## Windows artwork hydration
+
+`tool/hydrate_artwork_test.dart` downloads the ScreenScraper image bodies the
+master store records but never fetched (the publisher's "missing local body"
+list; videos excluded). It runs the app's artwork jobs with the real account
+from `.env.local`, so the job runner's quota pacing applies (20,000 requests a
+day on the current account). A quota block ends the run cleanly; rerun later and
+the missing set is recomputed from the store. Optional: `GSHOP_PLATFORMS`
+(comma list, default all), `GSHOP_BATCH` (editions per job, default 100),
+`GSHOP_MAX_JOBS`. flutter_test fakes every HTTP request with status 400, so the
+tool clears `HttpOverrides.global`. Do not read the store or projection
+databases while it runs (a reader's lock fails its commits); read a copy.
+
+```powershell
+$env:GSHOP_STORE = 'D:\RShopPrivate\CatalogueStore'
+$env:GSHOP_PROJECTION = 'D:\Temp\<task>\projection.db'
+$env:GSHOP_CREDENTIALS = '<repo>\.env.local'
+flutter test --concurrency=1 tool/hydrate_artwork_test.dart
+```
+
+## Windows facts import
+
+`tool/import_facts_test.dart` writes sourced "Did you know?" facts (spec
+revision 190, COVERAGE-FACTS-01) as one `facts` record per edition from
+`GSHOP_FACTS` = `{"editions": {"<editionId>": [{"text": "...", "source":
+"https://..."}]}}`. Every fact needs an https source. The app shows the facts in
+the idle "Did you know?" rotation; the census counts e-Reader and Multiboot
+entries once they have one. Same `GSHOP_STORE`/`GSHOP_PROJECTION` setup; publish
+afterwards.
+
 ## Host model readiness check
 
 `scripts/check_models.py ROOT` validates a private models tree in the device

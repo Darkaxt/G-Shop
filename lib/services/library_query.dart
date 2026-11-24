@@ -861,6 +861,23 @@ class LibraryQuery {
       }
 
       final summary = field('description', (r) => localized(r.descriptions));
+      // Facts records (COVERAGE-FACTS-01) are catalogue-published public trivia,
+      // kept apart from provider synopses.
+      final factRows = await txn.query('library_metadata',
+          columns: ['record_json', 'identity_key'],
+          where: "edition_id = ? AND provider_id = 'facts'",
+          whereArgs: [edition.id],
+          limit: 1);
+      final facts = [
+        for (final item in factRows)
+          if (item['identity_key'] ==
+              LibraryStore.metadataIdentity(row, providerId: 'facts'))
+            ...MetadataRecord.fromJson(
+                    jsonDecode(item['record_json'] as String))
+                .descriptions
+                .map((d) => d.text.trim())
+                .where((t) => t.isNotEmpty)
+      ];
       final genres = field(
           'genres',
           (r) => r.genres
@@ -891,6 +908,7 @@ class LibraryQuery {
           releaseYear:
               release == null ? null : int.tryParse(release.split('-').first),
           contentTags: _contentTags(edition),
+          facts: List.unmodifiable(facts),
           provenance: Map.unmodifiable(provenance),
           providerMatches: Map.unmodifiable(
               {for (final r in records) r.providerId: r.matchMethod}),

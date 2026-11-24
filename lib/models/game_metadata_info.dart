@@ -55,6 +55,9 @@ class GameMetadataInfo {
   final String? gbcDualMode;
   final List<String> cachedScreenshots;
 
+  /// Short sourced "Did you know?" facts for this edition (COVERAGE-FACTS-01).
+  final List<String> facts;
+
   const GameMetadataInfo({
     required this.filename,
     required this.systemSlug,
@@ -84,6 +87,7 @@ class GameMetadataInfo {
     this.cachedSupportTexture,
     this.gbcDualMode,
     this.cachedScreenshots = const [],
+    this.facts = const [],
   });
 
   bool get hasContent =>
@@ -158,7 +162,8 @@ class GameMetadataInfo {
           cachedCover: cover,
           cachedSupportTexture: supportTexture,
           gbcDualMode: gbcDualMode,
-          cachedScreenshots: images);
+          cachedScreenshots: images,
+          facts: facts);
 
   /// Parsed sibling info from RomM (JSON array in DB).
   List<SiblingInfo> get siblingList {
