@@ -599,8 +599,13 @@ Thor's `ES-DE/RShopMetadata`, hash-verified). Run tests and these tools with
 Prepared packaging packs are imported on Windows into the master store, then
 published. The importer validates each pack against a library projection
 database (`library_editions`/`library_game_identities`) and fails closed per
-pack if the collection changed since preparation. Desktop-evidence packs that
-need a ScreenScraper job are reported, not imported.
+pack if the collection changed since preparation. Desktop-evidence packs made
+with `prepare_desktop_crawl_import.py --reuse-lookup` run the app's
+`desktop-provider-import` metadata and artwork jobs from the retained exact
+response, with no ScreenScraper request (the tool's provider has no
+credentials). A stopped job blocks the remaining packs. Packs that would need
+a live lookup are reported, not imported. Each pack takes about 40 s after a
+~1 min projection restore; import at most ~10 packs per gated run.
 
 ```powershell
 $env:GSHOP_STORE = 'D:\RShopPrivate\CatalogueStore'
