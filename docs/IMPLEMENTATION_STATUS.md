@@ -5,6 +5,20 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-11-24, GBA acquisition #2 closed. The remaining-supported crawl was already
+terminal (8,057/8,057, 0 pending). Its matched results had never been imported:
+926 GBA editions had no ScreenScraper record (774 also unbound). 924 were prepared
+with `--reuse-lookup` (2 reviewed identity holds excluded) and imported on Windows
+through `tool/import_packs_test.dart`, which now runs the app's
+`desktop-provider-import` jobs without provider requests. Published (4,425 files,
+0 archived; dry run 0 writes). Census (#6 rule): GBA 1,848 -> 1,973/7,674, main
+set 1,837 -> 1,962/3,818, main-set unbound 1,528 -> 772 (682 of them aftermarket/
+beta/proto/unlicensed/demo/pirate builds outside every crawl manifest). Collector
+outcomes have dispositions (issue #2 comment): hacks/translations exempt,
+e-Reader/Multiboot held for #3, Video/Play-Yan/unresolved held with reasons. Next
+lever (#5): six-face cartons for 824 bound+label and 105 bound-only main-set
+archives. Private per-archive evidence: `D:/RShopPrivate/Evidence/gshop-census-20261124`.
+
 2026-11-24, CATALOGUE-READONLY-01 (#18), revisions 186-188: the Drive catalogue
 is now published from Windows into `H:/My Drive/R-Shop Metadata` by
 `tool/publish_catalogue_test.dart` from the master store
