@@ -53,6 +53,9 @@ void main() {
     String? stop;
     try {
       print('restored ${await store.restore(await database)} record(s)');
+      // A stopped earlier run leaves its job 'running' (one-worker index);
+      // this tool owns the projection, so pause it as app startup does.
+      await MetadataRefreshJobs.recoverInterrupted(await database);
       final missing = await _missing(store, platforms);
       final total = missing.values.fold<int>(0, (n, keys) => n + keys.length);
       print('MISSING editions=${missing.length} bodies=$total');
