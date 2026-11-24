@@ -2,6 +2,21 @@
 
 Authoritative specification, revision 187, 2026-11-24.
 
+Owner correction, revision 188 (MODEL-CURATION-01), 2026-11-24, narrowing
+revision 187: G-Shop is a retro museum, so every 3D model (console hardware,
+cartridge/media shells, cartons and other props) is selected carefully by the
+owner. Models are found through web research and then fixed or derived. For this
+3D-model work only:
+- New models are integrated one console at a time. Finish and accept one
+  console's model set before opening the next console's model work.
+- A missing, invalid or uncertain 3D model pauses that console's model
+  integration. Report the exact model and the blocked criterion and wait for the
+  owner's selection. Never substitute a generic, guessed or unreviewed model.
+Everything else follows revision 187 unchanged and proceeds independently: the
+catalogue and artwork/metadata coverage, the UI, saves, caching and the
+Windows tooling. Missing artwork or metadata stays absent behind the honest
+fallback without pausing anything.
+
 QA process correction, revision 187 (PROCESS-SIMPLIFY-01), 2026-11-24, applying the
 owner's instruction to remove agent-invented overhead. Each rule below was traced
 and has no owner statement behind it:

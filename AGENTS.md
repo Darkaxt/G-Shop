@@ -25,7 +25,10 @@ front or silently enable deletion of pre-existing unmanaged files.
 
 - Spec revisions 186-187 supersede the stage-serialization wording above ("second
   ACTIVE stage", "do not start S10/S11 while ... ACTIVE"): work proceeds as GitHub
-  issues. The catalogue is client read-only (CATALOGUE-READONLY-01).
+  issues. The catalogue is client read-only (CATALOGUE-READONLY-01). Exception
+  (revision 188, MODEL-CURATION-01): new 3D models are integrated one console at
+  a time, and a missing or uncertain model pauses that console's model work for
+  the owner's selection.
 - Read `docs/SPECIFICATION.md` as the authority, then
   `docs/IMPLEMENTATION_PLAN.md` and `docs/IMPLEMENTATION_STATUS.md`.
 - Implementation was authorized after preparation on 2026-09-08. Use the staged

@@ -422,10 +422,14 @@ Explicit `Possible Proto`, Sample, Kiosk, Test Program and limited reissue marke
 also require separate physical bindings; uncertainty must not silently become a
 confirmed original retail printing. A program revision alone is not a new mesh.
 
-**Pause the affected integration when any required resource is missing, invalid
-or lacks a sufficiently established physical binding.** Report the exact resource
-and blocked criterion. Do not pause or ask the owner (spec revision 187): keep it absent behind the honest
-fallback, log it in the coverage census and continue toward 80 percent coverage.
+**3D models (spec revision 188, MODEL-CURATION-01):** G-Shop is a retro museum and
+the owner curates every model. Integrate new models one console at a time. When a
+required 3D model (hardware, shell, carton or prop) is missing, invalid or lacks
+an established physical binding, pause that console's model integration, report
+the exact model and blocked criterion, and wait for the owner's selection.
+**Every other resource (artwork, metadata, labels) does not pause** (revision 187):
+keep it absent behind the honest fallback, log it in the coverage census and
+continue toward 80 percent coverage.
 No silent generic model, guessed shell/colour/label or omitted prop. Runtime missing
 file handling is not acceptance of an incomplete resource set. Diagnose/fix
 actionable binding defects rather than manufacturing external blockers.
