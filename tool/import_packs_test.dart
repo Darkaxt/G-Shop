@@ -4,7 +4,11 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:g_shop/services/metadata/desktop_archive_evidence.dart';
 import 'package:g_shop/services/metadata/metadata_artwork_cache.dart';
+import 'package:g_shop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:g_shop/services/metadata/screenscraper_credentials.dart';
+import 'package:g_shop/services/metadata/screenscraper_provider.dart';
 import 'package:g_shop/services/metadata/packaging_resource_import.dart';
 import 'package:g_shop/services/metadata/shared_metadata_store.dart';
 
@@ -42,8 +46,22 @@ void main() {
         try {
           final count = await importer.import(pack);
           if (importer.archiveEditionIds.isNotEmpty) {
-            // Desktop-evidence packs also need a provider job; not handled here.
-            failed.add('${pack.path}: needs a ScreenScraper job');
+            // Desktop-evidence packs: run the app's provider job, as
+            // importPackagingResources does. Only reuse-lookup packs, whose
+            // retained exact response needs no ScreenScraper request.
+            if (!importer.reuseProviderResponse) {
+              failed.add('${pack.path}: needs a live ScreenScraper lookup');
+              continue;
+            }
+            final done = await _runDesktopProviderJob(
+                database, store, cache, importer.archiveEditionIds);
+            print('imported ${pack.path}: $done');
+            if (done['metadata'] != 'completed' ||
+                done['artwork'] != 'completed') {
+              failed.add('${pack.path}: provider job $done');
+              break; // like the app: a stopped job blocks the next pack
+            }
+            games += done['matched'] as int;
             continue;
           }
           games += count;
@@ -64,4 +82,44 @@ void main() {
           ? 'Set GSHOP_STORE, GSHOP_PROJECTION and GSHOP_PACKS'
           : false,
       timeout: Timeout.none);
+}
+
+/// The metadata + artwork jobs of MetadataControlsController._run for a
+/// 'desktop-provider-import' pack. The provider has no credentials, so any
+/// unexpected network request fails instead of spending quota.
+Future<Map<String, Object>> _runDesktopProviderJob(Future<Database> database,
+    SharedMetadataStore store, MetadataArtworkCache cache,
+    List<String> editionIds) async {
+  final jobs = MetadataRefreshJobs(database,
+      sharedStore: Future.value(store),
+      readArchiveIdentifier: (artifact, platform, _) =>
+          DesktopArchiveEvidence.read(store.root, artifact, platform));
+  final provider = ScreenScraperProvider(
+      readDeveloperCredentials: () async => const ScreenScraperDeveloperCredentials(
+          developerId: '', developerPassword: '', softwareName: ''),
+      readUserCredentials: () async =>
+          const ScreenScraperUserCredentials(username: '', password: ''));
+  try {
+    final job = await jobs.create(
+        providerId: 'screenscraper',
+        collectionGeneration: 'desktop-provider-import',
+        editionIds: editionIds);
+    final metadata = await jobs.run(job.id, provider, artworkCache: cache);
+    var artworkState = 'notRun';
+    if (metadata.state == 'completed') {
+      final artwork = await jobs.ensureArtworkForMetadata(job.id);
+      artworkState = artwork.state == 'completed'
+          ? 'completed'
+          : (await jobs.run(artwork.id, provider, artworkCache: cache)).state;
+    }
+    final finalReport = await jobs.report(job.id);
+    return {
+      'metadata': metadata.state,
+      'artwork': artworkState,
+      'matched': finalReport.counts['matched'] ?? 0,
+      'counts': finalReport.counts.toString()
+    };
+  } finally {
+    provider.close();
+  }
 }

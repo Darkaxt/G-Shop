@@ -144,7 +144,7 @@ def prepare(census, manifest_path, crawl, output, *, reuse_lookup=False,
                 continue
             outcomes.append(outcome)
             artwork.append({k:resource[k] for k in ['media','sha256','bytes']})
-            bodies[sha] = body
+            bodies[sha] = crawl/resource['file']  # re-read at pack time; bounds memory
         lookup = None
         if reuse_lookup:
             record = row.get('record')
@@ -179,8 +179,11 @@ def prepare(census, manifest_path, crawl, output, *, reuse_lookup=False,
             archive.writestr('packaging.json',json.dumps({'version':1,'kind':'desktopArchiveEvidence',
                 **({'reuseProviderResponse':True} if reuse_lookup else {}),
                 'games':[g for g,_ in group]},ensure_ascii=False,separators=(',',':')))
-            bodies = {sha:body for _, images in group for sha,body in images.items()}
-            for sha,body in sorted(bodies.items()): archive.writestr('images/'+sha+'.png',body)
+            bodies = {sha:path for _, images in group for sha,path in images.items()}
+            for sha,path in sorted(bodies.items()):
+                body = path.read_bytes()
+                if digest(body) != sha: raise ValueError('Completed artwork body changed')
+                archive.writestr('images/'+sha+'.png',body)
         packs.append({'file':target.name,'games':len(group),'sha256':digest(target.read_bytes())})
     receipt={'manifestSha256':manifest_hash,'censusSha256':digest(census.read_bytes()),
         'capturedCheckpoint':checkpoint,'preparedGames':len(candidates),'published':False,'nativeAccepted':False,
