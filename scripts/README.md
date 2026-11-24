@@ -615,3 +615,12 @@ $env:GSHOP_PROJECTION = 'D:\Temp\<task>\projection.db'   # decompressed private 
 $env:GSHOP_PACKS = 'D:\RShopPrivate\ResourceCandidates\<delivery>'
 flutter test --concurrency=1 tool/import_packs_test.dart
 ```
+
+## Host model readiness check
+
+`scripts/check_models.py ROOT` validates a private models tree in the device
+layout (`RShop/models/...`) without the APK: mesh geometry hash, surface and
+index ranges, texture presence/receipts/hashes, motion data per model, NES box
+catalogue and Game & Watch variants resolution, and every model key the app
+expects (NES cartridge styles are read from `nes_cartridge_model.dart`). Exit 1
+lists each problem. Run through the pipeline gate.

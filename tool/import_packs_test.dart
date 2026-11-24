@@ -31,6 +31,10 @@ void main() {
     var games = 0;
     final failed = <String>[];
     try {
+      // The importer merges with the edition's current packaging record read
+      // from the library database. Project the master store into it first so a
+      // stale projection cannot drop already published roles (e.g. manuals).
+      print('restored ${await store.restore(await database)} record(s)');
       final cache = MetadataArtworkCache(database, store.artworkRoot,
           sharedStore: store);
       for (final pack in packs) {
