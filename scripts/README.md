@@ -589,10 +589,29 @@ it from Windows into the Google Drive for desktop folder; clients only read it.
 on-disk size) are skipped; replaced and stale role files move to `_previous/`.
 
 ```powershell
-$env:GSHOP_STORE = 'D:\RShopPrivate\StoreCopy'
+$env:GSHOP_STORE = 'D:\RShopPrivate\CatalogueStore'
 $env:GSHOP_CATALOGUE = 'H:\My Drive\R-Shop Metadata'
 $env:GSHOP_PLATFORMS = 'gba,psx'   # optional
 $env:GSHOP_DRY_RUN = '1'           # optional: report only
 $env:GSHOP_SUMMARY = 'D:\RShopPrivate\catalogue-summary.json'  # optional
 flutter test tool/publish_catalogue_test.dart
+```
+
+`D:\RShopPrivate\CatalogueStore` is the Windows master store (first copied from
+Thor's `ES-DE/RShopMetadata`, hash-verified). Run tests and these tools with
+`--concurrency=1` through the pipeline gate.
+
+## Windows prepared-pack import
+
+Prepared packaging packs are imported on Windows into the master store, then
+published. The importer validates each pack against a library projection
+database (`library_editions`/`library_game_identities`) and fails closed per
+pack if the collection changed since preparation. Desktop-evidence packs that
+need a ScreenScraper job are reported, not imported.
+
+```powershell
+$env:GSHOP_STORE = 'D:\RShopPrivate\CatalogueStore'
+$env:GSHOP_PROJECTION = 'D:\Temp\<task>\projection.db'   # decompressed private projection
+$env:GSHOP_PACKS = 'D:\RShopPrivate\ResourceCandidates\<delivery>'
+flutter test --concurrency=1 tool/import_packs_test.dart
 ```
