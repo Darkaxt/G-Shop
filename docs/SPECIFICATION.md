@@ -1,6 +1,28 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 187, 2026-11-24.
+Authoritative specification, revision 190, 2026-11-24.
+
+Owner rulings, revision 190 (COVERAGE-FACTS-01), 2026-11-24, closing issue #3
+and the digital re-release question:
+- e-Reader cards and Multiboot entries need no physical-resource set. Owner: "I
+  just want some wiki like information about an element. The usual 'did you
+  know...' related to the object in question. It doesn't need to be anything
+  profound". Such an entry counts as covered once it has at least one short
+  per-entry fact, shown in the existing idle "Did you know?" rotation.
+- Digital re-releases (Virtual Console, Advance Collection, Nintendo Switch
+  Online and similar) show the original retail carton labelled as a reference,
+  the same treatment as editions whose region is unknown, plus a fact saying they
+  are special versions published on platform X in year Y and whether, and how,
+  they differ from the original.
+- Facts are public game data published in the Drive catalogue from Windows like
+  any other metadata. Each fact is taken from a public source recorded with it;
+  an entry without a sourced fact stays uncovered rather than receiving a
+  generic or invented one.
+Census correction in the same revision (an engineering fix, not an owner rule):
+a carton counts when the six outer-box faces or the flat front/back/spine set
+(`box-2D`, `box-2D-back`, `box-2D-side`) have image bodies, because the app's
+box renderer folds the flat set into the 3D carton. The earlier six-face-only
+census rule was stricter than the app and is withdrawn.
 
 Owner correction, revision 189 (CARTON-OCR-ADVISORY-01), 2026-11-24, amending
 the 2026-10-22 conversion-validation correction: carton text OCR is a quick check
