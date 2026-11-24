@@ -96,6 +96,36 @@ void main() {
     expect((await run(f.store, target)).filesWritten, 0);
   });
 
+  test('keeps a published body that matches its record without a local copy',
+      () async {
+    final f = await fixture();
+    final target = Directory('${f.root.path}/catalogue');
+    await run(f.store, target);
+    final folder = Directory('${target.path}/psx').listSync().single.path;
+    final box = File('$folder/box.png');
+    final bytes = box.readAsBytesSync();
+    final local = File(
+        '${f.store.artworkRoot.path}/${sha256.convert(bytes)}.png');
+    expect(local.existsSync(), isTrue);
+    await local.delete();
+    // An earlier faulty publication dropped the entry but left the file.
+    final stale = jsonDecode(
+        File('$folder/metadata.json').readAsStringSync()) as Map;
+    (stale['resources'] as Map).remove('box.png');
+    (stale['assets'] as List).removeWhere((a) => a['remote_name'] == 'box.png');
+    File('$folder/metadata.json').writeAsStringSync(jsonEncode(stale));
+    final again = await run(f.store, target);
+    expect(again.archived, 0);
+    expect(again.missing.where((m) => m.endsWith('/box.png')), isEmpty);
+    expect(box.readAsBytesSync(), bytes);
+    final manifest = jsonDecode(
+        File('$folder/metadata.json').readAsStringSync()) as Map;
+    expect(
+        (manifest['assets'] as List)
+            .any((a) => a['remote_name'] == 'box.png'),
+        isTrue);
+  });
+
   test('reuses an existing folder_path from metadata_cloud_games', () async {
     final f = await fixture();
     final target = Directory('${f.root.path}/catalogue');

@@ -186,6 +186,25 @@ class CataloguePublisher {
                 field: field == 'folder_path' ? folder : old[field]
           });
           summary.carried++;
+        } else if (filename != null &&
+            !video &&
+            _hex64.hasMatch(p.basenameWithoutExtension(filename)) &&
+            await target.exists() &&
+            (await sha256.bind(target.openRead()).first).toString() ==
+                p.basenameWithoutExtension(filename)) {
+          // The published file is the exact recorded body (rare fallback:
+          // hashes the catalogue copy once).
+          final role = name.split('.').first;
+          assets.add({
+            'path': '$platform/games/$key/$role/$filename',
+            'digest': p.basenameWithoutExtension(filename),
+            'bytes': await target.length(),
+            'media_key': mediaKey,
+            'receipt_json': null,
+            'remote_name': name,
+            'folder_path': folder,
+          });
+          summary.carried++;
         } else if (filename != null || video == false) {
           summary.missing.add('$folder/$name');
         }
