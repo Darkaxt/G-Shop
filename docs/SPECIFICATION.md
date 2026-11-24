@@ -2,6 +2,15 @@
 
 Authoritative specification, revision 187, 2026-11-24.
 
+Owner correction, revision 189 (CARTON-OCR-ADVISORY-01), 2026-11-24, amending
+the 2026-10-22 conversion-validation correction: carton text OCR is a quick check
+that flags a carton for a visual look, nothing more. "It shouldn't mandate anything
+else." Conversion always writes the normal `model.json`; OCR, when run, records
+`cartonTextOrientation.status` (`verified`, `review-required` or `ocr-failed`)
+and prints a review suggestion. No pending manifests, review receipts, extra OCR
+products or OS language packs are required; an agent may simply inspect the
+assembled panels. Never auto-rotate from OCR.
+
 Owner correction, revision 188 (MODEL-CURATION-01), 2026-11-24, narrowing
 revision 187: G-Shop is a retro museum, so every 3D model (console hardware,
 cartridge/media shells, cartons and other props) is selected carefully by the

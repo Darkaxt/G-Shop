@@ -545,16 +545,9 @@ Reused images retain their source receipt rather than claiming a fresh response.
 from `allowRawBinding`: a program match does not establish retail media for GBA
 Multiboot/e-Reader or Disk System inside NES.
 
-For uncertain assembled-panel OCR, inspect the retained mapped views first, then
-run `review_carton_orientation.py --model-dir <candidate import> --review <JSON>`.
-The private receipt contains `version: 1`, `originalReportSha256`,
-`modelManifestSha256`, `geometrySha256`, a nonempty `reviewer`, and `panels` for
-exactly the uncertain sides. Each side supplies `assembledImageSha256`,
-`clockwiseCorrectionDegrees: 0` and a concrete visual `reason`. The helper verifies
-current mesh, textures, UV-mapped images, original OCR views and opening evidence;
-it preserves the original report/pending manifest and writes a separate reviewed
-report plus the normal accepted manifest. It cannot waive known rotation or
-animation failure, auto-review weak text, or overwrite an accepted model.
+Carton OCR is advisory: `prepare_console_model.py` always writes `model.json`
+and records `cartonTextOrientation`; on `CARTON_TEXT_REVIEW_SUGGESTED`, look at
+the retained `text-orientation/` views and fix only genuine panel faults.
 
 `prepare_retained_nes_panels.py` carries unchanged selected NES cartons through
 the same packaging import lane. Supply the selected catalogue, retained source

@@ -42,20 +42,20 @@ def main():
     parser.add_argument('--visual-variant-id', help='Explicit visual-only hardware edition; no ROM binding')
     parser.add_argument('--resource-kind', choices=('handheld', 'box'), default='handheld')
     parser.add_argument('--text-orientation-python', type=Path,
-                        help='Explicit installed host Python with Pillow for assembled-panel OCR')
+                        help='Optional host Python with Pillow for advisory assembled-panel OCR')
     parser.add_argument('--orientation-title',
                         help='Actual carton title used for source-bound OCR anchors')
     parser.add_argument('--orientation-language', default='en-US',
-                        help='Installed Windows OCR language; uncertain text requires review')
+                        help='Installed Windows OCR language; uncertain text only flags a visual check')
     parser.add_argument('--gamewatch-collection', action='store_true',
                         help='Bounded overview of the supplied 63-device selector; hide its display board')
     parser.add_argument('--overview-max-triangles', type=int,
                         help='Bound a static multi-object console selector without removing objects')
     parser.add_argument('--overview-texture-size', type=int, default=512)
     args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:])
-    if args.resource_kind == 'box' and (not args.text_orientation_python or
-            not args.text_orientation_python.is_file() or not args.orientation_title):
-        parser.error('Box conversion requires --text-orientation-python and --orientation-title')
+    if (args.text_orientation_python is None) != (args.orientation_title is None) or (
+            args.text_orientation_python and not args.text_orientation_python.is_file()):
+        parser.error('Carton OCR needs both an existing --text-orientation-python and --orientation-title')
     if args.physical_width_metres is not None and (not .01 <= args.physical_width_metres <= 3 or not args.dimensions_reference):
         parser.error('Physical width requires a bounded metre value and reference')
     if args.output.exists():
@@ -614,34 +614,29 @@ def main():
         manifest['sourceReference']['adaptation'] = display['adaptation']
     args.output.mkdir(parents=True)
     (args.output/'model.mesh').write_bytes(payload)
-    # A rejected/uncertain carton must not expose the normal import entry point.
-    # Preserve its candidate and OCR evidence for diagnosis, not as an accepted model.
-    manifest_name = 'model.pending.json' if args.resource_kind == 'box' else 'model.json'
-    (args.output/manifest_name).write_text(json.dumps(manifest, indent=2), encoding='utf8')
+    (args.output/'model.json').write_text(json.dumps(manifest, indent=2), encoding='utf8')
     for i, content in images.items():
         if names[i] in used: (args.output/names[i]).write_bytes(content)
-    if args.resource_kind == 'box':
+    if args.resource_kind == 'box' and args.text_orientation_python:
+        # Advisory only (owner, 2026-11-24): OCR flags cartons worth a visual look;
+        # it never blocks the import or rotates anything.
         orientation_output=args.output/'text-orientation'
-        result=subprocess.run([str(args.text_orientation_python),
+        subprocess.run([str(args.text_orientation_python),
             str(Path(__file__).with_name('verify_carton_orientation.py')),
-            '--model-dir',str(args.output),'--manifest-name',manifest_name,
+            '--model-dir',str(args.output),'--manifest-name','model.json',
             '--output',str(orientation_output),'--title',args.orientation_title,
             '--language',args.orientation_language])
-        if result.returncode != 0:
-            raise ValueError('Carton text orientation requires review; no accepted model.json was written')
-        report_bytes=(orientation_output/'report.json').read_bytes()
-        report=json.loads(report_bytes)
-        if report['status']!='verified' or report['geometrySha256']!=manifest['geometrySha256'] or report['textureFiles']!=textures:
-            raise ValueError('Carton orientation evidence differs from the conversion')
-        manifest['cartonTextOrientation']={
-            'status':'verified','reportSha256':hashlib.sha256(report_bytes).hexdigest(),
-            'validatedBaseManifestSha256':report['modelManifestSha256'],
-            'geometrySha256':manifest['geometrySha256'],
-            'frontSurfaceIndex':report['panels']['front']['surfaceIndex'],
-            'backSurfaceIndex':report['panels']['back']['surfaceIndex'],
-            'clockwiseCorrectionDegrees':0,
-            'evidence':'text-orientation/report.json',
-        }
+        report_path=orientation_output/'report.json'
+        if report_path.is_file():
+            report_bytes=report_path.read_bytes();report=json.loads(report_bytes)
+            manifest['cartonTextOrientation']={'status':report['status'],
+                'panels':{side:row.get('status') for side,row in report['panels'].items()},
+                'reportSha256':hashlib.sha256(report_bytes).hexdigest(),
+                'evidence':'text-orientation/report.json'}
+        else:
+            manifest['cartonTextOrientation']={'status':'ocr-failed'}
+        if manifest['cartonTextOrientation']['status']!='verified':
+            print('CARTON_TEXT_REVIEW_SUGGESTED '+json.dumps(manifest['cartonTextOrientation']))
         (args.output/'model.json').write_text(json.dumps(manifest,indent=2),encoding='utf8')
     print('CONSOLE_ADAPTED '+json.dumps({'triangles': sum(s['indexCount']//3 for s in surfaces),
         'surfaces': len(surfaces), 'textures': len(textures), 'sourceSha256': manifest['sourceReference']['sha256']}))

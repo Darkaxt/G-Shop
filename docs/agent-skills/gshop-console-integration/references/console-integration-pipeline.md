@@ -245,27 +245,14 @@ into the final coverage ledger.
   A portrait raw scan can correctly map to a landscape face; a material named
   `Scanned front` can be rear-facing. Inspect the actual visible plane/artwork,
   keeping printing identity and text direction as separate checks.
-- `prepare_console_model.py` requires box conversions to supply
-  `--text-orientation-python` (the actual installed host Python with Pillow),
-  `--orientation-title` and, when applicable, `--orientation-language`.
-  `verify_carton_orientation.py` samples assembled front/back at 0/90/180/270,
-  with whole-panel and source-bound detail-strip OCR through Windows OCR.
-  Keep report/word/image hashes. Exact title/brand anchors are relative evidence;
-  the engine supplies no confidence score. Sparse/stylized/unsupported-language
-  or tied results stay review-required, without an automatic pass or rotation.
-  After inspecting the actual assembled images, `review_carton_orientation.py`
-  can resolve an uncertain result with a private review receipt. Bind the original
-  report, candidate manifest, geometry and each uncertain assembled-image hash;
-  record the reviewer, zero required rotation and a concrete visible reason.
-  The helper rechecks current mesh/textures/UV panels and retains original OCR
-  candidates plus `ocrStatus: uncertain`. It cannot waive known rotation, changed
-  evidence or a missing/invalid opening, and never replaces an accepted import.
-  Stylized text is a visual-review case, not permission to lower OCR thresholds.
-  Upright main text can coexist with vertical publisher/legal columns. Conflicting
-  title directions stay uncertain; do not let extra legal-copy words establish a
-  rotation. A corrected OCR algorithm may produce a separately retained recheck
-  report; pass that exact contained report with `--report` to the review helper,
-  preserving both the original result and the source-bound visual observations.
+- Carton OCR is advisory (spec rev 189). Pass `--text-orientation-python` (host
+  Python with Pillow) and `--orientation-title` to `prepare_console_model.py` to
+  run `verify_carton_orientation.py` (assembled front/back at 0/90/180/270 via
+  Windows OCR). The import is always written; a non-`verified` result is recorded
+  in `cartonTextOrientation` and printed as `CARTON_TEXT_REVIEW_SUGGESTED`.
+  Then look at the retained assembled views (or a render) and fix genuine source
+  or panel faults; stylized or non-Latin text is simply a visual check.
+  Never rotate automatically from OCR.
 - When baking selected flat artwork into a GLB, use
   `prepare_packaging_resources.py::normalize_role_image` so horizontal spine
   pixels and their provenance rotate together, exactly as in the normal pack.
