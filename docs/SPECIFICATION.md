@@ -1,6 +1,21 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 185, 2026-11-24.
+Authoritative specification, revision 186, 2026-11-24.
+
+Owner architecture correction, revision 186 (CATALOGUE-READONLY-01), 2026-11-24:
+the Google Drive metadata tree is the **shop catalogue**, published centrally from
+Windows. G-Shop clients only read it. Windows tooling (acquisition, matching, pack
+preparation and publication) writes the normalized `console/game-name/resource`
+tree directly, including through the Google Drive for desktop unit H:. The app
+reads it with its existing read-only Drive access and trusts a resource because
+its SHA-256 and size match the catalogue record, not because the app created it.
+Clients must not upload, import or republish catalogue metadata or artwork; the
+on-device "Import prepared resources" lane and per-game client publication are
+superseded for the catalogue. Only user-owned data (save backups, SAVE-01, and
+settings/config) keeps protected, app-owned writes. Integrity, identity, edition
+and role rules are unchanged. This supersedes the app-ownership requirement on
+catalogue objects (`isAppAuthorized`/`rshopMetadata` app properties) and every
+plan step that routes catalogue publication through Thor.
 
 Owner source authority, revision 185 (SOURCE-CANONICAL-01), 2026-11-24: the
 NintAndBox library at `E:/R-Shop Reference Assets/NintAndBox` (2026-03 archive,
