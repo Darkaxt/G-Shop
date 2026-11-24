@@ -1,6 +1,25 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 186, 2026-11-24.
+Authoritative specification, revision 187, 2026-11-24.
+
+QA process correction, revision 187 (PROCESS-SIMPLIFY-01), 2026-11-24, applying the
+owner's instruction to remove agent-invented overhead. Each rule below was traced
+and has no owner statement behind it:
+- Stage serialization ("sole ACTIVE stage", "do not open a second front") is
+  retired. Owner-authorized work items proceed independently, tracked as GitHub
+  issues in Darkaxt/G-Shop. Resource limits (one test workload at a time) stay.
+- A missing, invalid or unbound resource no longer pauses integration or requires
+  an owner sign-off. It stays absent behind the honest fallback, is logged in the
+  coverage census, and work continues toward the owner's 80 percent coverage
+  direction (2026-10-23). Never substitute a guessed resource.
+- Visual acceptance is one owner look per visible change, against the owner's
+  concrete criteria. Layered census/sample/re-acceptance gates are retired.
+- Private models and cartons follow CATALOGUE-READONLY-01: Windows publishes them
+  to the read-only catalogue (verified by hash) or bundles them in the private
+  APK. The on-device private-model import, its staging cohorts and its receipts
+  are superseded. Private delivery (owner, 2026-10-14) is unchanged.
+Owner-sourced rules stay: read-only ROM access, save-only writes, private delivery
+of extracted assets, NintAndBox canonical source, matching and identity integrity.
 
 Owner architecture correction, revision 186 (CATALOGUE-READONLY-01), 2026-11-24:
 the Google Drive metadata tree is the **shop catalogue**, published centrally from

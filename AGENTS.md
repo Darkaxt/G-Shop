@@ -23,6 +23,9 @@ This supersedes the former no-automatic-eviction restriction only within CACHE-0
 S11 remains NOT STARTED while S7 is ACTIVE; do not open a second implementation
 front or silently enable deletion of pre-existing unmanaged files.
 
+- Spec revisions 186-187 supersede the stage-serialization wording above ("second
+  ACTIVE stage", "do not start S10/S11 while ... ACTIVE"): work proceeds as GitHub
+  issues. The catalogue is client read-only (CATALOGUE-READONLY-01).
 - Read `docs/SPECIFICATION.md` as the authority, then
   `docs/IMPLEMENTATION_PLAN.md` and `docs/IMPLEMENTATION_STATUS.md`.
 - Implementation was authorized after preparation on 2026-09-08. Use the staged

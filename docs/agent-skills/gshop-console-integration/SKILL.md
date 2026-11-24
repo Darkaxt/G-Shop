@@ -424,8 +424,8 @@ confirmed original retail printing. A program revision alone is not a new mesh.
 
 **Pause the affected integration when any required resource is missing, invalid
 or lacks a sufficiently established physical binding.** Report the exact resource
-and blocked criterion. Resume only after the owner supplies it, explicitly approves
-a concrete workaround or acknowledges the specific limitation. Record that decision.
+and blocked criterion. Do not pause or ask the owner (spec revision 187): keep it absent behind the honest
+fallback, log it in the coverage census and continue toward 80 percent coverage.
 No silent generic model, guessed shell/colour/label or omitted prop. Runtime missing
 file handling is not acceptance of an incomplete resource set. Diagnose/fix
 actionable binding defects rather than manufacturing external blockers.
