@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 import '../../models/scraped_metadata.dart';
@@ -12,7 +13,9 @@ import 'metadata_artwork_cache.dart';
 import 'preview_video_cache.dart';
 import 'shared_metadata_store.dart';
 
-/// One account-bound publication/cache lane. Cloud receipts are not file leases.
+/// Read-only reader and local cache for the shop catalogue (spec revision 186,
+/// CATALOGUE-READONLY-01). Windows publishes the catalogue; clients never write
+/// it. A resource is trusted when its SHA-256 and size match its game record.
 class MetadataCloudLibrary {
   static const defaultBudgetBytes = 2 * 1024 * 1024 * 1024;
   static String gameFolderName(String title) {
@@ -70,8 +73,7 @@ class MetadataCloudLibrary {
   Future<void> _tail = Future.value();
   Future<void>? _syncing;
   bool _stopSync = false;
-  bool _rebuildPending = false;
-  void stopPublication() => _stopSync = true;
+  void stopSync() => _stopSync = true;
   final _holds = <Object, Set<String>>{};
   final _folders = <String, String>{};
   bool _closed = false;
@@ -220,15 +222,10 @@ class MetadataCloudLibrary {
   Future<String> _folder(String path) async {
     if (_folders.containsKey(path)) return _folders[path]!;
     if (path.isEmpty) {
-      var root = await remote.get(rootId);
-      if (root == null) {
-        await remote.folder(rootId, null, 'G-Shop Metadata');
-        root = await remote.get(rootId);
-      }
+      final root = await remote.get(rootId);
       if (root?.kind != 'folder' ||
-          root?.parent != null ||
-          !{'G-Shop Metadata', 'R-Shop Metadata'}.contains(root?.name))
-        throw const FormatException('Metadata root changed');
+          !DriveMetadataApi.rootNames.contains(root?.name))
+        throw const FormatException('Catalogue root changed');
       await _db.insert('metadata_cloud_folders',
           {'account': accountId, 'path': '', 'file_id': rootId},
           conflictAlgorithm: ConflictAlgorithm.replace);
@@ -240,21 +237,18 @@ class MetadataCloudLibrary {
         where: 'account = ? AND path = ?',
         whereArgs: [accountId, path],
         limit: 1);
-    String id;
-    if (rows.isNotEmpty) {
-      id = rows.single['file_id'] as String;
-    } else {
-      final matches = (await remote.children(parent))
-          .where((f) => f.kind == 'folder' && f.name == p.posix.basename(path))
-          .toList();
-      if (matches.length > 1)
-        throw const FormatException('Ambiguous metadata folder');
-      id = matches.isEmpty ? await remote.reserveId() : matches.single.id;
-      await _db.insert('metadata_cloud_folders',
-          {'account': accountId, 'path': path, 'file_id': id});
-    }
-    await remote.folder(id, parent, p.posix.basename(path));
-    return _folders[path] = id;
+    if (rows.isNotEmpty) return _folders[path] = rows.single['file_id'] as String;
+    final matches = (await remote.children(parent))
+        .where((f) => f.kind == 'folder' && f.name == p.posix.basename(path))
+        .toList();
+    if (matches.length != 1)
+      throw FormatException(matches.isEmpty
+          ? 'Missing catalogue folder'
+          : 'Ambiguous catalogue folder');
+    await _db.insert('metadata_cloud_folders',
+        {'account': accountId, 'path': path, 'file_id': matches.single.id},
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    return _folders[path] = matches.single.id;
   }
 
   Future<void> _verify(
@@ -278,106 +272,9 @@ class MetadataCloudLibrary {
     }
   }
 
-  Future<void> publishFile(
-          {required String path,
-          required String mediaKey,
-          required File file,
-          required String kind,
-          String? receiptJson}) =>
-      _lane(() async {
-        await _publishFile(path, mediaKey, file, kind, receiptJson);
-        await _trim(budgetBytes, protected: {file.path});
-      });
-  Future<void> _publishFile(
-      String path, String mediaKey, File file, String kind, String? receiptJson,
-      {String? remoteFolder, String? remoteName}) async {
-    _path(path);
-    final digest = p.posix.basename(path).split('.').first;
-    final bytes = await file.length();
-    if (bytes < 1 ||
-        bytes > 256 * 1024 * 1024 ||
-        !await _intact(file, digest, bytes)) {
-      throw const FormatException('Local metadata bytes changed');
-    }
-    final rows = await _rows(path);
-    if (mediaKey.isNotEmpty)
-      await _db.insert(
-          'metadata_cloud_media',
-          {
-            'account': accountId,
-            'media_key': mediaKey,
-            'path': path,
-          },
-          conflictAlgorithm: ConflictAlgorithm.ignore);
-    if (rows.isNotEmpty && rows.single['verified'] == 1) return;
-    final folderPath = remoteFolder ?? p.posix.dirname(path);
-    final name = remoteName ?? p.posix.basename(path);
-    final parent = await _folder(folderPath);
-    MetadataCloudFile? current;
-    if (rows.isEmpty && remoteName != null) {
-      final matches = (await remote.children(parent))
-          .where((f) => f.name == name && f.kind == kind)
-          .toList();
-      if (matches.length > 1)
-        throw const FormatException('Ambiguous game resource');
-      current = matches.firstOrNull;
-    }
-    final id = rows.isEmpty
-        ? current?.id ?? await remote.reserveId()
-        : rows.single['file_id'] as String;
-    if (rows.isEmpty)
-      await _db.insert('metadata_cloud_files', {
-        'account': accountId,
-        'path': path,
-        'file_id': id,
-        'digest': digest,
-        'bytes': bytes,
-        'media_key': mediaKey,
-        'receipt_json': receiptJson,
-        'used': ++_clock,
-        'remote_name': name,
-        'folder_path': folderPath,
-        'replaces_digest': current?.digest,
-      });
-    var replaces = rows.isEmpty
-        ? current?.digest
-        : rows.single['replaces_digest'] as String?;
-    if (rows.isNotEmpty) {
-      // A content-addressed body can be selected again after this same named
-      // object was updated to another body. Its old receipt is not the current
-      // predecessor. Use only our verified receipt for this exact destination;
-      // upload still rejects an unseen remote digest and uses its live ETag.
-      final latest = await _db.query('metadata_cloud_files',
-          columns: ['digest'],
-          where: 'account=? AND file_id=? AND verified=1 AND remote_name=? '
-              'AND folder_path=? AND path<>?',
-          whereArgs: [accountId, id, name, folderPath, path]);
-      if (latest.length > 1) {
-        throw const FormatException('Ambiguous game resource');
-      }
-      if (latest.isNotEmpty) replaces = latest.single['digest'] as String;
-    }
-    await remote.upload(id, parent, name, kind, file, digest, bytes,
-        replacesDigest: replaces);
-    final uploaded = await remote.get(id);
-    if (uploaded == null ||
-        uploaded.parent != parent ||
-        uploaded.kind != kind) {
-      throw const FormatException('Cloud metadata publication disappeared');
-    }
-    await _verify(uploaded, path, digest, bytes, name: name);
-    await _db.update('metadata_cloud_files', {'verified': 0},
-        where: 'account=? AND file_id=? AND path<>?',
-        whereArgs: [accountId, id, path]);
-    await _db.update(
-        'metadata_cloud_files', {'verified': 1, 'parent_id': parent},
-        where: 'account = ? AND path = ?', whereArgs: [accountId, path]);
-  }
-
   Future<File?> ensure(String path, {bool userRequested = false}) =>
       _lane(() => _ensure(path, userRequested: userRequested));
   Future<File?> _ensure(String path, {bool userRequested = false}) async {
-    if (_rebuildPending) return null;
     _path(path);
     final rows = await _rows(path);
     if (rows.isEmpty) return null;
@@ -443,44 +340,6 @@ class MetadataCloudLibrary {
     return file;
   }
 
-  /// A just-collected visible game need not wait behind unrelated publication.
-  /// Repeated focus with an existing mapping does not make a Drive request.
-  Future<void> publishSelection(String edition, Set<String> requested) =>
-      _lane(() async {
-        if (_rebuildPending) return;
-        final packets = await store.cloudPackets(editionId: edition).toList();
-        if (packets.isEmpty) return;
-        final packet = packets.single;
-        var unpublishedLocal = false;
-        for (final media in _resources(packet).values) {
-          final video = {'video', 'video-normalized'}.contains(media.type);
-          final key = video
-              ? PreviewVideoCache.key(media)
-              : MetadataArtworkCache.key(media);
-          if (!requested.contains(key)) continue;
-          final mapped = await _db.rawQuery(
-              '''SELECT 1 FROM metadata_cloud_media m
-        JOIN metadata_cloud_files f ON f.account=m.account AND f.path=m.path
-        WHERE m.account=? AND m.media_key=? AND f.verified=1 LIMIT 1''',
-              [accountId, key]);
-          if (mapped.isNotEmpty) continue;
-          if (video) {
-            unpublishedLocal = await File(
-                    p.join(store.root.path, 'preview-videos', '$key.json'))
-                .exists();
-          } else {
-            final receipts =
-                (packet['artwork'] as List).where((a) => a['media_key'] == key);
-            unpublishedLocal = receipts.isNotEmpty &&
-                await File(p.join(store.artworkRoot.path,
-                        receipts.first['filename'] as String))
-                    .exists();
-          }
-          if (unpublishedLocal) break;
-        }
-        if (unpublishedLocal) await _publishGame(packet);
-      });
-
   Future<int> cachedBytes() async {
     var total = 0;
     for (final kind in ['artwork', 'preview-videos']) {
@@ -498,54 +357,6 @@ class MetadataCloudLibrary {
   }
 
   Future<void> trim(int bytes) => _lane(() => _trim(bytes));
-
-  /// Explicit user-requested rebuild, not automatic cache eviction. The caller
-  /// persists the intent and joins collectors before entering this owner lane.
-  Future<void> discardCollectedMedia() {
-    _rebuildPending = true;
-    return _lane(() async {
-      await store.requireAccess();
-      _folders.clear();
-      await _folder('');
-      for (final child in await remote.children(rootId)) {
-        await remote.trash(child);
-      }
-      if ((await remote.children(rootId)).isNotEmpty) {
-        throw const FormatException('Metadata rebuild is incomplete');
-      }
-      for (final kind in ['artwork', 'preview-videos']) {
-        final directory = Directory(p.join(store.root.path, kind));
-        if (!await directory.exists()) continue;
-        await for (final file in directory.list(followLinks: false)) {
-          if (file is File &&
-              RegExp(kind == 'artwork'
-                      ? r'^[a-f0-9]{64}\.png$'
-                      : r'^[a-f0-9]{64}\.(mp4|json)$')
-                  .hasMatch(p.basename(file.path)) &&
-              await FileSystemEntity.type(file.path, followLinks: false) ==
-                  FileSystemEntityType.file) {
-            await file.delete();
-          }
-        }
-      }
-      await _db.transaction((txn) async {
-        for (final table in [
-          'metadata_cloud_media',
-          'metadata_cloud_files',
-          'metadata_cloud_folders',
-          'metadata_cloud_games'
-        ]) {
-          await txn.delete(table, where: 'account=?', whereArgs: [accountId]);
-        }
-        await txn.delete('metadata_artwork_cache');
-        await txn.delete('artwork_responses');
-      });
-      _folders.clear();
-      _holds.clear();
-      _rebuildPending = false;
-      changed?.call();
-    });
-  }
 
   Future<void> _trim(int bytes, {Set<String> protected = const {}}) async {
     var total = await cachedBytes();
@@ -586,250 +397,57 @@ class MetadataCloudLibrary {
     }
   }
 
-  Future<void> sync(Future<Database> projection, {bool pull = true}) {
-    if (_rebuildPending) {
-      return Future.error(
-          StateError('Finish the requested media rebuild first'));
-    }
+  /// Pull the published catalogue into the local projection.
+  Future<void> sync(Future<Database> projection) {
     if (_syncing != null) return _syncing!;
     _stopSync = false;
-    return _syncing = _synchronize(projection, pull: pull)
-        .whenComplete(() => _syncing = null);
+    return _syncing =
+        _synchronize(projection).whenComplete(() => _syncing = null);
   }
 
-  Future<void> _synchronize(Future<Database> projection,
-      {required bool pull}) async {
+  Future<void> _synchronize(Future<Database> projection) async {
     await _lane(() async {
       _folders.clear();
-      if (pull) await _folder('');
+      await _folder('');
     });
-    // Read immutable packets first; cached text never needs media downloads.
-    final consoles = <({MetadataCloudFile folder, String prefix})>[];
-    if (pull) {
-      final rootFolders = await remote.children(rootId);
-      final legacy =
-          rootFolders.where((f) => f.kind == 'folder' && f.name == '_legacy');
-      if (legacy.length > 1)
-        throw const FormatException('Ambiguous legacy metadata');
-      if (legacy.isNotEmpty) {
-        consoles.addAll((await remote.children(legacy.single.id))
-            .map((f) => (folder: f, prefix: '_legacy/')));
-      }
-      consoles.addAll(rootFolders.map((f) => (folder: f, prefix: '')));
-    }
-    for (final entry in consoles) {
+    // Catalogue layout: <root>/<console>/<game folder>/metadata.json + roles.
+    // `retained` and `_`-prefixed folders are not catalogue consoles.
+    final consoles = (await remote.children(rootId))
+        .where((f) =>
+            f.kind == 'folder' &&
+            f.name != 'retained' &&
+            RegExp(r'^[a-z0-9][a-z0-9_-]{0,63}$').hasMatch(f.name))
+        .toList();
+    final games = <({String console, MetadataCloudFile folder})>[];
+    for (final console in consoles) {
       if (_stopSync) return;
-      final console = entry.folder;
-      if (console.kind != 'folder' ||
-          !RegExp(r'^[a-z0-9][a-z0-9_-]{0,63}$').hasMatch(console.name))
-        continue;
       for (final folder in await remote.children(console.id)) {
-        if (folder.kind != 'folder') continue;
-        if (!{'records', 'artwork', 'preview-videos'}.contains(folder.name)) {
-          if (entry.prefix.isEmpty) {
-            await _lane(() => _recoverGame(console.name, folder));
-          }
-          continue;
-        }
-        if (folder.name != 'records') continue;
-        for (final object in await remote.children(folder.id)) {
-          if (_stopSync) return;
-          if (object.kind != 'records' ||
-              object.bytes > DriveMetadataApi.maxRecordBytes) continue;
-          await _lane(() async {
-            final path = '${console.name}/records/${object.name}';
-            _path(path);
-            if (object.digest != p.posix.basename(path).split('.').first)
-              throw const FormatException(
-                  'Metadata packet name/digest mismatch');
-            final existing = await _rows(path);
-            if (existing.isNotEmpty && existing.single['verified'] == 1) return;
-            final directory = Directory(p.join(store.root.path, 'records'));
-            await directory.create(recursive: true);
-            final file = File(p.join(directory.path, object.name));
-            try {
-              await remote.download(object, file);
-              if (!await _intact(file, object.digest!, object.bytes))
-                throw const FormatException('Metadata packet digest mismatch');
-              final packet = (jsonDecode(await file.readAsString()) as Map)
-                  .cast<String, dynamic>();
-              if (packet['platform'] != console.name)
-                throw const FormatException('Metadata console mismatch');
-              final validatedAssets = <Map<String, Object?>>[];
-              for (final raw in packet['assets'] as List) {
-                final asset = (raw as Map).cast<String, dynamic>();
-                _path(asset['path'] as String);
-                if (!(asset['path'] as String).startsWith('${console.name}/'))
-                  throw const FormatException('Cross-console media path');
-                final assetPath = asset['path'] as String;
-                if (assetPath.contains('/records/') ||
-                    asset['digest'] !=
-                        p.posix.basename(assetPath).split('.').first ||
-                    asset['bytes'] is! int ||
-                    (asset['bytes'] as int) < 1 ||
-                    (asset['bytes'] as int) > 256 * 1024 * 1024 ||
-                    asset['media_key'] is! String ||
-                    !RegExp(r'^[a-f0-9]{64}$')
-                        .hasMatch(asset['media_key'] as String)) {
-                  throw const FormatException('Invalid cloud media receipt');
-                }
-                final folderPath =
-                    '${entry.prefix}${p.posix.dirname(assetPath)}';
-                final parent = await _folder(folderPath);
-                final object = await remote.get(asset['file_id'] as String);
-                if (object == null ||
-                    object.parent != parent ||
-                    object.name != p.posix.basename(assetPath) ||
-                    object.digest != asset['digest'] ||
-                    object.bytes != asset['bytes'] ||
-                    object.kind !=
-                        (assetPath.contains('/artwork/')
-                            ? 'artwork'
-                            : 'video')) {
-                  throw const FormatException('Cloud media ownership changed');
-                }
-                if (asset['receipt_json'] != null) {
-                  final receipt =
-                      (jsonDecode(asset['receipt_json'] as String) as Map);
-                  if (receipt['version'] != 1 ||
-                      receipt['key'] != asset['media_key'] ||
-                      receipt['file'] != object.name ||
-                      receipt['sha256'] != object.digest ||
-                      receipt['bytes'] != object.bytes) {
-                    throw const FormatException('Invalid cloud video receipt');
-                  }
-                }
-                validatedAssets.add({
-                  'account': accountId,
-                  'path': asset['path'],
-                  'file_id': asset['file_id'],
-                  'digest': asset['digest'],
-                  'bytes': asset['bytes'],
-                  'media_key': asset['media_key'],
-                  'verified': 1,
-                  'parent_id': parent,
-                  'folder_path': folderPath,
-                  'receipt_json': asset['receipt_json']
-                });
-              }
-              await store.importCloudPacket(packet);
-              for (final asset in validatedAssets) {
-                await _db.insert('metadata_cloud_files', asset,
-                    conflictAlgorithm: ConflictAlgorithm.ignore);
-                await _db.insert(
-                    'metadata_cloud_media',
-                    {
-                      'account': accountId,
-                      'path': asset['path'],
-                      'media_key': asset['media_key']
-                    },
-                    conflictAlgorithm: ConflictAlgorithm.ignore);
-              }
-              await _db.insert(
-                  'metadata_cloud_files',
-                  {
-                    'account': accountId,
-                    'path': path,
-                    'file_id': object.id,
-                    'digest': object.digest,
-                    'bytes': object.bytes,
-                    'parent_id': folder.id,
-                    'folder_path': '${entry.prefix}${console.name}/records',
-                    'verified': 1
-                  },
-                  conflictAlgorithm: ConflictAlgorithm.replace);
-            } finally {
-              if (await file.exists()) await file.delete();
-            }
-          });
+        if (folder.kind == 'folder' &&
+            !{'records', 'artwork', 'preview-videos', '_previous'}
+                .contains(folder.name)) {
+          games.add((console: console.name, folder: folder));
         }
       }
     }
-    // Publication starts from local facts. Only a remote pull owns restoring
-    // newly received facts into the projection; cache readers own startup recovery.
-    if (pull) await _lane(() async => store.restore(await projection));
-    final editions = <String>{};
-    final total = (await _db
-            .rawQuery('SELECT COUNT(DISTINCT edition_id) AS n FROM records'))
-        .single['n'] as int;
-    progress?.call(0, total);
-    await for (final packet in store.cloudPackets()) {
-      for (final row in packet['records'] as List) {
-        if (_stopSync) return;
-        final edition = row['edition_id'] as String;
-        if (!editions.add(edition)) continue;
-        await _lane(() async => _publishGame(
-            await store.cloudPackets(editionId: edition).single,
-            verifyRemote: pull));
-        progress?.call(editions.length, total);
-      }
+    progress?.call(0, games.length);
+    for (final (index, game) in games.indexed) {
+      if (_stopSync) return;
+      await _lane(() => _recoverGame(game.console, game.folder));
+      progress?.call(index + 1, games.length);
     }
     await _lane(() async {
-      if (_stopSync) return;
-      await _retainHistoricalMedia(verifyRemote: pull);
-      if (pull) await _archiveLegacyFolders();
+      await store.restore(await projection);
       await _trim(budgetBytes);
-      // Backup receipts do not mutate local artwork. Actual download/eviction
-      // already notifies its exact key; only a pull replaces projected facts.
-      if (pull) changed?.call();
+      changed?.call();
     });
   }
 
-  Future<void> _archiveLegacyFolders() async {
-    final consoles = await remote.children(rootId);
-    for (final console in consoles) {
-      if (console.kind != 'folder' ||
-          console.name.startsWith('_') ||
-          console.name == 'retained') continue;
-      for (final folder in await remote.children(console.id)) {
-        if (folder.kind != 'folder' ||
-            !{'records', 'artwork', 'preview-videos'}.contains(folder.name))
-          continue;
-        final targetPath = '_legacy/${console.name}';
-        final parent = await _folder(targetPath);
-        final collision = (await remote.children(parent))
-            .where((f) => f.name == folder.name && f.id != folder.id);
-        if (collision.isNotEmpty)
-          throw const FormatException('Legacy metadata archive collision');
-        await remote.relocate(folder, parent);
-        final oldPath = '${console.name}/${folder.name}';
-        final archivedPath = '$targetPath/${folder.name}';
-        await _db.transaction((txn) async {
-          await txn.delete('metadata_cloud_folders',
-              where: 'account=? AND path=?', whereArgs: [accountId, oldPath]);
-          await txn.insert(
-              'metadata_cloud_folders',
-              {
-                'account': accountId,
-                'path': archivedPath,
-                'file_id': folder.id
-              },
-              conflictAlgorithm: ConflictAlgorithm.replace);
-          await txn.update(
-              'metadata_cloud_files', {'folder_path': archivedPath},
-              where: 'account=? AND parent_id=?',
-              whereArgs: [accountId, folder.id]);
-        });
-        _folders.remove(oldPath);
-        _folders[archivedPath] = folder.id;
-      }
-    }
-  }
-
-  static String _editionKey(String edition) =>
+  static String editionKey(String edition) =>
       sha256.convert(utf8.encode(edition)).toString();
 
-  Future<String> _gameFolder(Map<String, dynamic> packet) async {
-    final first = (packet['records'] as List).first;
-    final game =
-        GameIdentity.fromJson(jsonDecode(first['game_json'] as String));
-    final edition =
-        EditionIdentity.fromJson(jsonDecode(first['edition_json'] as String));
-    final key = _editionKey(edition.id);
-    final saved = await _db.query('metadata_cloud_games',
-        where: 'account=? AND edition_key=?', whereArgs: [accountId, key]);
-    if (saved.isNotEmpty) return saved.single['folder_path'] as String;
-    final platform = packet['platform'] as String;
+  /// Catalogue folder name for one edition, before any collision suffix
+  /// (`" [<first 8 of editionKey>]"`) for a case-insensitive name clash.
+  static String folderTitle(GameIdentity game, EditionIdentity edition) {
     final qualifiers = [
       ...edition.regions,
       if (edition.revision != null) 'Rev ${edition.revision}',
@@ -837,19 +455,11 @@ class MetadataCloudLibrary {
       if (edition.isTranslation == true) 'T-Eng',
       if (edition.patchId != null) edition.patchId!,
     ];
-    var title = gameFolderName(
+    return gameFolderName(
         '${game.title}${qualifiers.isEmpty ? '' : ' (${qualifiers.join(', ')})'}');
-    final parent = await _folder(platform);
-    final existing = await remote.children(parent);
-    if (existing.any((f) => f.name.toLowerCase() == title.toLowerCase()))
-      title = '$title [${key.substring(0, 8)}]';
-    final path = '$platform/$title';
-    await _db.insert('metadata_cloud_games',
-        {'account': accountId, 'edition_key': key, 'folder_path': path});
-    return path;
   }
 
-  Map<String, MetadataMedia> _resources(Map<String, dynamic> packet) {
+  static Map<String, MetadataMedia> resources(Map<String, dynamic> packet) {
     final platform = packet['platform'] as String;
     final records = (packet['records'] as List)
         .map((r) =>
@@ -913,7 +523,7 @@ class MetadataCloudLibrary {
     return result;
   }
 
-  static const _assetFields = [
+  static const assetFields = [
     'path',
     'file_id',
     'digest',
@@ -924,7 +534,7 @@ class MetadataCloudLibrary {
     'folder_path'
   ];
 
-  List<int> _gamePacketBytes(Map<String, dynamic> packet, String key,
+  static List<int> gamePacketBytes(Map<String, dynamic> packet, String key,
           String folder, List<Map<String, Object?>> assets) =>
       utf8.encode(jsonEncode({
         ...packet,
@@ -949,147 +559,9 @@ class MetadataCloudLibrary {
         }
       }));
 
-  Future<bool> _hasVerifiedPublication(String path) async {
-    final roots = await _db.query('metadata_cloud_folders',
-        where: 'account=? AND path=? AND file_id=?',
-        whereArgs: [accountId, '', rootId]);
-    if (roots.isEmpty) return false;
-    final rows = await _rows(path);
-    return rows.isNotEmpty && rows.single['verified'] == 1;
-  }
-
-  /// Compare the exact packet with its already verified, account/root-bound
-  /// receipt. This is backup deduplication, not a claim of fresh remote validation;
-  /// an explicit pull still checks Drive, including remote edits/conflicts.
-  Future<bool> _unchangedPublication(
-      Map<String, dynamic> packet, String platform, String key) async {
-    final folders = await _db.query('metadata_cloud_games',
-        where: 'account=? AND edition_key=?', whereArgs: [accountId, key]);
-    if (folders.isEmpty) return false;
-    final assets = <Map<String, Object?>>[];
-    for (final entry in _resources(packet).entries) {
-      final video = entry.key.endsWith('.mp4');
-      final mediaKey = video
-          ? PreviewVideoCache.key(entry.value)
-          : MetadataArtworkCache.key(entry.value);
-      String filename;
-      if (video) {
-        final receipt =
-            File(p.join(store.root.path, 'preview-videos', '$mediaKey.json'));
-        if (!await receipt.exists() || await receipt.length() > 1024) continue;
-        filename =
-            (jsonDecode(await receipt.readAsString()) as Map)['file'] as String;
-      } else {
-        final matches = (packet['artwork'] as List)
-            .where((r) => r['media_key'] == mediaKey);
-        if (matches.isEmpty) continue;
-        filename = matches.first['filename'] as String;
-      }
-      final path =
-          '$platform/games/$key/${entry.key.split('.').first}/$filename';
-      _path(path);
-      final rows = await _rows(path);
-      if (rows.isNotEmpty && rows.single['verified'] == 1) {
-        assets
-            .add({for (final field in _assetFields) field: rows.single[field]});
-      } else if (await _local(path).exists()) {
-        return false; // A newly collected body still needs publication.
-      }
-    }
-    final bytes = _gamePacketBytes(
-        packet, key, folders.single['folder_path'] as String, assets);
-    final digest = sha256.convert(bytes).toString();
-    return _hasVerifiedPublication(
-        '$platform/games/$key/metadata/$digest.json');
-  }
-
-  Future<void> _publishGame(Map<String, dynamic> packet,
-      {bool verifyRemote = false}) async {
-    final platform = packet['platform'] as String;
-    final edition = (packet['records'] as List).first['edition_id'] as String;
-    final key = _editionKey(edition);
-    if (!verifyRemote && await _unchangedPublication(packet, platform, key)) {
-      return;
-    }
-    final folder = await _gameFolder(packet);
-    final assets = <Map<String, Object?>>[];
-    for (final entry in _resources(packet).entries) {
-      final video = entry.key.endsWith('.mp4');
-      final mediaKey = video
-          ? PreviewVideoCache.key(entry.value)
-          : MetadataArtworkCache.key(entry.value);
-      final previous =
-          await _db.rawQuery('''SELECT f.path FROM metadata_cloud_media m
-        JOIN metadata_cloud_files f ON f.account=m.account AND f.path=m.path
-        WHERE m.account=? AND m.media_key=? AND f.verified=1
-        AND f.path NOT LIKE '%/games/%' LIMIT 1''', [accountId, mediaKey]);
-      if (previous.isNotEmpty &&
-          !await _local(previous.single['path'] as String).exists()) {
-        await _ensure(previous.single['path'] as String, userRequested: true);
-      }
-      String filename;
-      String? receipt;
-      if (video) {
-        final file =
-            File(p.join(store.root.path, 'preview-videos', '$mediaKey.json'));
-        if (!await file.exists() || await file.length() > 1024) continue;
-        receipt = await file.readAsString();
-        filename = (jsonDecode(receipt) as Map)['file'] as String;
-      } else {
-        final matches = (packet['artwork'] as List)
-            .where((r) => r['media_key'] == mediaKey);
-        if (matches.isEmpty) continue;
-        filename = matches.first['filename'] as String;
-      }
-      final role = entry.key.split('.').first;
-      final path = '$platform/games/$key/$role/$filename';
-      _path(path);
-      final file = _local(path);
-      if (await file.exists())
-        await _publishFile(
-            path, mediaKey, file, video ? 'video' : 'artwork', receipt,
-            remoteFolder: folder, remoteName: entry.key);
-      final saved = await _rows(path);
-      if (saved.isNotEmpty && saved.single['verified'] == 1) {
-        assets.add(
-            {for (final field in _assetFields) field: saved.single[field]});
-      }
-    }
-    final bytes = _gamePacketBytes(packet, key, folder, assets);
-    if (bytes.length > DriveMetadataApi.maxRecordBytes)
-      throw const FormatException('Game metadata exceeds budget');
-    final digest = sha256.convert(bytes).toString();
-    final file = File(p.join(store.root.path, 'records', '$digest.json'));
-    await file.parent.create(recursive: true);
-    try {
-      await file.writeAsBytes(bytes, flush: true);
-      await _publishFile('$platform/games/$key/metadata/$digest.json', '', file,
-          'records', null,
-          remoteFolder: folder, remoteName: 'metadata.json');
-      final parent = await _folder(folder);
-      final live = assets.map((a) => a['file_id']).toSet();
-      for (final old in await remote.children(parent)) {
-        if (old.kind == 'folder' ||
-            live.contains(old.id) ||
-            !RegExp(r'^(box(?:-back|-spine|-wrap)?|outer-box-(?:front|back|left|right|top|bottom)|manual-page-[0-9]+|(?:fanart|flyer|maps)-[0-9]+|cartridge|disc(?:-[0-9]+)?|screenshot-[0-9]+|trailer)\.(png|mp4)$')
-                .hasMatch(old.name)) continue;
-        final archive = '$folder/_previous';
-        final archivedParent = await _folder(archive);
-        await remote.relocate(old, archivedParent);
-        await _db.update('metadata_cloud_files',
-            {'parent_id': archivedParent, 'folder_path': archive},
-            where: 'account=? AND file_id=?', whereArgs: [accountId, old.id]);
-      }
-    } finally {
-      if (await file.exists()) await file.delete();
-    }
-    // Publishing existing local bytes changes remote receipts, not rendered
-    // media. Downloads/eviction notify at their actual local mutation boundary;
-    // per-game publication notifications restart every mounted media reader.
-  }
-
   Future<void> _recoverGame(String platform, MetadataCloudFile folder) async {
-    final manifests = (await remote.children(folder.id))
+    final entries = await remote.children(folder.id);
+    final manifests = entries
         .where((f) => f.kind == 'records' && f.name == 'metadata.json')
         .toList();
     if (manifests.isEmpty) return;
@@ -1117,16 +589,18 @@ class MetadataCloudLibrary {
           packet['platform'] != platform ||
           packet['folder'] != folder.name ||
           records.isEmpty ||
-          records.any((r) => _editionKey(r['edition_id'] as String) != key))
-        throw const FormatException('Game metadata binding mismatch');
-      final resources = _resources(packet);
+          records.any((r) => editionKey(r['edition_id'] as String) != key)) {
+        debugPrint('Catalogue game skipped: binding mismatch in $platform');
+        return;
+      }
+      final roles = resources(packet);
       final assets = <Map<String, Object?>>[];
       for (final raw in packet['assets'] as List) {
         final a = (raw as Map).cast<String, dynamic>();
         final path = a['path'] as String;
         _path(path);
         final name = a['remote_name'] as String;
-        final media = resources[name];
+        final media = roles[name];
         final video = name.endsWith('.mp4');
         if (media == null ||
             !path.startsWith('$platform/games/$key/') ||
@@ -1138,16 +612,18 @@ class MetadataCloudLibrary {
                     : MetadataArtworkCache.key(media)) ||
             a['folder_path'] != '$platform/${folder.name}')
           throw const FormatException('Game resource role mismatch');
-        final actual = await remote.get(a['file_id'] as String);
+        // Resolve by name in this game folder; trust by hash and size only.
+        final named = entries.where((f) => f.name == name).toList();
+        final actual = named.length == 1 ? named.single : null;
         if (actual == null ||
-            actual.parent != folder.id ||
-            actual.name != name ||
             actual.digest != a['digest'] ||
             actual.bytes != a['bytes'] ||
             actual.bytes < 1 ||
             actual.bytes > 256 * 1024 * 1024 ||
-            actual.kind != (video ? 'video' : 'artwork'))
-          throw const FormatException('Game resource publication changed');
+            actual.kind != (video ? 'video' : 'artwork')) {
+          // Absent, still uploading or replaced: leave this resource absent.
+          continue;
+        }
         if (video) {
           final receipt = jsonDecode(a['receipt_json'] as String) as Map;
           if (receipt['version'] != 1 ||
@@ -1170,6 +646,7 @@ class MetadataCloudLibrary {
             'folder_path'
           ])
             field: a[field],
+          'file_id': actual.id,
           'parent_id': folder.id,
           'verified': 1
         });
@@ -1222,119 +699,4 @@ class MetadataCloudLibrary {
     }
   }
 
-  Future<void> _publishPacket(String platform, Map<String, dynamic> packet,
-      {bool verifyRemote = false}) async {
-    final bytes = utf8.encode(jsonEncode(packet));
-    if (bytes.length > DriveMetadataApi.maxRecordBytes)
-      throw const FormatException('Metadata packet exceeds publication budget');
-    final digest = sha256.convert(bytes).toString();
-    final path = '$platform/records/$digest.json';
-    if (!verifyRemote && await _hasVerifiedPublication(path)) {
-      return;
-    }
-    final directory = Directory(p.join(store.root.path, 'records'));
-    await directory.create(recursive: true);
-    final file = File(p.join(directory.path, '$digest.json'));
-    try {
-      await file.writeAsBytes(bytes, flush: true);
-      await _publishFile(path, '', file, 'records', null);
-    } finally {
-      if (await file.exists()) await file.delete();
-    }
-  }
-
-  // Earlier refreshes may leave immutable bodies whose current game no longer
-  // references them. Preserve those bytes too, without inventing a game match.
-  Future<void> _retainHistoricalMedia({required bool verifyRemote}) async {
-    final assets = <Map<String, Object?>>[];
-    Future<void> flush() async {
-      if (assets.isEmpty) return;
-      await _publishPacket(
-          'retained',
-          {
-            'version': 1,
-            'platform': 'retained',
-            'records': [],
-            'bindings': [],
-            'artwork': [],
-            'responses': [],
-            'assets': [...assets]
-          },
-          verifyRemote: verifyRemote);
-      assets.clear();
-    }
-
-    for (final kind in ['artwork', 'preview-videos']) {
-      final directory = Directory(p.join(store.root.path, kind));
-      if (!await directory.exists()) continue;
-      await for (final file in directory.list(followLinks: false)) {
-        if (file is! File) continue;
-        final filename = p.basename(file.path);
-        if (!RegExp(kind == 'artwork'
-                ? r'^[a-f0-9]{64}\.png$'
-                : r'^[a-f0-9]{64}\.mp4$')
-            .hasMatch(filename)) continue;
-        final known = await _db.query('metadata_cloud_files',
-            where: 'account=? AND path LIKE ? AND verified=1',
-            whereArgs: [accountId, '%/$filename'],
-            limit: 1);
-        if (known.isNotEmpty) {
-          final row = known.single;
-          if ((row['path'] as String).startsWith('retained/')) {
-            assets.add({
-              for (final field in [
-                'path',
-                'file_id',
-                'digest',
-                'bytes',
-                'media_key',
-                'receipt_json'
-              ])
-                field: row[field]
-            });
-            if (assets.length == 128) await flush();
-          }
-          continue;
-        }
-        final bytes = await file.length();
-        if (kind == 'artwork') {
-          if (bytes > MetadataArtworkCache.maxBytes ||
-              !MetadataArtworkCache.validNormalizedPng(
-                  await file.readAsBytes())) continue;
-        } else {
-          await PreviewVideoCache.validateMp4(file);
-        }
-        final digest = filename.split('.').first;
-        final key =
-            sha256.convert(utf8.encode('retained:$kind:$digest')).toString();
-        final path = 'retained/$kind/$filename';
-        final receipt = kind == 'artwork'
-            ? null
-            : jsonEncode({
-                'version': 1,
-                'key': key,
-                'file': filename,
-                'bytes': bytes,
-                'sha256': digest,
-                'usedAt': (await file.lastModified()).toUtc().toIso8601String()
-              });
-        await _publishFile(
-            path, key, file, kind == 'artwork' ? 'artwork' : 'video', receipt);
-        final row = (await _rows(path)).single;
-        assets.add({
-          for (final field in [
-            'path',
-            'file_id',
-            'digest',
-            'bytes',
-            'media_key',
-            'receipt_json'
-          ])
-            field: row[field]
-        });
-        if (assets.length == 128) await flush();
-      }
-    }
-    await flush();
-  }
 }

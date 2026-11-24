@@ -22,18 +22,14 @@ class MetadataCloudFile {
       this.trashed = false});
 }
 
-/// Narrow transport for app-owned metadata. Never accepts a ROM source URL.
+/// Read-only transport for the published shop catalogue (spec revision 186).
+/// Never writes Drive and never accepts a ROM source URL.
 abstract interface class MetadataCloudRemote {
-  Future<String> reserveId();
+  /// The single catalogue root folder in My Drive, or null when absent.
+  Future<MetadataCloudFile?> findRoot();
   Future<MetadataCloudFile?> get(String id);
-  Future<List<MetadataCloudFile>> children(String? parent);
-  Future<void> folder(String id, String? parent, String name);
-  Future<void> upload(String id, String parent, String name, String kind,
-      File file, String digest, int bytes,
-      {String? replacesDigest});
+  Future<List<MetadataCloudFile>> children(String parent);
   Future<void> download(MetadataCloudFile remote, File target);
-  Future<void> relocate(MetadataCloudFile file, String parent);
-  Future<void> trash(MetadataCloudFile file);
 }
 
 class DriveMetadataApi implements MetadataCloudRemote {
@@ -41,8 +37,7 @@ class DriveMetadataApi implements MetadataCloudRemote {
   final String accountId;
   final Dio _http;
   static const maxRecordBytes = 8 * 1024 * 1024;
-  static const _fields = 'id,name,mimeType,parents,ownedByMe,isAppAuthorized,'
-      'trashed,shared,driveId,appProperties,size,sha256Checksum';
+  static const _fields = 'id,name,mimeType,parents,trashed,size,sha256Checksum';
   DriveMetadataApi(
       {required this.authorization,
       required this.accountId,
@@ -60,45 +55,43 @@ class DriveMetadataApi implements MetadataCloudRemote {
     }
   }
 
-  MetadataCloudFile _file(Map<String, dynamic> json,
-      {bool allowTrashed = false}) {
-    final props = (json['appProperties'] as Map?) ?? const {};
-    final parents = json['parents'] as List? ?? const [];
-    final folder = json['mimeType'] == 'application/vnd.google-apps.folder';
-    if (json['ownedByMe'] != true ||
-        json['isAppAuthorized'] != true ||
-        (json['trashed'] != false &&
-            !(allowTrashed && json['trashed'] == true)) ||
-        json['shared'] != false ||
-        json['driveId'] != null ||
-        props['rshopMetadata'] != '1' ||
-        parents.length > 1 ||
-        (props['kind'] != 'root' && parents.length != 1) ||
-        !{'root', 'folder', 'artwork', 'video', 'records'}
-            .contains(props['kind']) ||
-        folder != {'root', 'folder'}.contains(props['kind'])) {
-      throw const FormatException('Not an owned G-Shop metadata object');
-    }
+  /// Catalogue objects are trusted by content, not by who wrote them:
+  /// Windows publishes through Google Drive for desktop. Folders carry no
+  /// digest; files use Drive's own SHA-256. Unknown types are ignored.
+  MetadataCloudFile? _file(Map<String, dynamic> json) {
     final id = json['id'] as String;
     _id(id);
-    final bytes = folder ? 0 : int.tryParse(json['size'].toString());
-    final digest = props['sha256'] as String?;
+    final name = json['name'] as String;
+    final parents = json['parents'] as List? ?? const [];
+    final folder = json['mimeType'] == 'application/vnd.google-apps.folder';
+    final extension = name.contains('.') ? name.split('.').last : '';
+    final kind = folder
+        ? 'folder'
+        : const {
+            'png': 'artwork',
+            'mp4': 'video',
+            'json': 'records'
+          }[extension.toLowerCase()];
+    if (kind == null || parents.length > 1) return null;
+    final bytes = folder ? 0 : int.tryParse('${json['size']}');
+    final digest = folder ? null : json['sha256Checksum'] as String?;
     if (bytes == null ||
         bytes < 0 ||
         (!folder && !RegExp(r'^[a-f0-9]{64}$').hasMatch(digest ?? ''))) {
-      throw const FormatException('Invalid metadata object size/digest');
+      return null; // Not yet uploaded completely; leave it absent.
     }
     return MetadataCloudFile(
         id: id,
-        name: json['name'] as String,
-        parent: props['kind'] == 'root' ? null : parents.single as String,
-        kind: folder ? 'folder' : props['kind'] as String,
+        name: name,
+        parent: parents.isEmpty ? null : parents.single as String,
+        kind: kind,
         digest: digest,
-        checksum: json['sha256Checksum'] as String?,
+        checksum: digest,
         etag: json['_responseEtag'] as String?,
         bytes: bytes,
         trashed: json['trashed'] == true);
   }
+
 
   Future<Response<ResponseBody>?> _send(String path, String method,
       {Map<String, dynamic>? query,
@@ -109,7 +102,8 @@ class DriveMetadataApi implements MetadataCloudRemote {
       bool notFound = false}) async {
     String? rejected;
     for (var attempt = 0; attempt < 2; attempt++) {
-      final grant = await authorization.acquireMetadata(
+      // The catalogue is read with the existing read-only Drive grant.
+      final grant = await authorization.acquire(
           expectedAccountId: accountId, rejectedToken: rejected);
       Response<ResponseBody> response;
       try {
@@ -198,204 +192,64 @@ class DriveMetadataApi implements MetadataCloudRemote {
     return result;
   }
 
+  static const rootNames = {'G-Shop Metadata', 'R-Shop Metadata'};
+
   @override
-  Future<String> reserveId() async {
-    final json = await _json('drive/v3/files/generateIds', 'GET',
-        query: {'count': 1, 'space': 'drive', 'type': 'files'});
-    final id = (json!['ids'] as List).single as String;
-    _id(id);
-    return id;
+  Future<MetadataCloudFile?> findRoot() async {
+    final roots = await _list("'root' in parents and mimeType = "
+        "'application/vnd.google-apps.folder' and trashed = false and "
+        "(${rootNames.map((n) => "name = '$n'").join(' or ')})");
+    if (roots.length > 1) {
+      throw const FormatException('More than one catalogue root folder');
+    }
+    return roots.firstOrNull;
   }
 
   @override
-  Future<MetadataCloudFile?> get(String id) => _get(id);
-
-  Future<MetadataCloudFile?> _get(String id,
-      {bool allowTrashed = false}) async {
+  Future<MetadataCloudFile?> get(String id) async {
     _id(id);
     final json = await _json('drive/v3/files/$id', 'GET',
         query: {'fields': _fields}, notFound: true);
-    return json == null ? null : _file(json, allowTrashed: allowTrashed);
+    return json == null ? null : _file(json);
   }
 
   @override
-  Future<List<MetadataCloudFile>> children(String? parent) => _children(parent);
+  Future<List<MetadataCloudFile>> children(String parent) async {
+    _id(parent);
+    final result = await _list("trashed = false and '$parent' in parents");
+    if (result.any((f) => f.parent != parent)) {
+      throw const FormatException('Changed catalogue folder membership');
+    }
+    return result;
+  }
 
-  Future<List<MetadataCloudFile>> _children(String? parent,
-      {bool allVisible = false, bool includeTrashed = false}) async {
-    if (parent != null) _id(parent);
+  Future<List<MetadataCloudFile>> _list(String q) async {
     final result = <MetadataCloudFile>[];
     final pages = <String>{};
     String? page;
     do {
       final json = (await _json('drive/v3/files', 'GET', query: {
-        'q': "${includeTrashed ? '' : 'trashed = false and '}"
-            "${allVisible ? '' : "appProperties has { key='rshopMetadata' and value='1' } and "}"
-            '${parent == null ? "appProperties has { key='kind' and value='root' }" : "'$parent' in parents"}',
+        'q': q,
         'spaces': 'drive',
-        'pageSize': 100,
+        'pageSize': 1000,
         'fields': 'nextPageToken,incompleteSearch,files($_fields)',
         if (page != null) 'pageToken': page,
       }))!;
       if (json['incompleteSearch'] == true || json['files'] is! List) {
-        throw const FormatException('Incomplete metadata listing');
+        throw const FormatException('Incomplete catalogue listing');
       }
       for (final item in json['files'] as List) {
-        final file = _file((item as Map).cast<String, dynamic>(),
-            allowTrashed: includeTrashed);
-        if (file.parent != parent || result.any((v) => v.id == file.id)) {
-          throw const FormatException('Changed metadata folder membership');
+        final file = _file((item as Map).cast<String, dynamic>());
+        if (file != null && !result.any((v) => v.id == file.id)) {
+          result.add(file);
         }
-        result.add(file);
       }
       page = json['nextPageToken'] as String?;
       if (page != null && (page.isEmpty || !pages.add(page))) {
-        throw const FormatException('Invalid metadata listing continuation');
+        throw const FormatException('Invalid catalogue listing continuation');
       }
     } while (page != null);
     return result;
-  }
-
-  @override
-  Future<void> folder(String id, String? parent, String name) async {
-    _id(id);
-    if (parent != null) _id(parent);
-    final existing = await get(id);
-    if (existing != null) {
-      if (existing.kind != 'folder' ||
-          existing.parent != parent ||
-          existing.name != name) {
-        throw const FormatException('Metadata folder intent changed');
-      }
-      return;
-    }
-    await _json('drive/v3/files', 'POST', body: {
-      'id': id,
-      'name': name,
-      'mimeType': 'application/vnd.google-apps.folder',
-      if (parent != null) 'parents': [parent],
-      'appProperties': {
-        'rshopMetadata': '1',
-        'kind': parent == null ? 'root' : 'folder'
-      },
-    });
-    final created = await get(id);
-    if (created?.kind != 'folder' ||
-        created?.parent != parent ||
-        created?.name != name) {
-      throw const FormatException(
-          'Metadata folder publication was not verified');
-    }
-  }
-
-  @override
-  Future<void> upload(String id, String parent, String name, String kind,
-      File file, String digest, int bytes,
-      {String? replacesDigest}) async {
-    _id(id);
-    _id(parent);
-    final existing = await get(id);
-    if (existing != null) {
-      if (existing.parent != parent ||
-          existing.name != name ||
-          existing.kind != kind) {
-        throw const FormatException('Metadata publication intent changed');
-      }
-      if (existing.digest == digest && existing.bytes == bytes) return;
-      if (existing.digest != replacesDigest) {
-        throw const FormatException('Metadata publication changed remotely');
-      }
-    }
-    if (!{'artwork', 'video', 'records'}.contains(kind)) {
-      throw const FormatException('Unsupported metadata payload');
-    }
-    final version = existing == null ? null : await _mutationVersion(existing);
-    const boundary = 'rshop_metadata_object';
-    final prefix = utf8.encode(
-        '--$boundary\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'
-        '${jsonEncode({
-          if (existing == null) 'id': id,
-          if (existing == null) 'name': name else 'title': name,
-          if (existing == null) 'parents': [parent],
-          'mimeType': {
-            'artwork': 'image/png',
-            'video': 'video/mp4',
-            'records': 'application/json'
-          }[kind],
-          if (existing == null)
-            'appProperties': {
-              'rshopMetadata': '1',
-              'kind': kind,
-              'sha256': digest
-            }
-          else
-            'properties': [
-              for (final property in version!.properties)
-                if (property['key'] != 'sha256' ||
-                    property['visibility'] != 'PRIVATE')
-                  property,
-              {'key': 'sha256', 'value': digest, 'visibility': 'PRIVATE'},
-            ],
-        })}'
-        '\r\n--$boundary\r\nContent-Type: application/octet-stream\r\n\r\n');
-    final suffix = utf8.encode('\r\n--$boundary--\r\n');
-    Stream<List<int>> body() async* {
-      yield prefix;
-      yield* file.openRead();
-      yield suffix;
-    }
-
-    final response = await _send(
-        existing == null
-            ? 'upload/drive/v3/files'
-            : 'upload/drive/v2/files/$id',
-        existing == null ? 'POST' : 'PUT',
-        query: {'uploadType': 'multipart', 'fields': 'id'},
-        body: body,
-        contentType: 'multipart/related; boundary=$boundary',
-        ifMatch: version?.etag,
-        length: prefix.length + bytes + suffix.length);
-    await response?.data?.stream.drain<void>();
-  }
-
-  // Drive v3 removed File.etag and does not promise an HTTP response ETag.
-  // The v2 resource retains ETags: content uses its PUT upload endpoint, while
-  // metadata-only mutations use PATCH. Revalidate the app-owned identity; no
-  // additional OAuth scope or unguarded write fallback is introduced.
-  Future<({String etag, List<Map<String, dynamic>> properties})>
-      _mutationVersion(MetadataCloudFile file) async {
-    final json = (await _json('drive/v2/files/${file.id}', 'GET', query: {
-      'fields': 'id,title,mimeType,parents(id),ownedByMe,isAppAuthorized,'
-          'labels(trashed),shared,driveId,properties,etag,fileSize',
-    }))!;
-    final properties = (json['properties'] as List? ?? const [])
-        .map((p) => (p as Map).cast<String, dynamic>())
-        .toList();
-    final private = {
-      for (final p in properties)
-        if (p['visibility'] == 'PRIVATE') p['key']: p['value']
-    };
-    final parents = json['parents'] as List? ?? const [];
-    final folder = json['mimeType'] == 'application/vnd.google-apps.folder';
-    if (json['id'] != file.id ||
-        json['title'] != file.name ||
-        json['ownedByMe'] != true ||
-        json['isAppAuthorized'] != true ||
-        (json['labels'] as Map?)?['trashed'] != file.trashed ||
-        json['shared'] != false ||
-        json['driveId'] != null ||
-        parents.length != 1 ||
-        (parents.single as Map)['id'] != file.parent ||
-        private['rshopMetadata'] != '1' ||
-        private['kind'] != file.kind ||
-        folder != (file.kind == 'folder') ||
-        private['sha256'] != file.digest ||
-        (!folder && int.tryParse('${json['fileSize']}') != file.bytes) ||
-        json['etag'] is! String ||
-        (json['etag'] as String).isEmpty) {
-      throw const FormatException('Metadata version changed remotely');
-    }
-    return (etag: json['etag'] as String, properties: properties);
   }
 
   @override
@@ -420,95 +274,4 @@ class DriveMetadataApi implements MetadataCloudRemote {
     }
   }
 
-  @override
-  Future<void> relocate(MetadataCloudFile file, String parent) =>
-      _relocate(file, parent);
-
-  Future<void> _relocate(MetadataCloudFile file, String parent,
-      {bool allowTrashed = false}) async {
-    _id(parent);
-    final current = await _get(file.id, allowTrashed: allowTrashed);
-    if (current == null ||
-        current.name != file.name ||
-        current.kind != file.kind ||
-        current.digest != file.digest ||
-        current.bytes != file.bytes ||
-        current.trashed != file.trashed) {
-      throw const FormatException('Metadata archive changed remotely');
-    }
-    if (current.parent == parent) return;
-    if (current.parent != file.parent) {
-      throw const FormatException('Metadata archive membership changed');
-    }
-    final version = await _mutationVersion(current);
-    final response = await _send('drive/v2/files/${file.id}', 'PATCH',
-        query: {
-          'addParents': parent,
-          'removeParents': current.parent,
-          'fields': 'id'
-        },
-        ifMatch: version.etag);
-    await response?.data?.stream.drain<void>();
-    final moved = await _get(file.id, allowTrashed: allowTrashed);
-    if (moved?.parent != parent ||
-        moved?.name != file.name ||
-        moved?.digest != file.digest ||
-        moved?.bytes != file.bytes ||
-        moved?.trashed != file.trashed) {
-      throw const FormatException('Metadata archive move was not verified');
-    }
-  }
-
-  /// Explicit rebuild only. Trash is recoverable; never delete the metadata root.
-  @override
-  Future<void> trash(MetadataCloudFile file) async {
-    if (file.parent == null) {
-      throw const FormatException('Metadata rebuild target changed remotely');
-    }
-    await _trashTree(file, file.parent!, detach: false);
-  }
-
-  Future<void> _trashTree(MetadataCloudFile file, String root,
-      {required bool detach}) async {
-    var current = await _get(file.id, allowTrashed: true);
-    if (current == null) return;
-    if (current.parent == null ||
-        current.parent != file.parent ||
-        current.name != file.name ||
-        current.kind != file.kind ||
-        current.digest != file.digest ||
-        current.bytes != file.bytes) {
-      throw const FormatException('Metadata rebuild target changed remotely');
-    }
-    if (current.kind == 'folder') {
-      // Trashed children retain parent membership and still trigger Drive's
-      // descendant access check. Detach every verified descendant into the
-      // preserved metadata root, retaining its trash state, before retiring its
-      // genuinely empty parent. Normal publication never accepts trashed files.
-      for (final child in await _children(current.id,
-          allVisible: true, includeTrashed: true)) {
-        await _trashTree(child, root, detach: true);
-      }
-      if ((await _children(current.id, allVisible: true, includeTrashed: true))
-          .isNotEmpty) {
-        throw const FormatException('Metadata rebuild is incomplete');
-      }
-    }
-    if (detach && current.parent != root) {
-      await _relocate(current, root, allowTrashed: true);
-      current = (await _get(current.id, allowTrashed: true))!;
-    }
-    if (current.trashed) return;
-    final version = await _mutationVersion(current);
-    final result = await _json('drive/v2/files/${file.id}', 'PATCH',
-        query: {'fields': 'id,labels(trashed)'},
-        body: {
-          'labels': {'trashed': true}
-        },
-        ifMatch: version.etag);
-    if (result?['id'] != file.id ||
-        (result?['labels'] as Map?)?['trashed'] != true) {
-      throw const FormatException('Metadata rebuild trash was not verified');
-    }
-  }
 }

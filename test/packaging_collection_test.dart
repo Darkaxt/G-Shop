@@ -14,7 +14,8 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:g_shop/models/library_identity.dart';
 import 'package:g_shop/services/library_store.dart';
 import 'package:g_shop/services/metadata/shared_metadata_store.dart';
-import 'metadata_cloud_library_test.dart' show MemoryMetadataDrive;
+import 'package:g_shop/services/metadata/catalogue_publisher.dart';
+import 'metadata_cloud_library_test.dart' show DirectoryCatalogueDrive;
 import 'metadata_controls_test.dart' show controlsDatabase, MemorySecrets;
 
 void main() {
@@ -237,9 +238,9 @@ void main() {
         ArchiveFile('images/$digest.png', body.length, body)..compress = false);
     final pack = File('${root.path}/pack.zip');
     await pack.writeAsBytes(ZipEncoder().encode(zip)!);
-    final remote = MemoryMetadataDrive();
-    var cloud = MetadataCloudLibrary(
-        store: shared, remote: remote, accountId: 'a', rootId: 'root');
+    final catalogue = Directory('${root.path}/drive/R-Shop Metadata');
+    final remote = DirectoryCatalogueDrive(catalogue);
+    MetadataCloudLibrary? cloud;
     final controls = MetadataControlsController(
         database: Future.value(db),
         providers: {},
@@ -253,10 +254,10 @@ void main() {
       expect(controls.state.loading, isTrue);
       expect(await controls.importPackagingResources(pack), 1);
       expect(controls.state.error, isFalse);
-      await cloud.open();
-      await cloud.sync(Future.value(db), pull: false);
+      await CataloguePublisher(store: shared, catalogue: catalogue).publish();
+      final game = Directory('${catalogue.path}/gba').listSync().single.path;
       expect(
-          remote.files.values.map((f) => f.name),
+          Directory(game).listSync().map((f) => f.uri.pathSegments.last),
           containsAll([
             'box.png',
             'box-back.png',
@@ -273,24 +274,13 @@ void main() {
             'manual-page-001.png',
             'manual-page-002.png'
           ]));
-      // Reopening the app with unchanged, verified backups must not walk Drive
-      // again, and must work even when the device has gone offline.
-      await cloud.close();
       cloud = MetadataCloudLibrary(
-          store: shared, remote: remote, accountId: 'a', rootId: 'root');
+          store: shared,
+          remote: remote,
+          accountId: 'a',
+          rootId: (await remote.findRoot())!.id);
       await cloud.open();
-      final reads = remote.reads, downloads = remote.downloads;
-      remote.online = false;
-      await cloud.sync(Future.value(db), pull: false);
-      expect(remote.reads, reads);
-      expect(remote.downloads, downloads);
-      remote.online = true;
-
-      // A new generation still needs a real publication; this is not a blanket
-      // startup/network suppression that could lose an interrupted backup.
-      expect(await controls.importPackagingResources(pack), 1);
-      await cloud.sync(Future.value(db), pull: false);
-      expect(remote.reads, greaterThan(reads));
+      await cloud.sync(Future.value(db));
       final gallery = await cache.galleryForEdition('e');
       expect(gallery['manual-page'], hasLength(6));
       await cloud.trim(0);
@@ -337,7 +327,7 @@ void main() {
       expect((await library.edition('e'))!.regions, ['us']);
     } finally {
       await controls.close();
-      await cloud.close();
+      await cloud?.close();
       await shared.close();
       await db.close();
       await root.delete(recursive: true);

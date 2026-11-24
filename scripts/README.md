@@ -579,3 +579,20 @@ SNES SuFami Turbo BIOS. Provider name-search candidates supplement an index only
 after actual platform/ID validation; they do not establish raw ROM or physical
 printing identity. Hash-bound exact-source review rules and the full mapping
 consumer remain the delivery boundary.
+
+# Windows catalogue publication
+
+The Drive metadata tree is the shop catalogue (CATALOGUE-READONLY-01). Publish
+it from Windows into the Google Drive for desktop folder; clients only read it.
+`GSHOP_STORE` is a copy of the shared store (`metadata.sqlite`, `artwork/`,
+`preview-videos/`, `records/`). Unchanged resources (name, sha256, bytes and
+on-disk size) are skipped; replaced and stale role files move to `_previous/`.
+
+```powershell
+$env:GSHOP_STORE = 'D:\RShopPrivate\StoreCopy'
+$env:GSHOP_CATALOGUE = 'H:\My Drive\R-Shop Metadata'
+$env:GSHOP_PLATFORMS = 'gba,psx'   # optional
+$env:GSHOP_DRY_RUN = '1'           # optional: report only
+$env:GSHOP_SUMMARY = 'D:\RShopPrivate\catalogue-summary.json'  # optional
+flutter test tool/publish_catalogue_test.dart
+```

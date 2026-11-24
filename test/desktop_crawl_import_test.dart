@@ -9,7 +9,7 @@ import 'package:g_shop/models/scraped_metadata.dart';
 import 'package:g_shop/providers/metadata_providers.dart';
 import 'package:g_shop/services/library_store.dart';
 import 'package:g_shop/services/metadata/metadata_artwork_cache.dart';
-import 'package:g_shop/services/metadata/metadata_cloud_library.dart';
+import 'package:g_shop/services/metadata/catalogue_publisher.dart';
 import 'package:g_shop/services/metadata/metadata_credentials.dart';
 import 'package:g_shop/services/metadata/metadata_provider.dart';
 import 'package:g_shop/services/metadata/desktop_archive_evidence.dart';
@@ -19,7 +19,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'metadata_controls_test.dart'
     show controlsDatabase, ControlsArtworkProvider, MemorySecrets;
-import 'metadata_cloud_library_test.dart' show MemoryMetadataDrive;
 
 class OfflineDesktopProvider extends ControlsArtworkProvider
     implements MetadataAccessProvider {
@@ -381,14 +380,9 @@ void main() {
         });
       }
       final oldBackoff = await db.query('metadata_provider_backoff');
-      final remote = MemoryMetadataDrive();
-      final cloud = MetadataCloudLibrary(
-          store: shared, remote: remote, accountId: 'account', rootId: 'root');
-      if (preparedResponse) await cloud.open();
       addTearDown(() async {
         await controls.close();
         controls.dispose();
-        await cloud.close();
         await shared.close();
         await db.close();
       });
@@ -462,9 +456,13 @@ void main() {
         expect(provider.calls, isEmpty,
             reason: 'Missing shared evidence must not start another lookup');
       }
-      await cloud.open();
-      await cloud.sync(Future.value(db), pull: false);
-      expect(remote.files.values.map((f) => f.name),
+      final catalogue = Directory('${root.path}/catalogue');
+      await CataloguePublisher(store: shared, catalogue: catalogue).publish();
+      expect(
+          catalogue
+              .listSync(recursive: true)
+              .whereType<File>()
+              .map((f) => f.uri.pathSegments.last),
           containsAll(['box.png', 'cartridge.png']));
     });
   }

@@ -270,11 +270,11 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
       const Row(children: [
         Icon(Icons.cloud_done_outlined),
         SizedBox(width: 8),
-        Text('Drive metadata library')
+        Text('Drive catalogue')
       ]),
       const SizedBox(height: 8),
       Text(state.message ??
-          'Keep artwork in Drive, with a small local cache. Text and ratings stay offline.'),
+          'Read the shop catalogue from Drive, with a small local cache. Text and ratings stay offline.'),
       const SizedBox(height: 12),
       if (state.busy)
         LinearProgressIndicator(
@@ -302,17 +302,6 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
           const SizedBox(width: 8),
           _transportButton('Disconnect', 'metadata-cloud-disconnect',
               Icons.link_off, state.busy ? null : controller.disconnect),
-          const SizedBox(width: 8),
-          _transportButton('Rebuild media', 'metadata-cloud-rebuild',
-              Icons.restart_alt, _confirmMediaRebuild),
-          const SizedBox(width: 8),
-          _transportButton(
-              'Import prepared resources',
-              'metadata-packaging-import',
-              Icons.inventory_2_outlined,
-              state.busy || ref.watch(metadataControlsProvider).busy
-                  ? null
-                  : _importPackaging),
         ]),
         const SizedBox(height: 12),
         Text(
@@ -340,76 +329,6 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                 : () => controller.setBudget(state.budgetBytes * 2)),
       ]),
     ]);
-  }
-
-  Future<void> _importPackaging() async {
-    final selected = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['zip'],
-        withData: false,
-        allowMultiple: true);
-    final paths =
-        selected?.files.map((f) => f.path).whereType<String>().toList();
-    if (paths == null || paths.isEmpty || !mounted) return;
-    final cloud = ref.read(metadataCloudProvider.notifier);
-    await cloud.pause();
-    try {
-      var imported = 0;
-      var stopped = false;
-      for (final path in paths) {
-        imported += await ref
-            .read(metadataControlsProvider.notifier)
-            .importPackagingResources(File(path));
-        if (ref.read(metadataControlsProvider).error) {
-          stopped = true;
-          break;
-        }
-      }
-      if (!stopped && imported > 0) {
-        ref.read(metadataMediaRevisionProvider.notifier).state++;
-        ref.read(gameDbChangedProvider.notifier).state++;
-        if (mounted) {
-          showConsoleNotification(context,
-              message: 'Artwork imported for $imported games.', isError: false);
-        }
-      } else if (mounted) {
-        showConsoleNotification(context,
-            message:
-                'Resource import stopped. Check the pack, shared storage and saved job.');
-      }
-    } catch (_) {
-      if (mounted) {
-        showConsoleNotification(context,
-            message:
-                'Artwork import is unavailable. Finish the current task first.');
-      }
-    } finally {
-      cloud.resume();
-      await FilePicker.clearTemporaryFiles();
-    }
-    await cloud.sync(pull: false);
-  }
-
-  Future<void> _confirmMediaRebuild() async {
-    final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-              title: const Text('Rebuild collected media?'),
-              content: const Text(
-                  'Remove collected images and trailers from this device '
-                  'and move the old Drive exports to Trash. Game information, ROMs, '
-                  'saves, settings and imported models stay. Collect media afterward '
-                  'to download fresh resources.'),
-              actions: [
-                _button('Cancel', 'metadata-cloud-rebuild-cancel',
-                    () => Navigator.pop(context, false)),
-                _button('Rebuild', 'metadata-cloud-rebuild-confirm',
-                    () => Navigator.pop(context, true)),
-              ],
-            ));
-    if (confirmed == true && mounted) {
-      await ref.read(metadataCloudProvider.notifier).rebuildMedia();
-    }
   }
 
   Future<void> _mapEsDe() async {

@@ -256,7 +256,6 @@ class _GShopAppState extends ConsumerState<GShopApp> with WidgetsBindingObserver
         break;
       case AppLifecycleState.resumed:
         widget.audioManager.resume();
-        unawaited(ref.read(metadataCloudProvider.notifier).sync(pull: false));
         _checkAutomaticSaveBackups();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {

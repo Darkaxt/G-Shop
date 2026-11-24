@@ -20,7 +20,6 @@ import '../services/image_cache_service.dart';
 import '../services/thumbnail_service.dart';
 import 'library_providers.dart';
 import 'preview_providers.dart';
-import 'metadata_providers.dart';
 
 const metadataCloudSettingsKey = 'metadata_cloud_v1';
 final metadataMediaKeyRevisionProvider =
@@ -129,14 +128,14 @@ class MetadataCloudState {
               : publicationCompleted! / publicationTotal!;
 }
 
-/// One foreground owner: startup recovery, scrape publication and cache fills
-/// share the same serialized library. No ROM or save-write API is used here.
+/// One foreground owner of the read-only catalogue reader and its media cache.
+/// Clients never write the catalogue (spec revision 186); Windows publishes it.
 class MetadataCloudController extends StateNotifier<MetadataCloudState> {
   final Ref ref;
   MetadataCloudLibrary? library;
   DriveMetadataApi? _api;
   Map<String, dynamic> _settings = {};
-  bool _dirty = false, _publishing = false, _disposed = false, _paused = false;
+  bool _disposed = false, _paused = false;
   Future<void> _operation = Future.value();
   late final Future<void> ready = _load();
   MetadataCloudController(this.ref) : super(const MetadataCloudState()) {
@@ -165,24 +164,9 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
   void _failure(Object error, [StackTrace? trace]) {
     debugPrint(
         'Metadata cloud incomplete: ${error is DriveAuthorizationException ? error.issue.name : error.runtimeType}');
-    if (error is FormatException &&
-        const {
-          'Metadata rebuild target changed remotely',
-          'Metadata rebuild trash was not verified',
-          'Metadata root changed',
-          'Not an owned G-Shop metadata object',
-          'Metadata rebuild is incomplete',
-          'Metadata version changed remotely',
-          'Metadata publication intent changed',
-          'Metadata publication changed remotely',
-          'Game resource role mismatch',
-          'Game resource publication changed',
-          'Ambiguous game resource',
-          'Ambiguous game metadata',
-          'Cloud media ownership changed',
-          'Local metadata bytes changed',
-        }.contains(error.message))
-      debugPrint('Metadata rebuild: ${error.message}');
+    if (error is FormatException) {
+      debugPrint('Metadata catalogue: ${error.message}');
+    }
     if (trace != null) {
       final sites = trace
           .toString()
@@ -222,8 +206,6 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
       } catch (_) {
         _state(message: 'Shared metadata storage is unavailable');
       }
-      // Opening the app may drain local backups, not refresh every remote game.
-      unawaited(sync(pull: false));
     }
   }
 
@@ -245,10 +227,10 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
               busy: true,
               publicationCompleted: completed,
               publicationTotal: total,
-              message: 'Backing up metadata: $completed/$total games'
-                  '${total > 0 ? ' · ${completed * 100 ~/ total}% · ${total - completed} remaining' : ' · No games to back up'}');
-          if (completed == 0 || completed == total || completed % 100 == 0)
-            debugPrint('Metadata cloud publication: games=$completed/$total');
+              message: 'Reading catalogue: $completed/$total games'
+                  '${total > 0 ? ' · ${completed * 100 ~/ total}%' : ''}');
+          if (completed == 0 || completed == total || completed % 500 == 0)
+            debugPrint('Metadata catalogue read: games=$completed/$total');
         },
         budgetBytes: (_settings['budget'] as int?) ??
             MetadataCloudLibrary.defaultBudgetBytes,
@@ -274,7 +256,6 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
       throw StateError('Metadata owner closed');
     }
     library = opened;
-    store.cloudChanged = _publishChanged;
     store.joinCloudOwner = pause;
     await refreshUsage();
   }
@@ -297,33 +278,21 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
         throw StateError('Choose shared metadata storage first');
       await closeLibrary();
       final auth = DriveRuntime.instance.authorizationFor(drive.serverClientId);
-      await auth.acquireMetadata(
-          expectedAccountId: drive.accountId, interactive: true);
+      await auth.acquire(expectedAccountId: drive.accountId, interactive: true);
       final api =
           DriveMetadataApi(authorization: auth, accountId: drive.accountId);
       try {
-        // Persist the creation identity before issuing a write; a lost reply
-        // resumes this intent rather than creating duplicate roots.
-        final sameAccount = _settings['account'] == drive.accountId;
-        final roots = sameAccount && _settings['root'] != null
-            ? <MetadataCloudFile>[]
-            : await api.children(null);
-        if (roots.length > 1)
-          throw StateError('More than one metadata library needs review');
+        final root = await api.findRoot();
+        if (root == null) throw StateError('No catalogue folder in Drive');
         _settings = {
           'enabled': true,
           'source': source.id,
           'account': drive.accountId,
           'client': drive.serverClientId,
-          'root': sameAccount && _settings['root'] != null
-              ? _settings['root']
-              : roots.isEmpty
-                  ? await api.reserveId()
-                  : roots.single.id,
+          'root': root.id,
           'budget': state.budgetBytes
         };
         await _save();
-        await api.folder(_settings['root'] as String, null, 'G-Shop Metadata');
       } finally {
         api.close();
       }
@@ -331,26 +300,26 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
       await library!.sync(ref.read(libraryDbProvider).database);
       if (!_disposed) ref.read(gameDbChangedProvider.notifier).state++;
       await refreshUsage();
-      _state(busy: false, message: 'Metadata is backed up in Drive');
-      if (_dirty) _publishChanged();
+      _state(busy: false, message: 'Catalogue is up to date');
     } catch (error, trace) {
       _failure(error, trace);
       _state(
           busy: false,
-          message:
-              'Could not finish. Local metadata is safe; retry when Drive is available.');
+          message: error is StateError
+              ? error.message
+              : 'Could not read the catalogue. Retry when Drive is available.');
     }
   }
 
-  Future<void> sync({bool pull = true}) {
+  Future<void> sync() {
     if (_paused ||
         state.busy ||
         _settings['enabled'] != true ||
         MigrationMaintenance.active) return Future.value();
-    return _operation = _sync(pull);
+    return _operation = _sync();
   }
 
-  Future<void> _sync(bool pull) async {
+  Future<void> _sync() async {
     if (_paused ||
         state.busy ||
         _settings['enabled'] != true ||
@@ -358,38 +327,19 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
     _state(busy: true);
     try {
       await _open();
-      if (_settings['rebuildPending'] == true) await _discardCollectedMedia();
-      await library!.sync(ref.read(libraryDbProvider).database, pull: pull);
+      await library!.sync(ref.read(libraryDbProvider).database);
       if (_paused) return;
-      if (pull && !_disposed) ref.read(gameDbChangedProvider.notifier).state++;
+      if (!_disposed) ref.read(gameDbChangedProvider.notifier).state++;
       await refreshUsage();
       debugPrint(
           'Metadata cloud sync completed: cachedBytes=${state.cachedBytes}');
-      _state(busy: false, message: 'Metadata is backed up in Drive');
-      if (_dirty) _publishChanged();
+      _state(busy: false, message: 'Catalogue is up to date');
     } catch (error, trace) {
       _failure(error, trace);
       _state(
           busy: false,
           message: 'Waiting for Drive. Local metadata remains available.');
     }
-  }
-
-  void _publishChanged() {
-    _dirty = true;
-    if (_publishing || _paused || state.busy || _disposed) return;
-    unawaited(() async {
-      _publishing = true;
-      try {
-        while (_dirty && !_paused && !_disposed) {
-          _dirty = false;
-          await sync(pull: false);
-          if (state.message != 'Metadata is backed up in Drive') break;
-        }
-      } finally {
-        _publishing = false;
-      }
-    }());
   }
 
   Future<void> refreshUsage() async {
@@ -443,79 +393,16 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
     }
   }
 
-  /// A deliberate rebuild is distinct from clearing verified local copies.
-  Future<void> rebuildMedia() {
-    if (_paused ||
-        (state.busy && _settings['rebuildPending'] == true) ||
-        MigrationMaintenance.active ||
-        !state.enabled) {
-      return Future.value();
-    }
-    _paused = true;
-    library?.stopPublication();
-    final previous = _operation;
-    return _operation = () async {
-      await previous;
-      _state(busy: true, message: 'Removing old collected media');
-      _settings['rebuildPending'] = true;
-      await _save();
-      try {
-        _paused = false;
-        await _open();
-        await _discardCollectedMedia();
-        _dirty = false;
-        await refreshUsage();
-        _state(
-            busy: false,
-            message:
-                'Old media removed. Collect media to download fresh resources.');
-      } catch (error) {
-        _failure(error);
-        _state(
-            busy: false,
-            message:
-                'Media rebuild is paused. Sync will finish removing old resources.');
-      } finally {
-        _paused = false;
-      }
-    }();
-  }
-
-  Future<void> _discardCollectedMedia() async {
-    await ref.read(metadataControlsProvider.notifier).pause();
-    final recordsBefore = (await library!.store.cloudIndex
-            .rawQuery('SELECT COUNT(*) AS n FROM records'))
-        .single['n'];
-    final bytesBefore = await library!.cachedBytes();
-    await library!.discardCollectedMedia();
-    await ThumbnailService.clearAll();
-    await GameCoverCacheManager.instance.emptyCache();
-    await ref.read(libraryDbProvider).clearThumbnailData();
-    FailedUrlsCache.instance.clear();
-    _settings.remove('rebuildPending');
-    await _save();
-    ref.read(metadataMediaRevisionProvider.notifier).state++;
-    final recordsAfter = (await library!.store.cloudIndex
-            .rawQuery('SELECT COUNT(*) AS n FROM records'))
-        .single['n'];
-    debugPrint(
-        'Metadata media rebuild completed: records=$recordsBefore/$recordsAfter '
-        'discardedBytes=$bytesBefore cachedBytes=${await library!.cachedBytes()}');
-  }
-
   Future<void> pause() async {
     _paused = true;
     await _operation;
     await closeLibrary();
     // A joined sync can return early while paused. Release its UI admission
-    // state only after the owner is closed, so resume can publish imported work.
+    // state only after the owner is closed.
     _state(busy: false);
   }
 
-  void resume() {
-    _paused = false;
-    if (_settings['enabled'] == true) unawaited(sync(pull: false));
-  }
+  void resume() => _paused = false;
 
   Future<void> disconnect() async {
     if (state.busy || MigrationMaintenance.active) return;
@@ -603,13 +490,8 @@ final cloudSelectionMediaProvider = FutureProvider.autoDispose
         missing.add(entry.key);
       }
     }
-    // Locally verified images are ready independently of backup publication.
-    // Only actual misses join the cloud owner; video downloads remain owned by
-    // playback, while the existing leases protect all selected media.
-    if (missing.isNotEmpty) {
-      await cloud.publishSelection(edition, missing);
-      await cloud.leaseMedia(owner, keys);
-    }
+    // Only actual misses are fetched from the catalogue; video downloads
+    // remain owned by playback, while the leases protect all selected media.
     if (!active) {
       cloud.release(owner);
       return null;
