@@ -5,6 +5,24 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+2026-11-24, CATALOGUE-READONLY-01 (#18), revisions 186-188: the Drive catalogue
+is now published from Windows into `H:/My Drive/R-Shop Metadata` by
+`tool/publish_catalogue_test.dart` from the master store
+`D:/RShopPrivate/CatalogueStore`; clients read it with drive.readonly and trust
+files by name + SHA-256 + size from each `metadata.json`. The master store was
+re-pulled from Thor (store digest identical) and the 10 GBA reference packs were
+re-imported (237/237 games) after restoring the store into the projection; this
+fixed an import merge that had dropped already published manual pages from a
+stale projection (GTA us: 20 pages restored). Full publish: 5,938 games, 21,507
+files written, 3,908 replaced copies kept in per-game `_previous/`; an immediate
+dry run wrote 0 and archived 0. A seeded sample of 60 published games (419 assets)
+matched every recorded size and SHA-256. Tests: 402 passing across the catalogue,
+reader, publisher, packaging and widget suites (3 cover widget files still fail
+setup only for #13). Not yet verified: a client read of the real tree on a device.
+Models: the 14,750 installed model files were pulled from Thor to
+`D:/RShopPrivate/Models` (per-file SHA-256 identical); `scripts/check_models.py`
+reports 1,451 models, 1,430 with motion, 0 missing meshes/textures/animations.
+
 2026-11-24 QA reconciliation (specification revision 185): **S26 ACTIVE**, sole
 active stage. Four read-only QA passes (tests/analysis, unpushed and uncommitted
 review, per-console spec reconciliation, GBA status and private-asset integrity)
