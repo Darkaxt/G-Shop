@@ -84,8 +84,9 @@ def store_roles(store, database=None, published=frozenset()):
     while a store writer runs, so this reader cannot hold its lock."""
     db = sqlite3.connect(f'file:{Path(database or Path(store, "metadata.sqlite")).as_posix()}?mode=ro', uri=True)
     artwork = Path(store, 'artwork')
-    bodies = {k for k, f in db.execute('SELECT media_key, filename FROM metadata_artwork_cache')
-              if (artwork / f).is_file()} | set(published)
+    local = {k for k, f in db.execute('SELECT media_key, filename FROM metadata_artwork_cache')
+             if (artwork / f).is_file()}
+    bodies = local | set(published)
     archive_edition = {}
     for edition, artifacts in db.execute('SELECT edition_id, artifacts_json FROM identity_bindings'):
         for artifact in json.loads(artifacts):
@@ -94,7 +95,10 @@ def store_roles(store, database=None, published=frozenset()):
     facts = {e for (e,) in db.execute("SELECT edition_id FROM records WHERE provider_id = 'facts'")}
     for edition, provider, record in db.execute(
             "SELECT edition_id, provider_id, record_json FROM records WHERE provider_id IN ('packaging','screenscraper','reference')"):
-        types = {m['type'] for m in json.loads(record).get('media', []) if media_key(m) in bodies}
+        # A reference reuses another edition's media: the publisher can only
+        # ship it from a local body (published copies sit in the retail folder).
+        usable = local if provider == 'reference' else bodies
+        types = {m['type'] for m in json.loads(record).get('media', []) if media_key(m) in usable}
         roles[edition] |= {('packaging:' if provider == 'packaging' else '') + t for t in types}
     db.close()
     return archive_edition, roles, facts
