@@ -1001,6 +1001,80 @@ void main() {
     }
   });
 
+  // Observed 2026-11-25 on aftermarket GBA records: exact CRC/MD5/SHA-1 with a
+  // wrong (compressed) provider size, and ROM records with no region field.
+  test('three matching hashes outweigh a wrong provider size field', () async {
+    MetadataRomIdentifier raw({String? crc = 'abcdef12', String? md5}) =>
+        MetadataRomIdentifier(
+            kind: RomIdentifierKind.rawRom,
+            filename: 'Fixture.sfc',
+            sizeBytes: 4096,
+            crc32: crc,
+            md5: md5 ?? 'a' * 32,
+            sha1: 'b' * 40);
+    Future<MetadataLookupResult> look(MetadataRomIdentifier id,
+        {String sha1 = 'bbbb'}) async {
+      final game = _game();
+      (game['rom'] as Map).addAll(<String, String>{
+        'romsize': '1024',
+        'rommd5': 'a' * 32,
+        'romsha1': sha1.length == 4 ? 'b' * 40 : sha1,
+      });
+      final api = _provider(_Wire({
+        'response': {'jeu': game}
+      }));
+      addTearDown(api.close);
+      return api.lookup(_request(verifiedProviderGameId: null, identifier: id));
+    }
+
+    final matched = await look(raw());
+    expect(matched.status, MetadataLookupStatus.matched);
+    expect(matched.record!.matchMethod, 'rawRomTripleHash');
+    // A missing or zero hash, or any mismatching hash, keeps the size veto.
+    expect((await look(raw(crc: null))).status, MetadataLookupStatus.unmatched);
+    expect((await look(raw(crc: '00000000'))).status,
+        MetadataLookupStatus.unmatched);
+    expect((await look(raw(md5: 'c' * 32))).status,
+        MetadataLookupStatus.unmatched);
+    expect((await look(raw(), sha1: 'c' * 40)).status,
+        MetadataLookupStatus.unmatched);
+  });
+
+  test('exact ROM without provider region or language is not vetoed by dates',
+      () async {
+    Future<MetadataLookupStatus> look(
+        {String? romRegions, String? romLanguages, bool exact = true}) async {
+      final game = _game();
+      final rom = game['rom'] as Map;
+      rom.remove('romregions');
+      rom.remove('romlangues');
+      if (romRegions != null) rom['romregions'] = romRegions;
+      if (romLanguages != null) rom['romlangues'] = romLanguages;
+      final api = _provider(_Wire({
+        'response': {'jeu': game}
+      }));
+      addTearDown(api.close);
+      return (await api.lookup(_request(
+              verifiedProviderGameId: null,
+              region: 'wor',
+              language: 'en',
+              identifier: MetadataRomIdentifier(
+                  kind: RomIdentifierKind.rawRom,
+                  filename: 'Fixture.sfc',
+                  sizeBytes: exact ? 1024 : 2048,
+                  crc32: 'abcdef12'))))
+          .status;
+    }
+
+    // Game dates say 'us'; the ROM record is silent, so the exact ROM matches.
+    expect(await look(), MetadataLookupStatus.matched);
+    // A ROM field that states another region or language still vetoes.
+    expect(await look(romRegions: 'us'), MetadataLookupStatus.unmatched);
+    expect(await look(romLanguages: 'fr'), MetadataLookupStatus.unmatched);
+    // A size mismatch without three hashes is no ROM evidence at all.
+    expect(await look(exact: false), MetadataLookupStatus.unmatched);
+  });
+
   test('reviewed game ID cannot override supplied raw release evidence',
       () async {
     final raw = MetadataRomIdentifier(
@@ -1010,7 +1084,9 @@ void main() {
         crc32: 'ABCDEF12',
         md5: 'a' * 32,
         sha1: 'b' * 40);
-    for (final wrongField in ['romcrc', 'rommd5', 'romsha1', 'romsize', 'id']) {
+    // A wrong provider size alone no longer vetoes three matching hashes
+    // (see 'three matching hashes outweigh a wrong provider size field').
+    for (final wrongField in ['romcrc', 'rommd5', 'romsha1', 'id']) {
       final game = _game();
       (game['rom'] as Map)
           .addAll(<String, String>{'rommd5': 'a' * 32, 'romsha1': 'b' * 40});
@@ -1020,8 +1096,7 @@ void main() {
         (game['rom'] as Map)[wrongField] = switch (wrongField) {
           'romcrc' => '11111111',
           'rommd5' => 'c' * 32,
-          'romsha1' => 'd' * 40,
-          _ => '2048'
+          _ => 'd' * 40,
         };
       }
       final wire = _Wire({

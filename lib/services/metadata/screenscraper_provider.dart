@@ -418,7 +418,9 @@ class ScreenScraperProvider
         if (!byId && raw != null && rawEvidence == null) {
           continue;
         }
-        if (!_compatibleRelease(game, request)) {
+        if (!_compatibleRelease(game, request,
+            exactRom: rawEvidence == 'rawRomHashAndSize' ||
+                rawEvidence == 'rawRomTripleHash')) {
           continue;
         }
         final titles = _localized(game['noms'], dimension: 'region');
@@ -858,13 +860,26 @@ class ScreenScraperProvider
         !RegExp(r'^0+$').hasMatch(identifier.sha1!)) {
       return 'rawRomSha1AndCappedSize';
     }
+    // Provider ROM sizes are sometimes wrong (observed 2026-11-25: compressed
+    // sizes on aftermarket GBA records). With CRC32, MD5 and SHA-1 all supplied,
+    // non-zero and matching, the identity is exact and the size was measured
+    // locally, so the provider's size field alone does not veto it.
+    if ([identifier.crc32, identifier.md5, identifier.sha1].every(
+        (hash) => hash != null && !RegExp(r'^0+$').hasMatch(hash))) {
+      return 'rawRomTripleHash';
+    }
     return null;
   }
 
+  /// [exactRom]: the ROM matched by hash. A provider ROM record without
+  /// region or language fields then cannot veto it; the game's release dates
+  /// describe the game, not this ROM. A conflicting ROM field still vetoes.
   static bool _compatibleRelease(
-      Map<String, dynamic> game, MetadataLookupRequest request) {
+      Map<String, dynamic> game, MetadataLookupRequest request,
+      {bool exactRom = false}) {
     final rom = _rom(game);
-    if (request.region != null) {
+    if (request.region != null &&
+        !(exactRom && _text(rom?['romregions']) == null)) {
       final romRegions = _text(rom?['romregions']);
       final regions = romRegions
               ?.split(',')
@@ -877,7 +892,8 @@ class ScreenScraperProvider
         return false;
       }
     }
-    if (request.language != null) {
+    if (request.language != null &&
+        !(exactRom && _text(rom?['romlangues']) == null)) {
       final languages = _text(rom?['romlangues'])
           ?.split(',')
           .map((value) => value.trim().toLowerCase());

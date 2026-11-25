@@ -1101,6 +1101,7 @@ class MetadataRefreshJobs {
         !{
           'rawRomHashAndSize',
           'rawRomSha1AndCappedSize',
+          'rawRomTripleHash',
           if (matchingPolicy != 'exactReleaseV1') 'exactRegionalOfficialTitle',
           if (matchingPolicy != 'exactReleaseV1') 'verifiedProviderId'
         }.contains(record.matchMethod)) {
@@ -2889,7 +2890,7 @@ class MetadataRefreshJobs {
     if (record.providerId != 'screenscraper' ||
         evidence.source != 'screenscraper' ||
         evidence.kind != 'exactRomOfficialRelease' ||
-        !{'rawRomHashAndSize', 'rawRomSha1AndCappedSize'}
+        !{'rawRomHashAndSize', 'rawRomSha1AndCappedSize', 'rawRomTripleHash'}
             .contains(record.matchMethod) ||
         raw == null ||
         raw.kind == RomIdentifierKind.container ||

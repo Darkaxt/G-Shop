@@ -236,6 +236,7 @@ class LibraryStore {
                         {
                           'rawRomHashAndSize',
                           'rawRomSha1AndCappedSize',
+                          'rawRomTripleHash',
                           'exactRegionalOfficialTitle'
                         }.contains(record.matchMethod)) ||
                     (provider == 'igdb' &&
@@ -1097,6 +1098,7 @@ class LibraryStore {
       const groupingMethods = {
         'rawRomHashAndSize',
         'rawRomSha1AndCappedSize',
+        'rawRomTripleHash',
         'exactRegionalOfficialTitle',
         'corroboratedOfficialRelease',
         'verifiedProjectId'
