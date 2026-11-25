@@ -466,7 +466,11 @@ class MetadataCloudLibrary {
             MetadataRecord.fromJson(jsonDecode(r['record_json'] as String)))
         .toList()
       ..sort((a, b) {
+        // A retail 'reference' record (COVERAGE-FACTS-01) holds only the
+        // roles a digital re-release lacks; it goes first so a carton is
+        // never assembled from two different releases.
         int order(String id) => switch (id) {
+              'reference' => -1,
               'packaging' => 0,
               'launchbox' => 1,
               'screenscraper' => 2,

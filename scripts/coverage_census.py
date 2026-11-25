@@ -93,7 +93,7 @@ def store_roles(store, database=None, published=frozenset()):
     roles = collections.defaultdict(set)
     facts = {e for (e,) in db.execute("SELECT edition_id FROM records WHERE provider_id = 'facts'")}
     for edition, provider, record in db.execute(
-            "SELECT edition_id, provider_id, record_json FROM records WHERE provider_id IN ('packaging','screenscraper')"):
+            "SELECT edition_id, provider_id, record_json FROM records WHERE provider_id IN ('packaging','screenscraper','reference')"):
         types = {m['type'] for m in json.loads(record).get('media', []) if media_key(m) in bodies}
         roles[edition] |= {('packaging:' if provider == 'packaging' else '') + t for t in types}
     db.close()

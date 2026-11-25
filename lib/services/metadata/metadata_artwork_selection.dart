@@ -16,6 +16,9 @@ List<MetadataMedia> metadataPhysicalLabels(MetadataRecord record,
         'france' => 'fr',
         _ => value.trim().toLowerCase()
       };
+  // A 'reference' record carries another edition's already-selected media
+  // (COVERAGE-FACTS-01), so this edition's regions do not apply to it.
+  if (record.providerId == 'reference') regions = const [];
   final explicit =
       regions.map(normalized).where((v) => v.isNotEmpty && v != 'wor').toSet();
   final evidence = record.matchEvidence['region'];

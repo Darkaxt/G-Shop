@@ -644,6 +644,15 @@ the idle "Did you know?" rotation; the census counts e-Reader and Multiboot
 entries once they have one. Same `GSHOP_STORE`/`GSHOP_PROJECTION` setup; publish
 afterwards.
 
+`tool/import_references_test.dart` gives a digital re-release that lacks a
+carton or cartridge label the original retail edition's already-selected media,
+as one `reference` record, from `GSHOP_REFERENCES` = `{"editions":
+{"<editionId>": {"referenceEdition": "<retail editionId>", "roles": ["carton",
+"label"]}}}`. Faces come from one provider record; the media are unchanged, so
+they reuse the retail bodies. The app ranks `reference` first and skips the
+re-release's region filter for it; the edition's facts say the carton is the
+retail release shown as a reference.
+
 ## Host model readiness check
 
 `scripts/check_models.py ROOT` validates a private models tree in the device

@@ -385,6 +385,8 @@ class MetadataArtworkCache {
       bool includeVideo = false,
       bool includePackaging = false,
       Iterable<String> regions = const []}) {
+    // See metadataPhysicalLabels: reference media are pre-selected.
+    if (record.providerId == 'reference') regions = const [];
     final labels = physicalLabels(record, regions: regions);
     MetadataMedia? video =
         record.media.where((m) => m.type == 'video-normalized').firstOrNull ??
