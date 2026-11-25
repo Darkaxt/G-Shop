@@ -9,9 +9,11 @@ Counted (GBA/NES): the archive's edition has a carton AND a standalone
 cartridge label texture (`support-texture`), each with an image body in the
 store or already published in the Drive catalogue (a published asset's
 `media_key`; the publisher carries those without a local body). A carton is either all six packaging outer-box faces or the
-flat front/back/spine set (`box-2D`, `box-2D-back`, `box-2D-side`) from packaging
-or ScreenScraper, which the app's box renderer folds into the 3D carton
-(unboxing_preview.dart boxPanelPath). A complete-cartridge picture (`support-2D`)
+flat front and back (`box-2D`, `box-2D-back`) from packaging or ScreenScraper,
+which the app's box renderer folds into the 3D carton (unboxing_preview.dart
+boxPanelPath). A missing spine/top/bottom renders as a plain generic face (owner
+best-effort box rulings 2026-10-17 and 2026-10-22, restated 2026-11-26), so the
+spine (`box-2D-side`) is reported separately and does not block the count. A complete-cartridge picture (`support-2D`)
 is not a label. e-Reader cards and Multiboot payloads have no physical-resource
 set: counted once the edition has a sourced `facts` record (spec revision 190,
 COVERAGE-FACTS-01). Counted (G&W): the installed handheld model and its carton
@@ -34,7 +36,8 @@ from pathlib import Path
 FOLDERS = {'gba': 'Nintendo - Game Boy Advance', 'nes': 'Nintendo - Nintendo Entertainment System',
            'gameandwatch': 'Nintendo - Game & Watch'}
 CARTON = {f'outer-box-{f}' for f in ('front', 'back', 'top', 'bottom', 'left', 'right')}
-FLAT = {'box-2D', 'box-2D-back', 'box-2D-side'}
+FLAT = {'box-2D', 'box-2D-back'}
+SPINE = 'box-2D-side'
 LABEL = 'support-texture'
 FACT_ONLY = {'e-Reader', 'Multiboot'}  # ROM subfolders whose entries are covered by facts
 
@@ -137,6 +140,7 @@ def census(store, roms, models, database=None, catalogue=None):
                 flat = all(r in have or f'packaging:{r}' in have for r in FLAT)
                 carton = outer or flat
                 row['outerCarton'] += outer; row['flatCartonOnly'] += flat and not outer
+                row['flatWithoutSpine'] += flat and not outer and not (SPINE in have or f'packaging:{SPINE}' in have)
                 label = LABEL in have or f'packaging:{LABEL}' in have
                 row['bound'] += edition is not None
                 row['carton'] += carton; row['label'] += label
