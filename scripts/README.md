@@ -634,6 +634,20 @@ $env:GSHOP_CREDENTIALS = '<repo>\.env.local'
 flutter test --concurrency=1 tool/hydrate_artwork_test.dart
 ```
 
+## Windows archive identification
+
+`tool/identify_archives_test.dart` gives never-installed 7z ROMs the same
+checksum evidence the device reads from a locally installed archive
+(OwnedN64SevenZip): the file on the read-only Drive mount must match the
+catalogue artifact's size and checksums and hold exactly one ROM member, whose
+CRC32/MD5/SHA-1 are computed in full. The normal ScreenScraper metadata job then
+runs with unchanged matching rules; accepted records bind the editions (run
+hydration afterwards for their image bodies). Translations, hacks and other
+tagged editions stay excluded by the job itself. `GSHOP_EDITIONS` = JSON list
+of edition ids; optional `GSHOP_ROMS` (default `H:\My Drive\Roms`), `GSHOP_7Z`,
+`GSHOP_BATCH`. Same store/projection/credentials setup as hydration; never run
+both at once (shared projection, one ScreenScraper thread).
+
 ## Windows facts import
 
 `tool/import_facts_test.dart` writes sourced "Did you know?" facts (spec
