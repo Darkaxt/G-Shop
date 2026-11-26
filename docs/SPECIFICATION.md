@@ -1,6 +1,13 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 193, 2026-11-26.
+Authoritative specification, revision 194, 2026-11-26.
+
+Revision 194, 2026-11-26, extending LAUNCHBOX-LABEL-CUT-01 to Disk System: an
+opaque LaunchBox disk scan is a close-up of the label above the embossed plastic
+(or the bare label). The plastic is the bottom band when most of it is one colour;
+the label is the run of rows above it that differ from that colour, extended to the
+top edge for the header strip printed in the disk colour. Otherwise the cartridge
+rule applies. Rejections are reported as before.
 
 Revision 193 (LAUNCHBOX-LABEL-CUT-01), 2026-11-26, applying the best-effort rulings
 above: an uncovered NES/GBA edition whose title has a unique LaunchBox match

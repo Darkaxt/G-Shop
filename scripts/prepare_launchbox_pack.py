@@ -81,6 +81,53 @@ def fitting_regions(archive):
     return []
 
 
+def disk_label_crop(body):
+    """Disk System "Cart - Front" scans are close-ups of the disk: the label
+    sticker above the embossed NINTENDO plastic, or the bare label. Plastic is
+    the bottom band when that band is one colour; with no plastic band the whole
+    image is the label. Raise ValueError when neither reading is plausible."""
+    with Image.open(io.BytesIO(body)) as image:
+        image = image.convert('RGB')
+    rgb = np.asarray(image).astype(np.int16)
+    height, width = rgb.shape[:2]
+    depth = max(2, height // 10)
+    band = rgb[height - depth:].reshape(-1, 3)
+    plastic = np.median(band, axis=0)
+    # Embossing shades the plastic, so "near" is generous; most of the band
+    # must still be that one colour for it to count as plastic.
+    if (np.abs(band - plastic).max(axis=1) < 90).mean() > .55:
+        differs = np.abs(rgb - plastic).max(axis=2) >= 90
+
+        def run(values, threshold):
+            best, start = (0, 0), None
+            for i, v in enumerate(list(values) + [0]):
+                if v > threshold and start is None:
+                    start = i
+                elif v <= threshold and start is not None:
+                    best = max(best, (i - start, start), key=lambda b: b[0])
+                    start = None
+            return best[1], best[1] + best[0]
+
+        y0, y1 = run(differs[:height - depth].mean(axis=1), .45)
+        if y1 - y0 < 2:
+            raise ValueError('disk label not found')
+        x0, x1 = run(differs[y0:y1].mean(axis=0), .45)
+        if differs[y0:y1, x0:x1].mean() < .55:
+            raise ValueError('disk label cut is mostly plastic-coloured')
+        if y0 < .2 * height:
+            # The label's header strip is printed in the disk colour; close-ups
+            # start at the label's top edge.
+            y0 = 0
+    else:
+        x0, y0, x1, y1 = 0, 0, width, height
+    w, h = x1 - x0, y1 - y0
+    if w * h < .2 * width * height or not 1.15 <= w / max(h, 1) <= 4:
+        raise ValueError(f'implausible disk label {w}x{h} on {width}x{height}')
+    out = io.BytesIO()
+    image.crop((x0, y0, x1, y1)).save(out, format='PNG')
+    return [x0, y0, w, h], out.getvalue()
+
+
 def label_crop(body):
     """Return (rect, png) of the label on a cartridge scan, or raise ValueError."""
     with Image.open(io.BytesIO(body)) as image:
@@ -137,6 +184,19 @@ def label_crop(body):
     out = io.BytesIO()
     image.crop(rect).convert('RGB').save(out, format='PNG')
     return [rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1]], out.getvalue()
+
+
+def cut_label(body, disk):
+    """Disk close-ups (opaque) read as disks first; anything else as a cartridge."""
+    if disk:
+        with Image.open(io.BytesIO(body)) as image:
+            opaque = image.convert('RGBA').getchannel('A').getextrema()[0] > 200
+        if opaque:
+            try:
+                return disk_label_crop(body)
+            except ValueError:
+                pass
+    return label_crop(body)
 
 
 def main():
@@ -262,7 +322,8 @@ def main():
                 name = offered[('Cart - Front', cart_region)][0]
                 raw = fetch(name)
                 try:
-                    rect, cut = label_crop(raw)
+                    disk = args.platform == 'nes' and archive.startswith('Disk System/')
+                    rect, cut = cut_label(raw, disk)
                     add(LABEL, name, cart_region, cut, panel=rect, original=raw)
                     report['labelCut'] += 1
                     if args.preview:
