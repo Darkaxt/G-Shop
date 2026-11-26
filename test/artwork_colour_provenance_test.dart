@@ -41,6 +41,23 @@ void main() {
       ...value, 'reconstruction': 'regionalPackaging',
     }), throwsFormatException);
   });
+  test('a Cover Project wrap panel is always marked as a fan cover', () {
+    final value = {
+      'sourceId': 'thecoverproject',
+      'assetId': 'cover/7205',
+      'sourceUrl':
+          'https://coverproject.sfo2.cdn.digitaloceanspaces.com/nes/fixture.jpg',
+      'sha256': List.filled(64, 'a').join(),
+      'sourceSha256': List.filled(64, 'b').join(),
+      'panel': [1829, 0, 1537, 2100],
+      'reconstruction': 'fanCover',
+    };
+    expect(ImportedArtworkReference.fromJson(value).toJson(), value);
+    expect(() => ImportedArtworkReference.fromJson({...value}..remove('reconstruction')),
+        throwsFormatException);
+    expect(() => ImportedArtworkReference.fromJson({...corrected(), 'reconstruction': 'fanCover'}),
+        throwsFormatException);
+  });
   test('nonfinite or malformed colour transforms cannot enter metadata', () {
     for (final matrix in [
       [

@@ -309,10 +309,16 @@ class ImportedArtworkReference {
                     .any((l) => !RegExp(r'^[a-z]{2,3}$').hasMatch(l))) ||
         // A reviewed composite may use a custom donor of unknown origin.
         // Its target media region does not establish the donor's printing region.
+        // A fan-made cover (The Cover Project) is always marked as such: the
+        // owner prefers a reconstruction to an empty game (2026-11-26), but it
+        // must stay distinct from original scans.
         reconstruction != null &&
-            (!{'regionalPackaging', 'composite'}.contains(reconstruction) ||
+            (!{'regionalPackaging', 'composite', 'fanCover'}
+                    .contains(reconstruction) ||
                 reconstruction == 'regionalPackaging' && sourceRegion == null) ||
-        !{'launchbox', 'nintandbox', 'screenscraper'}.contains(sourceId) ||
+        (sourceId == 'thecoverproject') != (reconstruction == 'fanCover') ||
+        !{'launchbox', 'nintandbox', 'screenscraper', 'thecoverproject'}
+            .contains(sourceId) ||
         assetId.isEmpty ||
         assetId.length > 1024 ||
         !MetadataMedia.isSafeDirectUrl(sourceUrl) ||

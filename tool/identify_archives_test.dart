@@ -22,7 +22,9 @@ import 'package:g_shop/services/metadata/screenscraper_credentials.dart';
 import 'package:g_shop/services/metadata/screenscraper_provider.dart';
 import 'package:g_shop/services/metadata/shared_metadata_store.dart';
 
-const _extensions = {'gba': '.gba', 'nes': '.nes'};
+// Disk System images (.fds) live under the NES folder and are catalogued as
+// nes; ScreenScraper matches their CRC there too (FDS probe 2026-11-26).
+const _extensions = {'gba': ['.gba'], 'nes': ['.nes', '.fds']};
 const _maxBytes = {'gba': 32 * 1024 * 1024, 'nes': 16 * 1024 * 1024};
 
 void main() {
@@ -108,8 +110,8 @@ void main() {
 /// MD5 and SHA-1. Anything else is an ordinary "no raw evidence" outcome.
 Future<(MetadataRomIdentifier?, String)> _identify(String romsRoot,
     String sevenZip, RemoteArtifact artifact, String platformId) async {
-  final extension = _extensions[platformId];
-  if (extension == null || !artifact.displayName.toLowerCase().endsWith('.7z')) {
+  final extensions = _extensions[platformId];
+  if (extensions == null || !artifact.displayName.toLowerCase().endsWith('.7z')) {
     return (null, 'unsupported');
   }
   final file = File(p.joinAll([romsRoot, ...artifact.displayPath.split('/')]));
@@ -144,7 +146,7 @@ Future<(MetadataRomIdentifier?, String)> _identify(String romsRoot,
     return (null, 'notSingleRom');
   }
   final name = members.single['Path']!;
-  if (!name.toLowerCase().endsWith(extension) ||
+  if (!extensions.any(name.toLowerCase().endsWith) ||
       name.startsWith('.') ||
       name.contains(RegExp(r'[/\\:\x00-\x1f\x7f]'))) {
     return (null, 'notSingleRom');
@@ -157,6 +159,7 @@ Future<(MetadataRomIdentifier?, String)> _identify(String romsRoot,
       rom.length > _maxBytes[platformId]! ||
       '${rom.length}' != members.single['Size'] ||
       (platformId == 'nes' &&
+          name.toLowerCase().endsWith('.nes') &&
           (rom.length < 4 || rom[0] != 0x4e || rom[1] != 0x45 || rom[2] != 0x53 || rom[3] != 0x1a))) {
     return (null, 'invalidRom');
   }

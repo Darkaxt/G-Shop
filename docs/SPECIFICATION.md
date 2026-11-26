@@ -1,6 +1,17 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 190, 2026-11-24.
+Authoritative specification, revision 191, 2026-11-26.
+
+Owner ruling, revision 191 (FAN-COVERS-01), 2026-11-26: "surely you will agree
+that a fan reconstruction is better than an empty game?" Fan-made covers, such as
+The Cover Project's Universal Game Case wraps, are an accepted carton source for
+editions with no original front/back scan from NintAndBox, LaunchBox or
+ScreenScraper. They never replace an original. Each resource keeps
+`sourceId: thecoverproject` and `reconstruction: fanCover`, so the category stays
+distinct from original artwork (the existing rule below). Covers are matched by
+exact normalized title, and region is never mixed: NTSC wraps serve USA/World
+editions, PAL wraps Europe and NTSC-J wraps Japan. This restates the 2026-10-17
+and 2026-10-22 best-effort box rulings; no stage or acceptance criterion changes.
 
 Owner rulings, revision 190 (COVERAGE-FACTS-01), 2026-11-24, closing issue #3
 and the digital re-release question:
