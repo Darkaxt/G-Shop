@@ -1,6 +1,16 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 191, 2026-11-26.
+Authoritative specification, revision 192, 2026-11-26.
+
+Owner ruling, revision 192 (TRANSLATION-STICKER-01), 2026-11-26: a fan translation
+shows its original game's carton with a "translated" sticker on the front, in the
+shape of the Nintendo oval (an own drawing, not the trademark). A translation
+archive takes the carton of the original archive whose name is identical once the
+bracketed tags are removed; retitled translations are not guessed. Each resource
+keeps the original's provenance (sourceId, URL, digest, any fanCover
+reconstruction); the front adds `overlay: translationSticker`, the only accepted
+overlay. Packs: `scripts/prepare_translation_pack.py`. The owner also delegated any
+UI change that better separates official ROMs from fan work; backend comes first.
 
 Owner ruling, revision 191 (FAN-COVERS-01), 2026-11-26: "surely you will agree
 that a fan reconstruction is better than an empty game?" Fan-made covers, such as

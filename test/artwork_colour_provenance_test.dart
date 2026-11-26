@@ -58,6 +58,14 @@ void main() {
     expect(() => ImportedArtworkReference.fromJson({...corrected(), 'reconstruction': 'fanCover'}),
         throwsFormatException);
   });
+  test('a translation sticker is recorded as an overlay on original art', () {
+    final value = corrected()
+      ..remove('colourCorrection')
+      ..['overlay'] = 'translationSticker';
+    expect(ImportedArtworkReference.fromJson(value).toJson(), value);
+    expect(() => ImportedArtworkReference.fromJson({...value, 'overlay': 'logo'}),
+        throwsFormatException);
+  });
   test('nonfinite or malformed colour transforms cannot enter metadata', () {
     for (final matrix in [
       [

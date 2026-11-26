@@ -278,6 +278,9 @@ class ImportedArtworkReference {
   final List<int>? panel;
   final int rotationDegrees;
   final String? sourceRegion, reconstruction;
+  /// A visible mark composited onto otherwise original art, e.g. the
+  /// owner's "translated" sticker on a fan translation's carton (2026-11-26).
+  final String? overlay;
   final List<String>? sourceLanguages;
   final Map<String, dynamic>? colourCorrection;
   ImportedArtworkReference(
@@ -288,6 +291,7 @@ class ImportedArtworkReference {
       this.sourceSha256,
       this.sourceRegion,
       this.reconstruction,
+      this.overlay,
       Map<String, dynamic>? colourCorrection,
       List<String>? sourceLanguages,
       List<int>? panel,
@@ -317,6 +321,7 @@ class ImportedArtworkReference {
                     .contains(reconstruction) ||
                 reconstruction == 'regionalPackaging' && sourceRegion == null) ||
         (sourceId == 'thecoverproject') != (reconstruction == 'fanCover') ||
+        overlay != null && overlay != 'translationSticker' ||
         !{'launchbox', 'nintandbox', 'screenscraper', 'thecoverproject'}
             .contains(sourceId) ||
         assetId.isEmpty ||
@@ -367,6 +372,7 @@ class ImportedArtworkReference {
         if (rotationDegrees != 0) 'rotationDegrees': rotationDegrees,
         if (sourceRegion != null) 'sourceRegion': sourceRegion,
         if (reconstruction != null) 'reconstruction': reconstruction,
+        if (overlay != null) 'overlay': overlay,
         if (sourceLanguages != null) 'sourceLanguages': sourceLanguages,
         if (colourCorrection != null) 'colourCorrection': colourCorrection,
       };
@@ -379,6 +385,7 @@ class ImportedArtworkReference {
           sourceSha256: json['sourceSha256'] as String?,
           sourceRegion: json['sourceRegion'] as String?,
           reconstruction: json['reconstruction'] as String?,
+          overlay: json['overlay'] as String?,
           colourCorrection:
               (json['colourCorrection'] as Map?)?.cast<String, dynamic>(),
           sourceLanguages: (json['sourceLanguages'] as List?)?.cast<String>(),
