@@ -78,7 +78,9 @@ def wrap_panels(body):
             # 45% of the height, the back flap above it printed upside down.
             # Only the front is taken (measured on Metroid, Zanac, Eggerland).
             rects = {'box-2D': (0, round(height * FDS_FOLD), width, height)}
-        elif abs(width / height - TEMPLATE[0] / TEMPLATE[1]) <= 0.01:
+        elif 1.58 <= width / height <= 1.68:
+            # Variants with other bleed (3338, 3431 and 3470 wide) keep the same
+            # proportions to within ~10 px, so panels scale with the width.
             scale = width / TEMPLATE[0]
             rects = {role: (round(left * scale), 0, round(right * scale), height)
                      for role, (left, right) in PANELS.items()}
