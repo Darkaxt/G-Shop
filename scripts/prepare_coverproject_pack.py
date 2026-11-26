@@ -35,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from prepare_packaging_resources import (  # noqa: E402
     normalize_role_image, owner_key, write_packaging_batches)
 
+FOLDER = 'Nintendo - Nintendo Entertainment System'
 CDN = 'https://coverproject.sfo2.cdn.digitaloceanspaces.com/'
 # Universal Game Case template, 3366 x 2100: back 0-1537, spine 1537-1829,
 # front 1829-3366 (measured on the Abadox US wrap; checked by aspect below).
@@ -109,6 +110,25 @@ def main():
         covers.setdefault(int(game_id), []).append({'cover_id': int(cover_id),
             'kind': kind, 'format': fmt, 'country': country, 'url': url})
     db = sqlite3.connect(f'file:{args.projection.as_posix()}?mode=ro', uri=True)
+    # Ledger rows without a store binding still have a catalogue edition: the
+    # Drive file id is the last element of its catalogue key. Importing a pack
+    # creates the store binding.
+    file_ids = {p.replace(chr(92), '/'): f for f, p in db.execute(
+        'SELECT file_id, display_path FROM drive_catalogue_entries WHERE is_folder=0 '
+        'AND display_path LIKE ?', (FOLDER + '/%',))}
+    catalogue = {}
+    for edition_id, key in db.execute("SELECT edition_id, catalogue_key FROM "
+            "library_query_editions WHERE platform_id='nes' AND member=1"):
+        if key:
+            catalogue.setdefault(json.loads(key)[-1], []).append(edition_id)
+
+    def resolve(row):
+        if row.get('editionId'):
+            return row['editionId']
+        path = FOLDER + '/' + row['archive'].replace(chr(92), '/')
+        editions = catalogue.get(file_ids.get(path), [])
+        return editions[0] if len(editions) == 1 else None
+
     session = requests.Session()
     session.headers['User-Agent'] = 'G-Shop catalogue preparation'
     args.cache.mkdir(parents=True, exist_ok=True)
@@ -116,8 +136,11 @@ def main():
         'noEdition': 0, 'badTemplate': 0, 'multiTitle': 0}
     seen = set()
     for row in json.loads(args.matches.read_text(encoding='utf-8')):
-        edition_id = row.get('editionId')
-        if not edition_id or edition_id in seen:
+        edition_id = resolve(row)
+        if not edition_id:
+            report['noEdition'] += 1
+            continue
+        if edition_id in seen:
             continue
         hits = row['tcp']
         if len(hits) != 1:
