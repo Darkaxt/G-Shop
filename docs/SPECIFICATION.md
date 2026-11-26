@@ -1,6 +1,18 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 192, 2026-11-26.
+Authoritative specification, revision 193, 2026-11-26.
+
+Revision 193 (LAUNCHBOX-LABEL-CUT-01), 2026-11-26, applying the best-effort rulings
+above: an uncovered NES/GBA edition whose title has a unique LaunchBox match
+(canonical title or LaunchBox's declared alias) takes its front, back and spine from
+one LaunchBox region that fits the archive's region, never mixing printings. Its
+cartridge label (`support-texture`) is cut from a LaunchBox "Cart - Front" scan of a
+fitting region: the largest area differing from the plastic colour, with the cut
+rectangle kept as `panel`. Cuts of implausible size or shape, reaching the
+cartridge sides or mostly plastic-coloured are rejected and reported, not guessed.
+An archive with no store binding takes the single member catalogue edition of its
+Drive file; the import creates the binding. Translations keep the sticker rule.
+Packs: `scripts/prepare_launchbox_pack.py`.
 
 Owner ruling, revision 192 (TRANSLATION-STICKER-01), 2026-11-26: a fan translation
 shows its original game's carton with a "translated" sticker on the front, in the
