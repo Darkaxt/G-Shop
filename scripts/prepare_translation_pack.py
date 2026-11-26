@@ -38,7 +38,9 @@ from prepare_packaging_resources import (  # noqa: E402
 FOLDERS = {'nes': 'Nintendo - Nintendo Entertainment System',
            'gba': 'Nintendo - Game Boy Advance'}
 TRANSLATIONS = {'nes': 'Translations', 'gba': 'T-En'}  # Drive subfolder names
-ROLES = ('box-2D', 'box-2D-back', 'box-2D-side')
+# The cartridge label is copied unchanged: a translation is a patch on the same
+# cartridge, and the sticker on the box already marks it.
+ROLES = ('box-2D', 'box-2D-back', 'box-2D-side', 'support-texture')
 PROVIDERS = ('packaging', 'screenscraper')  # curated packs win over raw scrapes
 LANGUAGES = {'en': 'ENGLISH', 'es': 'SPANISH', 'fr': 'FRENCH', 'de': 'GERMAN',
              'it': 'ITALIAN', 'pt': 'PORTUGUESE', 'ru': 'RUSSIAN', 'pl': 'POLISH',
@@ -164,8 +166,9 @@ def main():
         if target is None:
             report['noTranslationEdition'] += 1
             continue
-        if carton(target[0]):
-            report['alreadyHasCarton'] += 1
+        existing = carton(target[0])
+        if existing and 'support-texture' in existing:
+            report['alreadyComplete'] += 1
             continue
         donors = [edition_of_path[p] for p in sorted(originals.get(base_name(path), []),
                   key=lambda p: ('/Public' not in p, p)) if p in edition_of_path]
