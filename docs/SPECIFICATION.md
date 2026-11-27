@@ -1,6 +1,18 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 199, 2026-11-27.
+Authoritative specification, revision 200, 2026-11-27.
+
+Revision 200 (DENDY-WEAR-01), 2026-11-27, owner-approved: the private
+'dendy-yellow' shell carries worn plastic. scripts/make_dendy_shell_wear.py
+takes only the wear (scratches, scuffs, grime) from the cartridge textures of
+"Dendy Junior" by otztava (Sketchfab, CC BY 4.0). On a clean panel of each
+source cartridge, each channel is divided by its own heavy blur, and the result is
+multiplied into the shell's yellow at the source scale. The front and back
+halves use different source cartridges. build_nes_cartridge_models.py
+--shell-wear projects them onto the shell parts, and model metadata carries
+wearCredit. The textures are photo-derived, so they stay in the private model
+store (never the repository or the APK). Without --shell-wear the build is
+unchanged.
 
 Revision 199 (DENDY-BOARD-01), 2026-11-27, after the owner's review of the Dendy
 and Subor batch:

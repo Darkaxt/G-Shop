@@ -11,6 +11,9 @@ Dendy back panel texture is a flat redraw (scripts/make_dendy_back_panel.py)
 unless --back-panel supplies a privately built one (with --back-panel-credit).
 The Dendy board is modelled from scripts/dendy_pcb.py (a measured layout of a
 photographed Dendy DIP board); pass its rendered artwork with --pcb-textures.
+--shell-wear optionally gives the Dendy shell worn plastic from
+scripts/make_dendy_shell_wear.py; that artwork is photo-derived (CC BY), so the
+output then stays in the private model store.
 """
 import argparse
 import hashlib
@@ -31,6 +34,10 @@ import dendy_pcb  # noqa: E402  (layout only; its PIL renderer is not used here)
 BACK_PANEL = Path(__file__).resolve().parent / 'assets' / 'dendy-back-panel.png'
 BACK_PANEL_CREDIT = None
 PCB_TEXTURES = None
+SHELL_WEAR = None
+SHELL_WEAR_CREDIT = ('Worn plastic taken from the cartridge textures of "Dendy Junior" by otztava '
+                     '(Sketchfab c05cb0fb636c4384a854e171b5f66e10, CC BY 4.0): scratches, scuffs '
+                     'and grime as a ratio over the shell colour (scripts/make_dendy_shell_wear.py)')
 PCB_CREDIT = ('Board modelled on "Dendy cartridge PCBs.jpg" by Nzeemin (Wikimedia Commons, '
               'CC BY-SA 3.0); geometry and artwork redrawn from measurements, no photo pixels')
 STYLES = ['nintendo-3-gray', 'nintendo-5-gray', 'nintendo-3-gold',
@@ -193,6 +200,29 @@ def atlas(obj, rect, mirrored, image_path):
         image.image = bpy.data.images.load(str(image_path))
         mat.node_tree.links.new(image.outputs['Color'],
             mat.node_tree.nodes['Principled BSDF'].inputs['Base Color'])
+
+
+def wear_dendy_shell():
+    """Project the worn-plastic albedo (make_dendy_shell_wear.py) onto the yellow shell.
+
+    Every shell-material part takes the front image, except the parts on the back
+    half, which take the back image mirrored (seen from behind). The images carry
+    the shell colour, so the material colour becomes white.
+    """
+    front = bpy.data.materials['Shell dendy-yellow']
+    back = front.copy(); back.name = 'Shell dendy-yellow back'
+    for m, texture in ((front, 'texture-03.png'), (back, 'texture-04.png')):
+        runtime = json.loads(m['runtime'])
+        runtime.update(color=[1, 1, 1, 1], textures={'albedo': texture})
+        m['runtime'] = json.dumps(runtime)
+        m.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (1, 1, 1, 1)
+    for obj in [o for o in bpy.context.scene.objects
+                if o.type == 'MESH' and o.data.materials and o.data.materials[0] == front]:
+        centre = sum((obj.matrix_world @ Vector(c) for c in obj.bound_box), Vector()) / 8
+        behind = centre.y > .001
+        if behind: obj.data.materials[0] = back
+        atlas(obj, (-.053, 0, .106, .068), behind,
+              SHELL_WEAR / f"dendy-shell-wear-{'back' if behind else 'front'}.png")
 
 
 def dendy_board(bottom, black):
@@ -432,6 +462,7 @@ def cartridge(style):
         label(0,.076,.080,.089,-.00925,paper)
         for x in (-.052,.052):
             for i in range(8): box('Moulded side grip',(x,-.009,.024+i*.010),(.007,.001,.003),shell,.0005)
+    if style=='dendy-yellow' and SHELL_WEAR: wear_dendy_shell()
     return paper
 
 
@@ -502,6 +533,9 @@ def export_runtime(directory, style):
     if PCB_TEXTURES:
         files.update({'texture-01.png':PCB_TEXTURES/'dendy-pcb-front.png',
                       'texture-02.png':PCB_TEXTURES/'dendy-pcb-back.png'})
+    if SHELL_WEAR:
+        files.update({'texture-03.png':SHELL_WEAR/'dendy-shell-wear-front.png',
+                      'texture-04.png':SHELL_WEAR/'dendy-shell-wear-back.png'})
     for m in bpy.data.materials:
         for name in (json.loads(m['runtime'])['textures'].values() if 'runtime' in m else ()):
             if name not in textures:
@@ -545,6 +579,7 @@ def export_runtime(directory, style):
         manifest['sourceReference']['textureCredit']=BACK_PANEL_CREDIT
     if style=='dendy-yellow':
         manifest['sourceReference']['boardCredit']=PCB_CREDIT
+        if SHELL_WEAR: manifest['sourceReference']['wearCredit']=SHELL_WEAR_CREDIT
         manifest['sourceReference']['limitations']=('Shell proportions are photograph-derived. '
             'The board follows one photographed Dendy DIP board (outline, fingers, packages, '
             'markings, discretes, supply bands, silkscreen); fine routing and the solder side '
@@ -555,16 +590,19 @@ def export_runtime(directory, style):
 
 
 def main():
-    global BACK_PANEL, BACK_PANEL_CREDIT, PCB_TEXTURES
+    global BACK_PANEL, BACK_PANEL_CREDIT, PCB_TEXTURES, SHELL_WEAR
     parser=argparse.ArgumentParser(); parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--styles',nargs='*',choices=STYLES,default=STYLES)
     parser.add_argument('--back-panel',type=Path,default=BACK_PANEL)
     parser.add_argument('--back-panel-credit')
     parser.add_argument('--pcb-textures',type=Path,
         help='Directory with dendy-pcb-front.png/back.png from scripts/dendy_pcb.py')
+    parser.add_argument('--shell-wear',type=Path,
+        help='Directory with dendy-shell-wear-front.png/back.png (private, photo-derived)')
     args=parser.parse_args(sys.argv[sys.argv.index('--')+1:])
     BACK_PANEL, BACK_PANEL_CREDIT=args.back_panel, args.back_panel_credit
     PCB_TEXTURES=args.pcb_textures
+    SHELL_WEAR=args.shell_wear
     if 'dendy-yellow' in args.styles and not PCB_TEXTURES:
         parser.error('dendy-yellow needs --pcb-textures (render them with scripts/dendy_pcb.py)')
     receipts=[]
