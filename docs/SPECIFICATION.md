@@ -1,6 +1,18 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 196, 2026-11-27.
+Authoritative specification, revision 197, 2026-11-27.
+
+Owner ruling, revision 197 (DENDY-SHELL-01), 2026-11-27: a Russian (Dendy-era)
+NES release (region Russia; not proto, beta, demo, sample or kiosk) uses the
+'dendy-yellow' cartridge shell. That is G-Shop's own parametric model of the amber
+60-pin Famicom-format cartridge, the format sold with Dendy consoles and shared by
+Subor and other pirate cartridges. Its proportions, ribbing, corner hatching and
+back panel follow owner-supplied photographs and reference models reviewed after
+their rendering faults were corrected. The back panel is one printed texture
+(scripts/make_dendy_back_panel.py): the generic bulleted care text moulded into
+real shells, partly covered by Steepler's yellow warranty sticker. It is a flat
+redraw, not a photograph. The shell is a private local import like the other NES
+shells; the game's own label stays the replaceable front label.
 
 Owner ruling, revision 196 (DENDY-LABEL-01), 2026-11-27: a Russian (Dendy-era)
 NES game with no licensed counterpart (so no official box or label to reuse) gets a

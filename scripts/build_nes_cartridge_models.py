@@ -2,9 +2,12 @@
 
 Run Blender --background --factory-startup --python this_file -- --output DIR.
 Photo proportions/details: https://www.thelegendofnes.com/cartridge-design and
-its original unlicensed publisher photographs. Dimensions of nonstandard shells
+its original unlicensed publisher photographs. The Dendy shell (the yellow
+60-pin Famicom-format cartridge sold in Russia; Subor carts share it) follows
+owner-supplied photographs and public listing photos of real cartridges. Dimensions of nonstandard shells
 and internal PCB electronics are illustrative, not measured per-game replicas.
-No game artwork or reference photographs are embedded in these models.
+No game artwork or reference photographs are embedded in these models; the
+Dendy back panel texture is a flat redraw (scripts/make_dendy_back_panel.py).
 """
 import argparse
 import hashlib
@@ -19,13 +22,14 @@ import bmesh
 from mathutils import Vector
 
 
+BACK_PANEL = Path(__file__).resolve().parent / 'assets' / 'dendy-back-panel.png'
 STYLES = ['nintendo-3-gray', 'nintendo-5-gray', 'nintendo-3-gold',
           'nintendo-5-gold', 'tengen', 'camerica-gold', 'camerica-silver',
           'dreams-blue', 'dreams-black', 'ave-square', 'ave-angle',
-          'active-clear', 'aladdin']
+          'active-clear', 'aladdin', 'dendy-yellow']
 
 
-def material(name, color, roughness=.45, metallic=0, transmission=0):
+def material(name, color, roughness=.45, metallic=0, transmission=0, textures=None):
     m = bpy.data.materials.new(name)
     m.diffuse_color = (*color, 1)
     m.use_nodes = True
@@ -36,7 +40,7 @@ def material(name, color, roughness=.45, metallic=0, transmission=0):
     bsdf.inputs['Transmission Weight'].default_value = transmission
     bsdf.inputs['IOR'].default_value = 1.49
     srgb = [12.92*v if v <= .0031308 else 1.055*v**(1/2.4)-.055 for v in color]
-    m['runtime'] = json.dumps({'color': [*srgb, 1], 'textures': {},
+    m['runtime'] = json.dumps({'color': [*srgb, 1], 'textures': textures or {},
         'sourceProperties': {'roughness': roughness, 'metallic': metallic,
             'transmission': transmission, 'ior': 1.49, 'thickness': .015}})
     return m
@@ -98,11 +102,11 @@ def label(x,z,width,height,y,mat):
     return o
 
 
-def pcb(width,height,bottom,board,pins,chips):
+def pcb(width,height,bottom,board,pins,chips,contacts=36):
     box('PCB reference board',(0,0,bottom+height/2),(width,.0018,height),board,.0004)
     for side in (-1,1):
-        for i in range(36):
-            x=(i-17.5)*width/38
+        for i in range(contacts):
+            x=(i-(contacts-1)/2)*width/(contacts+2)
             box('72-pin connector contact',(x,side*.00105,bottom+.0045),
                 (width/52,.00015,.008),pins,.00008)
     for i,(x,z) in enumerate([(-width*.22,bottom+height*.55),(width*.22,bottom+height*.69)]):
@@ -124,7 +128,8 @@ def cartridge(style):
         (.63,.38,.075) if style.endswith('gold') else
         (.63,.65,.67) if style.endswith('silver') else
         (.16,.46,.76) if style=='dreams-blue' else
-        (.72,.78,.81) if style=='active-clear' else (.045,.05,.06))
+        (.72,.78,.81) if style=='active-clear' else
+        (.76,.30,.01) if style=='dendy-yellow' else (.045,.05,.06))
     if style.startswith('nintendo') and style.endswith('gold'): color=(.63,.38,.075)
     shell=material('Shell '+style,color,.10 if style=='active-clear' else .31 if 'gold' in style or 'silver' in style else .46,
         .77 if 'gold' in style or 'silver' in style else 0,
@@ -144,18 +149,25 @@ def cartridge(style):
         outline=[(-.060,0),(.060,0),(.060,.110),(.053,.133),(-.053,.133),(-.060,.110)]
     elif style=='active-clear':
         outline=[(-.060,.009),(-.054,.009),(-.054,0),(.054,0),(.054,.009),(.060,.009),(.060,.104),(.053,.104),(.053,.133),(-.053,.133),(-.053,.104),(-.060,.104)]
+    elif style=='dendy-yellow':
+        # Famicom-format body, the 60-pin edge on a narrower bottom tab.
+        width,height,depth=.106,.068,.018
+        outline=[(-.046,0),(.046,0),(.046,.006),(.053,.006),(.053,.068),
+            (-.053,.068),(-.053,.006),(-.046,.006)]
     elif style=='aladdin':
         outline=[(-.060,0),(-.047,0),(-.039,.022),(.039,.022),(.047,0),(.060,0),(.060,.092),(.049,.106),(.049,.133),(-.049,.133),(-.049,.106),(-.060,.092)]
     # Separate thin covers and perimeter walls leave a real internal cavity.
     front=prism('Front shell half',outline,-depth/2,-depth/2+.0013,shell)
     back=prism('Back shell half',outline,depth/2-.0013,depth/2,shell)
     for (x1,z1),(x2,z2) in zip(outline,outline[1:]+outline[:1]):
-        if max(z1,z2)<.012: continue
+        # The bottom stays open over the contacts (the Dendy shell only there).
+        if (z1==z2==0) if style=='dendy-yellow' else max(z1,z2)<.012: continue
         dx,dz=x2-x1,z2-z1
         o=box('Perimeter wall',((x1+x2)/2,0,(z1+z2)/2),
               (.0015,depth-.0015,math.hypot(dx,dz)),shell,.0003)
         o.rotation_euler.y=math.atan2(dx,dz)
-    pcb(.094,.079,.004,board,pins,black)
+    if style=='dendy-yellow': pcb(.088,.054,.0005,board,pins,black,30)
+    else: pcb(.094,.079,.004,board,pins,black)
     if style.startswith('nintendo'):
         for i in range(31):
             box('Front grip rib',(-.027,-.0091,.025+i*.00325),(.024,.001,.0015),shell,.0003)
@@ -210,6 +222,43 @@ def cartridge(style):
         mini['separateRemovablePart']=True
         label(0,.058,.064,.039,-.0103,paper)
         box('Base badge',(0,-.009,.111),(.082,.0006,.024),black,.002)
+    elif style=='dendy-yellow':
+        f,b=-depth/2,depth/2
+        label(0,.0355,.088,.051,f-.00015,paper)
+        # Three ribs across the top, front and back, wrapping round both sides.
+        for z in (.0625,.0645,.0665):
+            for y in (f-.0003,b+.0003):
+                box('Top rib',(0,y,z),(.104,.0006,.0009),shell,.0002)
+            for x in (-.0533,.0533):
+                box('Top side rib',(x,0,z),(.0006,depth-.001,.0009),shell,.0002)
+        # Ribbed strips beside the label, and the hatched top-left corner.
+        for x in (-.0505,-.0490,.0490,.0505):
+            box('Side strip rib',(x,f-.0003,.034),(.0006,.0006,.050),shell,.0002)
+        hatch=box('Hatched corner',(-.046,f-.0002,.0645),(.008,.0004,.0055),shell,.0002)
+        for i in range(5):
+            o=box('Corner hatch line',(-.0492+i*.0016,f-.0005,.0645),(.0005,.0004,.0062),shell,.0001)
+            o.rotation_euler.y=math.radians(40)
+        # The back panel: moulded care text under Steepler's warranty sticker,
+        # printed as one texture inside a raised frame; no screws.
+        for x,z,w,h in [(0,.0095,.090,.0008),(0,.0585,.090,.0008),
+                        (-.0446,.034,.0008,.049),(.0446,.034,.0008,.049)]:
+            box('Back panel frame',(x,b+.0003,z),(w,.0006,h),shell,.0002)
+        print_mat=material('Dendy back panel print',(1,1,1),.6,
+            textures={'albedo':'texture-00.png'})
+        x0,z0,pw,ph=-.044,.010,.088,.048
+        panel=prism('Back panel print',[(x0,z0),(x0+pw,z0),(x0+pw,z0+ph),(x0,z0+ph)],
+            b,b+.0001,print_mat,0)
+        panel['textureRect']=[x0,z0,pw,ph]
+        # The same mapping in the source scene, so source.glb carries the print.
+        uv=panel.data.uv_layers.new(name='UVMap')
+        for loop in panel.data.loops:
+            co=panel.data.vertices[loop.vertex_index].co
+            uv.data[loop.index].uv=((x0+pw-co.x)/pw,1-(z0+ph-co.z)/ph)
+        nodes=print_mat.node_tree.nodes
+        image=nodes.new('ShaderNodeTexImage')
+        image.image=bpy.data.images.load(str(BACK_PANEL))
+        print_mat.node_tree.links.new(image.outputs['Color'],
+            nodes['Principled BSDF'].inputs['Base Color'])
     else:
         label(0,.076,.080,.089,-.00925,paper)
         for x in (-.052,.052):
@@ -233,6 +282,7 @@ def export_runtime(directory, style):
         mesh=obj.data; mesh.calc_loop_triangles()
         normal_matrix=obj.matrix_world.to_3x3().inverted().transposed()
         is_label=obj.get('replaceableLabel',False)
+        printed=obj.get('textureRect')
         if is_label:
             lx,lz,lw,lh=obj['labelRect']; aspect=lw/lh
         for tri in mesh.loop_triangles:
@@ -243,8 +293,18 @@ def export_runtime(directory, style):
                 original=obj.matrix_world@mesh.vertices[index].co
                 p=(axis(original)-center)*scale
                 n=axis(normal_matrix@tri.normal).normalized()
-                uv=((original.x-lx)/lw,(lz+lh-original.z)/lh) if role=='label' else (0,0)
+                if role=='label': uv=((original.x-lx)/lw,(lz+lh-original.z)/lh)
+                elif printed and (normal_matrix@tri.normal).y > .9:
+                    # Seen from behind, so the image runs from +x to -x.
+                    px,pz,pw,ph=printed
+                    uv=((px+pw-original.x)/pw,(pz+ph-original.z)/ph)
+                else: uv=(0,0)
                 verts.append((*p,*n,*uv))
+    textures={}
+    if any(json.loads(m['runtime'])['textures'] for m in bpy.data.materials if 'runtime' in m):
+        body=BACK_PANEL.read_bytes()
+        (directory/'texture-00.png').write_bytes(body)
+        textures['texture-00.png']=hashlib.sha256(body).hexdigest()
     payload=bytearray(); surfaces=[]
     for (name,role),vertices in groups.items():
         start=len(payload)
@@ -258,10 +318,11 @@ def export_runtime(directory, style):
     manifest={'name':'nes-retail-'+style,'system':'nes','cartridgeStyle':style,
         'privateImport':True,'cartridgeGeometry':True,'motionKind':'pushClick',
         'bounds':list((high-low)*scale),'sourceWidth':(high.x-low.x)*scale,
-        'labelAspect':aspect,'frontSign':1,'textureFiles':{},
+        'labelAspect':aspect,'frontSign':1,'textureFiles':textures,
         'geometrySha256':hashlib.sha256(payload).hexdigest(),'surfaces':surfaces,
         'sourceReference':{'author':'G-Shop original parametric reference models',
-            'url':'https://www.thelegendofnes.com/cartridge-design',
+            'url':'https://en.wikipedia.org/wiki/Dendy_(console)' if style.startswith('dendy')
+                else 'https://www.thelegendofnes.com/cartridge-design',
             'licence':'local-import-only',
             'originalLicence':'Original parametric geometry; private reference use',
             'sha256':hashlib.sha256((directory/'source.glb').read_bytes()).hexdigest(),
@@ -273,9 +334,10 @@ def export_runtime(directory, style):
 
 def main():
     parser=argparse.ArgumentParser(); parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--styles',nargs='*',choices=STYLES,default=STYLES)
     args=parser.parse_args(sys.argv[sys.argv.index('--')+1:])
     receipts=[]
-    for style in STYLES:
+    for style in args.styles:
         cartridge(style)
         receipts.append(export_runtime(args.output/style,style))
         print('NES_SHELL_AUTHORED '+json.dumps(receipts[-1]),flush=True)

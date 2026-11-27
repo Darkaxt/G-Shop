@@ -32,6 +32,18 @@ void main() {
     expect(NesCartridgeModel.regionsForArchive('Fixture (En,Fr) (Rev 1).7z'),
         isEmpty);
   });
+  test('Russian Dendy-era releases use the yellow Famicom-format shell', () {
+    for (final name in [
+      'Contra (Russia) (Pirate).7z',
+      'Balda (Russia) (Subor Keyboard) (Unl).7z',
+      'Bravesoft Windows 2000 (Russia) (Subor Keyboard) (Aftermarket) (Pirate).7z'
+    ]) {
+      expect(NesCartridgeModel.referencesFor(name), ['dendy-yellow']);
+    }
+    expect(NesCartridgeModel.referencesFor('Fixture (Russia) (Proto).7z'),
+        isEmpty);
+    expect(NesCartridgeModel.referencesFor('Contra (Japan).7z'), isEmpty);
+  });
   test('late revisions and fixed Camerica finishes are not invented', () {
     expect(NesCartridgeModel.referencesFor('Mega Man 6 (USA).7z'),
         ['nintendo-3-gray']);

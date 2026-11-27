@@ -42,6 +42,7 @@ class NesCartridgeModel {
     'pcb-unlicensed-reference': 'PCB · generic unlicensed reference',
     'pcb-action52-reference': 'PCB · illustrative Action 52 reference',
     'dust-sleeve': 'Dust sleeve · reference',
+    'dendy-yellow': 'Dendy · yellow Famicom-format reference',
   };
   static bool hasInspection(String style) =>
       labels.containsKey(style) &&
@@ -50,8 +51,14 @@ class NesCartridgeModel {
       !style.startsWith('pcb-');
 
   static List<String> referencesFor(String filename) {
-    if (filename.contains(RegExp(r'[/\\\[]')) ||
-        RegExp(r'\((?:Aftermarket|Pirate|Possible Proto[^)]*|Sample[^)]*|Kiosk[^)]*|Test Program[^)]*|Proto[^)]*|Beta[^)]*|Demo[^)]*|[^)]*(?:Virtual Console|Switch|Collection|Archives|Retro-Bit|Evercade|Capcom Town|Toaplan Arcade Garage|Animal Crossing|Limited Run Games|Star Fox - Assault|FamicomBox|Classic Mini|Classics Mini Mix|Disney Classic Games|QUByte Classics)[^)]*)\)',
+    if (filename.contains(RegExp(r'[/\\\[]'))) return const [];
+    // Russian (Dendy-era) releases, pirate and Subor keyboard carts included,
+    // came in the yellow Famicom-format shell (owner ruling 2026-11-27).
+    if (regionsForArchive(filename).contains('Russia') &&
+        !RegExp(r'\((?:[^)]*\b(?:Proto|Beta|Demo|Sample|Kiosk)\b[^)]*)\)',
+                caseSensitive: false)
+            .hasMatch(filename)) return const ['dendy-yellow'];
+    if (RegExp(r'\((?:Aftermarket|Pirate|Possible Proto[^)]*|Sample[^)]*|Kiosk[^)]*|Test Program[^)]*|Proto[^)]*|Beta[^)]*|Demo[^)]*|[^)]*(?:Virtual Console|Switch|Collection|Archives|Retro-Bit|Evercade|Capcom Town|Toaplan Arcade Garage|Animal Crossing|Limited Run Games|Star Fox - Assault|FamicomBox|Classic Mini|Classics Mini Mix|Disney Classic Games|QUByte Classics)[^)]*)\)',
                 caseSensitive: false)
             .hasMatch(filename)) return const [];
     final region = regionsForArchive(filename);
