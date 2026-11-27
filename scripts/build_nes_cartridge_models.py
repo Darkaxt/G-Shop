@@ -9,6 +9,8 @@ and internal PCB electronics are illustrative, not measured per-game replicas.
 No game artwork or reference photographs are embedded in these models; the
 Dendy back panel texture is a flat redraw (scripts/make_dendy_back_panel.py)
 unless --back-panel supplies a privately built one (with --back-panel-credit).
+The Dendy board is modelled from scripts/dendy_pcb.py (a measured layout of a
+photographed Dendy DIP board); pass its rendered artwork with --pcb-textures.
 """
 import argparse
 import hashlib
@@ -22,9 +24,15 @@ import bpy
 import bmesh
 from mathutils import Vector
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import dendy_pcb  # noqa: E402  (layout only; its PIL renderer is not used here)
+
 
 BACK_PANEL = Path(__file__).resolve().parent / 'assets' / 'dendy-back-panel.png'
 BACK_PANEL_CREDIT = None
+PCB_TEXTURES = None
+PCB_CREDIT = ('Board modelled on "Dendy cartridge PCBs.jpg" by Nzeemin (Wikimedia Commons, '
+              'CC BY-SA 3.0); geometry and artwork redrawn from measurements, no photo pixels')
 STYLES = ['nintendo-3-gray', 'nintendo-5-gray', 'nintendo-3-gold',
           'nintendo-5-gold', 'tengen', 'camerica-gold', 'camerica-silver',
           'dreams-blue', 'dreams-black', 'ave-square', 'ave-angle',
@@ -119,6 +127,165 @@ def pcb(width,height,bottom,board,pins,chips,contacts=36):
                     (.004,.0004,height*.01),pins,.00005)
 
 
+class Parts:
+    """Many small cuboids/cylinders per material, emitted as one object each."""
+
+    def __init__(self):
+        self.meshes = {}
+
+    def _add(self, mat, verts, faces):
+        v, f = self.meshes.setdefault(mat, ([], []))
+        base = len(v)
+        v.extend(verts)
+        f.extend(tuple(i + base for i in face) for face in faces)
+
+    def box(self, mat, centre, dims, rotation=None):
+        hx, hy, hz = (d / 2 for d in dims)
+        corners = [Vector((sx*hx, sy*hy, sz*hz)) for sx in (-1, 1) for sy in (-1, 1) for sz in (-1, 1)]
+        if rotation is not None: corners = [rotation @ c for c in corners]
+        c = Vector(centre)
+        self._add(mat, [tuple(c + k) for k in corners],
+                  [(0,1,3,2),(4,6,7,5),(0,4,5,1),(2,3,7,6),(0,2,6,4),(1,5,7,3)])
+
+    def segment(self, mat, a, b, width, thick):
+        """A flat strip (lead) from a to b."""
+        a, b = Vector(a), Vector(b)
+        rot = (b - a).normalized().to_track_quat('Z', 'Y').to_matrix()
+        self.box(mat, (a + b) / 2, (width, thick, (b - a).length), rot)
+
+    def cylinder(self, mat, centre, axis, radius, length, segments=12, radius2=None):
+        rot = Vector(axis).normalized().to_track_quat('Z', 'Y').to_matrix()
+        r2 = radius if radius2 is None else radius2
+        ring = [(math.cos(2*math.pi*i/segments), math.sin(2*math.pi*i/segments)) for i in range(segments)]
+        verts = [rot @ Vector((x*r, y*r, z)) for z, r in ((-length/2, radius), (length/2, r2)) for x, y in ring]
+        c = Vector(centre)
+        faces = [tuple(range(segments-1, -1, -1)), tuple(range(segments, 2*segments))]
+        faces += [(i, (i+1) % segments, (i+1) % segments + segments, i + segments) for i in range(segments)]
+        self._add(mat, [tuple(c + v) for v in verts], faces)
+
+    def emit(self, prefix):
+        out = []
+        for mat, (verts, faces) in self.meshes.items():
+            mesh = bpy.data.meshes.new(prefix)
+            mesh.from_pydata(verts, [], faces)
+            mesh.update()
+            obj = bpy.data.objects.new(prefix + ' - ' + mat.name, mesh)
+            bpy.context.collection.objects.link(obj)
+            obj.data.materials.append(mat)
+            out.append(obj)
+        self.meshes = {}
+        return out
+
+
+def atlas(obj, rect, mirrored, image_path):
+    """Planar x/z projection of an artwork rectangle onto every face of obj."""
+    x0, z0, w, h = rect
+    obj['atlas'] = [x0, z0, w, h, 1.0 if mirrored else 0.0]
+    while obj.data.uv_layers: obj.data.uv_layers.remove(obj.data.uv_layers[0])
+    uv = obj.data.uv_layers.new(name='UVMap')
+    for loop in obj.data.loops:
+        co = obj.matrix_world @ obj.data.vertices[loop.vertex_index].co
+        u = (x0 + w - co.x) / w if mirrored else (co.x - x0) / w
+        uv.data[loop.index].uv = (u, (co.z - z0) / h)
+    mat = obj.data.materials[0]
+    if not any(n.type == 'TEX_IMAGE' for n in mat.node_tree.nodes):
+        image = mat.node_tree.nodes.new('ShaderNodeTexImage')
+        image.image = bpy.data.images.load(str(image_path))
+        mat.node_tree.links.new(image.outputs['Color'],
+            mat.node_tree.nodes['Principled BSDF'].inputs['Base Color'])
+
+
+def dendy_board(bottom, black):
+    """The photographed Dendy DIP board (scripts/dendy_pcb.py), both faces detailed."""
+    L = dendy_pcb.layout()
+    mm = .001
+    def P(x, z, y=0): return (x*mm, y, bottom + z*mm)
+    t = L['thickness']*mm
+    front_y, back_y = -t/2, t/2
+    rect = (-L['width']/2*mm, bottom, L['width']*mm, L['height']*mm)
+    front_png = PCB_TEXTURES/'dendy-pcb-front.png'
+    core = material('Dendy PCB laminate edge', (.035, .24, .17), .55)
+    face = material('Dendy PCB component side', (1, 1, 1), .5,
+        textures={'albedo': 'texture-01.png'})
+    rear = material('Dendy PCB solder side', (1, 1, 1), .5,
+        textures={'albedo': 'texture-02.png'})
+    tin = material('Dendy PCB tin', (.64, .64, .60), .32, .9)
+    glass = material('Dendy PCB diode glass', (.55, .13, .03), .15)
+    beige = material('Dendy PCB resistor body', (.60, .47, .32), .55)
+    bands = {'brown': (.20, .08, .03), 'black': (.02, .02, .02), 'red': (.55, .03, .02),
+             'gold': (.62, .45, .14)}
+    band_mats = {k: material('Dendy PCB band '+k, c, .45, .6 if k == 'gold' else 0)
+                 for k, c in bands.items()}
+    outline = [(x*mm, bottom + z*mm) for x, z in L['outline']]
+    prism('Dendy PCB laminate', outline, front_y + .00005, back_y - .00005, core, .0001)
+    skin = prism('Dendy PCB component side', outline, front_y, front_y + .00005, face, 0)
+    atlas(skin, rect, False, front_png)
+    skin = prism('Dendy PCB solder side', outline, back_y - .00005, back_y, rear, 0)
+    atlas(skin, rect, True, PCB_TEXTURES/'dendy-pcb-back.png')
+
+    metal = Parts()
+    z0, z1 = L['fingerZ']
+    for x in L['fingers']:
+        for y in (front_y - .00002, back_y + .00002):
+            metal.box(tin, P(x, (z0+z1)/2, y), (L['fingerWidth']*mm, .00004, (z1-z0)*mm))
+    packages = Parts()
+    for chip in L['chips']:
+        (cx, cz), (length, width) = chip['at'], chip['size']
+        height = 3.9 if chip.get('rom') else 3.3
+        yc = front_y - (.6 + height/2)*mm          # 0.6 mm standoff above the board
+        packages.box(face, P(cx, cz, yc), (length*mm, height*mm, width*mm))
+        shoulder_y = yc + height*.12*mm
+        for x, z in dendy_pcb.pin_positions(chip):
+            side = 1 if z > cz else -1
+            edge = cz + side*width/2
+            # Shoulder out of the body, the wide upper lead, then the narrow tail
+            # through the board under its solder fillet.
+            metal.box(tin, P(x, (edge + z)/2 + side*.1, shoulder_y), (1.2*mm, .25*mm, (abs(z - edge) + .45)*mm))
+            knee = front_y - .35*mm
+            metal.box(tin, P(x, z, (shoulder_y + knee)/2), (1.2*mm, abs(knee - shoulder_y), .25*mm))
+            metal.box(tin, P(x, z, (knee + back_y + .9*mm)/2), (.5*mm, back_y + .9*mm - knee, .25*mm))
+    for part in L['discretes']:
+        (bx, bz), holes = part['at'], part['holes']
+        if part['kind'] == 'disc':
+            r, th = part['d']/2*mm, part['t']*mm
+            yc = front_y - 1.6*mm - th/2
+            packages.cylinder(face, P(bx, bz, yc), (0, 1, 0), r, th, 28)
+            for hx, hz in holes:
+                knee = P(hx, hz, front_y - 1.4*mm)
+                metal.segment(tin, P(hx, hz, back_y + .9*mm), knee, .5*mm, .5*mm)
+                metal.segment(tin, knee, P(bx + (hx-bx)*.45, bz + (hz-bz)*.45, yc), .5*mm, .5*mm)
+            continue
+        (ax, az), (qx, qz) = holes
+        d = part['d']*mm
+        yc = front_y - .25*mm - d/2
+        along = Vector((qx - ax, 0, qz - az)).normalized()
+        body = glass if part['kind'] == 'diode' else beige
+        centre = Vector(P(bx, bz, yc))
+        a = centre - along*part['length']/2*mm
+        b = centre + along*part['length']/2*mm
+        metal.cylinder(body, centre, along, d/2, part['length']*mm, 16)
+        if part['kind'] == 'diode':
+            metal.cylinder(black, b - along*.6*mm, along, d/2 + .00004, .6*mm, 16)
+        else:
+            for k, colour in enumerate(part['bands']):
+                at = a + along*(.9 + k*1.1 + (.6 if k == 3 else 0))*mm
+                metal.cylinder(band_mats[colour], at, along, d/2 + .00004, .45*mm, 16)
+        for (hx, hz), end in (((ax, az), a), ((qx, qz), b)):
+            hole = Vector(P(hx, hz, yc))
+            metal.segment(tin, end, hole, .5*mm, .5*mm)
+            metal.segment(tin, hole, Vector(P(hx, hz, back_y + .9*mm)), .5*mm, .5*mm)
+    for x, z, dia in L['holes']:                  # solder fillets on every leaded hole
+        if dia > 1.4:
+            metal.cylinder(tin, P(x, z, back_y + .25*mm), (0, 1, 0), .8*mm, .5*mm, 10, .35*mm)
+    for obj in packages.emit('Dendy PCB packages'):
+        bpy.context.view_layer.objects.active = obj
+        mod = obj.modifiers.new('Moulded package edge', 'BEVEL')
+        mod.width, mod.segments, mod.limit_method = .00025, 2, 'ANGLE'
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+        atlas(obj, rect, False, front_png)
+    metal.emit('Dendy PCB parts')
+
+
 def cartridge(style):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     black = material('Recesses',(.025,.029,.033),.64)
@@ -168,7 +335,7 @@ def cartridge(style):
         o=box('Perimeter wall',((x1+x2)/2,0,(z1+z2)/2),
               (.0015,depth-.0015,math.hypot(dx,dz)),shell,.0003)
         o.rotation_euler.y=math.atan2(dx,dz)
-    if style=='dendy-yellow': pcb(.088,.054,.0005,board,pins,black,30)
+    if style=='dendy-yellow': dendy_board(.0005,black)
     else: pcb(.094,.079,.004,board,pins,black)
     if style.startswith('nintendo'):
         for i in range(31):
@@ -272,7 +439,7 @@ def cartridge(style):
 # 0/.3/.65/1.35 s with movement factors 0/0/.1/1; Assemble plays it backwards.
 INSPECTION_TIMES=(0,.3,.65,1.35)
 INSPECTION_FACTORS=(0,0,.10,1)
-BOARD_PARTS=('PCB reference board','72-pin connector contact','Illustrative IC','IC leg')
+BOARD_PARTS=('PCB reference board','72-pin connector contact','Illustrative IC','IC leg','Dendy PCB')
 
 
 def inspection_offset(obj):
@@ -309,6 +476,7 @@ def export_runtime(directory, style):
         normal_matrix=obj.matrix_world.to_3x3().inverted().transposed()
         is_label=obj.get('replaceableLabel',False)
         printed=obj.get('textureRect')
+        mapped=obj.get('atlas')
         if is_label:
             lx,lz,lw,lh=obj['labelRect']; aspect=lw/lh
         for tri in mesh.loop_triangles:
@@ -320,6 +488,9 @@ def export_runtime(directory, style):
                 p=(axis(original)-center)*scale
                 n=axis(normal_matrix@tri.normal).normalized()
                 if role=='label': uv=((original.x-lx)/lw,(lz+lh-original.z)/lh)
+                elif mapped:
+                    ax,az,aw,ah,mirrored=mapped
+                    uv=(((ax+aw-original.x) if mirrored else (original.x-ax))/aw,(az+ah-original.z)/ah)
                 elif printed and (normal_matrix@tri.normal).y > .9:
                     # Seen from behind, so the image runs from +x to -x.
                     px,pz,pw,ph=printed
@@ -327,10 +498,16 @@ def export_runtime(directory, style):
                 else: uv=(0,0)
                 verts.append((*p,*n,*uv))
     textures={}
-    if any(json.loads(m['runtime'])['textures'] for m in bpy.data.materials if 'runtime' in m):
-        body=BACK_PANEL.read_bytes()
-        (directory/'texture-00.png').write_bytes(body)
-        textures['texture-00.png']=hashlib.sha256(body).hexdigest()
+    files={'texture-00.png':BACK_PANEL}
+    if PCB_TEXTURES:
+        files.update({'texture-01.png':PCB_TEXTURES/'dendy-pcb-front.png',
+                      'texture-02.png':PCB_TEXTURES/'dendy-pcb-back.png'})
+    for m in bpy.data.materials:
+        for name in (json.loads(m['runtime'])['textures'].values() if 'runtime' in m else ()):
+            if name not in textures:
+                body=files[name].read_bytes()
+                (directory/name).write_bytes(body)
+                textures[name]=hashlib.sha256(body).hexdigest()
     payload=bytearray(); surfaces=[]
     duration=INSPECTION_TIMES[-1]
     for (name,role,offset),vertices in groups.items():
@@ -366,19 +543,30 @@ def export_runtime(directory, style):
         manifest['sourceReference']['previewAnimationPolicy']={'inspection':['Explode','Assemble']}
     if textures and BACK_PANEL_CREDIT:
         manifest['sourceReference']['textureCredit']=BACK_PANEL_CREDIT
+    if style=='dendy-yellow':
+        manifest['sourceReference']['boardCredit']=PCB_CREDIT
+        manifest['sourceReference']['limitations']=('Shell proportions are photograph-derived. '
+            'The board follows one photographed Dendy DIP board (outline, fingers, packages, '
+            'markings, discretes, supply bands, silkscreen); fine routing and the solder side '
+            'are interpreted, and it is not the board of any particular game.')
     (directory/'model.mesh').write_bytes(payload)
     (directory/'model.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
     return {'style':style,'triangles':sum(len(v)//3 for v in groups.values()),'surfaces':len(surfaces),'geometrySha256':manifest['geometrySha256']}
 
 
 def main():
-    global BACK_PANEL, BACK_PANEL_CREDIT
+    global BACK_PANEL, BACK_PANEL_CREDIT, PCB_TEXTURES
     parser=argparse.ArgumentParser(); parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--styles',nargs='*',choices=STYLES,default=STYLES)
     parser.add_argument('--back-panel',type=Path,default=BACK_PANEL)
     parser.add_argument('--back-panel-credit')
+    parser.add_argument('--pcb-textures',type=Path,
+        help='Directory with dendy-pcb-front.png/back.png from scripts/dendy_pcb.py')
     args=parser.parse_args(sys.argv[sys.argv.index('--')+1:])
     BACK_PANEL, BACK_PANEL_CREDIT=args.back_panel, args.back_panel_credit
+    PCB_TEXTURES=args.pcb_textures
+    if 'dendy-yellow' in args.styles and not PCB_TEXTURES:
+        parser.error('dendy-yellow needs --pcb-textures (render them with scripts/dendy_pcb.py)')
     receipts=[]
     for style in args.styles:
         cartridge(style)

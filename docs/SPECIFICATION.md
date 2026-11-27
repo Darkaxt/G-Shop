@@ -1,6 +1,37 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 198, 2026-11-27.
+Authoritative specification, revision 199, 2026-11-27.
+
+Revision 199 (DENDY-BOARD-01), 2026-11-27, after the owner's review of the Dendy
+and Subor batch:
+- The 'dendy-yellow' shell carries a modelled board, not a placeholder.
+  scripts/dendy_pcb.py holds one measured layout of the DIP board in
+  "Dendy cartridge PCBs.jpg" (Nzeemin, Wikimedia Commons, CC BY-SA 3.0), measured
+  at its 2.54 mm finger pitch. It covers:
+  - the 98.2 x 52.2 mm outline, with a 78 mm edge tab and side notches
+  - 30 tin fingers on each face
+  - HD74LS74AP, AX5904, DM74S133N, two unmarked DIP-16s and the B020A/B020B DIP-32 ROMs,
+    with their pin counts and markings
+  - the 104Z disc capacitor, two glass diodes and a banded resistor
+  - the vias, the wide supply bands and the silkscreen
+  Fine routing and the solder side are interpreted. The same layout renders the
+  front and back artwork at any resolution (G-Shop uses 20 px/mm; no photo pixels)
+  and drives the geometry in build_nes_cartridge_models.py
+  (--pcb-textures): packages with three-part legs, back solder fillets, and leads
+  bent into their holes. The board is detailed on both faces so it holds up
+  behind a translucent shell and in close-up hardware scenes. Model metadata
+  credits the photograph and states the limitations.
+- The SB-225B joystick cords use a documented length instead of a short
+  placeholder curve. No factory figure for the fixed SB-225B cord was found. The
+  closest source is a replacement rectangular joystick for hardwired Subor
+  consoles (internal 5-pin connector), listed at 115 cm; the uncertainty is
+  +/-20 cm. Each cord leaves its case-side jack along the jack normal for 25 mm,
+  then drops to the desk. Its slack is coiled in 2.75 stacked turns beside the pad,
+  and it enters the pad's rear strain relief. The coil radius is solved so the
+  tube centreline arc length is 115 cm. The cord is checked for clearance against
+  both pads, the case and itself. scripts/build_subor_sb225b.py writes the
+  receipts to OUT.cables.json, and the installed model.json carries them as
+  sourceReference.cableReceipts.
 
 Revision 198 (DENDY-JUNIOR-01), 2026-11-27: the NES console selector
 offers a 'Dendy Junior' hardware variant (consoles/nes/variants/dendy-junior), the

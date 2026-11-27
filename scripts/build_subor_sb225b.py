@@ -5,6 +5,9 @@ sloped key deck, a raised rear ledge holding the cartridge slot (white flap behi
 an inserted yellow "Обучающий картридж"), the indicator panel with its power
 button, and the two Subor joysticks cabled to the case sides. Keys are tapered
 low-poly caps sharing one legend atlas. Front is -Y, like the NES builders.
+Each joystick cord is solved to its documented length (see CABLE_TARGET), coiled
+beside its pad and checked for clearance; the receipts are written to
+OUT.cables.json for the installed model.json (sourceReference.cableReceipts).
 Writes OUT.glb, OUT.blend and six review renders; feeds prepare_console_model.py.
 
 blender --background --factory-startup --python build_subor_sb225b.py -- TEXDIR OUT.glb RENDERDIR
@@ -17,6 +20,7 @@ import sys
 
 import bpy
 from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 
 spec = importlib.util.spec_from_file_location(
     'nes_parts', Path(__file__).with_name('build_nes_cartridge_models.py'))
@@ -122,6 +126,141 @@ def body_shell(body, case, deck_z):
     # prism's y runs front->back; after +90 deg about z it maps to -x: mirror-free since symmetric.
     return shell
 
+# Joystick cables (docs/agent-skills/gshop-console-integration: wired props).
+# No factory figure for the SB-225B's fixed joystick cord was found. The nearest
+# documented Subor part is the replacement rectangular joystick for hardwired
+# Subor consoles (internal 5-pin connector), listed with a 115 cm cable.
+CABLE_TARGET = 1.15
+CABLE_DIAMETER = .0036
+CABLE_REFERENCE = ('https://dendy-sega.kupit-ukraina.com.ua/aksessuary/dlya-dendy-8-bit/'
+                   'dendy-junior-subor')
+CABLE_REFERENCE_NOTE = ('Replacement Subor joystick for hardwired consoles (internal 5-pin '
+    'connector), listed "Длина кабеля: 115 см"; not a measurement of an original SB-225B '
+    'cord. Other Dendy/Subor pads are listed at 110-190 cm, so take +/-20 cm.')
+
+
+def bezier(a, b, c, d, n=24):
+    return [a*(1-t)**3 + b*3*t*(1-t)**2 + c*3*t*t*(1-t) + d*t**3 for t in (i/n for i in range(n))]
+
+
+def polyline_length(points):
+    return sum((q - p).length for p, q in zip(points, points[1:]))
+
+
+def cable_path(sign, jack, end, coil_centre, radius, turns=2.75):
+    """Jack lead -> ground -> flat stacked coil beside the pad -> pad strain relief.
+
+    Built for the right-hand pad (sign=+1) and mirrored in x for the left one.
+    The coil is wound anticlockwise (seen from above) for the right pad, entering on its
+    inner side heading forward and leaving across its top towards the pad; each turn
+    lies on the one before, so the exit crosses over the entry lead.
+    """
+    r = CABLE_DIAMETER / 2
+    def m(v): return Vector((v.x * sign, v.y, v.z))
+    out = Vector((1, 0, 0))
+    start = Vector((abs(jack.x), jack.y, jack.z))
+    lead = start + out * .025                       # straight off the jack normal
+    c = Vector((abs(coil_centre.x), coil_centre.y, 0))
+    a0, a1 = math.pi, math.pi + turns * 2 * math.pi
+    def coil(a):
+        k = (a - a0) / (a1 - a0)
+        rr = radius * (1 - .04 * k)                  # hand-wound: slightly tighter
+        return Vector((c.x + rr * math.cos(a), c.y + rr * math.sin(a),
+                       r + k * turns * CABLE_DIAMETER * 1.05))
+    entry, exit_ = coil(a0), coil(a1)
+    pts = [start + (lead - start) * (i / 6) for i in range(6)]
+    pts += bezier(lead, lead + out * .04, entry + Vector((0, .07, 0)), entry, 40)
+    steps = int(turns * 96)
+    pts += [coil(a0 + (a1 - a0) * i / steps) for i in range(steps)]
+    e = Vector((abs(end.x), end.y, end.z))
+    pts += bezier(exit_, exit_ + Vector((-.05, 0, 0)), e + Vector((0, .05, 0)), e, 40)
+    pts.append(e)
+    return [m(p) for p in pts]
+
+
+def clearance(points, objects, exempt, r):
+    """Minimum gap from the cable centreline to the transformed object triangles."""
+    verts, tris = [], []
+    for obj in objects:
+        mesh = obj.evaluated_get(bpy.context.evaluated_depsgraph_get()).to_mesh()
+        mesh.calc_loop_triangles()
+        base = len(verts)
+        verts.extend(obj.matrix_world @ v.co for v in mesh.vertices)
+        tris.extend(tuple(base + i for i in t.vertices) for t in mesh.loop_triangles)
+    tree = BVHTree.FromPolygons(verts, tris, all_triangles=True)
+    gap, checked = float('inf'), 0
+    for p in points:
+        if any((p - q).length <= allowance for q, allowance in exempt):
+            continue
+        hit = tree.find_nearest(p)
+        gap = min(gap, hit[3])
+        checked += 1
+    if gap < r + .001:
+        raise ValueError(f'Joystick cable grazes {[o.name for o in objects]}: {gap:.4f} m')
+    return {'samples': checked, 'minimumSurfaceDistanceMetres': round(gap, 5)}
+
+
+def self_clearance(points, r):
+    """Non-adjacent cable samples stay a diameter apart (stacked turns touch at most)."""
+    worst = float('inf')
+    for i in range(0, len(points), 3):
+        for j in range(i + 12, len(points), 3):
+            if polyline_length(points[i:j + 1]) < 6 * r:
+                continue
+            worst = min(worst, (points[i] - points[j]).length)
+    if worst < 2 * r * .98:
+        raise ValueError(f'Joystick cable passes through itself: {worst:.4f} m')
+    return round(worst, 5)
+
+
+def joystick_cables(pads, case, cord, width, pad_size):
+    pw, pd, ph = pad_size
+    receipts = []
+    for i, pad in enumerate(pads):
+        sign = 1 if pad.location.x > 0 else -1
+        jack = Vector((sign * width / 2, 0, .015))
+        end = Vector((pad.location.x, pad.location.y + pd / 2, ph / 2))
+        centre = Vector((sign * (abs(pad.location.x) + pw / 2 + .12), pad.location.y - .004 * sign, 0))
+        lo, hi = .02, .09
+        for _ in range(60):
+            mid = (lo + hi) / 2
+            if polyline_length(cable_path(sign, jack, end, centre, mid)) < CABLE_TARGET: lo = mid
+            else: hi = mid
+        path = cable_path(sign, jack, end, centre, (lo + hi) / 2)
+        measured = polyline_length(path)
+        if abs(measured - CABLE_TARGET) > 1e-4:
+            raise ValueError('Joystick cable length calibration failed')
+        r = CABLE_DIAMETER / 2
+        own = clearance(path, [pad], [(end, 4 * r)], r)
+        other = clearance(path, [p for p in pads if p is not pad], [], r)
+        body = clearance(path, [case], [(jack, 4 * r)], r)
+        if min(p.z for p in path) < r - 1e-6:
+            raise ValueError('Joystick cable sinks below the desk')
+        curve = bpy.data.curves.new(f'Joystick {i + 1} cable', 'CURVE')
+        curve.dimensions, curve.bevel_depth, curve.bevel_resolution = '3D', r, 2
+        spline = curve.splines.new('POLY')
+        spline.points.add(len(path) - 1)
+        for point, p in zip(spline.points, path):
+            point.co = (*p, 1)
+        obj = bpy.data.objects.new(f'Joystick {i + 1} cable', curve)
+        bpy.context.collection.objects.link(obj)
+        obj.data.materials.append(cord)
+        receipts.append({
+            'cable': obj.name, 'nominalCableLengthCm': CABLE_TARGET * 100,
+            'measuredCableLengthCm': round(measured * 100, 3),
+            'lengthMeasurement': 'Arc length of the transformed tube centreline (polyline that is the mesh path), scene metres',
+            'lengthReference': CABLE_REFERENCE, 'lengthReferenceNote': CABLE_REFERENCE_NOTE,
+            'lengthUncertaintyCm': 20, 'cableDiameterMm': CABLE_DIAMETER * 1000,
+            'coilTurns': 2.75, 'jack': [round(v, 4) for v in jack],
+            'strainRelief': [round(v, 4) for v in end],
+            'routing': '25 mm straight lead along the case-side jack normal, down to the desk, '
+                       'a flat stacked coil beside the pad, then into the pad\'s rear strain relief',
+            'clearance': {'ownPad': own, 'otherPad': other, 'case': body,
+                          'selfMinimumCentreDistanceMetres': self_clearance(path, r),
+                          'requiredSurfaceGapMetres': .001,
+                          'contactAllowance': 'Only the jack and strain-relief junctions, 4 cable radii each'}})
+    return receipts
+
 
 def main():
     tex, out_glb, renders = sys.argv[sys.argv.index('--') + 1:][:3]
@@ -189,10 +328,11 @@ def main():
 
     # Two joysticks in front of the case, cabled to its sides.
     pw, pd, ph = .118, .052, .016
+    pads = []
     dpad = parts.material('D-pad', linear((180, 176, 156)), .45)
     for i, cx in enumerate((-.120, .120)):
         cy, cz = -.165, ph / 2
-        parts.box(f'Joystick {i + 1}', (cx, cy, cz), (pw, pd, ph), pad_grey, .006)
+        pads.append(parts.box(f'Joystick {i + 1}', (cx, cy, cz), (pw, pd, ph), pad_grey, .006))
         fw, fd = pw - .008, pd - .006
         u0 = i * .5
         planar(f'Joystick {i + 1} face', [(cx - fw / 2, cy - fd / 2, cx + fw / 2, cy + fd / 2)],
@@ -206,19 +346,11 @@ def main():
                 x = cx + (bx / 512 - .5) * fw
                 y = cy + (.5 - byy / 224) * fd
                 cylinder('Joystick button', (x, y, ph + .0015), .0052, .003, rubber)
-        curve = bpy.data.curves.new('Joystick cable', 'CURVE')
-        curve.dimensions, curve.bevel_depth, curve.bevel_resolution = '3D', .0018, 2
-        spline = curve.splines.new('BEZIER')
-        spline.bezier_points.add(3)
-        side = math.copysign(w / 2, cx)
-        pts = [(cx, cy + pd / 2, ph / 2), (cx + math.copysign(.03, cx), -.115, .004),
-               (side + math.copysign(.03, cx), -.04, .004), (side, .0, .015)]
-        for p, v in zip(spline.bezier_points, pts):
-            p.co = v
-            p.handle_left_type = p.handle_right_type = 'AUTO'
-        obj = bpy.data.objects.new('Joystick cable', curve)
-        bpy.context.collection.objects.link(obj)
-        obj.data.materials.append(cord)
+    receipts = joystick_cables(pads, shell, cord, w, (pw, pd, ph))
+    out_glb.parent.mkdir(parents=True, exist_ok=True)
+    out_glb.with_suffix('.cables.json').write_text(json.dumps(receipts, indent=2, ensure_ascii=False),
+                                                   encoding='utf-8')
+    print('CABLES', json.dumps([(r['cable'], r['measuredCableLengthCm'], r['clearance']) for r in receipts]))
 
     for o in list(bpy.context.scene.objects):
         if o.type == 'CURVE':
