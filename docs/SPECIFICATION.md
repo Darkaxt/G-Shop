@@ -10,6 +10,11 @@ scripts/extract_dendy_junior.py: the loose
 cartridges, light gun, controllers and cables are removed and only parts lying within
 the console's footprint are kept. Like the other variants it is visual only, with no
 launch calibration, and is never shipped in the APK.
+A 'Subor SB-225' variant (consoles/nes/variants/subor-sb225) reuses the same body:
+the SB-225 is that top-loader in black plastic. scripts/make_subor_sb225_texture.py
+recolours the albedo atlas (cream to black with grime inverted to scuffs, saturated
+colours kept) and replaces the Dendy band with Subor's 'SUBOR SB-225 / VIDEO GAME
+SYSTEM' marking, after the owner's SB-225 box photo.
 Shells authored by scripts/build_nes_cartridge_models.py (including 'dendy-yellow')
 now carry the same Explode/Assemble assembly inspection as the supplied reference
 shells: covers apart, board lifted, 1.35 s, framed on the exploded envelope.

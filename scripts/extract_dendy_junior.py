@@ -1,11 +1,18 @@
 """Keep only the Dendy Junior console (and its inserted cartridge) from otztava's Dendy Junior
 scene (Sketchfab c05cb0fb, CC BY) after normal/material clean-up; the result feeds
 prepare_console_model.py. Writes a GLB plus six review renders.
-blender --background --python extract_dendy_junior.py -- SRC.blend OUT.glb RENDERDIR"""
+An optional ALBEDO replaces the console's base colour atlas (the black Subor SB-225
+from make_subor_sb225_texture.py uses the same body).
+blender --background --python extract_dendy_junior.py -- SRC.blend OUT.glb RENDERDIR [ALBEDO]"""
 import bpy, sys, math
 from mathutils import Vector
-src, out, rdir = sys.argv[sys.argv.index('--')+1:]
+args = sys.argv[sys.argv.index('--')+1:]
+src, out, rdir = args[:3]
 bpy.ops.wm.open_mainfile(filepath=src)
+if len(args) > 3:
+    atlas = bpy.data.images['Material_Base_color.png']
+    atlas.filepath = args[3]; atlas.reload()
+    if atlas.packed_file: atlas.unpack(method='REMOVE'); atlas.filepath = args[3]; atlas.reload()
 scene = bpy.context.scene
 body = [o for o in scene.objects if o.type=='MESH' and o.data.materials and o.data.materials[0].name=='dendy'][0]
 for o in [o for o in scene.objects if o.type=='MESH' and o is not body]:
