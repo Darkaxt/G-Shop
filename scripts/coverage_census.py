@@ -26,7 +26,9 @@ order: 'fan' (translation/hack folders or [T-..]/[h..] tags), 'prerelease'
 support), 'aftermarket' (Aftermarket/Homebrew tags or the iNES2 Aftermarket and
 Private folders), 'unlicensed' (Unl/Pirate) and otherwise 'official' (licensed
 retail, official rereleases, e-Reader and Multiboot). Per-class totals are
-reported as class:<name>, and officialPercent is the headline figure.
+reported as class:<name>, and officialPercent is the headline figure. labelStandIn
+counts covered archives whose label is another printing of the same game
+(reconstruction=regionalPackaging) rather than their own.
 
 Usage: python -I coverage_census.py [--store D:/RShopPrivate/CatalogueStore]
        [--database COPY_OF_metadata.sqlite] [--catalogue "H:/My Drive/R-Shop Metadata"]
@@ -131,8 +133,11 @@ def store_roles(store, database=None, published=frozenset()):
         # A reference reuses another edition's media: the publisher can only
         # ship it from a local body (published copies sit in the retail folder).
         usable = local if provider == 'reference' else bodies
-        types = {m['type'] for m in json.loads(record).get('media', []) if media_key(m) in usable}
-        roles[edition] |= {('packaging:' if provider == 'packaging' else '') + t for t in types}
+        media = [m for m in json.loads(record).get('media', []) if media_key(m) in usable]
+        roles[edition] |= {('packaging:' if provider == 'packaging' else '') + m['type'] for m in media}
+        # Another printing's label/box stands in (reconstruction=regionalPackaging).
+        roles[edition] |= {'standin:' + m['type'] for m in media
+                           if (m.get('importReference') or {}).get('reconstruction') == 'regionalPackaging'}
     db.close()
     return archive_edition, roles, facts
 
@@ -185,6 +190,8 @@ def census(store, roms, models, database=None, catalogue=None):
             if not ok: gaps[-1]['class'] = klass
             cls = row.setdefault(f'class:{klass}', collections.Counter())
             cls['archives'] += 1; cls['counted'] += ok
+            if ok and system != 'gameandwatch' and f'standin:{LABEL}' in have and LABEL not in have:
+                cls['labelStandIn'] += 1
             group = name.split('/')[0] if '/' in name else '(root)'
             sub = row.setdefault(f'group:{group}', collections.Counter())
             sub['archives'] += 1; sub['counted'] += ok
