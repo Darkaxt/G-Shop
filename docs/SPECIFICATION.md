@@ -1,6 +1,21 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 195, 2026-11-27.
+Authoritative specification, revision 196, 2026-11-27.
+
+Owner ruling, revision 196 (DENDY-LABEL-01), 2026-11-27: a Russian (Dendy-era)
+NES game with no licensed counterpart (so no official box or label to reuse) gets a
+cartridge label in the cheap Dendy style: an illustration repainted from the game's
+own title screen with its title lettering, the Dendy logo bottom-left and the thin
+printed outline real Dendy labels carry. Variants of one game share a label. A real
+label known only from a photo may be redrawn (Subor Learning Computer V1.0). When
+an image cannot be generated (a content refusal), the official predecessor's label
+is retitled with a pasted-on name, as pirate labels were (DuckTales III from the
+DuckTales 2 Famicom label). G-Shop's own labels are never presented as scans: a
+generated or redrawn label is `sourceId: gshop` with `reconstruction:
+generatedLabel` (the two always go together); a retitled official label keeps the
+donor's provenance with `reconstruction: composite`. All carry `overlay:
+dendySticker`. Subor keyboard cartridges are treated as Dendy cartridges. Packs:
+`scripts/prepare_dendy_labels.py`.
 
 Owner ruling, revision 195 (DENDY-STICKER-01), 2026-11-27: a Russian (Dendy-era)
 NES release with no box of its own shows the official reference release's carton

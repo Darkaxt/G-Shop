@@ -68,6 +68,22 @@ void main() {
     expect(() => ImportedArtworkReference.fromJson({...value, 'overlay': 'logo'}),
         throwsFormatException);
   });
+  test('a label G-Shop generated is always marked and attributed to G-Shop', () {
+    final value = {
+      'sourceId': 'gshop',
+      'assetId': 'dendy/label/bonza',
+      'sourceUrl':
+          'https://github.com/Darkaxt/G-Shop/blob/codex/drive-metadata-implementation/docs/SPECIFICATION.md',
+      'sha256': List.filled(64, 'a').join(),
+      'reconstruction': 'generatedLabel',
+      'overlay': 'dendySticker',
+    };
+    expect(ImportedArtworkReference.fromJson(value).toJson(), value);
+    expect(() => ImportedArtworkReference.fromJson({...value}..remove('reconstruction')),
+        throwsFormatException);
+    expect(() => ImportedArtworkReference.fromJson({...value, 'sourceId': 'launchbox'}),
+        throwsFormatException);
+  });
   test('nonfinite or malformed colour transforms cannot enter metadata', () {
     for (final matrix in [
       [

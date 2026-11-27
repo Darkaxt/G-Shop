@@ -315,17 +315,20 @@ class ImportedArtworkReference {
         // Its target media region does not establish the donor's printing region.
         // A fan-made cover (The Cover Project) is always marked as such: the
         // owner prefers a reconstruction to an empty game (2026-11-26), but it
-        // must stay distinct from original scans.
+        // must stay distinct from original scans. A label G-Shop made itself
+        // (a Dendy cartridge with no surviving label, 2026-11-27) is always
+        // marked generatedLabel and attributed to G-Shop, never to a provider.
         reconstruction != null &&
-            (!{'regionalPackaging', 'composite', 'fanCover'}
+            (!{'regionalPackaging', 'composite', 'fanCover', 'generatedLabel'}
                     .contains(reconstruction) ||
                 reconstruction == 'regionalPackaging' && sourceRegion == null) ||
         (sourceId == 'thecoverproject') != (reconstruction == 'fanCover') ||
+        (sourceId == 'gshop') != (reconstruction == 'generatedLabel') ||
         // Stickers drawn over an original front: a fan translation, or a Dendy
         // release showing its official game's box (owner rulings 2026-11-26/27).
         overlay != null &&
             !{'translationSticker', 'dendySticker'}.contains(overlay) ||
-        !{'launchbox', 'nintandbox', 'screenscraper', 'thecoverproject'}
+        !{'launchbox', 'nintandbox', 'screenscraper', 'thecoverproject', 'gshop'}
             .contains(sourceId) ||
         assetId.isEmpty ||
         assetId.length > 1024 ||
