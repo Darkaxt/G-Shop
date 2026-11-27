@@ -7,7 +7,8 @@ its original unlicensed publisher photographs. The Dendy shell (the yellow
 owner-supplied photographs and public listing photos of real cartridges. Dimensions of nonstandard shells
 and internal PCB electronics are illustrative, not measured per-game replicas.
 No game artwork or reference photographs are embedded in these models; the
-Dendy back panel texture is a flat redraw (scripts/make_dendy_back_panel.py).
+Dendy back panel texture is a flat redraw (scripts/make_dendy_back_panel.py)
+unless --back-panel supplies a privately built one (with --back-panel-credit).
 """
 import argparse
 import hashlib
@@ -23,6 +24,7 @@ from mathutils import Vector
 
 
 BACK_PANEL = Path(__file__).resolve().parent / 'assets' / 'dendy-back-panel.png'
+BACK_PANEL_CREDIT = None
 STYLES = ['nintendo-3-gray', 'nintendo-5-gray', 'nintendo-3-gold',
           'nintendo-5-gold', 'tengen', 'camerica-gold', 'camerica-silver',
           'dreams-blue', 'dreams-black', 'ave-square', 'ave-angle',
@@ -327,15 +329,21 @@ def export_runtime(directory, style):
             'originalLicence':'Original parametric geometry; private reference use',
             'sha256':hashlib.sha256((directory/'source.glb').read_bytes()).hexdigest(),
             'limitations':'Nonstandard proportions are photograph-derived; PCB/components are illustrative, not a claimed per-ROM board.'}}
+    if textures and BACK_PANEL_CREDIT:
+        manifest['sourceReference']['textureCredit']=BACK_PANEL_CREDIT
     (directory/'model.mesh').write_bytes(payload)
     (directory/'model.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
     return {'style':style,'triangles':sum(len(v)//3 for v in groups.values()),'surfaces':len(surfaces),'geometrySha256':manifest['geometrySha256']}
 
 
 def main():
+    global BACK_PANEL, BACK_PANEL_CREDIT
     parser=argparse.ArgumentParser(); parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--styles',nargs='*',choices=STYLES,default=STYLES)
+    parser.add_argument('--back-panel',type=Path,default=BACK_PANEL)
+    parser.add_argument('--back-panel-credit')
     args=parser.parse_args(sys.argv[sys.argv.index('--')+1:])
+    BACK_PANEL, BACK_PANEL_CREDIT=args.back_panel, args.back_panel_credit
     receipts=[]
     for style in args.styles:
         cartridge(style)

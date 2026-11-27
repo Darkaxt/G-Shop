@@ -3,16 +3,19 @@
 Real Dendy cartridges carry moulded bulleted care text on the back panel with Steepler's
 yellow warranty sticker pasted over it: a blue line-art elephant, the blue
 "Dendy" wordmark, the Russian compatibility notice and Steepler's phone line.
-The thin sticker paper lets the relief beneath show faintly. This is a flat
-redraw of that layout in the shell colour, not a photograph.
+The thin sticker paper lets the relief beneath show faintly. By default the
+sticker is a flat redraw of the real layout (wordmark top left, notice below it,
+elephant on the right). --sticker pastes a supplied sticker image instead, such
+as a crop of a reference model's photographic texture; that output belongs with
+the private model, not in this repository.
 
 The panel spans PANEL_SIZE metres of the shell's back (see
 build_nes_cartridge_models.py); the PNG keeps that aspect.
 
-Usage: python -I make_dendy_back_panel.py OUT.png
+Usage: python -I make_dendy_back_panel.py OUT.png [--sticker STICKER.png]
 """
+import argparse
 from pathlib import Path
-import sys
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
@@ -29,10 +32,10 @@ CARE = ['•  Avoid exposing cartridge to extreme temperature',
         '•  For protection, when cartridge is not in use, place',
         '    cartridge inside protective plastic case']
 NOTICE = ['Торговая марка Dendy на игровом картридже,',
-          'световом пистолете и других дополнительных',
-          'устройствах гарантирует совместимость этих',
-          'устройств с игровыми приставками Dendy.',
-          '™Стиплер (Россия).        Телефон (095) 921-2618']
+          'световом пистолете и других дополнениях',
+          'гарантирует совместимость этих устройств',
+          'с игровыми приставками Dendy.',
+          '™Стиплер (Россия),                .Телефон (095) 921-2618']
 
 
 def elephant_lineart(height):
@@ -57,14 +60,12 @@ def sticker(w, h):
     img = Image.new('RGB', (w, h), YELLOW)
     d = ImageDraw.Draw(img)
     art = elephant_lineart(round(h * 0.80))
-    img.paste(art, (round(w * .025), round(h * 0.08)), art)
+    img.paste(art, (w - art.width - round(w * .025), round(h * 0.10)), art)
     word = ImageFont.truetype(str(FONTS / 'georgiab.ttf'), round(h * .30))
-    tw = d.textlength('Dendy', font=word)
-    d.text((w - tw - w * .045, h * .035), 'Dendy', font=word, fill=BLUE)
-    body = ImageFont.truetype(str(FONTS / 'arialbd.ttf'), round(h * .084))
+    d.text((w * .045, h * .035), 'Dendy', font=word, fill=BLUE)
+    body = ImageFont.truetype(str(FONTS / 'arialbd.ttf'), round(h * .066))
     for i, line in enumerate(NOTICE):
-        lw = d.textlength(line, font=body)
-        d.text((w - lw - w * .045, h * (.42 + i * .108)), line, font=body, fill=INK)
+        d.text((w * .045, h * (.46 + i * .095)), line, font=body, fill=INK)
     return img
 
 
@@ -93,20 +94,28 @@ def emboss(base, height, strength):
 
 
 def main():
-    out = Path(sys.argv[1])
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('output', type=Path)
+    parser.add_argument('--sticker', type=Path)
+    args = parser.parse_args()
     w = 1600
     h = round(w * PANEL_SIZE[1] / PANEL_SIZE[0])
     height = relief((w, h))
     panel = emboss(Image.new('RGB', (w, h), SHELL), height, .30)
-    # Pasted over the lower care lines; the caption stays visible above it.
-    sw, sh = round(w * .90), round(h * .56)
-    sx, sy = (w - sw) // 2, round(h * .37)
-    paper = sticker(sw, sh)
-    paper = emboss(paper, height.crop((sx, sy, sx + sw, sy + sh)), .05)
+    # An 84 x 30 mm sticker over the lower care lines; the first lines stay visible.
+    sw = round(w * .084 / PANEL_SIZE[0])
+    sh = round(sw * 30 / 84)
+    sx, sy = (w - sw) // 2, round(h * .27)
+    if args.sticker:
+        with Image.open(args.sticker) as supplied:
+            paper = supplied.convert('RGB').resize((sw, sh), Image.Resampling.LANCZOS)
+    else:
+        # A photograph already shows the relief through the paper; a redraw adds it.
+        paper = emboss(sticker(sw, sh), height.crop((sx, sy, sx + sw, sy + sh)), .05)
+        ImageDraw.Draw(paper).rectangle((0, 0, sw - 1, sh - 1), outline=(200, 198, 30), width=2)
     panel.paste(paper, (sx, sy))
-    ImageDraw.Draw(panel).rectangle((sx, sy, sx + sw - 1, sy + sh - 1), outline=(200, 198, 30), width=2)
-    panel.save(out, optimize=True)
-    print(out, panel.size)
+    panel.save(args.output, optimize=True)
+    print(args.output, panel.size)
 
 
 if __name__ == '__main__':
