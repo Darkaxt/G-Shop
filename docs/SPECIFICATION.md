@@ -1,6 +1,18 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 197, 2026-11-27.
+Authoritative specification, revision 198, 2026-11-27.
+
+Revision 198 (DENDY-JUNIOR-01), 2026-11-27: the NES console selector
+offers a 'Dendy Junior' hardware variant (consoles/nes/variants/dendy-junior), the
+Steepler-era Dendy Junior with an inserted cartridge. It is a private local import
+prepared from otztava's worn Dendy Junior scene (Sketchfab, CC BY) by
+scripts/extract_dendy_junior.py: the loose
+cartridges, light gun, controllers and cables are removed and only parts lying within
+the console's footprint are kept. Like the other variants it is visual only, with no
+launch calibration, and is never shipped in the APK.
+Shells authored by scripts/build_nes_cartridge_models.py (including 'dendy-yellow')
+now carry the same Explode/Assemble assembly inspection as the supplied reference
+shells: covers apart, board lifted, 1.35 s, framed on the exploded envelope.
 
 Owner ruling, revision 197 (DENDY-SHELL-01), 2026-11-27: a Russian (Dendy-era)
 NES release (region Russia; not proto, beta, demo, sample or kiosk) uses the

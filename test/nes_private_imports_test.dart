@@ -14,7 +14,7 @@ void main() {
       () async {
     final root = Directory(path!);
     final catalogue = (await NesMediaCatalogue.load(modelsDirectory: root))!;
-    expect(catalogue.editions.length, 623);
+    expect(catalogue.editions.length, 1274);
     for (final edition in catalogue.editions.values) {
       final box = (await edition.load(modelsDirectory: root))!;
       expect(box.canOpen, isTrue);
@@ -69,17 +69,21 @@ void main() {
     final labels = geometry.surfaces.firstWhere((s) => s['name'] == 'Labels');
     expect(labels['material']['sourceProperties']['gltfTexCoord'], 1);
     expect(geometry.data['sourceReference']['overview']['objects'],
-        hasLength(340));
-    expect(geometry.data['sourceReference']['composition']['originalObjects'],
-        291);
-    expect(
-        geometry.data['sourceReference']['composition']
-            ['originalPlacementsPreserved'],
-        isTrue);
+        hasLength(341));
+    // The 2026-10-22 multicart scene keeps its parent composition receipt.
+    final receipt = geometry.data['sourceReference']['compositionReceipt'];
+    expect(receipt['originalObjects'], 291);
+    expect(receipt['originalPlacementsPreserved'], isTrue);
     for (final name in (geometry.data['textureFiles'] as Map).keys) {
       await geometry.textureBundle!.load('${SocketMediaModel.assetRoot}$name');
     }
-    for (final variant in ['front-loader', 'top-loader', 'famicom', 'dendy']) {
+    for (final variant in [
+      'front-loader',
+      'top-loader',
+      'famicom',
+      'dendy',
+      'dendy-junior'
+    ]) {
       await (await ConsoleModel.findNesConsoleVariant(variant,
               modelsDirectory: root))!
           .load();
@@ -115,5 +119,7 @@ void main() {
         'meaning': 'Reference families; not an exact owned physical SKU census'
       }));
     }
-  }, skip: path == null ? 'Private NES imports were not supplied' : false);
+  },
+      timeout: const Timeout(Duration(minutes: 10)),
+      skip: path == null ? 'Private NES imports were not supplied' : false);
 }

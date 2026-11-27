@@ -22,7 +22,8 @@ class _NesConsoleSelectorState extends State<NesConsoleSelector> {
     'front-loader': 'NES · front loader',
     'top-loader': 'NES-101 · top loader',
     'famicom': 'Famicom HVC-001',
-    'dendy': 'Dendy-compatible clone'
+    'dendy': 'Dendy-compatible clone',
+    'dendy-junior': 'Dendy Junior'
   };
   String _selected = 'collection';
   late final _variants = Future.wait([

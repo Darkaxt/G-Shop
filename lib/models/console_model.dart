@@ -365,7 +365,8 @@ class ConsoleModel {
 
   static Future<ConsoleModel?> findNesConsoleVariant(String variant,
       {Directory? modelsDirectory}) async {
-    if (!{'front-loader', 'top-loader', 'famicom', 'dendy'}.contains(variant)) {
+    if (!{'front-loader', 'top-loader', 'famicom', 'dendy', 'dendy-junior'}
+        .contains(variant)) {
       throw const FormatException('Unknown NES console body');
     }
     if (modelsDirectory == null && !Platform.isAndroid) return null;

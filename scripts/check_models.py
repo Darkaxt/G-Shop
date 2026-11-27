@@ -25,7 +25,8 @@ import sys
 FIXED = [
     'consoles/nes', 'consoles/nes/variants/front-loader',
     'consoles/nes/variants/top-loader', 'consoles/nes/variants/famicom',
-    'consoles/nes/variants/dendy', 'consoles/nes/launch/front-loader',
+    'consoles/nes/variants/dendy', 'consoles/nes/variants/dendy-junior',
+    'consoles/nes/launch/front-loader',
     'consoles/nes/launch/top-loader', 'consoles/nes/launch/display',
     'consoles/gameandwatch', 'consoles/gba', 'cartridges/gba',
     'cartridges/gba/boktai', 'cartridges/gba/twisted-us', 'cartridges/gba/yoshi-us',
