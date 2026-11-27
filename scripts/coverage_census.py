@@ -19,6 +19,15 @@ set: counted once the edition has a sourced `facts` record (spec revision 190,
 COVERAGE-FACTS-01). Counted (G&W): the installed handheld model and its carton
 model both exist.
 
+Release classes (owner objective 2026-11-27: full official coverage first). Every
+archive is also classed from its No-Intro name tags and source folder, in this
+order: 'fan' (translation/hack folders or [T-..]/[h..] tags), 'prerelease'
+(Beta/Proto/Demo/Sample/Kiosk/Debug/Program tags, excluded from short-term
+support), 'aftermarket' (Aftermarket/Homebrew tags or the iNES2 Aftermarket and
+Private folders), 'unlicensed' (Unl/Pirate) and otherwise 'official' (licensed
+retail, official rereleases, e-Reader and Multiboot). Per-class totals are
+reported as class:<name>, and officialPercent is the headline figure.
+
 Usage: python -I coverage_census.py [--store D:/RShopPrivate/CatalogueStore]
        [--database COPY_OF_metadata.sqlite] [--catalogue "H:/My Drive/R-Shop Metadata"]
        [--roms "H:/My Drive/Roms"] [--models D:/RShopPrivate/Models] [--json OUT]
@@ -40,6 +49,27 @@ FLAT = {'box-2D', 'box-2D-back'}
 SPINE = 'box-2D-side'
 LABEL = 'support-texture'
 FACT_ONLY = {'e-Reader', 'Multiboot'}  # ROM subfolders whose entries are covered by facts
+
+
+FAN_FOLDERS = {'Translations', 'T-En', 'Hacks', 'Color Hacks'}
+AFTERMARKET_FOLDERS = ('Aftermarket', 'Private')
+PRERELEASE = re.compile(r'\b(?:Beta|Proto|Demo|Sample|Kiosk|Debug|Program)\b')
+
+
+def release_class(name):
+    """official / unlicensed / aftermarket / prerelease / fan, from tags and folder."""
+    base = name.split('/')[-1]
+    top = name.split('/')[0] if '/' in name else ''
+    words = {w.strip() for tag in re.findall(r'\(([^)]*)\)', base) for w in tag.split(',')}
+    if top in FAN_FOLDERS or re.search(r'\[(?:T-|h\d*[^\]]*\])', base):
+        return 'fan'
+    if any(PRERELEASE.search(w) for w in words):
+        return 'prerelease'
+    if words & {'Aftermarket', 'Homebrew'} or top.startswith(AFTERMARKET_FOLDERS):
+        return 'aftermarket'
+    if words & {'Unl', 'Pirate'}:
+        return 'unlicensed'
+    return 'official'
 
 
 EXCLUDED = {'saves', 'patches'}  # saves are not archives; derived patch builds are counted separately
@@ -149,12 +179,20 @@ def census(store, roms, models, database=None, catalogue=None):
                 ok = fact if name.split('/')[0] in FACT_ONLY else carton and label
                 if not ok: gaps.append({'archive': name, 'bound': edition is not None, 'carton': carton, 'label': label, 'facts': fact})
             row['counted'] += ok
+            klass = release_class(name)
+            if klass != 'prerelease' and (name.split('/')[0] in FACT_ONLY or system == 'gameandwatch'):
+                klass = 'official'
+            if not ok: gaps[-1]['class'] = klass
+            cls = row.setdefault(f'class:{klass}', collections.Counter())
+            cls['archives'] += 1; cls['counted'] += ok
             group = name.split('/')[0] if '/' in name else '(root)'
             sub = row.setdefault(f'group:{group}', collections.Counter())
             sub['archives'] += 1; sub['counted'] += ok
         row = {k: (dict(v) if isinstance(v, collections.Counter) else v) for k, v in row.items()}
         row['target80'] = -(-row['archives'] * 8 // 10)
         row['countedPercent'] = round(100 * row['counted'] / row['archives'], 2) if row['archives'] else 0
+        official = row.get('class:official', {'archives': 0, 'counted': 0})
+        row['officialPercent'] = round(100 * official['counted'] / official['archives'], 2) if official['archives'] else 0
         report['systems'][system] = {**row, 'gaps': gaps}
     return report
 
