@@ -64,6 +64,7 @@ void main() {
       'active-clear',
       'aladdin',
       'famicom-gold',
+      'dendy-yellow',
       'pcb-nrom-256'
     ]) {
       expect(NesUnboxingScene.usesSleeve(style), isFalse);
@@ -145,7 +146,8 @@ void main() {
       'ave-square',
       'ave-angle',
       'active-clear',
-      'aladdin'
+      'aladdin',
+      'dendy-yellow'
     ]) {
       final selected = await scene(style), m = await selected.load();
       final box = vertices(m, 'box', const SocketMediaPose());

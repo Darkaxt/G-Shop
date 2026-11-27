@@ -268,13 +268,37 @@ def cartridge(style):
     return paper
 
 
+# Assembly inspection, matching the supplied reference shells: Explode keys at
+# 0/.3/.65/1.35 s with movement factors 0/0/.1/1; Assemble plays it backwards.
+INSPECTION_TIMES=(0,.3,.65,1.35)
+INSPECTION_FACTORS=(0,0,.10,1)
+BOARD_PARTS=('PCB reference board','72-pin connector contact','Illustrative IC','IC leg')
+
+
+def inspection_offset(obj):
+    """Exploded displacement in Blender metres: covers apart, board lifted, screws out."""
+    if obj.name.startswith(BOARD_PARTS): return Vector((0,0,.012))
+    if 'screw' in obj.name.lower(): return Vector((0,.05,0))
+    centre=sum((obj.matrix_world@Vector(c) for c in obj.bound_box),Vector())/8
+    # The front cover carries the label and front mouldings; walls stay with the back.
+    return Vector((0,-.03 if centre.y<-.001 else .03,0))
+
+
 def export_runtime(directory, style):
     directory.mkdir(parents=True,exist_ok=False)
+    inspect=style!='aladdin'
+    for o in bpy.context.scene.objects:
+        if o.type=='MESH' and inspect: o['inspectionOffset']=list(inspection_offset(o))
     bpy.ops.wm.save_as_mainfile(filepath=str(directory/'source.blend'))
     bpy.ops.export_scene.gltf(filepath=str(directory/'source.glb'), export_format='GLB')
     objects=[o for o in bpy.context.scene.objects if o.type=='MESH']
     def axis(v): return Vector((v.x,v.z,-v.y))
-    points=[axis(o.matrix_world@v.co) for o in objects for v in o.data.vertices]
+    offsets={o.name:Vector(o.get('inspectionOffset',(0,0,0))) for o in objects}
+    factors=INSPECTION_FACTORS if inspect else (0,)
+    poses=[[axis(o.matrix_world@v.co+offsets[o.name]*f) for o in objects for v in o.data.vertices]
+           for f in factors]
+    # Frame the whole exploded envelope, as prepare_console_model.py does.
+    points=[p for pose in poses for p in pose]
     low=Vector([min(p[a] for p in points) for a in range(3)])
     high=Vector([max(p[a] for p in points) for a in range(3)])
     center=(low+high)/2; scale=2/max(high-low)
@@ -290,7 +314,7 @@ def export_runtime(directory, style):
         for tri in mesh.loop_triangles:
             mat=obj.material_slots[tri.material_index].material
             role='label' if is_label and (normal_matrix@tri.normal).y < -.9 else 'body'
-            verts=groups.setdefault((mat.name,role),[])
+            verts=groups.setdefault((mat.name,role,tuple(offsets[obj.name])),[])
             for index in tri.vertices:
                 original=obj.matrix_world@mesh.vertices[index].co
                 p=(axis(original)-center)*scale
@@ -308,13 +332,18 @@ def export_runtime(directory, style):
         (directory/'texture-00.png').write_bytes(body)
         textures['texture-00.png']=hashlib.sha256(body).hexdigest()
     payload=bytearray(); surfaces=[]
-    for (name,role),vertices in groups.items():
+    duration=INSPECTION_TIMES[-1]
+    for (name,role,offset),vertices in groups.items():
         start=len(payload)
         for v in vertices: payload.extend(struct.pack('<8f',*v))
         indices=len(payload)
         for i in range(len(vertices)): payload.extend(struct.pack('<I',i))
-        surfaces.append({'name':name,'node':name,'role':role,'singleSided':False,
-            'physicalMaterial':'source',
+        motion=[{'keys':[[t/duration,*(axis(Vector(offset)*f)*scale)]
+            for t,f in zip(INSPECTION_TIMES,INSPECTION_FACTORS)]}] if inspect else []
+        part=('' if not inspect else ' (board)' if offset[2]>0 else ' (front)' if offset[1]<0
+              else ' (fasteners)' if offset[1]>.04 else ' (back)')
+        surfaces.append({'name':name,'node':name+part,'role':role,'singleSided':False,
+            'physicalMaterial':'source','openingTranslations':motion,
             'vertexOffset':start,'vertexCount':len(vertices),'indexOffset':indices,
             'indexCount':len(vertices),'material':json.loads(bpy.data.materials[name]['runtime'])})
     manifest={'name':'nes-retail-'+style,'system':'nes','cartridgeStyle':style,
@@ -329,6 +358,12 @@ def export_runtime(directory, style):
             'originalLicence':'Original parametric geometry; private reference use',
             'sha256':hashlib.sha256((directory/'source.glb').read_bytes()).hexdigest(),
             'limitations':'Nonstandard proportions are photograph-derived; PCB/components are illustrative, not a claimed per-ROM board.'}}
+    if inspect:
+        manifest.update(assemblyInspection=True,inspectionDurationMs=round(duration*1000),
+            animationVerifiedMaxError=0,
+            poseCenters=[[t/duration,*((Vector([(min(p[a] for p in pose)+max(p[a] for p in pose))/2
+                for a in range(3)])-center)*scale)] for t,pose in zip(INSPECTION_TIMES,poses)])
+        manifest['sourceReference']['previewAnimationPolicy']={'inspection':['Explode','Assemble']}
     if textures and BACK_PANEL_CREDIT:
         manifest['sourceReference']['textureCredit']=BACK_PANEL_CREDIT
     (directory/'model.mesh').write_bytes(payload)
