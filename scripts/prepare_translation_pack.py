@@ -100,6 +100,79 @@ def sticker(front, lang):
     return out.getvalue()
 
 
+def donor_resources(donor_id, faces, roles, prefix, decorate, overlay, payload):
+    """Copy a donor edition's local carton faces, keeping the original provenance.
+    The front is passed through `decorate` (PIL image -> PNG bytes) and records
+    `overlay`; normalized bodies are added to `payload` by digest."""
+    resources = []
+    for role in roles:
+        if role not in faces:
+            continue
+        provider, media, body_path = faces[role]
+        raw = body_path.read_bytes()
+        if role == 'box-2D':
+            with Image.open(io.BytesIO(raw)) as front:
+                raw_out = decorate(front)
+        else:
+            raw_out = raw
+        data, rotation = normalize_role_image(role, raw_out)
+        digest = hashlib.sha256(data).hexdigest()
+        payload[digest] = data
+        original = media.get('importReference') or {}
+        ref = media.get('providerReference') or {}
+        reference = {
+            'sourceId': original.get('sourceId', 'screenscraper'),
+            'assetId': f'{prefix}/{donor_id}/{role}',
+            'sourceUrl': original.get('sourceUrl') or
+                f"https://www.screenscraper.fr/gameinfos.php?gameid={ref.get('providerGameId')}",
+            'sourceSha256': original.get('sourceSha256') or hashlib.sha256(raw).hexdigest(),
+            'sha256': digest}
+        for key in ('panel', 'sourceRegion', 'reconstruction', 'sourceLanguages'):
+            if original.get(key) is not None:
+                reference[key] = original[key]
+        if media.get('region') and 'sourceRegion' not in reference:
+            reference['sourceRegion'] = media['region']
+        if rotation:
+            reference['rotationDegrees'] = rotation
+        if role == 'box-2D':
+            reference['overlay'] = overlay
+        resources.append({'type': role, 'importReference': reference})
+    return resources
+
+
+def store_cartons(store, artwork):
+    """Map display paths to bound editions, and return a lookup of each edition's
+    best local carton bodies (curated provider first, edition region first)."""
+    edition_of_path = {}
+    for edition, artifacts in store.execute('SELECT edition_id, artifacts_json FROM identity_bindings'):
+        for artifact in json.loads(artifacts):
+            edition_of_path[artifact.get('displayPath', '')] = edition
+    bodies = {k: artwork / f for k, f in store.execute(
+        'SELECT media_key, filename FROM metadata_artwork_cache')}
+    records = collections.defaultdict(dict)
+    for edition, provider, record, edition_json in store.execute(
+            "SELECT edition_id, provider_id, record_json, edition_json FROM records "
+            "WHERE provider_id IN ('packaging','screenscraper')"):
+        records[edition][provider] = (json.loads(record), json.loads(edition_json or '{}'))
+
+    def carton(edition):
+        chosen = {}
+        for provider in PROVIDERS:
+            if provider not in records.get(edition, {}):
+                continue
+            record, edition_json = records[edition][provider]
+            regions = edition_json.get('regions') or []
+            media = sorted(record.get('media', []),
+                           key=lambda m: (m.get('region') not in regions, m.get('region') or ''))
+            for m in media:
+                if m['type'] in ROLES and m['type'] not in chosen:
+                    body = bodies.get(media_key(m))
+                    if body is not None and body.is_file():
+                        chosen[m['type']] = (provider, m, body)
+        return chosen if 'box-2D' in chosen else None
+    return edition_of_path, carton
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--platform', choices=sorted(FOLDERS), required=True)
@@ -123,34 +196,7 @@ def main():
         if not p.startswith(subfolder) and p.lower().endswith('.7z'):
             originals[base_name(p)].append(p)
 
-    edition_of_path = {}
-    for edition, artifacts in store.execute('SELECT edition_id, artifacts_json FROM identity_bindings'):
-        for artifact in json.loads(artifacts):
-            edition_of_path[artifact.get('displayPath', '')] = edition
-    bodies = {k: args.artwork / f for k, f in store.execute(
-        'SELECT media_key, filename FROM metadata_artwork_cache')}
-    records = collections.defaultdict(dict)
-    for edition, provider, record, edition_json in store.execute(
-            "SELECT edition_id, provider_id, record_json, edition_json FROM records "
-            "WHERE provider_id IN ('packaging','screenscraper')"):
-        records[edition][provider] = (json.loads(record), json.loads(edition_json or '{}'))
-
-    def carton(edition):
-        """Best local body per role: curated provider first, edition region first."""
-        chosen = {}
-        for provider in PROVIDERS:
-            if provider not in records.get(edition, {}):
-                continue
-            record, edition_json = records[edition][provider]
-            regions = edition_json.get('regions') or []
-            media = sorted(record.get('media', []),
-                           key=lambda m: (m.get('region') not in regions, m.get('region') or ''))
-            for m in media:
-                if m['type'] in ROLES and m['type'] not in chosen:
-                    body = bodies.get(media_key(m))
-                    if body is not None and body.is_file():
-                        chosen[m['type']] = (provider, m, body)
-        return chosen if 'box-2D' in chosen else None
+    edition_of_path, carton = store_cartons(store, args.artwork)
 
     query = {}
     for edition, game, key in projection.execute(
@@ -183,39 +229,9 @@ def main():
         if game.get('platformId') != args.platform or not edition.get('isTranslation'):
             report['notTranslationEdition'] += 1
             continue
-        resources = []
-        for role in ROLES:
-            if role not in donor[1]:
-                continue
-            provider, media, body_path = donor[1][role]
-            raw = body_path.read_bytes()
-            if role == 'box-2D':
-                with Image.open(io.BytesIO(raw)) as front:
-                    raw_out = sticker(front, language(path))
-            else:
-                raw_out = raw
-            data, rotation = normalize_role_image(role, raw_out)
-            digest = hashlib.sha256(data).hexdigest()
-            payload[digest] = data
-            original = media.get('importReference') or {}
-            ref = media.get('providerReference') or {}
-            reference = {
-                'sourceId': original.get('sourceId', 'screenscraper'),
-                'assetId': f'translation/{donor[0]}/{role}',
-                'sourceUrl': original.get('sourceUrl') or
-                    f"https://www.screenscraper.fr/gameinfos.php?gameid={ref.get('providerGameId')}",
-                'sourceSha256': original.get('sourceSha256') or hashlib.sha256(raw).hexdigest(),
-                'sha256': digest}
-            for key in ('panel', 'sourceRegion', 'reconstruction', 'sourceLanguages'):
-                if original.get(key) is not None:
-                    reference[key] = original[key]
-            if media.get('region') and 'sourceRegion' not in reference:
-                reference['sourceRegion'] = media['region']
-            if rotation:
-                reference['rotationDegrees'] = rotation
-            if role == 'box-2D':
-                reference['overlay'] = 'translationSticker'
-            resources.append({'type': role, 'importReference': reference})
+        resources = donor_resources(donor[0], donor[1], ROLES, 'translation',
+                                    lambda front: sticker(front, language(path)),
+                                    'translationSticker', payload)
         games.append({'editionId': target[0], 'gameId': game['id'],
                       'identityKey': owner_key(game, edition), 'resources': resources})
         report['selected'] += 1

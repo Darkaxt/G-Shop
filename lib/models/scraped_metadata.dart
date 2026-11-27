@@ -321,7 +321,10 @@ class ImportedArtworkReference {
                     .contains(reconstruction) ||
                 reconstruction == 'regionalPackaging' && sourceRegion == null) ||
         (sourceId == 'thecoverproject') != (reconstruction == 'fanCover') ||
-        overlay != null && overlay != 'translationSticker' ||
+        // Stickers drawn over an original front: a fan translation, or a Dendy
+        // release showing its official game's box (owner rulings 2026-11-26/27).
+        overlay != null &&
+            !{'translationSticker', 'dendySticker'}.contains(overlay) ||
         !{'launchbox', 'nintandbox', 'screenscraper', 'thecoverproject'}
             .contains(sourceId) ||
         assetId.isEmpty ||

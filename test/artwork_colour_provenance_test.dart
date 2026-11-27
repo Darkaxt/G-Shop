@@ -63,6 +63,8 @@ void main() {
       ..remove('colourCorrection')
       ..['overlay'] = 'translationSticker';
     expect(ImportedArtworkReference.fromJson(value).toJson(), value);
+    final dendy = {...value, 'overlay': 'dendySticker'};
+    expect(ImportedArtworkReference.fromJson(dendy).toJson(), dendy);
     expect(() => ImportedArtworkReference.fromJson({...value, 'overlay': 'logo'}),
         throwsFormatException);
   });

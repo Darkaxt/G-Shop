@@ -1,6 +1,17 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 194, 2026-11-26.
+Authoritative specification, revision 195, 2026-11-27.
+
+Owner ruling, revision 195 (DENDY-STICKER-01), 2026-11-27: a Russian (Dendy-era)
+NES release with no box of its own shows the official reference release's carton
+and cartridge label, with a sticker derived from the Dendy elephant logo on the
+front (bottom-left, as on Dendy boxes), like the translation sticker. The donor is
+the original licensed NES release with the identical title (or a curated Russian
+retitle), preferring Japan, then USA, World, Europe; re-releases and unlicensed
+builds never donate. A game never released on the NES may take a curated scan of
+its official release on its original platform. Provenance stays the donor's; the
+front adds `overlay: dendySticker`. A release that already has its own box (for
+example Lines) keeps it. Packs: `scripts/prepare_dendy_pack.py`.
 
 Revision 194, 2026-11-26, extending LAUNCHBOX-LABEL-CUT-01 to Disk System: an
 opaque LaunchBox disk scan is a close-up of the label above the embossed plastic
@@ -27,8 +38,8 @@ shape of the Nintendo oval (an own drawing, not the trademark). A translation
 archive takes the carton of the original archive whose name is identical once the
 bracketed tags are removed; retitled translations are not guessed. Each resource
 keeps the original's provenance (sourceId, URL, digest, any fanCover
-reconstruction); the front adds `overlay: translationSticker`, the only accepted
-overlay. Packs: `scripts/prepare_translation_pack.py`. The owner also delegated any
+reconstruction); the front adds `overlay: translationSticker` (revision 195 adds
+`dendySticker`). Packs: `scripts/prepare_translation_pack.py`. The owner also delegated any
 UI change that better separates official ROMs from fan work; backend comes first.
 
 Owner ruling, revision 191 (FAN-COVERS-01), 2026-11-26: "surely you will agree
