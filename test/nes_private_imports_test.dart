@@ -83,7 +83,8 @@ void main() {
       'famicom',
       'dendy',
       'dendy-junior',
-      'subor-sb225'
+      'subor-sb225',
+      'subor-sb225b'
     ]) {
       await (await ConsoleModel.findNesConsoleVariant(variant,
               modelsDirectory: root))!

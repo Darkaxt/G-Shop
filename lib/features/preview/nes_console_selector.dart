@@ -24,7 +24,8 @@ class _NesConsoleSelectorState extends State<NesConsoleSelector> {
     'famicom': 'Famicom HVC-001',
     'dendy': 'Dendy-compatible clone',
     'dendy-junior': 'Dendy Junior',
-    'subor-sb225': 'Subor SB-225'
+    'subor-sb225': 'Subor SB-225',
+    'subor-sb225b': 'Subor SB-225B keyboard'
   };
   String _selected = 'collection';
   late final _variants = Future.wait([

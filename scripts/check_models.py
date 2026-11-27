@@ -26,7 +26,7 @@ FIXED = [
     'consoles/nes', 'consoles/nes/variants/front-loader',
     'consoles/nes/variants/top-loader', 'consoles/nes/variants/famicom',
     'consoles/nes/variants/dendy', 'consoles/nes/variants/dendy-junior',
-    'consoles/nes/variants/subor-sb225',
+    'consoles/nes/variants/subor-sb225', 'consoles/nes/variants/subor-sb225b',
     'consoles/nes/launch/front-loader',
     'consoles/nes/launch/top-loader', 'consoles/nes/launch/display',
     'consoles/gameandwatch', 'consoles/gba', 'cartridges/gba',

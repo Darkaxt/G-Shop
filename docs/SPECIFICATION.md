@@ -15,6 +15,14 @@ the SB-225 is that top-loader in black plastic. scripts/make_subor_sb225_texture
 recolours the albedo atlas (cream to black with grime inverted to scuffs, saturated
 colours kept) and replaces the Dendy band with Subor's 'SUBOR SB-225 / VIDEO GAME
 SYSTEM' marking, after the owner's SB-225 box photo.
+A 'Subor SB-225B keyboard' variant (consoles/nes/variants/subor-sb225b) is an original
+photo-proportioned reconstruction of the 'Сюбор: обучение в игре' 2-in-1 keyboard
+computer from the Soviet Digital Electronics Museum photographs (n=227): 101 tapered
+keycaps on one legend atlas (black Cyrillic, red Latin), the raised ledge with the
+mascot, wordmark and 'RUSSIAN-ENGLISH COMPUTER LEARNING SET SB225-B' print, the slot
+with its white flap and an inserted yellow learning cartridge, the indicator panel
+and two cabled joysticks. scripts/make_subor_sb225b_textures.py redraws every print
+with light wear (no photo pixels); scripts/build_subor_sb225b.py builds the scene.
 Shells authored by scripts/build_nes_cartridge_models.py (including 'dendy-yellow')
 now carry the same Explode/Assemble assembly inspection as the supplied reference
 shells: covers apart, board lifted, 1.35 s, framed on the exploded envelope.

@@ -371,7 +371,8 @@ class ConsoleModel {
       'famicom',
       'dendy',
       'dendy-junior',
-      'subor-sb225'
+      'subor-sb225',
+      'subor-sb225b'
     }.contains(variant)) {
       throw const FormatException('Unknown NES console body');
     }
