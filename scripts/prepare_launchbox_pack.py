@@ -37,6 +37,7 @@ import requests
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import coverage_census as census_lib  # noqa: E402
 from prepare_packaging_resources import (  # noqa: E402
     REGIONS, normalize_role_image, owner_key, write_packaging_batches)
 from prepare_translation_pack import language, sticker  # noqa: E402
@@ -205,6 +206,8 @@ def main():
     for name in ('ledger', 'images', 'projection', 'store_db', 'cache', 'output'):
         parser.add_argument('--' + name.replace('_', '-'), dest=name, type=Path, required=True)
     parser.add_argument('--limit', type=int)
+    parser.add_argument('--store', type=Path, default=Path('D:/RShopPrivate/CatalogueStore'),
+                        help='store root holding the artwork bodies')
     parser.add_argument('--preview', type=Path, help='also write label cuts here for review')
     args = parser.parse_args()
     if args.output.exists():
@@ -225,10 +228,10 @@ def main():
             'library_query_editions WHERE platform_id=? AND member=1', (args.platform,)):
         if key:
             catalogue[json.loads(key)[-1]].append(edition)
-    store = sqlite3.connect(f'file:{args.store_db.as_posix()}?mode=ro', uri=True)
-    have = collections.defaultdict(set)
-    for edition, record in store.execute('SELECT edition_id, record_json FROM records'):
-        have[edition] |= {m['type'] for m in json.loads(record).get('media', [])}
+    # Roles the edition can show (a local body, as the census counts them); a
+    # recorded face whose image was never fetched or does not fit is not present.
+    _, usable, _ = census_lib.store_roles(args.store, args.store_db)
+    have = {edition: {role.split(':')[-1] for role in roles} for edition, roles in usable.items()}
 
     session = requests.Session()
     session.headers['User-Agent'] = 'G-Shop catalogue preparation'
