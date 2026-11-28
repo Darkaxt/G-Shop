@@ -25,7 +25,8 @@ order: 'fan' (translation/hack folders or [T-..]/[h..] tags), 'prerelease'
 (Beta/Proto/Demo/Sample/Kiosk/Debug/Program tags, excluded from short-term
 support), 'aftermarket' (Aftermarket/Homebrew tags or the iNES2 Aftermarket and
 Private folders), 'unlicensed' (Unl/Pirate) and otherwise 'official' (licensed
-retail, official rereleases, e-Reader and Multiboot). Per-class totals are
+retail, official rereleases, e-Reader and Multiboot); [BIOS] boot-ROM dumps are
+'system' (never sold, so they have no carton or label). Per-class totals are
 reported as class:<name>, and officialPercent is the headline figure. labelStandIn
 counts covered archives whose label is another printing of the same game
 (reconstruction=regionalPackaging) rather than their own.
@@ -59,8 +60,10 @@ PRERELEASE = re.compile(r'\b(?:Beta|Proto|Demo|Sample|Kiosk|Debug|Program)\b')
 
 
 def release_class(name):
-    """official / unlicensed / aftermarket / prerelease / fan, from tags and folder."""
+    """official / unlicensed / aftermarket / prerelease / fan / system, from tags and folder."""
     base = name.split('/')[-1]
+    if base.startswith('[BIOS]'):
+        return 'system'  # boot ROM dumps: never sold, so no carton or label exists
     top = name.split('/')[0] if '/' in name else ''
     words = {w.strip() for tag in re.findall(r'\(([^)]*)\)', base) for w in tag.split(',')}
     if top in FAN_FOLDERS or re.search(r'\[(?:T-|h\d*[^\]]*\])', base):
@@ -185,7 +188,7 @@ def census(store, roms, models, database=None, catalogue=None):
                 if not ok: gaps.append({'archive': name, 'bound': edition is not None, 'carton': carton, 'label': label, 'facts': fact})
             row['counted'] += ok
             klass = release_class(name)
-            if klass != 'prerelease' and (name.split('/')[0] in FACT_ONLY or system == 'gameandwatch'):
+            if klass not in ('prerelease', 'system') and (name.split('/')[0] in FACT_ONLY or system == 'gameandwatch'):
                 klass = 'official'
             if not ok: gaps[-1]['class'] = klass
             cls = row.setdefault(f'class:{klass}', collections.Counter())

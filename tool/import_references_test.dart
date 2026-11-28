@@ -53,30 +53,38 @@ void main() {
         final editionId = entry.key as String;
         final spec = entry.value as Map;
         final referenceId = spec['referenceEdition'] as String;
-        final types = {
-          for (final role in spec['roles'] as List) ...?roleTypes[role]
-        };
         final reference = await library.edition(referenceId);
-        // One provider supplies every face so the set stays one printing.
-        List<MetadataMedia> media = const [];
-        String? source;
-        for (final provider in ['packaging', 'launchbox', 'screenscraper']) {
-          final record = await library.metadata(referenceId, provider);
-          if (record == null || reference == null) continue;
-          final selected = MetadataArtworkCache.displayMedia(record,
-                  regions: reference.regions,
-                  includePhysicalLabel: true,
-                  includePackaging: true)
-              .where((m) => types.contains(m.type))
-              .toList();
-          if (selected.map((m) => m.type).toSet().length >
-              media.map((m) => m.type).toSet().length) {
-            media = selected;
-            source = provider;
+        // One provider supplies every face of a role (the carton stays one
+        // printing); the cartridge label is a separate object and may come
+        // from another provider.
+        final media = <MetadataMedia>[];
+        final sources = <String>[];
+        for (final role in spec['roles'] as List) {
+          final types = roleTypes[role] ?? const <String>{};
+          List<MetadataMedia> best = const [];
+          String? source;
+          for (final provider in ['packaging', 'launchbox', 'screenscraper']) {
+            final record = await library.metadata(referenceId, provider);
+            if (record == null || reference == null) continue;
+            final selected = MetadataArtworkCache.displayMedia(record,
+                    regions: reference.regions,
+                    includePhysicalLabel: true,
+                    includePackaging: true)
+                .where((m) => types.contains(m.type))
+                .toList();
+            if (selected.map((m) => m.type).toSet().length >
+                best.map((m) => m.type).toSet().length) {
+              best = selected;
+              source = provider;
+            }
           }
+          media.addAll(best);
+          if (source != null) sources.add('$role:$source');
         }
-        if (media.isEmpty) {
-          failed.add('$editionId: reference $referenceId has no such media');
+        final source = sources.join(',');
+        if (sources.length != (spec['roles'] as List).length) {
+          // A reference record is replaced whole: never drop a role silently.
+          failed.add('$editionId: reference $referenceId lacks a role ($source)');
           continue;
         }
         final rows = await db.rawQuery('''SELECT g.record_json AS game_json,
