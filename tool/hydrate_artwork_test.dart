@@ -125,11 +125,24 @@ Future<Map<String, Set<String>>> _missing(
   for (final edition in editions) {
     final packet = await store.cloudPackets(editionId: edition).single;
     final screenscraper = <String>{};
+    // A retail reference copies its donor's ScreenScraper media unchanged;
+    // the donor edition fetches them (bodies are shared by media key).
+    final donorOf = <String, String>{};
     for (final row in packet['records'] as List) {
-      if (row['provider_id'] != 'screenscraper') continue;
+      final provider = row['provider_id'];
+      if (provider != 'screenscraper' && provider != 'reference') continue;
       final record =
           MetadataRecord.fromJson(jsonDecode(row['record_json'] as String));
-      screenscraper.addAll(record.media.map(MetadataArtworkCache.key));
+      final donor = record.matchEvidence['referenceEditionId'];
+      for (final media in record.media) {
+        if (provider == 'reference' &&
+            (media.providerReference == null || donor is! String)) {
+          continue;
+        }
+        final key = MetadataArtworkCache.key(media);
+        screenscraper.add(key);
+        if (provider == 'reference') donorOf[key] = donor as String;
+      }
     }
     if (screenscraper.isEmpty) continue;
     final bodies = {
@@ -145,7 +158,7 @@ Future<Map<String, Set<String>>> _missing(
           await File(p.join(store.root.path, 'artwork', name)).exists()) {
         continue;
       }
-      result.putIfAbsent(edition, () => {}).add(key);
+      result.putIfAbsent(donorOf[key] ?? edition, () => {}).add(key);
     }
   }
   return result;
