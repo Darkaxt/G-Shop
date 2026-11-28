@@ -119,7 +119,8 @@ def main():
             if g.get('class') == args.klass and g.get('bound') and not (g.get('label') and g.get('carton'))]
     # Roles the edition already shows (local or published bodies), as the census counts them.
     published = census_lib.published_keys(args.catalogue, (args.platform,)) if args.catalogue else frozenset()
-    edition_of, have, _ = census_lib.store_roles(args.store, args.store_db, published)
+    shipped = census_lib.shipped_roles(args.catalogue, (args.platform,)) if args.catalogue else None
+    edition_of, have, _ = census_lib.store_roles(args.store, args.store_db, published, shipped)
 
     def have_role(edition, role):
         return role in have.get(edition, set()) or f'packaging:{role}' in have.get(edition, set())

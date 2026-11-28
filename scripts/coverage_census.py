@@ -8,7 +8,11 @@ run with 0 writes proves Drive matches it).
 Counted (GBA/NES): the archive's edition has a carton AND a standalone
 cartridge label texture (`support-texture`), each with an image body in the
 store or already published in the Drive catalogue (a published asset's
-`media_key`; the publisher carries those without a local body). A carton is either all six packaging outer-box faces or the
+`media_key`; the publisher carries those without a local body). With the
+catalogue, a role counts only when the edition's own published folder ships its
+file (box.png, box-back.png, box-spine.png, cartridge.png, outer-box-*.png): the
+app selects media per edition region, so another region's body in the store is
+not shown and does not count. A carton is either all six packaging outer-box faces or the
 flat front and back (`box-2D`, `box-2D-back`) from packaging or ScreenScraper,
 which the app's box renderer folds into the 3D carton (unboxing_preview.dart
 boxPanelPath). A missing spine/top/bottom renders as a plain generic face (owner
@@ -117,9 +121,37 @@ def published_keys(catalogue, platforms):
     return keys
 
 
-def store_roles(store, database=None, published=frozenset()):
+# Published file name -> the role it ships.
+SHIPPED_FILES = {'box.png': 'box-2D', 'box-back.png': 'box-2D-back', 'box-spine.png': 'box-2D-side',
+                 'cartridge.png': 'support-texture',
+                 **{f'outer-box-{f}.png': f'outer-box-{f}' for f in ('front', 'back', 'top', 'bottom', 'left', 'right')}}
+
+
+def shipped_roles(catalogue, platforms):
+    """edition id -> roles its published game folder ships (one metadata.json per
+    folder; bounded to the platform folders)."""
+    shipped = collections.defaultdict(set)
+    for platform in platforms:
+        root = Path(catalogue, platform)
+        if not root.is_dir():
+            continue
+        with os.scandir(root) as entries:
+            for e in entries:
+                m = Path(e.path, 'metadata.json')
+                if not (e.is_dir() and m.is_file()):
+                    continue
+                manifest = json.loads(m.read_text(encoding='utf-8'))
+                edition = manifest.get('edition')
+                edition = (json.loads(edition) if isinstance(edition, str) else edition or {}).get('id')
+                shipped[edition] |= {SHIPPED_FILES[a.get('remote_name')] for a in manifest.get('assets', [])
+                                     if a.get('remote_name') in SHIPPED_FILES}
+    return shipped
+
+
+def store_roles(store, database=None, published=frozenset(), shipped=None):
     """Roles with a local image body. Pass a copy of metadata.sqlite as `database`
-    while a store writer runs, so this reader cannot hold its lock."""
+    while a store writer runs, so this reader cannot hold its lock. With `shipped`
+    (shipped_roles), a publishable role counts only if the edition ships it."""
     db = sqlite3.connect(f'file:{Path(database or Path(store, "metadata.sqlite")).as_posix()}?mode=ro', uri=True)
     artwork = Path(store, 'artwork')
     local = {k for k, f in db.execute('SELECT media_key, filename FROM metadata_artwork_cache')
@@ -141,6 +173,11 @@ def store_roles(store, database=None, published=frozenset()):
         # Another printing's label/box stands in (reconstruction=regionalPackaging).
         roles[edition] |= {'standin:' + m['type'] for m in media
                            if (m.get('importReference') or {}).get('reconstruction') == 'regionalPackaging'}
+    if shipped is not None:
+        publishable = set(SHIPPED_FILES.values())
+        for edition, have in roles.items():
+            ships = shipped.get(edition, set())
+            roles[edition] = {r for r in have if r.split(':')[-1] not in publishable or r.split(':')[-1] in ships}
     db.close()
     return archive_edition, roles, facts
 
@@ -155,7 +192,8 @@ def gamewatch_releases(repo):
 
 def census(store, roms, models, database=None, catalogue=None):
     published = published_keys(catalogue, ('gba', 'nes')) if catalogue else set()
-    archive_edition, roles, facts = store_roles(store, database, published)
+    shipped = shipped_roles(catalogue, ('gba', 'nes')) if catalogue else None
+    archive_edition, roles, facts = store_roles(store, database, published, shipped)
     releases = gamewatch_releases(Path(__file__).resolve().parents[1])
     report = {'readOnly': True, 'rule': __doc__.split('\n\n')[2].replace('\n', ' '), 'systems': {}}
     for system, folder in FOLDERS.items():

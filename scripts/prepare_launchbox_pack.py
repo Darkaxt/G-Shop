@@ -70,16 +70,32 @@ FITS = {
 }
 
 
-def fitting_regions(archive):
-    """Regions of the first parenthesised group naming a known region."""
+WESTERN = {'USA', 'Canada', 'World', 'Europe', 'United Kingdom', 'Germany', 'France', 'Spain',
+           'Italy', 'Netherlands', 'Sweden', 'Scandinavia', 'Australia', 'Brazil'}
+# Another Western printing of the same game, marked as a regional stand-in, in the
+# order prepare_screenscraper_label_pack uses: pan-regional English first.
+STAND_INS = ['Europe', 'United Kingdom', 'World', 'North America', 'United States', 'Australia',
+             'Canada', 'Germany', 'France', 'Spain', 'Italy', 'The Netherlands', 'Sweden']
+
+
+def region_group(archive):
+    """Names of the first parenthesised group naming a known region."""
     for group in re.findall(r'\(([^()]+)\)', archive):
         names = [part.strip() for part in group.split(',')]
         if names[0] in FITS:
-            out = []
-            for name in names:
-                out += [r for r in FITS.get(name, []) if r not in out]
-            return [r for r in out if r in CODES]
+            return names
     return []
+
+
+def fitting_regions(archive):
+    """(exact, stand-in) LaunchBox regions for the archive's region group."""
+    names = region_group(archive)
+    out = []
+    for name in names:
+        out += [r for r in FITS.get(name, []) if r not in out]
+    exact = [r for r in out if r in CODES]
+    western = bool(names) and all(name in WESTERN for name in names)
+    return exact, [r for r in STAND_INS if western and r not in exact and r in CODES]
 
 
 def disk_label_crop(body):
@@ -242,6 +258,8 @@ def main():
     parser.add_argument('--store', type=Path, default=Path('D:/RShopPrivate/CatalogueStore'),
                         help='store root holding the artwork bodies')
     parser.add_argument('--preview', type=Path, help='also write label cuts here for review')
+    parser.add_argument('--catalogue', type=Path,
+                        help='published catalogue: a role counts as present only if the edition ships it')
     args = parser.parse_args()
     if args.output.exists():
         raise SystemExit(f'{args.output} exists')
@@ -263,7 +281,9 @@ def main():
             catalogue[json.loads(key)[-1]].append(edition)
     # Roles the edition can show (a local body, as the census counts them); a
     # recorded face whose image was never fetched or does not fit is not present.
-    _, usable, _ = census_lib.store_roles(args.store, args.store_db)
+    published = census_lib.published_keys(args.catalogue, (args.platform,)) if args.catalogue else frozenset()
+    shipped = census_lib.shipped_roles(args.catalogue, (args.platform,)) if args.catalogue else None
+    _, usable, _ = census_lib.store_roles(args.store, args.store_db, published, shipped)
     have = {edition: {role.split(':')[-1] for role in roles} for edition, roles in usable.items()}
 
     session = requests.Session()
@@ -313,7 +333,7 @@ def main():
             continue
         lb_game = lb['ids'][0]
         offered = images.get(lb_game, {})
-        fits = fitting_regions(archive)
+        fits, stand_ins = fitting_regions(archive)
         translated = archive.split('/')[0] in TRANSLATION_GROUPS
         present = have.get(edition_id, set())
         resources = []
@@ -332,9 +352,11 @@ def main():
                 reference['rotationDegrees'] = rotation
             if role == 'box-2D' and translated:
                 reference['overlay'] = 'translationSticker'
+            if region not in fits:
+                reference['reconstruction'] = 'regionalPackaging'
             resources.append({'type': role, 'importReference': reference})
 
-        box_region = next((r for r in fits if offered.get(('Box - Front', r))), None)
+        box_region = next((r for r in fits + stand_ins if offered.get(('Box - Front', r))), None)
         if box_region and not {'box-2D', 'box-2D-back'} <= present:
             for kind, role in FACES.items():
                 names = offered.get((kind, box_region))
@@ -353,7 +375,7 @@ def main():
         elif not box_region:
             report['noFittingBox'] += 1
         if LABEL not in present:
-            cart_region = next((r for r in fits if offered.get(('Cart - Front', r))), None)
+            cart_region = next((r for r in fits + stand_ins if offered.get(('Cart - Front', r))), None)
             if cart_region:
                 name = offered[('Cart - Front', cart_region)][0]
                 raw = fetch(name)

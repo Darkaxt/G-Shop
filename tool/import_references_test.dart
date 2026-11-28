@@ -7,6 +7,7 @@
 // `flutter test tool/import_references_test.dart`; see scripts/README.md.
 import 'dart:convert';
 import 'dart:io';
+import 'package:collection/collection.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -54,15 +55,16 @@ void main() {
         final spec = entry.value as Map;
         final referenceId = spec['referenceEdition'] as String;
         final reference = await library.edition(referenceId);
-        // One provider supplies every face of a role (the carton stays one
-        // printing); the cartridge label is a separate object and may come
-        // from another provider.
+        // The provider with the most faces of a role supplies them (the carton
+        // stays one printing where possible); faces it lacks come from the
+        // next providers, as the reference edition itself shows them. The
+        // cartridge label is a separate object and may come from another
+        // provider.
         final media = <MetadataMedia>[];
         final sources = <String>[];
         for (final role in spec['roles'] as List) {
           final types = roleTypes[role] ?? const <String>{};
-          List<MetadataMedia> best = const [];
-          String? source;
+          final offered = <String, List<MetadataMedia>>{};
           for (final provider in ['packaging', 'launchbox', 'screenscraper']) {
             final record = await library.metadata(referenceId, provider);
             if (record == null || reference == null) continue;
@@ -72,14 +74,28 @@ void main() {
                     includePackaging: true)
                 .where((m) => types.contains(m.type))
                 .toList();
-            if (selected.map((m) => m.type).toSet().length >
-                best.map((m) => m.type).toSet().length) {
-              best = selected;
-              source = provider;
-            }
+            if (selected.isNotEmpty) offered[provider] = selected;
           }
-          media.addAll(best);
-          if (source != null) sources.add('$role:$source');
+          final order = offered.keys.toList();
+          // Stable: equal face counts keep the provider priority order.
+          mergeSort(order,
+              compare: (a, b) => offered[b]!
+                  .map((m) => m.type)
+                  .toSet()
+                  .length
+                  .compareTo(offered[a]!.map((m) => m.type).toSet().length));
+          final covered = <String>{};
+          final used = <String>[];
+          for (final provider in order) {
+            final extra = offered[provider]!
+                .where((m) => !covered.contains(m.type))
+                .toList();
+            if (extra.isEmpty) continue;
+            media.addAll(extra);
+            covered.addAll(extra.map((m) => m.type));
+            used.add(provider);
+          }
+          if (used.isNotEmpty) sources.add('$role:${used.join('+')}');
         }
         final source = sources.join(',');
         if (sources.length != (spec['roles'] as List).length) {
