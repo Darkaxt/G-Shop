@@ -187,8 +187,36 @@ def label_crop(body):
     return [rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1]], out.getvalue()
 
 
-def cut_label(body, disk):
-    """Disk close-ups (opaque) read as disks first; anything else as a cartridge."""
+# The GBA label window as a fraction of the cartridge silhouette (x, y, w, h),
+# measured on ScreenScraper's 591x347 GBA cartridge template.
+GBA_CART_ASPECT = 591 / 347
+GBA_LABEL_WINDOW = (83 / 591, 82 / 347, 431 / 591, 221 / 347)
+
+
+def gba_window_label(body):
+    """The label window of a cut-out GBA cartridge photo, for art too close to the
+    plastic for label_crop; only when the silhouette has the GBA proportions."""
+    with Image.open(io.BytesIO(body)) as image:
+        image = image.convert('RGBA')
+    alpha = np.asarray(image.getchannel('A')) > 200
+    if alpha.all() or alpha.mean() < .2:
+        raise ValueError('not a cut-out cartridge')
+    ys, xs = np.nonzero(alpha)
+    top, bottom, left, right = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+    width, height = right - left, bottom - top
+    if abs(width / height / GBA_CART_ASPECT - 1) > .03:
+        raise ValueError(f'not a GBA cartridge silhouette ({width}x{height})')
+    fx, fy, fw, fh = GBA_LABEL_WINDOW
+    rect = (left + round(fx * width), top + round(fy * height),
+            left + round((fx + fw) * width), top + round((fy + fh) * height))
+    out = io.BytesIO()
+    image.crop(rect).convert('RGB').save(out, format='PNG')
+    return [int(v) for v in (rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1])], out.getvalue()
+
+
+def cut_label(body, disk, gba=False):
+    """Disk close-ups (opaque) read as disks first; anything else as a cartridge.
+    A GBA cartridge whose label cannot be found falls back to the fixed window."""
     if disk:
         with Image.open(io.BytesIO(body)) as image:
             opaque = image.convert('RGBA').getchannel('A').getextrema()[0] > 200
@@ -197,7 +225,12 @@ def cut_label(body, disk):
                 return disk_label_crop(body)
             except ValueError:
                 pass
-    return label_crop(body)
+    try:
+        return label_crop(body)
+    except ValueError:
+        if not gba:
+            raise
+        return gba_window_label(body)
 
 
 def main():
@@ -326,7 +359,7 @@ def main():
                 raw = fetch(name)
                 try:
                     disk = args.platform == 'nes' and archive.startswith('Disk System/')
-                    rect, cut = cut_label(raw, disk)
+                    rect, cut = cut_label(raw, disk, gba=args.platform == 'gba')
                     add(LABEL, name, cart_region, cut, panel=rect, original=raw)
                     report['labelCut'] += 1
                     if args.preview:
